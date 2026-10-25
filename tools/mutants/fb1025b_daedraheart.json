@@ -118,5 +118,125 @@
       "test/systems/questlines/fb1025b_daedraheart.test.js"
     ],
     "note": "AddItemQueue's drain: the queue never reaches the foe's items"
+  },
+  {
+    "name": "N0B00Y06-a-look-strikes-it",
+    "file": "src/systems/questlines/sheets/magesGuild.json",
+    "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"task\":\"_S.03_\"},{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old done: DFU's `clicked item` (`_S.03_`)"
+  },
+  {
+    "name": "N0B00Y06-the-wrappings-unread",
+    "file": "src/systems/questlines/sheets/magesGuild.json",
+    "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"task\":\"_reward_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the wrappings held never strike it"
+  },
+  {
+    "name": "N0B00Y06-the-hand-in-unread",
+    "file": "src/systems/questlines/sheets/magesGuild.json",
+    "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "a copy whose player never held them reads them untaken"
+  },
+  {
+    "name": "N0B00Y06-bring-opened-by-a-look",
+    "file": "src/systems/questlines/sheets/magesGuild.json",
+    "old": "to _qgiver_ in ___qgiver_\",\"open\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "new": "to _qgiver_ in ___qgiver_\",\"open\":{\"any\":[{\"task\":\"_S.03_\"},{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old open"
+  },
+  {
+    "name": "R0C20Y07-a-look-strikes-it",
+    "file": "src/systems/questlines/sheets/nobility.json",
+    "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
+    "new": "back from the giant in ___itemdung_\",\"done\":{\"task\":\"_pchasitem_\"}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old done: DFU's `clicked item` (`_pchasitem_`)"
+  },
+  {
+    "name": "R0C20Y07-the-sapphire-unread",
+    "file": "src/systems/questlines/sheets/nobility.json",
+    "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
+    "new": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"task\":\"_pcgetsgold_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the sapphire held never strikes it"
+  },
+  {
+    "name": "R0C20Y07-the-hand-in-unread",
+    "file": "src/systems/questlines/sheets/nobility.json",
+    "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
+    "new": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "a copy whose player never held it reads it untaken"
+  },
+  {
+    "name": "R0C20Y07-deliver-opened-by-a-look",
+    "file": "src/systems/questlines/sheets/nobility.json",
+    "old": "at __qgfriend_ in ___qgfriend_\",\"open\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
+    "new": "at __qgfriend_ in ___qgfriend_\",\"open\":{\"task\":\"_pchasitem_\"}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old open"
+  },
+  {
+    "name": "S0000503-a-look-strikes-it",
+    "file": "src/systems/questlines/sheets/mainQuest.json",
+    "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
+    "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"task\":\"_S.05_\"}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old done: DFU's `clicked item` (`_S.05_`)"
+  },
+  {
+    "name": "S0000503-the-item-unread",
+    "file": "src/systems/questlines/sheets/mainQuest.json",
+    "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
+    "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the item held never strikes it"
+  },
+  {
+    "name": "S0000503-the-hand-over-unread",
+    "file": "src/systems/questlines/sheets/mainQuest.json",
+    "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
+    "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.29_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "Baltham given it (`_S.28_`), a copy whose player never held it reads it unwon"
+  },
+  {
+    "name": "S0000503-the-keep-unread",
+    "file": "src/systems/questlines/sheets/mainQuest.json",
+    "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
+    "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "kept (`_S.29_`, made permanent), a copy whose player never held it reads it unwon"
   }
 ]

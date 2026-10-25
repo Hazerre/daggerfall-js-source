@@ -11,7 +11,7 @@
 //   - HEART-TAKEN: the journal strikes "take its heart" when the heart is the player's - never on DFU's `clicked item`,
 //     which a look at the row in a body's list fires (a menu closed unused, a take refused).
 //   - QUEST-MARK: the enhanced pack says which heart is the quest's, as DFU's green cell does.
-import { test } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -33,10 +33,10 @@ loadTables();
 const HEART = 53;   // ItemTemplates 53, CreatureIngredients1: Daedra's Heart (`Item _heart_ daedra_heart`)
 const isHeart = (it) => it?.group === 'CreatureIngredients1' && it.templateIndex === HEART;
 
-/** The quest started at its questor, over a pack the player carries. `world` is the quest's foe seam as the hosts wire
- *  it (mintQuestFoeWave + bindQuestFoeHost over a pool record, the bodies' items the entity's - questFoeHost.js);
+/** Quest `name` started at its questor, over a pack the player carries. `world` is the quest's foe seam as the hosts
+ *  wire it (mintQuestFoeWave + bindQuestFoeHost over a pool record, the bodies' items the entity's - questFoeHost.js);
  *  `carriesQuestItem` the pack's read of ItemCollection.Contains(Item), the exported law (keepsQuestItem over the pack). */
-function rig({ on = true } = {}) {
+function rig({ on = true, name = 'Q0C4XY04', factionId = 0 } = {}) {
   setPref(QUESTLINES_PREF, on);
   const pack = [];
   const rec = { asked: [], popups: [], rewards: [] };
@@ -74,12 +74,14 @@ function rig({ on = true } = {}) {
   });
   // the quest's dice at 5 in 100: every wave's `with X% success` passes (the waves' own law, not their luck - 0.9^7 of runs
   // would meet no seducer at all)
-  const quest = bridge.machine.startQuestByName('Q0C4XY04', 0, { rolls: () => 0.05 });
-  // the parse stands no world (its remote dungeon is a map's, no part of this pin); the foe seam is the quest's from here,
-  // and the player stands at `_mondung_` when the pin says so - `pc at _mondung_ set _exitstarter_` reads it every tick
+  const quest = bridge.machine.startQuestByName(name, factionId, { rolls: () => 0.05 });
+  // the parse stands no world (its remote sites are a map's, no part of this pin); the foe seam is the quest's from here,
+  // and the player stands at a Place when the pin says so (`at`) - `pc at _x_ set _task_` reads it every tick
   quest.hooks.world = world;
-  let here = false;
-  quest.getPlace({ name: 'mondung' }).isPlayerHere = () => here;
+  const at = new Set();
+  for (const res of quest.resources.values()) if (res.isPlace) res.isPlayerHere = () => at.has(res.symbol.name);
+  // `place foe` is the world's part (the site's marker): its foe is stood by `stand` below
+  for (const task of quest.tasks.values()) for (const a of task.actions) if (a.typeName === 'PlaceFoe') a.isComplete = true;
   const tick = (n = 1, dt = 60) => {
     for (let i = 0; i < n; i++) { now += dt; bridge.machine.tick(); for (const f of pool) f.questBehaviour?.update(); bridge.questlines.look(); }
   };
@@ -93,7 +95,18 @@ function rig({ on = true } = {}) {
     return null;
   };
   const objectives = () => Object.fromEntries((bridge.questlines.rowOf(quest)?.objectives ?? []).map((o) => [o.id, o.state]));
-  return { bridge, quest, pack, pool, rec, tick, take, getQuest, objectives, enter: () => { here = true; }, leave: () => { here = false; } };
+  /** A placed foe as the dungeon stands one at its marker (sceneMount.js addQuestFoe: a behaviour assigned, bound to the
+   *  pool record at the stand - its queue drained onto the body - and its injury rearmed). Answers the pool record. */
+  const stand = (foeName) => {
+    const foe = quest.getFoe({ name: foeName });
+    const [handle] = mintQuestFoeWave(bridge.machine, foe, 1);
+    world.tryPlaceFoe(handle);
+    foe.questResourceBehaviour = handle.behaviour;
+    foe.rearmInjured();
+    tick(1, 1);
+    return pool.at(-1);
+  };
+  return { bridge, quest, pack, pool, rec, tick, take, getQuest, objectives, stand, at, enter: () => { at.add('mondung'); }, leave: () => { at.clear(); } };
 }
 
 /** In the dungeon until a wave of each of the four has come, the first fire daedra hurt (`_S.06_`), and the heart given. */
@@ -249,4 +262,80 @@ test('FIELD BUGS 2026-10-25b QUEST-MARK: the enhanced pack says which heart is t
     assert.equal(plainLines.some((l) => /Quest item/.test(l)), false, 'a plain heart\'s card names none');
     view.unmount();
   });
+});
+
+// ---- HEART-TAKEN's siblings: the same lie in three more sheets - a line struck on DFU's `clicked item` of an item a
+// foe's body holds. Each is struck now by the quest's item held, or by the task its script sets once the item is handed
+// in or used (a party copy's resync carries that task, as `_qlask_` is Q0C4XY04's).
+const SIBLINGS = [
+  {
+    name: 'N0B00Y06', item: 'wrappings', look: 'S.03', line: 'wrappings', next: 'bring', handIn: 'reward',
+    // `injured _mummy_` then `give item _wrappings_ to _mummy_` (`_S.04_`); handed in by `toting _wrappings_ and _qgiver_ clicked`
+    reach: (r) => { r.at.add('mondung'); const f = r.stand('mummy'); f.entity.health = 30; r.tick(4, 1); return f; },
+    handInNow: (r) => { r.at.clear(); r.tick(2); r.quest.getPerson({ name: 'qgiver' }).setPlayerClicked(); r.tick(4, 1); },
+  },
+  {
+    name: 'R0C20Y07', item: 'item', look: 'pchasitem', line: 'find', next: 'deliver', handIn: 'pcgetsgold',
+    // the start-up's `give item _item_ to _giant_`; handed in by `toting _item_ and _qgfriend_ clicked`
+    reach: (r) => { r.at.add('itemdung'); return r.stand('giant'); },
+    handInNow: (r) => { r.at.clear(); r.tick(2); r.quest.getPerson({ name: 'qgfriend' }).setPlayerClicked(); r.tick(4, 1); },
+  },
+  {
+    name: 'S0000503', item: 'item', look: 'S.05', line: 'hoard', next: null, handIn: 'S.28', also: ['S.29'],
+    // the menu's look alone: headless its `magic_item` is the parse's MAGIC.DEF stand-in (quest/item.js), which weighs
+    // nothing - and a weightless piece always fits (CanCarryAmount), so no pack refuses it here
+    looks: ['menu'],
+    // the start-up's `give item _item_ to _guardian_`; the key held (`_S.16_`'s `have _key_ set _S.25_`, or `_S.24_` puts the
+    // player out of the vault); its hand-in is the way out: `_S.30_` (`when _S.05_ and not _S.16_`) asks, Yes is `_S.28_`
+    // (`take _item_ from pc`), No `_S.29_` (`make _item_ permanent`)
+    reach: (r) => { r.pack.push({ ...r.quest.getItem({ name: 'key' }).daggerfallUnityItem }); r.at.add('itemdung'); r.tick(2, 1); return r.stand('guardian'); },
+    handInNow: (r) => { r.at.clear(); r.tick(4, 1); },
+  },
+];
+
+describe('FIELD BUGS 2026-10-25b HEART-TAKEN, its siblings: a press that takes nothing strikes nothing, a take strikes, a hand-in keeps it struck', () => {
+  for (const s of SIBLINGS) {
+    const own = (r) => r.quest.getItem({ name: s.item });
+    const onBody = (f, r) => f.entity.items.find((it) => it.questItem && it.questUID === r.quest.uid && it.questSymbol?.name === s.item);
+    test(`${s.name} ${s.line}: ${s.looks ? 'a menu closed unused fires' : 'a take refused and a menu closed unused fire'} \`clicked item\` and strike nothing; the take strikes it, and the hand-in leaves it struck`, () => {
+      for (const look of s.looks ?? ['refused', 'menu']) {
+        const r = rig({ on: true, name: s.name });
+        const f = s.reach(r);
+        f.entity.health = 0;
+        r.tick(2, 1);
+        const it = onBody(f, r);
+        assert.ok(it, `${s.name}: the body holds the quest's ${s.item}`);
+        const me = r.bridge.machine.deps.playerEntity, strength = me.stats.strength;
+        if (look === 'refused') {
+          me.stats.strength = 0;   // a pack that cannot carry it: the window's own refusal, after the quest's click
+          assert.equal(r.take(f, it)?.reason, 'cannotCarry');
+          me.stats.strength = strength;
+        } else sendQuestItemClick(it, r.getQuest);   // the right click's menu, closed unused
+        r.tick(2, 1);
+        assert.equal(r.quest.getTask({ name: s.look }).getTriggerValue(), true, `${s.name} ${look}: DFU's click fired`);
+        assert.ok(f.entity.items.includes(it), `${s.name} ${look}: on the body still`);
+        assert.notEqual(r.objectives()[s.line], 'done', `${s.name} ${look}: not taken`);
+        if (s.next) assert.equal(r.objectives()[s.next], undefined, `${s.name} ${look}: nothing to bring`);
+        if (look === 'menu' && !s.looks) continue;
+        assert.equal(r.take(f, it), null);
+        r.tick(1, 1);
+        assert.equal(r.objectives()[s.line], 'done', `${s.name}: taken`);
+        if (s.next) assert.equal(r.objectives()[s.next], 'open', `${s.name}: and to bring`);
+        s.handInNow(r);
+        assert.equal(r.quest.getTask({ name: s.handIn }).getTriggerValue(), true, `${s.name}: handed in (\`_${s.handIn}_\`)`);
+        assert.equal(keepsQuestItem({ items: r.pack }, own(r)), false, `${s.name}: the item is the player's no more`);
+        assert.equal(r.objectives()[s.line], 'done', `${s.name}: still struck`);
+      }
+    });
+    test(`${s.name} ${s.line}: a copy whose player never held the item reads it taken at its hand-in (a party's resync carries the task)`, () => {
+      for (const task of [s.handIn, ...(s.also ?? [])]) {
+        const r = rig({ on: true, name: s.name });
+        r.tick(2, 1);
+        assert.notEqual(r.objectives()[s.line], 'done');
+        r.quest.getTask({ name: task }).start();
+        r.tick(1, 1);
+        assert.equal(r.objectives()[s.line], 'done', `${s.name}: \`_${task}_\``);
+      }
+    });
+  }
 });
