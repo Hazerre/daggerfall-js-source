@@ -47,12 +47,12 @@
 // The pages draw with the menu's own kit (its `el`, divider and meter,
 // handed in), so they are the sheet's pages and not a second window.
 // ═══════════════════════════════════════════════════════════════════
-import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS } from '../../net/bagLaw.js';   // BAG1: what a character carries
+import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, LOOSE_ORIGIN } from '../../net/bagLaw.js';   // BAG1: what a character carries; CLOTH-GEMS: a station's loose units, spent first
 import {
   PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN,
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
-  WEAVE_RECIPES, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,
+  WEAVE_RECIPES, SPIN_RECIPES, LINEN, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,   // CLOTH-GEMS: the loom's Linen and Wool
   MASON_RECIPES, MASON_FEE, workOpen,   // PROF11: the mason's bench
   JEWEL_FEE,   // PROF10: the jeweller's bench
   ALCHEMY_FEE, ENCHANT_FEE, TRANSMUTE_RECIPES, TRANSMUTER, APOTHECARY_STOCK,   // PROF12: the alchemy and enchanting stations
@@ -76,6 +76,7 @@ import {
   JEWELCRAFTING_RECIPES, JEWEL_PIECES, jewelBases, jewelHand, jewelPointsPct, jewelPoints, takesCracked, masterworkSpec, facetCount,
   facetWindow, LAPIDARY, JEWEL_HAND_GOLDSMITH, JEWEL_HAND_GEMCUTTER, gemWord,   // PROF10: the jeweller's pieces and the facet
   recipeById,   // AUDIT PROF12 E2: a disenchant's XP is its piece's recipe's tier
+  counterMade,   // CLOTH-GEMS: the recipes AUDIT 32 S1 judges by their units
   patternsOf,   // CRAFT2: a station lists its patterns, the material chosen from what is held
 } from '../../net/recipeLaw.js';
 import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
@@ -574,15 +575,17 @@ const alchemyHow = () => t('prof.page.how.alchemy', ALCHEMY_HOW);
  *   (recipeLaw SMITH_RECIPES) and from raw ore its chain's smelts (net/chainLaw.js chainPlan, CRAFT1); the workbench's
  *   saws (SAW_RECIPES) and its staves, bows, arrows and furniture (CARPENTRY_RECIPES); the mason's cut and mix
  *   (MASON_RECIPES - Rough Stone, quarried); the loom's cures (CURE_RECIPES - hides, skinned) and its pieces
- *   (OUTFITTING_RECIPES), its Linen and Wool bought, never made (COUNTER_ONLY; WEAVERS_STOCK, at a Clothing Store's loom
- *   and the Market tab - and Linen at a furnisher's counter too, FURNISHER_STOCK: AUDIT FB1018D L1-9); a dish's meat, fish, herbs and Basket's food (recipeLaw DISHES), into the pack.
+ *   (OUTFITTING_RECIPES), its Linen woven from Root Tendrils and its Wool spun from furs (CLOTH-GEMS: WEAVE_RECIPES,
+ *   SPIN_RECIPES) or bought (COUNTER_ONLY; WEAVERS_STOCK, at a Clothing Store's loom and the Market tab - and Linen at a
+ *   furnisher's counter too, FURNISHER_STOCK: AUDIT FB1018D L1-9), the first-time bonus only the made cloth's (AUDIT 32
+ *   S1, judged by the units); a dish's meat, fish, herbs and Basket's food (recipeLaw DISHES), into the pack.
  * - XP: a smelt's (smeltXp) and a piece's (craftXp), a mason's work's (masonXp), a dish's (cookXp) and a brew's, each on
  *   its craft's track (trackOf); a saw and a cure none (`xp: null`).
  */
 export const CRAFT_HOW = Object.freeze({
   smithing: () => t('prof.page.how.smithing', 'Smithing is done at a forge: a Weaponsmith\'s, an Armorer\'s or one in your own home. Open the Stores page there (Holdings > Stores). The Forge smelts the ore you mine into ingots, and the Anvil makes weapons, armor and tools from them, or from raw ore by smelting it first. Jewelry is made at a jeweler\'s bench: a Pawn Shop\'s, a Gem Store\'s or one in your own home. Smelting and every piece you make earn Smithing experience.'),
   building: () => t('prof.page.how.building', 'Carpentry is done at a workbench: a Furniture Store\'s, a joinery\'s or one in your own home; Masonry at a mason\'s bench: a General Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The workbench saws the logs you fell into planks and makes staves, bows, arrows and furniture; the mason\'s bench cuts the stone you quarry and mixes Mortar. Every piece, cut and mix earns Building experience; sawing earns none.'),
-  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, and the loom makes leather armor, clothing, rugs, tapestries and the Fishing-Net. Linen and Wool are bought from the Weavers, at a Clothing Store\'s loom or a Notice Board\'s Market. Every piece earns Outfitting experience; curing earns none.'),
+  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but only cloth you make yourself earns a first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
   provisioning: () => t('prof.page.how.cooking', 'Cook at any lit fire, such as a campfire, a hearth or a brazier: stand close to its flame and open the Stores page (Holdings > Stores). Dishes are made from the meat you skin, the fish you net, herbs and the food a Basket finds, and go to your pack. Brewing and cooking both earn Provisioning experience.'),   // beside ALCHEMY_HOW: Provisioning's cooking (CRAFT3)
 });
 /** PROF12: how Enchanting is practised, and what its rank takes off the item maker's gold. */
@@ -618,6 +621,15 @@ export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).le
  *  craftXpCap of the same ranks), and the Firmament's percent on its XP (FIRM1: the stars in force; the service scales by
  *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
 export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: xpPct(firmamentStats(), trackOf(id)) });
+/** CLOTH-GEMS (AUDIT 32 S1, judged by the units - bible/06-Systems/Professions-Arc.md 50): WHETHER A CRAFT OF `r` WOULD
+ *  SPEND THE CHARACTER'S OWN UNITS ALONE, as the book reads them. A station spends loose units first, then bought ones
+ *  (bagLaw STATION_ORIGINS), so none of either may stand in the Stores, nor a bought one among what the bag and the pack
+ *  carry counted (a station's shortfall puts those in before the own ones). What the pack holds past the service's count
+ *  goes in loose, after the counted - the service's decision is the word, and its answer says it (`firstPaid`). */
+export const ownSpend = (book, r) => !!r && r.inputs.every((/** @type {{ key: string }} */ i) => {
+  const s = book?.store?.(i.key) ?? {};
+  return !((s.bought | 0) > 0) && !((s[LOOSE_ORIGIN] | 0) > 0) && !((book?.carried?.(i.key)?.bought | 0) > 0);
+});
 
 /**
  * THE PROFESSIONS PAGE.
@@ -1892,6 +1904,11 @@ function drawLoom(detail, rerender, { el, divider }) {
   else detail.append(el('p', 'px-note', t('prof.page.loom.noHides', 'Two hides cure into one leather here (one hide for a Tanner). Hides come from skinning bodies you kill (Hunting).')));
   const weaves = WEAVE_RECIPES.filter((r) => workOf(book, r.inputs[0].key) > 0);
   if (weaves.length) workRows(detail, rerender, el, weaves, _loom, t('prof.page.loom.weave', 'Weave'), t('prof.page.loom.weaving', 'Weaving...'), (id, n) => p.smelt(id, n), short, sewing);
+  // CLOTH-GEMS: furs spun to Wool (SPIN_RECIPES) - and, where the Stores and the pack hold no goods for either, where the
+  // loom's Linen and Wool come from
+  const spins = SPIN_RECIPES.filter((r) => workOf(book, r.inputs[0].key) > 0);
+  if (spins.length) workRows(detail, rerender, el, spins, _loom, t('prof.page.loom.spin', 'Spin'), t('prof.page.loom.spinning', 'Spinning...'), (id, n) => p.smelt(id, n), short, sewing);
+  if (!spins.length && !weaves.some((r) => r.out === LINEN.key)) detail.append(el('p', 'px-note', t('prof.page.loom.noCloth', 'Two Root Tendrils weave into a Linen Bolt here, and two furs - a Rat, Wolf or Tiger Pelt, a Boar or Bear Hide - spin into a Wool Bolt. Root Tendrils grow in the mountain woods, the haunted woods and the swamps.')));
   const held = (k) => workOf(book, k);
   const fams = el('div', 'prof-families');
   for (const [id, word] of LOOM_FAMILIES) {
@@ -1968,8 +1985,9 @@ function drawLoom(detail, rerender, { el, divider }) {
         : specs[50] === 'leatherworker' && r.family === 'leather' ? t('prof.page.loom.oddsLeather', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality. Being a Leatherworker raises leather one more.', a)
           : t('prof.page.loom.odds', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality.', a)));
     }
-    // CRAFT-FIRST-SHOWN: its XP and its first's - or, wholly the Weavers' cloth, that it lays on none (AUDIT 32 S1)
-    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'))));   // CRAFT-LIMIT-SAID
+    // CRAFT-FIRST-SHOWN: its XP and its first's - CLOTH-GEMS: wholly of cloth, its first the made cloth's alone (AUDIT 32
+    // S1, judged by the units: ownSpend)
+    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))));   // CRAFT-LIMIT-SAID
     const gentle = getPref('gentleActs') === true;
     const dye = r.kind === 'garment' && r.dyes === true ? _loom.dye : null;
     const elsewhere = handsAt(_loom);   // AUDIT 32 P2
@@ -2887,8 +2905,13 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
   // CRAFT-LIMIT-SAID: each piece's XP as the service credits it (the Firmament's percent on disenchantXp, under the room the
   // track has left), and the limit's line once where it holds one of them under what it earns
   const pay = craftPayOf(book, 'enchanting');
-  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points)), { pct: pay.pct }))));
+  // CLOTH-GEMS: a piece made wholly of cloth gives its XP only where its maker's own cloth made it and it was never sold
+  // (alchemyLaw disenchantXp's `own`, the piece's bought_with on the service) - the station cannot see that, so it says the
+  // figure such a piece gives and, once, the rule
+  const ownXp = (/** @type {any} */ pc) => disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points), true);
+  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct }))));
   if (capped) detail.append(el('p', 'px-note', capped));
+  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if its maker wove or spun that cloth and it was never sold.')));
   for (const pc of pieces) {
     // DISENCHANT-SAID (the owner: "List them greyed with the reason"): a piece under one Essence - greyed, its reason, its
     // Disenchant never pressed (the service would refuse it: prof-no-essence)
@@ -2903,7 +2926,7 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
     }
     const row = el('div', 'prof-smelt');
     const base = essenceOf(pc.points);
-    const gives = { points: pc.points, essence: pc.essence, xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), pay) };
+    const gives = { points: pc.points, essence: pc.essence, xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), pay) };   // CLOTH-GEMS: an own piece's (the rule said above)
     row.append(el('b', null, pc.name), el('span', 'prof-split', specs[50] === DISENCHANTER
       ? t('prof.page.enchant.givesTwo', '{points, number} points: {essence} Arcane Essence, +{xp} Enchanting experience (two for a Disenchanter)', gives)
       : t('prof.page.enchant.gives', '{points, number} points: {essence} Arcane Essence, +{xp} Enchanting experience', gives)));

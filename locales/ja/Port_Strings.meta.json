@@ -11719,6 +11719,11 @@
   "tr": "fb3a3ef67179",
   "by": "claude-in-session"
  },
+ "prof.craft.xpFirstBought": {
+  "en": "09224e528df1",
+  "tr": "07d032fcb044",
+  "by": "claude-in-session"
+ },
  "prof.page.act.strike": {
   "en": "f9ae58aa354c",
   "tr": "7944b4cc6625",
@@ -12034,6 +12039,16 @@
   "tr": "29b2bf5ad2e6",
   "by": "claude-in-session"
  },
+ "prof.page.craft.xpBought": {
+  "en": "796b3cae733a",
+  "tr": "69602c964b96",
+  "by": "claude-in-session"
+ },
+ "prof.page.craft.xpFirstOwn": {
+  "en": "0cd6f1e210c1",
+  "tr": "47e35426f9ed",
+  "by": "claude-in-session"
+ },
  "prof.page.crafting": {
   "en": "ea78b34da11f",
   "tr": "53c6bc4ef78b",
@@ -12107,6 +12122,11 @@
  "prof.page.enchant.busy": {
   "en": "c83efca902b0",
   "tr": "962715f65027",
+  "by": "claude-in-session"
+ },
+ "prof.page.enchant.cloth": {
+  "en": "5e3a1c7c87e4",
+  "tr": "f951d76fd1e8",
   "by": "claude-in-session"
  },
  "prof.page.enchant.full": {
@@ -12404,6 +12424,11 @@
   "tr": "23bd72d696f9",
   "by": "claude-in-session"
  },
+ "prof.page.how.outfitting": {
+  "en": "ac56dd54d5ac",
+  "tr": "6a1609cacc7b",
+  "by": "claude-in-session"
+ },
  "prof.page.jewel": {
   "en": "3507f8ef6054",
   "tr": "3df85b101252",
@@ -12564,6 +12589,11 @@
   "tr": "015e9ddd2208",
   "by": "claude-in-session"
  },
+ "prof.page.loom.noCloth": {
+  "en": "e58a492fe6a1",
+  "tr": "cf399edd40d7",
+  "by": "claude-in-session"
+ },
  "prof.page.loom.noHides": {
   "en": "9a88556636db",
   "tr": "1ef0d617dd60",
@@ -12597,6 +12627,16 @@
  "prof.page.loom.silk": {
   "en": "8f2ac3b46758",
   "tr": "b31ff3c48ba9",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spin": {
+  "en": "4a6c11ab8104",
+  "tr": "89cc1b7d0246",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spinning": {
+  "en": "78136208d2fe",
+  "tr": "3f03db2eff72",
   "by": "claude-in-session"
  },
  "prof.page.loom.stitch": {

@@ -52,8 +52,9 @@ async function stand() {
   const balance = (who) => Number(raw.prepare('SELECT balance FROM marks WHERE account = ?').get(who.id)?.balance ?? 0);
   const product = (p) => raw.prepare('SELECT * FROM products WHERE provenance = ?').get(p) ?? null;
   /** a piece made through the real craft route */
-  const craft = async (who, recipe) => {
-    for (const { key, n } of recipeById(recipe).inputs) give(who, key, 'own', n + (raw.prepare("SELECT qty FROM prof_stores WHERE player = ? AND char_id = ? AND material = ? AND origin = 'own'").get(who.id, who.character, key)?.qty ?? 0));
+  // CLOTH-GEMS: `origin` the inputs' - own, as a gatherer's; bought, as the counter's (AUDIT 32 S1 judged by the units)
+  const craft = async (who, recipe, origin = 'own') => {
+    for (const { key, n } of recipeById(recipe).inputs) give(who, key, origin, n + (raw.prepare('SELECT qty FROM prof_stores WHERE player = ? AND char_id = ? AND material = ? AND origin = ?').get(who.id, who.character, key, origin)?.qty ?? 0));
     const r = await s.call('/v1/prof/craft', { character: who.character, recipe, clean: false, name: 'Silverthorn', rid: rid() }, who.secret);
     assert.equal(r.status, 200, JSON.stringify(r.body));
     return r.body.pieces[0].provenance;
@@ -333,10 +334,14 @@ test('AUDIT PROF12 E2 service: a disenchant\'s Enchanting XP is the PIECE\'s tie
   const b = await s.disenchant(mac, await s.craft(mac, 'ring:silver'));
   assert.deepEqual([b.body.essence, b.body.xp], [a.body.essence, Math.floor((5 * 1 * a.body.essence) / 4)], 'rank 40 works tier 4: a tier-1 piece quartered');
   s.setXp(mac, 'enchanting', 0);
-  const robes = await s.disenchant(mac, await s.craft(mac, 'garment-163:linen'));
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): the counter's Linen is BOUGHT - the robes made of it are bought too (B7), and
+  // give Essence, bought, never Enchanting; robes of the character's own Linen (woven at the loom) are the gatherer's work
+  const robes = await s.disenchant(mac, await s.craft(mac, 'garment-163:linen', 'bought'));
   assert.equal(robes.status, 200, JSON.stringify(robes.body));
   assert.deepEqual([robes.body.essence, robes.body.xp, s.xpOf(mac, 'enchanting')], [7, 0, 0], 'the counter\'s Linen buys Essence, never Enchanting');
-  assert.deepEqual(s.stores(mac, 'essence:arcane'), [['own', 2 * a.body.essence + 7]]);
+  assert.deepEqual(s.stores(mac, 'essence:arcane'), [['bought', 7], ['own', 2 * a.body.essence]]);
+  const own = await s.disenchant(mac, await s.craft(mac, 'garment-163:linen'));
+  assert.deepEqual([own.body.essence, own.body.xp, s.xpOf(mac, 'enchanting')], [7, 5 * 1 * 7, 35], 'the loom\'s own Linen: its tier-1 piece\'s XP');
 });
 
 test('AUDIT PROF12 A1 service: the unbruised count never outlives its herbs - a withdrawal to the pack, a dish\'s craft and a market listing each clamp it to the own units left, so a later bruised herb is never reckoned unbruised; a brew still reckons and spends its own', async () => {

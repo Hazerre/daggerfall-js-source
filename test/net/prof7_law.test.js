@@ -192,7 +192,9 @@ test('PROF7 law: the loom cures two hides to a leather (a Tanner\'s two a unit -
     ['cure:scorpion', 'leather:hardened', '2 hide:scorpion', 'loom', 1, 'tanner', 2, 50, null], ['cure:slaughterfish', 'leather:hardened', '2 hide:slaughterfish', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:dreugh', 'leather:hardened', '2 hide:dreugh', 'loom', 1, 'tanner', 2, 50, null], ['cure:dragonling', 'leather:hardened', '2 hide:dragonling', 'loom', 1, 'tanner', 2, 50, null],
   ]);
-  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null]]);
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): and Linen woven of two Root Tendrils, either land's (test/net/clothgems_law.test.js)
+  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null],
+    ['weave:linen-north', 'cloth:linen', '2 p1:12', 'loom', 1, null, null], ['weave:linen-south', 'cloth:linen', '2 p2:12', 'loom', 1, null, null]]);
   assert.deepEqual([workPer(smeltRecipe('cure:bear'), { hunting: 'tanner' }), workPer(smeltRecipe('cure:bear'), { hunting: 'tracker' }), workPer(smeltRecipe('cure:bear'))], [2, 1, 1]);
   assert.deepEqual([workSpecRank(smeltRecipe('saw:oak')), workSpecRank(smeltRecipe('ingot:iron')), workSpecRank(smeltRecipe('weave:silk'))], [100, 100, 100], 'the rest read at 100');
   assert.ok(WORK_RECIPES.includes(smeltRecipe('cure:dreugh')));

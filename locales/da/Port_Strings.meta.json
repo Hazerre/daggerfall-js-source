@@ -25039,9 +25039,9 @@
   "tr": "ea9c7f6c50d3",
   "by": "claude-in-session"
  },
- "prof.craft.xpFirstShop": {
-  "en": "e41aca473780",
-  "tr": "b63d91ebad1f",
+ "prof.craft.xpFirstBought": {
+  "en": "09224e528df1",
+  "tr": "c050f71ceef6",
   "by": "claude-in-session"
  },
  "prof.craft.xpLimit": {
@@ -25464,19 +25464,24 @@
   "tr": "80dba2639d97",
   "by": "claude-in-session"
  },
+ "prof.page.craft.xpBought": {
+  "en": "796b3cae733a",
+  "tr": "f102dfe0f821",
+  "by": "claude-in-session"
+ },
  "prof.page.craft.xpFirst": {
   "en": "7fe5e67b17b7",
   "tr": "704b1848864c",
   "by": "claude-in-session"
  },
+ "prof.page.craft.xpFirstOwn": {
+  "en": "0cd6f1e210c1",
+  "tr": "5e4d3cd97ccb",
+  "by": "claude-in-session"
+ },
  "prof.page.craft.xpLimit": {
   "en": "e7f736d90d49",
   "tr": "f3ffe6852bd2",
-  "by": "claude-in-session"
- },
- "prof.page.craft.xpShop": {
-  "en": "654c643224b7",
-  "tr": "4b646de1a208",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpTop": {
@@ -25557,6 +25562,11 @@
  "prof.page.enchant.busy": {
   "en": "c83efca902b0",
   "tr": "970847f08f5d",
+  "by": "claude-in-session"
+ },
+ "prof.page.enchant.cloth": {
+  "en": "5e3a1c7c87e4",
+  "tr": "bcd8b2b6ccaa",
   "by": "claude-in-session"
  },
  "prof.page.enchant.full": {
@@ -25880,8 +25890,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.outfitting": {
-  "en": "1d9ee717c202",
-  "tr": "e9cb3c4c1d8d",
+  "en": "ac56dd54d5ac",
+  "tr": "56b7dd04e182",
   "by": "claude-in-session"
  },
  "prof.page.how.smithing": {
@@ -26054,6 +26064,11 @@
   "tr": "c63c6e16d81f",
   "by": "claude-in-session"
  },
+ "prof.page.loom.noCloth": {
+  "en": "e58a492fe6a1",
+  "tr": "23711e2627fd",
+  "by": "claude-in-session"
+ },
  "prof.page.loom.noHides": {
   "en": "9a88556636db",
   "tr": "91055c973aec",
@@ -26087,6 +26102,16 @@
  "prof.page.loom.silk": {
   "en": "8f2ac3b46758",
   "tr": "6ca2fde95fc1",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spin": {
+  "en": "4a6c11ab8104",
+  "tr": "ac3286768731",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spinning": {
+  "en": "78136208d2fe",
+  "tr": "abc41a17b059",
   "by": "claude-in-session"
  },
  "prof.page.loom.stitch": {

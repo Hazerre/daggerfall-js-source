@@ -560,9 +560,10 @@ export const BEAR_HIDE = HIDES[2];
 /** The leathers (4.4: 665, 666): Cured the cure of tiers 1-3, their middle, tier 2; Hardened of tiers 4-6, tier 5. */
 export const CURED_LEATHER = made('leather:cured', 'hides', 2, 665, 'Cured Leather', ICON_GARMENT, null);
 export const HARDENED_LEATHER = made('leather:hardened', 'hides', 5, 666, 'Hardened Leather', ICON_GARMENT, null);
-/** The cloth (4.5, 668-671), each its step (9.3: Linen 1, Wool 2, Silk 4, Standard-bearer's Silk 5). Linen and Wool are
- *  never gathered - the Weavers' counter sells them; a Silk Bolt is woven from Spider Silk; Standard-bearer's Silk is a
- *  Siege Honour's Spoils (4.7). */
+/** The cloth (4.5, 668-671), each its step (9.3: Linen 1, Wool 2, Silk 4, Standard-bearer's Silk 5). Linen and Wool the
+ *  Weavers' counter sells, and CLOTH-GEMS (Professions-Arc 4.5, 50) the loom makes of the world's goods: Linen woven from
+ *  Root Tendrils, Wool spun from a fur (WEAVE_RECIPES, SPIN_RECIPES); a Silk Bolt is woven from Spider Silk;
+ *  Standard-bearer's Silk is a Siege Honour's Spoils (4.7). */
 export const LINEN = made('cloth:linen', 'hides', 1, 668, 'Linen Bolt', ICON_GARMENT, null);
 export const WOOL = made('cloth:wool', 'hides', 2, 669, 'Wool Bolt', ICON_GARMENT, null);
 export const SILK = made('cloth:silk', 'hides', 4, 670, 'Silk Bolt', ICON_GARMENT, null);
@@ -728,7 +729,8 @@ export const SMITH_STOCK = Object.freeze([CURED_LEATHER, OAK_PLANK, PINE_PLANK, 
  *  Weavers' counter stands on the Market tab (PROF5). */
 export const FURNISHER_STOCK = Object.freeze([LINEN].map(stock('furnisher')));
 /** PROF5 (PROF0 26): the Weavers' counter on the Market tab (4.5) - Linen Bolt 2 and Wool Bolt 3 Marks a bolt, 4.5's own
- *  prices (twice the value would make Wool 4). Linen at the furnisher's stock the same 2, so the counters never part. */
+ *  prices (twice the value would make Wool 4). Linen at the furnisher's stock the same 2, so the counters never part.
+ *  CLOTH-GEMS: it stands beside the loom's own (WEAVE_RECIPES, SPIN_RECIPES) - bought, never own. */
 export const WEAVERS_STOCK = Object.freeze([
   Object.freeze({ key: LINEN.key, marks: 2, counter: 'weavers' }), Object.freeze({ key: WOOL.key, marks: 3, counter: 'weavers' }),
 ]);
@@ -736,10 +738,12 @@ export const WEAVERS_STOCK = Object.freeze([
  *  (REAGENTS' `value`), straight into the Stores, bought, never own: a Marks sink, never a purse-gold purchase. Without it
  *  the brewing act could make none of the twenty potions. */
 export const APOTHECARY_STOCK = Object.freeze(REAGENTS.map((r) => Object.freeze({ key: r.key, marks: /** @type {number} */ (r.value), counter: 'apothecaries' })));
-/** AUDIT 32 S1 (Mac, 2026-09-30: "Whatever you think is best"): the goods ONLY a counter sells - 4.5's Linen and Wool,
- *  never gathered. A recipe made wholly of them earns its craft's XP and no first-craft bonus (recipeLaw firstCraftPays).
- *  The smith's stock is not among them: every one of its goods is gathered too. A counter that sells what nothing
- *  gathers adds its goods here. */
+/** AUDIT 32 S1 (Mac, 2026-09-30: "Whatever you think is best"): THE GOODS A COUNTER SELLS WITHOUT END that S1 judges - 4.5's
+ *  Linen and Wool, and the Apothecaries' sixteen, never gathered. A recipe made wholly of them earns its craft's XP, and its
+ *  first-craft bonus only where its units are the character's own (recipeLaw firstCraftPays) - CLOTH-GEMS: the loom makes
+ *  Linen and Wool of the world's goods now (WEAVE_RECIPES, SPIN_RECIPES), and S1 judges the units, never the material:
+ *  the character's own cloth pays, the counter's (bought) never does. The smith's stock is not among them: every one of
+ *  its goods is gathered too. A counter that sells what nothing gathers adds its goods here. */
 export const COUNTER_ONLY = Object.freeze([LINEN.key, WOOL.key, ...REAGENTS.map((r) => r.key)]);   // PROF12: the Apothecaries' sixteen, never gathered
 /** Every counter's goods. The service cannot see a counter (as it cannot see the forge): it sells any of them wherever
  *  it is asked, and the client asks at the counter's shop - a lie buys the same goods at the same price. */
@@ -931,7 +935,30 @@ export const SAW_RECIPES = Object.freeze(LOGS.map((l) => recipe(`saw:${woodOf(l.
  *  Wolf Pelt or a Boar Hide. */
 export const CURE_RECIPES = Object.freeze(HIDES.filter((h) => h.cures).sort((a, b) => a.tier - b.tier || Number(a === BEAR_HIDE) - Number(b === BEAR_HIDE)).map((h) => recipe(`cure:${h.key.slice('hide:'.length)}`, /** @type {string} */ (h.cures), [[h.key, 2]],
   { station: 'loom', more: Object.freeze({ profession: 'hunting', spec: 'tanner', per: 2, rank: 50 }), xp: null })));
-export const WEAVE_RECIPES = Object.freeze([recipe('weave:silk', SILK.key, [['hide:spider', 3]], { station: 'loom', xp: null })]);
+/**
+ * CLOTH-GEMS (2026-10-25; the player SaberGGaming's "Profession oversights", the owner: "No band aids" and, of Linen and
+ * Wool, craft them - Professions-Arc 4.5, 50): THE CLOTH THE LOOM MAKES. Daggerfall grows no flax and keeps no sheep, so
+ * its own goods stand in, each Hunting's or Herbalism's already (a Ledger A departure - Daggerfall weaves nothing):
+ * - LINEN is woven from ROOT TENDRILS (`LINEN_FIBRE`, DFU's template 12 - the one fibrous plant of both of DFU's plant
+ *   groups, so a recipe a land, the arrows' Twigs' law), a common herb of the MountainWoods, the HauntedWoodlands and the
+ *   Swamp (nodeLaw HERB_TABLES), and one the winter keeps: `LINEN_IN` a bolt.
+ * - WOOL is spun from a FUR (`WOOL_FURS`): the Rat Pelt, the Wolf Pelt, the Boar Hide, the Bear Hide and the Tiger Pelt -
+ *   recipeLaw PELTS' furs less the Bat Leather, a wing's skin no fleece grows on - `SPIN_IN` a bolt, a hide's cure's two
+ *   (4.4). Cheapest first, the Bear Hide last of its tier (it is the Ram Kit's - AUDIT FB1021 L2-1's law for the cures);
+ *   the Tiger Pelt a tier above the Wool it spins, a press the player makes, never a chain's (chainLaw never trades down).
+ * No XP, as a cure and the Silk's weave give none: the herb's and the hide's were their gathering's. A bolt is own where
+ * its goods were (smeltOrigin), and AUDIT 32 S1 reads that: a piece of the loom's own cloth pays its first-make 500, one
+ * of the counter's never does (recipeLaw firstCraftPays).
+ */
+export const LINEN_FIBRE = 12;
+export const LINEN_IN = 2;
+export const WOOL_FURS = Object.freeze(['hide:rat', 'hide:wolf', 'hide:boar', 'hide:bear', 'hide:tiger']);
+export const SPIN_IN = 2;
+export const WEAVE_RECIPES = Object.freeze([
+  recipe('weave:silk', SILK.key, [['hide:spider', 3]], { station: 'loom', xp: null }),
+  ...Object.keys(PLANT_GROUPS).map((g) => recipe(`weave:linen-${g === 'p1' ? 'north' : 'south'}`, LINEN.key, [[`${g}:${LINEN_FIBRE}`, LINEN_IN]], { station: 'loom', xp: null })),
+]);
+export const SPIN_RECIPES = Object.freeze(WOOL_FURS.map((k) => recipe(`spin:${k.slice('hide:'.length)}`, WOOL.key, [[k, SPIN_IN]], { station: 'loom', xp: null })));
 /** PROF11 (PROF0 4.5): Mortar a mix makes - "ten at a time". */
 export const MORTAR_BATCH = 10;
 /** PROF11 (3.3): the Quarryman's cut - "Rough Stone cuts 1:1, not 2:1" - a choice at 50: a unit of the cut is two Rough
@@ -979,7 +1006,7 @@ export const TRANSMUTE_RECIPES = Object.freeze(TRANSMUTE_LADDER.slice(0, -1).map
 export const workSpecOk = (r, specs) => !r?.spec || specs?.[r.spec.rank] === r.spec.id;
 /** Every work of the forge, the workbench and the loom - PROF11: and the mason's bench; PROF12: and the alchemy station's
  *  transmutations - by its id. */
-export const WORK_RECIPES = Object.freeze([...SMELT_RECIPES, ...BURN_RECIPES, ...SAW_RECIPES, ...CURE_RECIPES, ...WEAVE_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]);
+export const WORK_RECIPES = Object.freeze([...SMELT_RECIPES, ...BURN_RECIPES, ...SAW_RECIPES, ...CURE_RECIPES, ...WEAVE_RECIPES, ...SPIN_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]);   // CLOTH-GEMS: the loom's Linen and Wool
 export const smeltRecipe = (id) => WORK_RECIPES.find((r) => r.id === id) ?? null;
 /** PROF11: whether a rank may do a work - a mason's asks its tier's rank (masonWork); every other work asks none. */
 export const workOpen = (r, rank) => !!r && rank >= (r.rank ?? 0);

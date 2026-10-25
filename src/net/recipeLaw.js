@@ -719,14 +719,26 @@ export function craftXp(tier, rank, first) {
   return (tier < topTierOf(rank) - 2 ? Math.floor(xp / 4) : xp) + (first ? FIRST_CRAFT_XP : 0);
 }
 /**
- * AUDIT 32 S1 (Mac: "Whatever you think is best"): whether a recipe's first craft lays on FIRST_CRAFT_XP - not for a
- * recipe made wholly of goods only a counter sells (professionLaw COUNTER_ONLY, the Weavers' Linen and Wool). 3.2's +500
- * rewards a recipe learnt from the world's goods; the counter's supply has no end, and its 152 recipes (144 garments,
- * the rugs and tapestries, the Fishing-Net) bought a fresh character Outfitting 87 for 811 Marks and no hide. A boot (a bolt and a
- * Cured Leather) and every other recipe keep it - a gatherer's own leather and planks earn what 3.2 promised them.
+ * AUDIT 32 S1 (Mac: "Whatever you think is best"): THE RECIPES S1 JUDGES - those made wholly of the goods a counter sells
+ * without end (professionLaw COUNTER_ONLY: the Weavers' Linen and Wool). 3.2's +500 rewards a recipe learnt from the
+ * world's goods; the counter's supply has no end, and its 152 recipes (144 garments, the rugs and tapestries, the
+ * Fishing-Net) bought a fresh character Outfitting 87 for 811 Marks and no hide. A boot (a bolt and a Cured Leather) and
+ * every other recipe are never judged - a gatherer's own leather and planks earn what 3.2 promised them.
  * @param {Recipe|null} r
  */
-export const firstCraftPays = (r) => !!r && !(r.inputs.length > 0 && r.inputs.every((i) => COUNTER_ONLY.includes(i.key)));
+export const counterMade = (r) => !!r && r.inputs.length > 0 && r.inputs.every((i) => COUNTER_ONLY.includes(i.key));
+/**
+ * AUDIT 32 S1, JUDGED BY THE UNITS (CLOTH-GEMS, 2026-10-25; the player SaberGGaming's "Profession oversights", the owner:
+ * "No band aids"): whether a craft's first lays on FIRST_CRAFT_XP - every recipe's, but one S1 judges (counterMade) only
+ * where `own`: the craft's units are the character's own, no bought and no loose one among them - the piece's own origin,
+ * AUDIT PROF-541 B7's (`products.bought_with` none), which the service reads in its decision
+ * (server-account/src/professions.js craftAtAnvil). Linen and Wool were the counter's alone, so S1 withheld the 500 from
+ * every recipe of them and 152 of the loom's 332 first-make keys could never pay; the loom weaves and spins them now
+ * (professionLaw WEAVE_RECIPES, SPIN_RECIPES), so the character's own cloth pays and the Weavers' cloth - bought - never
+ * does. Unasked (`own` false), a judged recipe pays none: a station that cannot see the units says the rule.
+ * @param {Recipe|null} r @param {boolean} [own]
+ */
+export const firstCraftPays = (r, own = false) => !!r && (!counterMade(r) || own === true);
 /**
  * CRAFT2 (Professions-Arc 41.2, Mac: "Lets do it"): WHAT A FIRST CRAFT IS COUNTED BY - its PATTERN AT ITS TIER
  * (`longsword@6`): the first Adamantium, Ebony, Orcish or Warforged Longsword is the first of tier 6, whichever is made, and
