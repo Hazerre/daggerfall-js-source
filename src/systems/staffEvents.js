@@ -14,7 +14,7 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, clearSince?: number }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, clearSince?: number, clearWait?: Set<any> }} StaffRaid
  *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
  *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced;
@@ -122,15 +122,6 @@ export function staffBossWanted(r) {
   const led = _ledgers.get(r.staff.id);
   if (!led || !led.bd || led.bu || led.bk) return -1;
   return r.bossFc === led.fc ? -1 : led.fc;
-}
-/**
- * BOSS-CLEAR (mob 2026-10-25: "make sure all those mob are dead not spawned befor the bosss"): is a boss due or standing -
- * no monster is stood while one is - and is the call due a hand's (staff's Spawn mini boss now, at once) rather than the
- * meter's (once every monster standing is dead)? @param {StaffRaid} r
- */
-export function staffBossBusy(r) {
-  const led = _ledgers.get(r.staff.id);
-  return !!led && !!led.bd && !led.bk;
 }
 /** @param {StaffRaid} r */
 export const staffBossByHand = (r) => (r.staff.fb ?? 0) > (r.handSeen ?? 0);
