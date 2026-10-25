@@ -41,6 +41,9 @@
 // STAFF-MAP (2026-10-24, mob: "also need the map done as well cant see players far"; net/staffMap.js). Two more, no version
 // bump, as STAFF-VIEW1's:
 //   { dfoStaff: 'regions?' }                       -> { dfoStaff: 'regions', names } - the politic map's region names, in order
+// STAFF-EVENT (net/staffPlaces.js): the Events page's place picker - `places?` a region's named places, `here?` where I stand
+//   { dfoStaff: 'places?', region }                -> { dfoStaff: 'places', region, name, list }
+//   { dfoStaff: 'here?' }                          -> { dfoStaff: 'here', region, name, loc, place, px, py }
 //   { dfoStaff: 'map?', region }                   watch that region (an index into names), or stop (null); the game answers
 //                                                  { dfoStaff: 'map', region, name, state, list: [{ id, sub, name, px, py,
 //                                                  way, road, ageS }] } on each change, at most once a STAFF_MAP_SEND_MS -
@@ -50,6 +53,7 @@ import { SOCIAL_ROOM, cellRoomOfWire, isCellRoom, isChatRoom, isSocialRoom } fro
 import { ID_RE, TOKEN_MAX_CHARS } from './identityToken.js';
 import { noteRoom } from './staffFollow.js';
 import { notePlace } from './staffTeleport.js';
+import { staffPlaces, staffHere } from './staffPlaces.js';   // STAFF-EVENT: the Events page's place picker
 
 /** The hook's version - the panel reads it and refuses a build it does not know. */
 export const STAFF_HOOK_VERSION = 1;
@@ -229,8 +233,9 @@ export function validTags(m) {
  *  `panel()`, whether a panel has spoken on this page (a /tp follows on only then - with no panel no token comes, and its
  *  links would knock for nothing). Messages from another window or origin are not the panel's.
  *  STAFF-MAP: and `map?` and `regions?` for the region map (`mapOf()`, net/staffMap.js), whose answers go out by `post`.
- *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout, relink?: (() => void) | null, now?: () => number, mapOf?: () => any }} [t] */
-export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout, relink = null, now = () => Date.now(), mapOf = () => null } = {}) {
+ *  STAFF-EVENT: and `places?` and `here?` for the Events page, off `placesOf()` - the game's maps and my map pixel.
+ *  @param {any} win @param {() => any} hookOf @param {{ setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout, relink?: (() => void) | null, now?: () => number, mapOf?: () => any, placesOf?: () => any }} [t] */
+export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer = clearTimeout, relink = null, now = () => Date.now(), mapOf = () => null, placesOf = () => null } = {}) {
   /** @type {Map<string, (tok: string|null) => void>} */
   const waiting = new Map();
   let seen = false;
@@ -253,6 +258,8 @@ export function staffHookDoor(win, hookOf, { setTimer = setTimeout, clearTimer =
     else if (m.dfoStaff === 'tags') tags = validTags(m) ?? tags;   // STAFF-VIEW1: an answer with no list keeps the last
     else if (m.dfoStaff === 'map?') { seen = true; mapOf()?.pick(m.region); }   // STAFF-MAP: a region to watch, or null
     else if (m.dfoStaff === 'regions?') post({ dfoStaff: 'regions', names: mapOf()?.regions() ?? [] });
+    else if (m.dfoStaff === 'places?') post(staffPlaces(placesOf()?.maps, m.region));   // STAFF-EVENT: a region's places
+    else if (m.dfoStaff === 'here?') post(staffHere(placesOf()?.maps, placesOf()?.pixel ?? null));   // STAFF-EVENT: where I stand
   });
   /** @param {string} sub @param {string} room @returns {Promise<string|null>} */
   const askToken = (sub, room) => new Promise((resolve) => {
