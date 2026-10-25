@@ -399,7 +399,7 @@ import { egStartPanelDoors } from '../ui/eliteGates/egStartPanel.js';   // EG-PL
 import { egRecapsKept } from '../ui/eliteGates/egHud.js';   // AUDIT EG V (c, L7-19): the last runs this device kept, on the boards' own tab
 import { registerEgFind, egFindThrow } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find
 import { setSetPowersAllies, setSpireRecovery, spireRedoubtTaken } from '../systems/sigil/sigilSetPowers.js';   // EG15: the Reprieve's allies, the death saves held to a Redoubt in a breach
-import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks
+import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale, brokerOwedDoor, wardrobeHolds, sinkHolds, brokerOwedText } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks   // EMBERS-OWED: a sale unheard, settled at the next open
 import { drawGateBanner } from '../ui/gate/gateBanner.js';
 import { drawGateGround } from '../ui/gate/gateGroundView.js';   // WB9d: his ground's rim and warning - hidden with a held frame (the court draws it); SD15: and the Hour's
 import { drawGateDamageChart } from '../ui/gate/gateDamageChart.js';   // GATE-UX: the kill's damage chart (the court draws it - scenes/gate/gateCourt.js); a held frame hides it with the rest
@@ -25297,12 +25297,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  one is the account card's own door (equipTitle, equipAura), and my own name and feet show it at once - the room
    *  sees it from the next hello the token signs (AURA-LIVE: said again at once - auraFrame's online.rehello). */
   let _insignia = { loaded: false, busy: false, held: [], title: null, aura: null };
+  const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById);   // EMBERS-OWED (FB1024): a sale unheard is owed, never refunded blind - settled as her window opens
   const insigniaIo = () => { const st = appStorage(); const ses = storedSession(st); return ses ? { fetch: (u, i) => globalThis.fetch(u, i), base: serviceBase(st), secret: ses.secret } : null; };
   const insigniaAdopt = (w) => { if (w && typeof w === 'object') _insignia = { ..._insignia, loaded: true, held: Array.isArray(w.insignia) ? w.insignia : _insignia.held, title: w.title ?? null, aura: w.aura ?? null }; };
   async function insigniaLoad() {
     const io = insigniaIo();
     if (!io) { _insignia = { ..._insignia, loaded: true, held: [], title: null, aura: null }; return; }
-    try { const r = await readAccount(io); if (r.ok) insigniaAdopt(r.data?.wardrobe); } catch { /* the rows say they cannot tell */ }
+    try { const r = await brokerOwed.insignia(readAccount, io); if (r.ok) insigniaAdopt(r.data?.wardrobe); } catch { /* the rows say they cannot tell */ }   // EMBERS-OWED: a sale unheard settled first
   }
   /** The rows the window draws: each offer, its word, whether the account owns and wears it. */
   const insigniaRows = () => INSIGNIA.map((o) => ({
@@ -25331,9 +25332,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // answer asked after), and a held sale saved at once - PROF-SAVE's door (systems/sigil/sigilBroker.js insigniaSale)
       const r = await insigniaSale(offer, {
         items: playerEntity.items, buy: (id) => buyInsignia(io, id), save: () => saveSoon.changed(),
-        held: async (id) => { const a = await readAccount(io); const w = a.ok ? a.data?.wardrobe : null; return Array.isArray(w?.insignia) && w.insignia.includes(id) ? w : null; },
+        held: async (id) => wardrobeHolds(await readAccount(io), id),   // EMBERS-OWED: false where the account answered without it
       });
-      if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(offer.price)}.` : r.error === 'short' ? accountRefusalText('short') : accountRefusalText(r.error) };
+      if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(offer.price)}.` : r.error === 'unheard' ? brokerOwedText() : r.error === 'short' ? accountRefusalText('short') : accountRefusalText(r.error) };
       insigniaAdopt(r.data);
       audio.playOneShot(SOUND.GoldPieces, 1);
       surfacePlayer();
@@ -25376,7 +25377,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let _panoplySink = null;
   const panoplyDeps = {
     rows: () => panoplyRows(_panoplySink),
-    load: async () => { try { const a = await _accountEg.keys(); if (a?.ok) _panoplySink = a.data?.sink ?? null; } catch { /* the window says what it held */ } },
+    load: async () => { try { const a = await brokerOwed.panoply(_accountEg.keys); if (a?.ok) _panoplySink = a.data?.sink ?? null; } catch { /* the window says what it held */ } },   // EMBERS-OWED: a sale unheard settled first
     busy: () => _insignia.busy,
     buy: async (id) => {
       if (_insignia.busy) return { ok: false, text: 'The Broker is busy.' };
@@ -25385,9 +25386,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         playerEntity.items = playerEntity.items || [];
         const r = await panoplySale(id, {
           items: playerEntity.items, buy: (p) => _accountEg.sink(p), mint: (p) => panoplyPieceById(p), save: () => saveSoon.changed(),
-          held: async (p) => { const a = await _accountEg.keys(); return a?.ok && a.data?.sink?.piece === p ? a.data.sink : null; },
+          held: async (p) => sinkHolds(await _accountEg.keys(), p), week: _panoplySink?.week ?? null,   // EMBERS-OWED: false where the service answered without it; the week owed against
         });
-        if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(EG_SINK_EMBERS)}.` : accountRefusalText(r.error) };
+        if (!r.ok) return { ok: false, text: r.error === 'stones' ? `You need ${stonesText(EG_SINK_EMBERS)}.` : r.error === 'unheard' ? brokerOwedText() : accountRefusalText(r.error) };
         _panoplySink = { week: r.data?.week ?? _panoplySink?.week ?? null, piece: id };
         audio.playOneShot(SOUND.GoldPieces, 1);
         surfacePlayer();

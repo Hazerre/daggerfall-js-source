@@ -48,7 +48,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { arenaWeekOf, arenaSeasonOf, arenaSeasonEndsS, ARENA_SEASON_S } from '../../src/net/arena/arenaLaw.js';
-import { egValkRedoubt, egSpoilsPasses, egPanoplyHit, egEmbersOf, egSpoilsSeed, EG_PANOPLY_PITY, EG_VALK_KEY_ODDS, EG_SINK_EMBERS, EG_PANOPLY_IDS } from '../../src/net/eliteGates/egPay.js';
+import { egValkRedoubt, egSpoilsPasses, egPanoplyHit, egEmbersOf, egSpoilsSeed, EG_PANOPLY_PITY, EG_VALK_KEY_ODDS, EG_SINK_EMBERS, EG_PANOPLY_IDS, EG_SINK_RECENT_WEEKS } from '../../src/net/eliteGates/egPay.js';
 import { egStrikeStatement, egStrikeAnswer, deedStatements, deedEvent, deedAnswer } from './marks.js';
 import { EMBERS_EARNED_SQL } from './accounts.js';
 
@@ -183,14 +183,18 @@ export async function egReliquariesOf({ db, nowS }, player, c) {
 }
 
 /**
- * THE WEEK'S SINK - `{ week, piece }`: this arena week, and the Panoply piece the account bought from the Broker in it
- * (null: none yet). `/v1/eg/keys` carries it, so a client whose sale's answer was lost asks whether it holds.
+ * THE WEEK'S SINK - `{ week, piece, recent }`: this arena week, the Panoply piece the account bought from the Broker in it
+ * (null: none yet), and `recent` - the weeks before it, back to EG_SINK_RECENT_WEEKS in all, each sale `{ week, piece }`
+ * newest first. `/v1/eg/keys` carries it, so a client whose sale's answer was lost asks whether it holds - and, EMBERS-OWED
+ * (FB1024), one that could not ask then asks on a later week (systems/sigil/sigilBroker.js settleOwedPanoply).
  * @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player
  */
 export async function egSinkOf({ db, nowS }, player) {
   const week = arenaWeekOf(nowS);
-  const r = await db.prepare('SELECT piece FROM eg_sink WHERE account = ?1 AND wk = ?2').bind(player.id, week).first();
-  return { week, piece: typeof r?.piece === 'string' ? r.piece : null };
+  const { results } = await db.prepare('SELECT wk, piece FROM eg_sink WHERE account = ?1 AND wk <= ?2 AND wk > ?2 - ?3 ORDER BY wk DESC')
+    .bind(player.id, week, EG_SINK_RECENT_WEEKS).all();
+  const rows = (results ?? []).filter((r) => typeof r?.piece === 'string').map((r) => ({ week: int(r.wk), piece: r.piece }));
+  return { week, piece: rows.find((r) => r.week === week)?.piece ?? null, recent: rows.filter((r) => r.week !== week) };
 }
 
 /**

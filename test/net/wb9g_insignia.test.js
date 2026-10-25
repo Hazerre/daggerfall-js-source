@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { INSIGNIA, INSIGNIA_COLUMN_MAX, insigniaById, insigniaVocabularyOk, insigniaHeld, insigniaWith, insigniaKeys, insigniaRefusal } from '../../src/net/insignia.js';
 import { TITLES, GLYPHS, AURAS, claimsValid, mintToken, verifyToken } from '../../src/net/identityToken.js';
 import { badged, readAura } from '../../src/net/wire.js';
-import { BROKER_PRICES, spendStones, spendableStonesIn, stoneCount, insigniaSale, insigniaUnheard, makeBrokerSale, brokerStock, BROKER_REFUSALS } from '../../src/systems/sigil/sigilBroker.js';
+import { BROKER_PRICES, spendStones, spendableStonesIn, stoneCount, insigniaSale, insigniaUnheard, makeBrokerSale, brokerStock, BROKER_REFUSALS, brokerOwed, _resetOwed } from '../../src/systems/sigil/sigilBroker.js';
 import { sigilStone } from '../../src/systems/gate/gateSpoils.js';
 import { setLocked } from '../../src/systems/item/itemLock.js';
 import { TITLE_TEXT, AURA_TEXT, TITLE_GRADIENT, TITLE_EDGE, badgeCss } from '../../src/ui/playerBadge.js';
@@ -671,7 +671,7 @@ test('WB9g the world host, by source: the auras gathered with the peers each fra
   // the audit's pins below) - the pack's price held first, given back unless the service holds the sale, a lost answer
   // asked after, a held sale saved at once
   assert.match(buy, /const r = await insigniaSale\(offer, \{\n        items: playerEntity\.items, buy: \(id\) => buyInsignia\(io, id\), save: \(\) => saveSoon\.changed\(\),/);
-  assert.match(buy, /held: async \(id\) => \{ const a = await readAccount\(io\); const w = a\.ok \? a\.data\?\.wardrobe : null; return Array\.isArray\(w\?\.insignia\) && w\.insignia\.includes\(id\) \? w : null; \},/);
+  assert.match(buy, /held: async \(id\) => wardrobeHolds\(await readAccount\(io\), id\),/);   // PIN MOVED (EMBERS-OWED): the account's answer read by the module's one law (false: answered without it)
   assert.ok(!/spendStones/.test(buy), 'the pack paid through the sale alone, never beside it');
   assert.ok(buy.indexOf('if (!r.ok) return') > buy.indexOf('await insigniaSale('), 'a refused sale adopts nothing');
   const wear = w.slice(w.indexOf('async function insigniaWear(offer) {'), w.indexOf('const openBroker = () => {'));
@@ -717,12 +717,17 @@ test('AUDIT WB9 insignia F1/F2 - the sale\'s two halves (systems/sigil/sigilBrok
     r = await insigniaSale(OFFER, { items: pack, save, held: async (id) => ({ insignia: [id] }), buy: async () => lost });
     assert.deepEqual([r.ok, r.data?.insignia, count(pack), saved], [true, ['title:gatebreaker'], 5, 1], `${lost.error}: held - the sale`);
   }
-  // lost and not held, or not heard either (and a throw is a lost answer): the stones back
+  // lost and not held (the account answered without it; a throw is a lost answer): the stones back
+  pack = [stack(35)]; saved = 0;
+  r = await insigniaSale(OFFER, { items: pack, save, held: async () => false, buy: async () => { throw new Error('reset'); } });
+  assert.deepEqual([r, count(pack), saved], [{ ok: false, error: 'offline' }, 35, 0]);
+  // PIN MOVED (EMBERS-OWED, FB1024): not heard either - OWED, never given back blind (test/systems/fb1024_embersowed.test.js)
   for (const held of [async () => null, async () => { throw new Error('offline'); }]) {
-    pack = [stack(35)]; saved = 0;
+    _resetOwed(); pack = [stack(35)]; saved = 0;
     r = await insigniaSale(OFFER, { items: pack, save, held, buy: async () => { throw new Error('reset'); } });
-    assert.deepEqual([r, count(pack), saved], [{ ok: false, error: 'offline' }, 35, 0]);
+    assert.deepEqual([r, count(pack), saved, brokerOwed().length], [{ ok: false, error: 'unheard' }, 5, 1, 1]);
   }
+  _resetOwed();
   // a pack short of the price: the service never asked
   pack = [stack(29)];
   let asked = 0;

@@ -8,7 +8,7 @@ import '../../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { panoplySale, stoneCount, spendableStonesIn, brokerStock } from '../../../src/systems/sigil/sigilBroker.js';
+import { panoplySale, stoneCount, spendableStonesIn, brokerStock, brokerOwed, _resetOwed } from '../../../src/systems/sigil/sigilBroker.js';
 import { sigilStone } from '../../../src/systems/gate/gateSpoils.js';
 import { REGALIA, mintAetheric } from '../../../src/systems/aetheric.js';
 import { EG_SINK_EMBERS, EG_PANOPLY_IDS } from '../../../src/net/eliteGates/egPay.js';
@@ -47,12 +47,17 @@ test('EG-E1 THE PANOPLY SALE, BOTH HALVES (systems/sigil/sigilBroker.js panoplyS
     r = await panoplySale(piece, { items: pack, save, mint: minted, held: async (id) => (id === piece ? { week: 30, piece } : null), buy: async () => lost });
     assert.deepEqual([r.ok, count(pack), saved, pack.includes(r.item)], [true, 0, 1, true], `${lost.error}: held - the sale`);
   }
-  // lost and not held, or not heard either: the embers back
+  // lost and not held (the service answered without it): the embers back
+  pack = [stack(20)]; saved = 0;
+  r = await panoplySale(piece, { items: pack, save, mint: minted, held: async () => false, buy: async () => { throw new Error('reset'); } });
+  assert.deepEqual([r, count(pack), saved], [{ ok: false, error: 'offline' }, 20, 0]);
+  // PIN MOVED (EMBERS-OWED, FB1024): not heard either - OWED, never given back blind (test/systems/fb1024_embersowed.test.js)
   for (const held of [async () => null, async () => { throw new Error('offline'); }]) {
-    pack = [stack(20)]; saved = 0;
+    _resetOwed(); pack = [stack(20)]; saved = 0;
     r = await panoplySale(piece, { items: pack, save, mint: minted, held, buy: async () => { throw new Error('reset'); } });
-    assert.deepEqual([r, count(pack), saved], [{ ok: false, error: 'offline' }, 20, 0]);
+    assert.deepEqual([r, count(pack), saved, brokerOwed().length], [{ ok: false, error: 'unheard' }, 0, 1, 1]);
   }
+  _resetOwed();
   // nothing asked: a short pack, a piece not the Panoply's, a piece the host cannot mint
   let calls = 0;
   const buy = async () => { calls++; return { ok: true }; };

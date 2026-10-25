@@ -61,7 +61,11 @@ export class IntroTheme {
   constructor({ makeContext, makePlayer = (context, destination, send) => new SongPlayer(context, destination, send), song = introThemeSong, subscribe = onSettingChange, now = () => performance.now() } = {}) {
     this.makeContext = makeContext ?? (() => {
       const Ctor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
-      return Ctor ? new Ctor({ latencyHint: 'interactive' }) : null;
+      // THEME-BUFFER (FB1024, #bug-reports: "Audio cutting out ... menu music"): this context plays the score alone - no
+      // click or blow waits on it - so it takes the browser's largest buffer, and a slow audio thread (the theme's ~385
+      // voices at peak, or a headset's driver chain - SteelSeries Sonar) has time to fill it. The film reads the audible
+      // clock (audibleContextTime), so the longer output latency moves no frame against the score.
+      return Ctor ? new Ctor({ latencyHint: 'playback' }) : null;
     });
     this.makePlayer = makePlayer;
     this.makeSong = song;

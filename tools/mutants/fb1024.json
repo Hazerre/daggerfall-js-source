@@ -25,5 +25,224 @@
   "tests": [
    "test/systems/fb1024_darkregen.test.js"
   ]
+ },
+ {
+  "name": "OWED1-panoply-refunded-blind",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    else if (h !== false && _owed.length < OWED_MAX) {",
+  "new": "    else if (false) {",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js",
+   "test/systems/eliteGates/egeco_broker.test.js"
+  ]
+ },
+ {
+  "name": "OWED1-insignia-refunded-blind",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    else if (w !== false && _owed.length < OWED_MAX) return oweSale(",
+  "new": "    else if (false) return oweSale(",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js",
+   "test/net/wb9g_insignia.test.js"
+  ]
+ },
+ {
+  "name": "OWED1-no-cap",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    else if (h !== false && _owed.length < OWED_MAX) {",
+  "new": "    else if (h !== false) {",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED1-unheard-null-taken-for-not",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    else if (h !== false && _owed.length < OWED_MAX) {",
+  "new": "    else if (h !== false && h !== null && _owed.length < OWED_MAX) {",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-answer-before-the-sale-settles-it",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    if (row.kind !== kind || row.seq > asked) return true;",
+  "new": "    if (row.kind !== kind) return true;",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-not-held-keeps-the-embers",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "    if (v === 'not') { addItem(items, Object.assign(sigilStone(), { stackCount: row.embers })); settled = true; return false; }",
+  "new": "    if (v === 'not') { settled = true; return false; }",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-held-no-piece",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "if (!it) return false; delete it.stonesPaid; addItem(items, it); return true; }",
+  "new": "if (!it) return false; delete it.stonesPaid; return true; }",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-settle-unsaved",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  if (settled) save();\n  return answer;",
+  "new": "  return answer;",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-week-before-always",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "x.week - row.week >= (row.clock ? -1 : 0))) return 'held';",
+  "new": "x.week - row.week >= -1)) return 'held';",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-week-after-never",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "x.week - row.week <= 1 && x.week - row.week >=",
+  "new": "x.week - row.week <= 0 && x.week - row.week >=",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-old-service-refunds",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "      return back >= EG_SINK_RECENT_WEEKS || back <= 0 || recent ? 'not' : 'unknown';",
+  "new": "      return 'not';",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-forever-owed",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "      return back >= EG_SINK_RECENT_WEEKS || back <= 0 || recent ? 'not' : 'unknown';",
+  "new": "      return back <= 0 || recent ? 'not' : 'unknown';",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED2-insignia-owned-refunded",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "(row) => (w.insignia.includes(row.id) ? 'held' : 'not')",
+  "new": "(row) => 'not'",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED3-not-saved",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  getSaveData: () => brokerOwed(),",
+  "new": "  getSaveData: () => [],",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED3-sale-unsaved",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  _owed = [..._owed, { ...row, seq: ++_owedSeq }];\n  save();",
+  "new": "  _owed = [..._owed, { ...row, seq: ++_owedSeq }];",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED4-service-no-recent",
+  "file": "server-account/src/egEconomy.js",
+  "old": "recent: rows.filter((r) => r.week !== week) };",
+  "new": "recent: [] };",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js",
+   "test/net/eliteGates/egeco_service.test.js"
+  ]
+ },
+ {
+  "name": "OWED4-service-window-one-more",
+  "file": "server-account/src/egEconomy.js",
+  "old": "AND wk <= ?2 AND wk > ?2 - ?3 ORDER BY wk DESC",
+  "new": "AND wk <= ?2 AND wk >= ?2 - ?3 ORDER BY wk DESC",
+  "tests": [
+   "test/net/eliteGates/egeco_service.test.js"
+  ]
+ },
+ {
+  "name": "OWED5-host-load-unsettled",
+  "file": "src/scenes/world.js",
+  "old": "const a = await brokerOwed.panoply(_accountEg.keys);",
+  "new": "const a = await _accountEg.keys();",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED5-host-week-unsaid",
+  "file": "src/scenes/world.js",
+  "old": "held: async (p) => sinkHolds(await _accountEg.keys(), p), week: _panoplySink?.week ?? null,",
+  "new": "held: async (p) => sinkHolds(await _accountEg.keys(), p),",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "BUF1-the-theme-back-to-interactive",
+  "file": "src/systems/introTheme.js",
+  "old": "      return Ctor ? new Ctor({ latencyHint: 'playback' }) : null;",
+  "new": "      return Ctor ? new Ctor({ latencyHint: 'interactive' }) : null;",
+  "tests": [
+   "test/systems/fb1024_themebuffer.test.js"
+  ]
+ },
+ {
+  "name": "BUF1-the-theme-no-hint",
+  "file": "src/systems/introTheme.js",
+  "old": "      return Ctor ? new Ctor({ latencyHint: 'playback' }) : null;",
+  "new": "      return Ctor ? new Ctor() : null;",
+  "tests": [
+   "test/systems/fb1024_themebuffer.test.js"
+  ]
+ },
+ {
+  "name": "OWED6-panoply-paid-twice",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  if (_owed.some((o) => o.kind === 'panoply')) return { ok: false, error: 'unheard' };",
+  "new": "  if (false) return { ok: false, error: 'unheard' };",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED6-insignia-paid-twice",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  if (_owed.some((o) => o.kind === 'insignia' && o.id === offer?.id)) return { ok: false, error: 'unheard' };",
+  "new": "  if (false) return { ok: false, error: 'unheard' };",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
+ },
+ {
+  "name": "OWED6-insignia-every-offer-held",
+  "file": "src/systems/sigil/sigilBroker.js",
+  "old": "  if (_owed.some((o) => o.kind === 'insignia' && o.id === offer?.id)) return { ok: false, error: 'unheard' };",
+  "new": "  if (_owed.some((o) => o.kind === 'insignia')) return { ok: false, error: 'unheard' };",
+  "tests": [
+   "test/systems/fb1024_embersowed.test.js"
+  ]
  }
 ]

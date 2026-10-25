@@ -726,6 +726,7 @@ body.face.curated,"la table choisie nomme les deux moitiés - rien n'est mesuré
 body.outfit.second,"une seconde tenue - c'est la première ({first}) qui est dessinée"
 body.outfit.unbound,"rien n'en a été lié - dessiné sans lui"
 body.outfit.unknown,"le jeu n'a pas cette tenue"
+broker.owed,"Aucune réponse du service de compte. Vos braises sont retenues, et le Courtier réglera la vente lors de votre prochaine visite."
 cabin.refusal.enemies,"Vous ne pouvez pas entrer dans la cabine avec des ennemis proches."
 captain.half.commander,"Le Commandant"
 captain.half.commanderCaps,"LE COMMANDANT"

@@ -21,7 +21,7 @@ import worker from '../../server-account/src/index.js';
 import * as client from '../../src/net/accountClient.js';
 import { realmJoin, realmList } from '../../src/systems/realmSaves.js';
 import { removeCloudSlot, cloudList } from '../../src/systems/cloudSaves.js';
-import { insigniaSale } from '../../src/systems/sigil/sigilBroker.js';
+import { insigniaSale, wardrobeHolds } from '../../src/systems/sigil/sigilBroker.js';
 import { sigilStone } from '../../src/systems/gate/gateSpoils.js';
 import { insigniaById } from '../../src/net/insignia.js';
 import { verifyToken } from '../../src/net/identityToken.js';
@@ -133,7 +133,7 @@ test('AUDIT SCALE II A-2 a call that is no bookmark read forgets the page\'s boo
     L.sync();
     const lost = { ...io, fetch: async (u, i) => { await S.fetch(u, i); throw new TypeError('Failed to fetch'); } };   // the sale lands, its answer does not
     const items = [Object.assign(sigilStone(), { stackCount: 30 })];
-    const held = async (id) => { const a = await readAccount(io); const w = a.ok ? a.data?.wardrobe : null; return Array.isArray(w?.insignia) && w.insignia.includes(id) ? w : null; };
+    const held = async (id) => wardrobeHolds(await readAccount(io), id);   // PIN MOVED (EMBERS-OWED): world.js's own, the module's law
     const r = await insigniaSale(insigniaById('title:gatebreaker'), { items, buy: (id) => buyInsignia(lost, id), held, save: () => {} });
     const row = S.env.DB._raw.prepare('SELECT insignia, insignia_spent FROM players WHERE id = ?').get(who.id);
     assert.deepEqual({ ...row }, { insignia: 'title:gatebreaker', insignia_spent: 30 }, 'the service kept the sale');

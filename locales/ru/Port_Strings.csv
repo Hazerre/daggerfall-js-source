@@ -726,6 +726,7 @@ body.face.curated,"выбранная таблица задаёт обе пол�
 body.outfit.second,"второй наряд - отображается первый ({first})"
 body.outfit.unbound,"ничего из него не привязалось - отображается без него"
 body.outfit.unknown,"в игре нет такого наряда"
+broker.owed,"Служба учётных записей не ответила. Ваши угольки удержаны, и Посредник завершит сделку при вашем следующем визите."
 cabin.refusal.enemies,"Нельзя войти в каюту, когда рядом враги."
 captain.half.commander,"Командир"
 captain.half.commanderCaps,"КОМАНДИР"

@@ -726,6 +726,7 @@ body.face.curated,"die kuratierte Tabelle nennt beide Hälften - nichts wird gem
 body.outfit.second,"ein zweites Outfit - gezeichnet wird das erste ({first})"
 body.outfit.unbound,"nichts davon wurde gebunden - ohne es gezeichnet"
 body.outfit.unknown,"dieses Outfit gibt es im Spiel nicht"
+broker.owed,"Keine Antwort vom Kontodienst. Deine Glut wird zurückgehalten, und der Makler rechnet den Kauf bei deinem nächsten Besuch ab."
 cabin.refusal.enemies,"Du kannst die Kajüte nicht betreten, solange Feinde in der Nähe sind."
 captain.half.commander,"Der Kommandant"
 captain.half.commanderCaps,"DER KOMMANDANT"

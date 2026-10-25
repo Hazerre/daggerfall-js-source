@@ -726,6 +726,7 @@ body.face.curated,"den utvalgte tabellen angir begge halvdelene - ingenting mål
 body.outfit.second,"et antrekk til - det første ({first}) er det som tegnes"
 body.outfit.unbound,"ingenting av det ble bundet - tegnet uten det"
 body.outfit.unknown,"spillet har ikke dette antrekket"
+broker.owed,"Ikke noe svar fra kontotjenesten. Glørne dine holdes tilbake, og Megleren gjør opp handelen ved ditt neste besøk."
 cabin.refusal.enemies,"Du kan ikke gå inn i kahytten med fiender i nærheten."
 captain.half.commander,"Kommandøren"
 captain.half.commanderCaps,"KOMMANDØREN"
