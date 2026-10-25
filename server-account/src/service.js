@@ -572,7 +572,7 @@ export const ROUTES = new Set([
   // lifted, Roll back, Fix account, wealth past the allowance, and the removals with their 30-day store (staffRealm.js);
   // STAFF-SET-BANK: and a character's bank set (Fix account's `bank`)
   '/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold', '/v1/staff/rollback', '/v1/staff/fix/repair',
-  '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence',
+  '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull', '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/item/purge-dupes', '/v1/staff/evidence',
   '/v1/staff/evidence/return',
   // STAFF-GIVE: Add an item - the item list, and one piece minted and given (staffGive.js)
   '/v1/staff/item/catalogue', '/v1/staff/item/give',
