@@ -4098,7 +4098,7 @@ a wait and not a drop, no `of` for a page in no cell. `tools/mutants/cost2.json`
 - PIN MOVED: a halo's socket URL carries `?of=` - `world6biiib`, `auditworld6biiib`, `halowait`, `netsmooth`, `scale2b`,
   `scale2c` and `scale5d` read a socket's room off its URL's path; the metrics point's blob11 (`scale2b`,
   `fb1021b_foeshold`); a cell's door asks the directory (`chat1`'s count of objects minted, `auditscale2_relay`'s R1-5
-  count of layers); the source pins of a cell-scoped law read it through the cover (`auditraid`, `hcc_park`, `int12_body_relay`, `seat1b_client`), and the overworld law imports the cell tree (`ow6_ledger`); thirty records re-aimed by content to the cover (raid3, star3, wb12d, serpent1, ow6l, hccpark, grant2,
+  count of layers); the source pins of a cell-scoped law read it through the cover (`auditraid`, `hcc_park`, `int12_body_relay`, `seat1b_client`), and the overworld law and the grants' law import the cell tree (`ow6_ledger`, `grant1_law`), so the account Worker bundles it too - `.github/workflows/account-deploy.yml` deploys on it (`accountdeploy`, `discord_setup`); a cell's welcome carries `cells` (`online_relay`); thirty records re-aimed by content to the cover (raid3, star3, wb12d, serpent1, ow6l, hccpark, grant2,
   grant3, grant4, grantaudit, int_lane2, int_lane3_audit, seat1b, audit_seats_relay, auditraid, auditscale2_relay,
   auditwb_relay, fb1016b_graveparty, fb1021b_foeshold, lease1, scale5b).
 - RELAY_VERSION world258, its hash and the bundle's three new files (`src/net/cellTree.js`, `server/src/cellNodes.js`,
