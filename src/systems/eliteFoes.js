@@ -281,6 +281,10 @@ export const STAFF_BOSS_DAMAGE_MULT = ELITE_FOE_DAMAGE_MULT;
 export const STAFF_BOSS_MIN_METAL = WEAPON_MATERIALS.Silver;
 /** A mini boss's worst armour on any part (the Troll's ArmorValue 2 x 5; lower is harder to hit). */
 export const STAFF_BOSS_ARMOR = 10;
+/** BOSS-SPELL-WARD (mob 2026-10-25: "use crazy spell reduction on mini bosses like 90%", "of all spell damage"): the share of
+ *  a spell's damage a mini boss takes - every spell's, its rounds and a strike's too, and a whole-health one (a
+ *  Disintegrate) is a tenth of its health, never a kill. */
+export const STAFF_BOSS_SPELL_TAKEN = 0.1;
 /** Is this entity a staff event's mini boss? */
 export const isStaffBoss = (entity) => !!entity?.staffBoss;
 /**

@@ -417,5 +417,23 @@
     "tests": [
       "test/systems/auditpscale1.test.js"
     ]
+  },
+  {
+    "name": "BOSS-SPELL-WARD-uncut",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "    if (_bossSpell && damage > 0) damage = Math.max(1, Math.round(damage * STAFF_BOSS_SPELL_TAKEN));",
+    "new": "",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-SPELL-WARD-puppet-cut-twice",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "    const _bossSpell = kind === 'spell' && !f.puppet && !!f.entity?.staffBoss;",
+    "new": "    const _bossSpell = kind === 'spell' && !!f.entity?.staffBoss;",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
   }
 ]
