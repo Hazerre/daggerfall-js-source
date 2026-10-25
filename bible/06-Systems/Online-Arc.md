@@ -16287,7 +16287,11 @@ one breath should end - each keeping it, or the room deciding): **"Host arbitrat
   50, RENOWN-LOOT's first stage, no finder's multiplier. A pile's chain is `rollPileItems` (the table, the pile trio and
   its subscribers, the ladder, the sigils); a body's is SetEnemyCareer's whole loot chain and its death's
   (`roomBodyBase`: `spawnEnemyLoot`, the kit's ladder, the sigils at the fight's count, OnEnemyDeath's subscribers and the
-  cap) over the fallen foe's own entity, handed back without touching what the foe wore or fought with. It is rolled
+  cap) over the fallen foe's own entity, handed back without touching what the foe wore or fought with. A class foe
+  stands at the party's level there, and CHAMP-BASE (2026-10-25, `01-Overview/bugs/Field-Bugs-2026-10-25b.md`) asks the
+  layout's champion mark at that level too (`champions.js` `championTraitFor`) and sets the build's FOE-CAP cap aside:
+  each client's build stands the mark at its builder's level, so a character under level 3 had rolled a plain foe's
+  base under the host's champion and read every word about the body as another build's. It is rolled
   AS THE ROOM (`onlineLane.js` `asTheRoom`): REALM P0.2's own read widened, for the length of the roll, to every mod -
   each reads its shipped default, so one player's switch (Foraging off, say) cannot make their base another list. Every
   term of the chain is an argument now: the table's roll, a kit's variant and its poison drew `Math.random` whatever dice
@@ -16340,7 +16344,13 @@ one breath should end - each keeping it, or the room deciding): **"Host arbitrat
   same in either order, and no word overwrites a list: the list is composed (`composeRoomContainer`, `roomLoot.js`
   `composeRoomView`) from the base, the takes, the stored pieces, this player's claims and puts in flight and their own
   layer, in place. An OPEN says nothing (`sayRoomWord`): the base is every client's already. A word whose signature is
-  not this client's own computation (another build's chain) is AUDIT SETS M2's unreadable word, never a list landed.
+  not this client's own computation (another build's chain) is AUDIT SETS M2's unreadable word, never a list landed -
+  a live peer's word, and the memory's on a client that is not the host. CHAMP-BASE's STALE-MEMORY (2026-10-25,
+  `01-Overview/bugs/Field-Bugs-2026-10-25b.md`): the memory's word on the HOST was the room's own, an earlier visit's
+  (often the same player's, alone, on the build before an update), so the host starts the container over one
+  generation on (`roomLootHost.js` `restartStaleContainer`) - the newer generation beats the old terms on every client
+  - and a client that takes the seat does the same for a stale word it held unread; a body still being rebuilt as the
+  memory's species is left to CORPSE-GOLD's second landing. What the earlier visit took from it is back once.
   AUDIT WORLD4 C1 stands: nothing lands under a window this player has open.
 - **THE CLAIMS** (Mac, 2026-10-15: "Host arbitrates"). A take of a shared piece - a base piece or a stored one, by the
   window, the quick door or Physical Items' one-item door - is a CLAIM, and the room's host (WORLD2's, the seat that
@@ -16420,7 +16430,7 @@ OUTDOOR-LOOT's, below.) A claim
 still in flight when its claimer leaves is kept by the claimer - widened and made honest in OUTDOOR-LOOT's R1: a dupe when the
 claim lost a race or was never heard, and a crash or reload loses a granted piece in flight.
 
-- **Pinned**: `test/systems/partyloot.test.js` (10; 18 since OUTDOOR-LOOT: D-2.1's three - a joiner's Take all of forty stored pieces, two bulk takes judged together by the new seat, a dropped verdict frame recovered by a re-ask - SPLIT-LIFT's "a claim GIVEN UP", and its audit's four: D4, D5, and D-2.1's claims and verdicts AT ONCE) - two and three peers mounted over the dungeon host's real loot doors and
+- **Pinned**: `test/systems/partyloot.test.js` (10; 18 since OUTDOOR-LOOT: D-2.1's three - a joiner's Take all of forty stored pieces, two bulk takes judged together by the new seat, a dropped verdict frame recovered by a re-ask - SPLIT-LIFT's "a claim GIVEN UP", and its audit's four: D4, D5, and D-2.1's claims and verdicts AT ONCE; 20 since CHAMP-BASE: a champion-marked class foe's body one base for a level-30 host and a level-2 joiner, and a stale memory word started over by its host) - two and three peers mounted over the dungeon host's real loot doors and
   the real producers, at different levels, Luck, Renown, dice and Foraging switches, joined by a queuing relay: one base
   on every body and pile; a take removing the same piece for everyone; two takes in one breath both landing; THE HOST
   ARBITRATES - the same piece taken in one breath going to one player (the host against a joiner, two joiners), the
