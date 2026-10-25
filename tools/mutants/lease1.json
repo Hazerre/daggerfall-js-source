@@ -187,8 +187,8 @@
   {
     "name": "LEASE1-the-ask-unpaced",
     "file": "src/net/online.js",
-    "old": "if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS",
-    "new": "if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room)",
+    "old": "if (this.leaseOk && (this.leaseDoor || this._leaseOnce) && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS",
+    "new": "if (this.leaseOk && (this.leaseDoor || this._leaseOnce) && this.status === 'open' && isSocialRoom(this.room)",
     "why": "the hub asked every tick",
     "tests": [
       "test/net/lease1.test.js"
@@ -716,6 +716,16 @@
     "why": "past every wait a closed socket reads as live: its frames are heard after its leave",
     "tests": [
       "test/net/lease1.test.js"
+    ]
+  },
+  {
+    "name": "HIBERNATE-halo-peer-heartbeat-dropped",
+    "file": "src/net/online.js",
+    "old": "this.othersHere === 0 && this.peers.size === 0 &&",
+    "new": "this.othersHere === 0 &&",
+    "why": "alone in my cell beside a cell with a player, standing still sends no heartbeat and that player loses me",
+    "tests": [
+      "test/net/halothin.test.js"
     ]
   }
 ]

@@ -112,8 +112,8 @@
   {
     "name": "GRANT3-stand-per-ask",
     "file": "src/scenes/grantHost.js",
-    "old": "    const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;",
-    "new": "    const max = 1;",
+    "old": "    queue.delete(kind);\n    const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;",
+    "new": "    queue.delete(kind);\n    const max = 1;",
     "why": "every stand its own ask - a camp of six spends six",
     "tests": [
       "test/scenes/grant3_pool.test.js"

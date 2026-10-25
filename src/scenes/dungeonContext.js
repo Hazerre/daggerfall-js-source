@@ -1790,13 +1790,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const e = { mobileType, gender, x: position[0], y: position[1], z: position[2], spawnDistanceType: 0, ...(allied ? { allied: true } : {}), ...(questSpawn ? { questSpawn: true } : {}), ...(loadID != null ? { loadID } : {}), ...(Number.isFinite(level) ? { level } : {}), ...(eliteFoe ? { eliteFoe: true } : {}), ...(revenant ? { revenant, lairStand: !!lairStand, ...(turned ? { turned: true } : {}) } : {}) };   // RVN11c: a betrayer turned where it stood   // SEARCH1: a searched grave's elite - applyEliteScaling and grantEliteLoot read the record's mark; RVN7d: a revenant's record
     // GRANT4 (Spawn-Grants section 14): a stand that rides the room's own lane stands on its grant - asked before the build,
     // and while the law enforces, none stands without one (a bout is the instance's own, and rides nothing)
-    const grantKind = grantKindOf({ allied, questBehaviour: questSpawn, revenant, loose: true });
-    const ask = bout ? null : grants?.()?.memberFor(grantKind) ?? null, granted = ask ? await ask : null, gm = granted && 'gr' in granted ? granted : null;
+    const ask = bout ? null : grants?.()?.memberFor(grantKindOf({ allied, questBehaviour: questSpawn, revenant, loose: true })) ?? null, granted = ask ? await ask : null, gm = granted && 'gr' in granted ? granted : null;
     if (ask && !gm && grants?.()?.enforcing()) return null;
     const f = await buildFoeAt(e, false);
     if (!f) return null;
     if (gm) grants?.()?.stood(gm.gr, gm.i, f);
-    else if (!bout) grants?.()?.owedStand(grantKind, f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
+    else if (!bout && grants?.()) grants().owedStand(grantKindOf({ allied, questBehaviour: questSpawn, revenant, loose: true }), f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
     if (yawRad != null && f.ai) f.ai.yaw = yawRad;
     if (bout) { f.entity.bout = bout; f.entity.items = []; f._bout = true; return f; }
     f._loose = true;   // SUMMON-SYNC: a loose stand - it rides the room's own lane to everyone in the room (ownLoose)

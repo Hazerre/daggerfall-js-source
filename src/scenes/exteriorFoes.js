@@ -434,8 +434,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // its grant - its caller's kind, else its own shape's (net/grantLaw.js grantKindOf; marks its caller decided, `kept`);
     // every stand of a kind this turn is one ask (scenes/grantHost.js memberFor), so it is asked here, before this build's
     // first await. A placed foe with no site never rides (foesFrame), so it asks nothing
-    const grantKindAsked = grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion), replacing, managed, site, placed, loose });
-    const grantAsk = !puppet && !(placed && !site) && _net?.grants ? _net.grants.memberFor(grantKindAsked) : null;
+    const grantAsk = !puppet && !(placed && !site) && _net?.grants ? _net.grants.memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion), replacing, managed, site, placed, loose })) : null;
     let basics = ENEMY_BASICS[mobileType];
     if (!basics || !basics.maleTexture) return null;
     const pending = { feet: [pos[0], pos[1] + (feetGiven || groundAlign || transformY ? 0 : 0.1), pos[2]] };   // AUDIT 39: shifted by offsetAll until the record lands. REVIEW 2026-09-05: a restore hands back the exact saved feet (SerializableEnemy.cs:196) - a flyer never grounds, so the walker's lift would climb 0.1 per load
@@ -641,7 +640,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // ever. The record's own word is what the record's word is compared to.
       f.builtLevel = builtLevel;
       if (gm) _net?.grants?.stood(gm.gr, gm.i, f);   // GRANT3: its grant's member, on its record from here
-      else if (!puppet && !(placed && !site)) _net?.grants?.owedStand(grantKindAsked, f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
+      else if (!puppet && !(placed && !site)) _net?.grants?.owedStand(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion), replacing, managed, site, placed, loose }), f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
       // AUDIT FOES FOE6: the LAST build to land holds the key, and removePuppet
       // deletes only when the key still names it - so a stale build cannot evict
       // the record that is actually standing.

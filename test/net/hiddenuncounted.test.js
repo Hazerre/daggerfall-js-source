@@ -97,7 +97,7 @@ for (const hidden of [true, false]) test(`HIDDEN-UNCOUNTED: a staff game's World
     const want = hidden ? 2 : 3;
     assert.deepEqual(all.map((s) => s.hidden), [false, false, false], 'AUDIT P1: a session that has said no hello is hidden from nobody');
     a.join(SOCIAL_ROOM); b.join(SOCIAL_ROOM); staff.join(SOCIAL_ROOM);
-    await until(() => all.every((s) => s.welcomed && rosterRows(s).total === want && s.roomCount === want));
+    await until(() => all.every((s) => s.welcomed && rosterRows(s).total === want && s.roomCount === want && s.hubOnline.size > 0));   // HIBERNATE (PIN MOVED): and the hub's list come - the count can land a turn before the first ask
     assert.ok(new Set(all.map((s) => s.room)).size > 1, 'the links stand on more than one shard - the hub\'s count and its other shards\' players read');
     assert.deepEqual(all.map((s) => s.roomCount), [want, want, want], 'AUDIT P3: the hub\'s own count, as every room says it (`sayCounts`)');
     assert.equal(staff.hidden, hidden, 'the session notes its hello\'s mark');

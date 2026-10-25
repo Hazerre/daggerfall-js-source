@@ -456,8 +456,8 @@
   {
     "name": "SCALE5b-swept-never-set",
     "file": "server/src/index.js",
-    "old": "await this._sweep(); this._swept = this.state.getWebSockets().length === 0;",
-    "new": "await this._sweep();",
+    "old": "await this._sweep(a.key); this._swept = this.state.getWebSockets().length === 0;",
+    "new": "await this._sweep(a.key);",
     "tests": [
       "test/net/scale5b.test.js"
     ],
@@ -686,8 +686,8 @@
   {
     "name": "SCALE5b-cfg-herald-kept",
     "file": "server/src/index.js",
-    "old": "      this._relayCfg = cfg; this._herald = undefined; this._bodyCfg = undefined;",
-    "new": "      this._herald = undefined; this._bodyCfg = undefined;",
+    "old": "    this._relayCfg = cfg; this._herald = undefined; this._bodyCfg = undefined;",
+    "new": "    this._herald = undefined; this._bodyCfg = undefined;",
     "tests": [
       "test/net/scale5b.test.js"
     ],

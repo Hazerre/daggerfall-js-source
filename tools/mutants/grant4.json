@@ -172,8 +172,8 @@
   {
     "name": "GRANT4-kept-unasked",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "kept: eliteFoe === true || Number.isInteger(champion),",
-    "new": "kept: false,",
+    "old": "memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion),",
+    "new": "memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: false,",
     "why": "a saved elite asks its shape's kind",
     "tests": [
       "test/scenes/grant4_lanes.test.js"

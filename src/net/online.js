@@ -960,6 +960,7 @@ export class OnlineSession {
     this._lastSentAt = -Infinity;
     this._lastPingAt = -Infinity;   // RELAY-H1: the liveness ping's own clock - it must never delay the heartbeat pose
     this._leaseAskAt = -Infinity;   // LEASE1: when this hub link last asked its lease
+    this._leaseOnce = false;        // HIBERNATE: a freeze or mute heard - one lease asked even while the door is off
     this.seatLiveOk = false;        // FIELD BUGS 2026-10-18d SEAT-LIVE: my room's relay names a dungeon's seat among its live sockets (net/seatLive.js, world220 - SEAT_RELAY_MIN)
     this._seatHeardAt = -Infinity;  // SEAT-LIVE: when the named host was last heard - its word (a welcome, a host frame) or its stream's frame
     this._seatAskedAt = -Infinity;  // SEAT-LIVE: when I last asked the relay for the seat (`_askSeat`)
@@ -2513,7 +2514,7 @@ export class OnlineSession {
     let refereed = this.haloWhole;
     if (!refereed && this._ws && this._rfOn.get(this._ws)) refereed = true;
     if (!refereed) for (const h of this._halo.values()) if (h.ws && this._rfOn.get(h.ws)) { refereed = true; break; }
-    const aloneQuiet = !refereed && this.othersHere === 0 && (isCellRoom(this.room) || isWorldRoom(this.room));   // HIBERNATE: a cell, a building or an ordinary dungeon with nobody else sends no standing pose; a boss room, a battle and a refereed cell still do
+    const aloneQuiet = !refereed && this.othersHere === 0 && this.peers.size === 0 && (isCellRoom(this.room) || isWorldRoom(this.room));   // HIBERNATE: a cell, a building or an ordinary dungeon with nobody else sends no standing pose; a boss room, a battle and a refereed cell still do; a peer in a halo still hears my heartbeat (peers holds every room's)
     if (!poseChanged(this._lastSent, pose) && (now - this._lastSentAt < HEARTBEAT_MS || aloneQuiet)) return false;
     // WORLD6b-iii(b): the halo rooms hear my pose too - their fans range me by it and their rosters place me - each when it
     // is due (HALO-THIN, haloPoseDue); AUDIT WORLD6b-iii(b) A5: through every OPEN socket, my own cell's down or not (the
@@ -3953,7 +3954,7 @@ export class OnlineSession {
       // STAFF-FREEZE-ASK (mob, 2026-10-23: "froze a player he still moves"): asked as soon as the hub's meter takes it - the
       // hub hears one lease frame a socket in LEASE_FRAME_MIN_MS, so an ask sooner after the last was dropped, and every
       // other room heard the freeze only at the next ask, LEASE_MS on (the player walked on for them until then)
-      if (isSocialRoom(room)) { this.staffOk = true; this._leaseAskAt = Math.max(now, this._leaseAskAt + LEASE_FRAME_MIN_MS + LEASE_ASK_SLACK_MS) - LEASE_MS; }
+      if (isSocialRoom(room)) { this.staffOk = true; this._leaseOnce = true; this._leaseAskAt = Math.max(now, this._leaseAskAt + LEASE_FRAME_MIN_MS + LEASE_ASK_SLACK_MS) - LEASE_MS; }
       const until = m.until;
       this._deliver('chat', () => this.onFrozen?.({ until }));
     } else if (m.t === 'muted') {
@@ -3963,6 +3964,7 @@ export class OnlineSession {
       const until = mutedUntilOf(m);
       if (until === null) return;
       if (!this._lawIn(room, now)) return;   // AUDIT SAFE RELAY-2: on the relay's word's own bucket, never a busy channel's
+      if (isSocialRoom(room)) { this._leaseOnce = true; this._leaseAskAt = Math.max(now, this._leaseAskAt + LEASE_FRAME_MIN_MS + LEASE_ASK_SLACK_MS) - LEASE_MS; }   // HIBERNATE: a mute rides the lease too - asked once, door on or off
       this._deliver('chat', () => this.onMuted?.({ until }));
     } else if (m.t === 'law' || m.t === 'banned' || m.t === 'slowed') {
       // SAFE4 + SAFE6: THE RELAY'S WORD ON MY OWN CHAT - an order the service pushed, handed to me to carry to my other
@@ -4287,7 +4289,7 @@ export class OnlineSession {
       if (h.ws && h.status === 'connecting' && now - (h.since ?? now) > BACKOFF_MAX_MS) { const ws = h.ws; h.ws = null; h.status = 'closed'; h.retryAt = now + BACKOFF_MIN_MS + this._rand() * Math.max(BACKOFF_MIN_MS, h.backoff - BACKOFF_MIN_MS); h.backoff = Math.min(BACKOFF_MAX_MS, h.backoff * 2); try { ws.close(1000, 'timeout'); } catch { /* already closed */ } }   // SLAM2: a halo's retry is jittered like the primary's - eight rooms a client, all refused together otherwise
     }
     if (!this.presence && this.status === 'open' && now - this._lastSentAt >= HEARTBEAT_MS && this._send({ t: 'ping' })) this._lastSentAt = now;
-    if (this.leaseOk && this.leaseDoor && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS && this._send({ t: 'lease' })) this._leaseAskAt = now;   // LEASE1: my hub's lease, asked every LEASE_MS while the door is on - off, the ask would only wake the shard
+    if (this.leaseOk && (this.leaseDoor || this._leaseOnce) && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS && this._send({ t: 'lease' })) { this._leaseAskAt = now; this._leaseOnce = false; }   // LEASE1: my hub's lease, asked every LEASE_MS while the door is on - off, the ask would only wake the shard
     if (this.status === 'open' && isSocialRoom(this.room)) this._wave.noteOnline(this.othersHere + 1);   // SCALE2c: the hub's count sizes a wave's spread
     // RELAY-H1: A STANDING PLAYER IS HEARD BY THE RUNTIME, NOT THE ROOM. The presence session's socket used to prove
     // itself alive with a pose every HEARTBEAT_MS, and every pose woke the Durable Object; the runtime answers this

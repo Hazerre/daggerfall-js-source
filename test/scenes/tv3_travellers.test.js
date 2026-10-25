@@ -503,7 +503,7 @@ test('TV3 host wiring: the book hoisted above its readers, filled by the Region 
   const idx = rd('server/src/index.js');
   assert.match(idx, /if \(m\.t === 'trav'\) \{/);
   assert.match(idx, /if \(!isRegionRoom\(a\.key\)\) \{ this\._junk\(ws\); return; \}\n(\s*\/\/[^\n]*\n)*\s*if \(this\._travOwed\.size\) this\._payTravOwed\(now\);[^\n]*\n(\s*\/\/[^\n]*\n)*\s*if \(m\.p \|\| !a\.tm\) \{ a = this\._meterTrav\(ws, a, now\); if \(!a\) return; \}\n\s*if \(!m\.p && !a\.tm\) return;/);
-  assert.match(idx, /const tr = isRegionRoom\(a\.key\) \? others\.filter\(\(b\) => b\.tm && now - b\.tm\.at <= TRAV_STALE_MS\)\.slice\(0, TRAV_WELCOME_MAX\)/);
+  assert.match(idx, /const tr = isRegionRoom\(a\.key\) \? \(this\._busKey \?\?= a\.key, others\.filter\(\(b\) => b\.tm && now - b\.tm\.at <= TRAV_STALE_MS\)\.slice\(0, TRAV_WELCOME_MAX\)/);
 });
 
 test('AUDIT DEEP2 C4/C5 by source: a Region link that moves empties the book (the old room\'s leaves can no longer reach it); the switch says what stays unshared - the region\'s channel, not the party\'s pose', () => {

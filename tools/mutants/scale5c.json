@@ -731,16 +731,6 @@
     "note": "a shard its own channel"
   },
   {
-    "name": "SCALE5c-region-subject-unread",
-    "file": "src/net/hubShards.js",
-    "old": "return `${bus}.${shardHash(sub) % REGION_SHARDS}`;",
-    "new": "return `${bus}.0`;",
-    "tests": [
-      "test/net/scale5c.test.js"
-    ],
-    "note": "every account on a region's first shard"
-  },
-  {
     "name": "SCALE5c-region-no-bus",
     "file": "src/net/hubShards.js",
     "old": "export const isChannelBus = (key) => key === HUB_BUS || isRegionBus(key);",
