@@ -2145,8 +2145,10 @@ with the fifth held for a beat. `combat/thunderlockArt.js` `thunderlockFrames` r
   invented under the frames. Instead the canvas is seated the kick's height (`GUN_FEEL.kick`, 5) below the screen's foot
   (`THUNDERLOCK_ART.raise`). Weapon Widget's transform never lifts the foot off where it is seated (its floor), and the
   shot's kick, applied after it, lifts it at most that far, so the cut foot never shows.
-- **The cycle is seven frames.** The count is said once, on a leaf (`combat/gun/thunderlockStrip.js`
-  `THUNDERLOCK_STRIP.frames`), and `THUNDERLOCK_ANIMS` and the machine's `THUNDERLOCK_NUM_FRAMES` both read it. The rest
+- **The cycle is seven frames.** The count lives on a leaf (`combat/gun/thunderlockStrip.js`
+  `THUNDERLOCK_STRIP.frames`), and `THUNDERLOCK_ANIMS` reads it. The machine's `THUNDERLOCK_NUM_FRAMES` keeps its own
+  literal, because `characters/weaponStates.js` imports nothing (SWING-LAW: the neutral viewer pastes its source), and
+  `thunderlockart2.test.js` holds the two equal. The rest
   frame is first and the flash second, as the sheet had them, so the hit still lands on the flash
   (`GUN_FEEL.hitFrame`). A shot is 0.5 s at the lab's 14 fps, one frame longer than the sheet's 0.43 s, and the 1.7 s
   cooldown starts when it ends: one shot every 2.2 s where the sheet gave one every 2.13 s, about 3% slower. The
@@ -2194,7 +2196,8 @@ so nothing is healed. `healGap` stays the answer for a doll layer that has no pi
 - `TL_FLASH_LUMA` and the body search were a second copy of the Pistolet's: one leaf, `combat/gun/gunFlash.js`. Left
   as it is: `thunderlockGildKeep`'s six-line `hsl` against `pixelClass`'s, which classifies with early exits and would
   move the Pistolet's gold for no change of behaviour.
-- The cycle's length was three separate literals: one, on the strip's leaf.
+- The cycle's length was three separate literals: the strip's leaf, read by the anim table, and the machine's one
+  literal (its file imports nothing), pinned equal.
 - The art's `thunderlockMuzzle(lit, w, h)` shared a name with the rig's `thunderlockMuzzle(fovRad, forward)`: it is
   `flashBodyPoint` now.
 - Comments that still described the six-frame sheet: rewritten.

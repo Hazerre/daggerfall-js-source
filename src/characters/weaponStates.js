@@ -7,7 +7,6 @@
 // fields (Alignment/Offset) do not apply to a 3D rig and are the
 // only WeaponBasics fields not carried.
 
-import { THUNDERLOCK_STRIP } from '../combat/gun/thunderlockStrip.js';   // THUNDERLOCK-ART2: the port's gun's cycle is its strip's frame count (a leaf)
 
 // FPSWeapon.cs: WeaponStates (index = WeaponBasics record index)
 export const WEAPON_STATES = ['Idle', 'StrikeDown', 'StrikeDownLeft', 'StrikeLeft', 'StrikeRight', 'StrikeDownRight', 'StrikeUp'];
@@ -196,7 +195,7 @@ export const BOW_NUM_FRAMES = { Idle: 1, StrikeUp: 4, StrikeDown: 7 };
  *  smoke, and three settling (THUNDERLOCK-ART2, the owner's seven; it was
  *  the sheet's six) - on every strike direction, because a gun does not
  *  care which way you dragged. */
-const TL_N = THUNDERLOCK_STRIP.frames;
+const TL_N = 7;   // THUNDERLOCK-ART2: the strip's frame count (combat/gun/thunderlockStrip.js) - a literal, because this leaf imports nothing (SWING-LAW: tools/neutral/build-viewer.mjs pastes it); thunderlockart2.test.js holds the two equal
 export const THUNDERLOCK_NUM_FRAMES = Object.freeze({
   Idle: 1, StrikeDown: TL_N, StrikeDownLeft: TL_N, StrikeLeft: TL_N, StrikeRight: TL_N, StrikeDownRight: TL_N, StrikeUp: TL_N,
 });
