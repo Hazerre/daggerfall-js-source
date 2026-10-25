@@ -514,7 +514,7 @@ const REFUSAL_WORDS = {
   // PROF12: the alchemy station's and the enchanter's refusals
   'prof-transmuter': () => t('account.refusal.profTransmuter', 'Only a Transmuter can turn one metal into the next. Choose it at Alchemy 100, under Provisioning.'),   // CRAFT3
   // DAEDRIC-SMELT (Professions-Arc.md section 50): the Daedric smelt's embers - the account's purse short (the service's
-  // half), or the pack's (the client's, systems/sigil/sigilBroker.js emberWork)
+  // half), or the pack's (the client's, net/profBook.js smelt over systems/sigil/sigilBroker.js emberHands)
   'prof-embers': () => t('account.refusal.profEmbers', 'Each Daedric Ingot takes a Deadlands Ember, won closing Dagon\'s Breaches, slaying Sea Serpents and taking Elite Breach Redoubts. Your account has too few left to spend.'),
   embers: () => t('account.refusal.embers', 'Each Daedric Ingot takes a Deadlands Ember from your pack, and your pack holds too few.'),
   'bad-brew': () => t('account.refusal.badBrew', 'That cauldron makes no such potion.'),

@@ -924,7 +924,8 @@ const ingot = (id, inputs, opts = {}) => recipe(id, id, inputs, { more: QUARTERM
  * Stone's name since WB12a (systems/gate/gateSpoils.js SIGIL_STONE). Spent as the Sigil Broker spends them: out of the
  * account's purse on the service, in the smelt's own decision (server-account/src/accounts.js insigniaPurse - the gates'
  * embers, the serpents' and the Redoubts', less what the insignia, the Panoply and the forge already took), and out of
- * the pack on the client (systems/sigil/sigilBroker.js emberWork) - both halves, as the Broker's insignia.
+ * the pack on the client (net/profBook.js smelt, over systems/sigil/sigilBroker.js emberHands) - both halves, as the
+ * Broker's insignia.
  */
 export const DAEDRIC_EMBERS = 1;
 /** The Deadlands Embers `count` units of a work spend - none for every work but the Daedric smelt. */
