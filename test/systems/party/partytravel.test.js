@@ -1031,9 +1031,11 @@ test('PARTY-TRAVEL host by source: world.js wires the session - the map door\'s 
   assert.match(travel, /resolveArrival: partyArrival \? async \(fallback\)/, 'party landing is validated before the teleport commits');
   const core = w.slice(w.indexOf('async function _teleportToPixel('), w.indexOf('let _teleporting = false;'));
   assert.ok(core.indexOf('await resolveArrival(pos)') > core.indexOf('await awaitedBuild('), 'read after the build');
-  assert.match(travel, /townTalk\.say\(beside && pick\.besideText \? pick\.besideText : \(partyArrival && pick\.besideMissedText\) \|\| `You arrive at \$\{getLocalizedLocationName\(pick\.mapId, pick\.name\)\}\.`\);/);   // L10N3e: the place as shown; PARTY-FOLLOW: a party arrival not beside the leader says so
-  assert.match(w, /return partyArrivalBeside\(\[lx, w\.y \+ state\.compensation\[1\], lz\], collider, seat/, 'capsule support over the destination collider');
-  assert.match(travel, /partyBesideLanding\(target, pick\.besideSeat\)/, 'the follower seat reaches the supported landing search');
+  // PARTY-FOLLOW: the landing and its line are systems/party/partyArrival.js's, run by test/systems/partyArrivalTransaction.test.js
+  // (the seat, the capsule, the wait, the line); the host only wires them - over its own state, collider and sea
+  assert.match(w, /const partyLanding = createPartyArrivalHost\(\{\s*state, collider, seaY: tvSeaY,/, 'capsule support over the destination collider');
+  assert.match(travel, /const arrival = await partyLanding\.land\(pick, fallback\);\s*beside = arrival\.beside;/, 'the landing the arrival chose, and whether it stands beside the leader');
+  assert.match(travel, /townTalk\.say\(partyLanding\.arrivalLine\(pick, partyArrival, beside, `You arrive at \$\{getLocalizedLocationName\(pick\.mapId, pick\.name\)\}\.`\)\);/);   // L10N3e: the place as shown
   assert.match(w, /moving: \(\) => worldMoveBusy\(\) \|\| !!travelControlUI\?\.isShowing,/, 'AUDIT PARTY-TRAVEL: no unasked box over a Travel Options walk the player is steering');
   // AUDIT PARTY-UI2 3: the tab's "Step outside" - the leader's Travel map and the member's journey alike - rests on the
   // host's own read of the mode; and 2: the tab's "elsewhere" hides over what the door itself refuses as "off", alone

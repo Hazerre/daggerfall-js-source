@@ -37,18 +37,18 @@
   },
   {
     "name": "PF-fallback-on-first-check",
-    "file": "src/scenes/world.js",
-    "old": "return target && !last ? null : supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);",
-    "new": "return supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);",
+    "file": "src/systems/party/partyArrival.js",
+    "old": "return target && !last ? null : seams.supportedLanding(fallback);",
+    "new": "return seams.supportedLanding(fallback);",
     "tests": [
       "test/systems/partyArrivalTransaction.test.js"
     ]
   },
   {
     "name": "PF-fallback-never-taken",
-    "file": "src/scenes/world.js",
-    "old": "return target && !last ? null : supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);",
-    "new": "return target ? null : supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);",
+    "file": "src/systems/party/partyArrival.js",
+    "old": "return target && !last ? null : seams.supportedLanding(fallback);",
+    "new": "return target ? null : seams.supportedLanding(fallback);",
     "tests": [
       "test/systems/partyArrivalTransaction.test.js"
     ]
@@ -64,9 +64,9 @@
   },
   {
     "name": "PF-missed-line-dropped",
-    "file": "src/scenes/world.js",
-    "old": "pick.besideText : (partyArrival && pick.besideMissedText) || `You arrive at",
-    "new": "pick.besideText : `You arrive at",
+    "file": "src/systems/party/partyArrival.js",
+    "old": "if (partyArrival && pick.besideMissedText) return pick.besideMissedText;",
+    "new": "if (false) return pick.besideMissedText;",
     "tests": [
       "test/systems/partyArrivalTransaction.test.js"
     ]
@@ -114,6 +114,15 @@
     "new": "const to = { x: f.x, y: f.y };",
     "tests": [
       "test/systems/party/partytravel.test.js"
+    ]
+  },
+  {
+    "name": "PF-host-drops-beside",
+    "file": "src/scenes/world.js",
+    "old": "beside = arrival.beside;",
+    "new": "beside = null;",
+    "tests": [
+      "test/systems/partyArrivalTransaction.test.js"
     ]
   }
 ]

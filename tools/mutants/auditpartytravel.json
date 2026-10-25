@@ -172,11 +172,11 @@
   },
   {
     "name": "PT-audit-host-seat-dropped",
-    "file": "src/scenes/world.js",
-    "old": "return partyArrivalBeside([lx, w.y + state.compensation[1], lz], collider, seat, tvSeaY() - 0.1);",
-    "new": "return partyArrivalBeside([lx, w.y + state.compensation[1], lz], collider, 0, tvSeaY() - 0.1);",
+    "file": "src/systems/party/partyArrival.js",
+    "old": "return partyArrivalBeside([localX, feet.y + state.compensation[1], localZ], collider, seat, seaY - 0.1);",
+    "new": "return partyArrivalBeside([localX, feet.y + state.compensation[1], localZ], collider, 0, seaY - 0.1);",
     "tests": [
-      "test/systems/party/partytravel.test.js"
+      "test/systems/partyArrivalTransaction.test.js"
     ]
   },
   {

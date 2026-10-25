@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { deductGold, deductGoldPieces } from '../../src/systems/court.js';
 import { StreamingWorldState } from '../../src/world/streamingWorld.js';
-import { waitForPartyArrival, PartyArrivalUnavailable, PARTY_ARRIVAL_TEXT } from '../../src/systems/party/partyArrival.js';
+import { waitForPartyArrival, PartyArrivalUnavailable, PARTY_ARRIVAL_TEXT, createPartyArrival, besideLeaderLanding } from '../../src/systems/party/partyArrival.js';
+import { BESIDE_OFFSETS } from '../../src/systems/party/partyTravelLaw.js';
 import { rig, HULL_NAMES } from '../partyBoatTeleportRig.mjs';
 
 const source = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
@@ -40,10 +41,15 @@ function host({ safe = true, target = true, failBuild = false, boat = false, own
     sharedClockOn: () => true, skyMinutes: () => 1000, worldMinutes: () => 1000,
     getLocalizedLocationName: (mapId, name) => name,   // L10N3e: the arrival line's place as shown - English here
     REPOSITION: { DirectionFromStartMarker: 1 },
-    waitForPartyArrival: (probe, opts) => waitForPartyArrival(probe, { ...opts, now: () => waits * 100, wait: async () => { waits++; } }),
     csaPeers: { frame: no }, csaSyncColliders: no,
-    partyBesideLanding: (w) => { besideProbes++; return safe && w && besideProbes > besideAfter ? destination : null; },   // `besideAfter`: the probes on which no spot beside the leader holds a body yet
-    supportedPartyPosition: (col, pos) => pos[1] >= 0 ? { pos } : null,
+    // PARTY-FOLLOW: the arrival's own law (systems/party/partyArrival.js), over fake landings and a stepped clock
+    partyLanding: createPartyArrival({
+      besideLanding: () => { besideProbes++; return safe && besideProbes > besideAfter ? destination : null; },   // `besideAfter`: the probes on which no spot beside the leader holds a body yet
+      supportedLanding: (pos) => (pos[1] >= 0 ? { pos } : null),
+      sync: no,
+      waiting: (line) => lines.push(line),
+      clock: { now: () => waits * 100, wait: async () => { waits++; } },
+    }),
     collider: {}, tvSeaY: () => 0, townTalk: { say: (s) => lines.push(s) }, PARTY_ARRIVAL_TEXT,
     csaWorldOf: () => [22, 15, 34], csaAboard: { board: (b) => events.push(b === originBoat ? 'board-origin' : 'board-target') },
     CSA_ABOARD_GRACE: 3, hudFade: { clearFade: () => events.push('clear'), fadeHUDFromBlack: no },
@@ -184,4 +190,28 @@ test('TRANSACTION: joining a leader on my own departure hull never packs away th
   assert.ok(!h.events.includes('pack'));
   assert.ok(h.events.includes('stop-sailing'));
   assert.deepEqual(h.commits, [[140, 5, 130]]);
+});
+
+test('PARTY-FOLLOW arrivalLine: beside the leader the pick\'s own line; a party arrival not beside them its "no room" line; anything else the ordinary line (mutants: the missed line dropped)', () => {
+  const { arrivalLine } = createPartyArrival({ besideLanding: () => null, supportedLanding: () => null, sync: () => {}, waiting: () => {} });
+  const pick = { besideAt: () => null, besideText: 'You join Ann at Wayrest.', besideMissedText: 'There was no room beside Ann. You arrive at Wayrest.' };
+  const landing = { pos: [0, 0, 0] };
+  assert.equal(arrivalLine(pick, true, landing, 'You arrive at Wayrest.'), 'You join Ann at Wayrest.');
+  assert.equal(arrivalLine(pick, true, null, 'You arrive at Wayrest.'), 'There was no room beside Ann. You arrive at Wayrest.');
+  assert.equal(arrivalLine(pick, false, null, 'You arrive at Wayrest.'), 'You arrive at Wayrest.', 'not a party arrival: the ordinary line');
+  assert.equal(arrivalLine({ besideAt: () => null }, false, null, 'You arrive at Wayrest.'), 'You arrive at Wayrest.', 'an ordinary journey');
+});
+
+test('PARTY-FOLLOW besideLeaderLanding: the leader\'s feet into this scene\'s frame, and the follower\'s seat is where the ring search starts (mutants: the seat dropped)', () => {
+  const state = new StreamingWorldState();
+  state.init(300, 150);
+  const wc = state.worldCoords([10, 0, 20]);
+  const feet = { x: wc.x, y: 5, z: wc.z };
+  // An open, level floor: nothing in the way, and the capsule stands wherever it is put.
+  const collider = { raycast: () => Infinity, move: () => ({ grounded: true, hitCeiling: false, groundKey: null }) };
+  const first = besideLeaderLanding(feet, 0, state, collider, -100);
+  const second = besideLeaderLanding(feet, 1, state, collider, -100);
+  const leaderY = 5 + state.compensation[1];
+  assert.deepEqual(first.pos.map((v) => Math.round(v * 1000) / 1000), [10 + BESIDE_OFFSETS[0][0], leaderY, 20 + BESIDE_OFFSETS[0][1]].map((v) => Math.round(v * 1000) / 1000));
+  assert.deepEqual(second.pos.map((v) => Math.round(v * 1000) / 1000), [10 + BESIDE_OFFSETS[1][0], leaderY, 20 + BESIDE_OFFSETS[1][1]].map((v) => Math.round(v * 1000) / 1000), 'seat 1 starts at the ring\'s second spot');
 });

@@ -9199,10 +9199,12 @@ faults in the follower's half of the journey, each closed with a pin that fails 
   TRIP_FOLLOW_MS, to the place. Two older pins changed with it: AUDIT PARTY-TRAVEL's slow build (the follower went to
   the place at TRIP_FOLLOW_MS; now waits for the leader to land) and AUDIT PARTY-UI2's held round (a follower under a
   window went to the round's place after the leader had travelled on alone; now goes to the leader).
-`bootWorld` held at its ceiling (36,287 logical lines): the probe's change is no longer than the line it replaced.
-Records: `test/systems/party/partytravel.test.js` 44 -> 47, `test/systems/partyArrivalTransaction.test.js` 12 -> 15;
-`tools/mutants/partyfollow.json` (13, 13 dead); five records re-aimed by content (three in `party-travel.json`, one
-each in `auditpartytravel.json` and `l10n3escenes.json`).
+THE HOSTS DO NOT GROW: the arrival's landing and its line left `bootWorld` for `systems/party/partyArrival.js`
+(`createPartyArrival`, `createPartyArrivalHost`), so the host keeps only their wiring and the change conflicts with no
+other pull request's `world.js` (`01-Overview/Host-Split.md`, PARTY-FOLLOW's move).
+Records: `test/systems/party/partytravel.test.js` 44 -> 47, `test/systems/partyArrivalTransaction.test.js` 12 -> 17;
+`tools/mutants/partyfollow.json` (14, 14 dead); seven records re-aimed by content (four in `party-travel.json`, two
+in `auditpartytravel.json`, one in `l10n3escenes.json`).
 
 ## EVENT1 (2026-09-25, Mac: "I wanna do a fun live event for the server. Wanna setup the infastructure for this without breaking anything. We have a lot of major updates today, but I want to turn the skies of Daggerfall into a detailed oblivion styled dread in prep for the world bosses. Red lightning and such") - a live event, staged for everyone online: the dread, world110
 

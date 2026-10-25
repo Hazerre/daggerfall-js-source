@@ -595,11 +595,11 @@
   },
   {
     "name": "PT-host-never-beside",
-    "file": "src/scenes/world.js",
-    "old": "beside = partyBesideLanding(target, pick.besideSeat);",
+    "file": "src/systems/party/partyArrival.js",
+    "old": "beside = target ? seams.besideLanding(target, pick.besideSeat ?? 0) : null;",
     "new": "beside = null;",
     "tests": [
-      "test/systems/party/partytravel.test.js"
+      "test/systems/partyArrivalTransaction.test.js"
     ]
   },
   {
