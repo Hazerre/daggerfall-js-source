@@ -1583,7 +1583,7 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world260';   // world260: COST-1 (2026-10-24, world256, world257, world258 then world259 on its branch, renumbered past STAFF-EVENT's world256, STAFF-EVENT BOSS's world257, KETCH-LONGER's world258 and ASK-LONGER's world259 at the merges; the owner's Cloudflare bill; bible/11-Multiplayer/Scale-Arc.md COST-1; NOT YET DEPLOYED - a region's channel whole again unless the relay's REGION_SHARDS names it (net/hubShards.js shardOf, regionsSharded; an older build's link on a region shard is told its channel), a drained room's open windows posted and their timers cleared (server/src/drainWindows.js), a storage write counted by the rows it bills.)
+export const RELAY_VERSION = 'world260';   // world260, ONE RELEASE (THE FOLD - travddm's pull requests in one, 2026-10-25): COST-1 (2026-10-24, world256, world257, world258 then world259 on its branch, renumbered past STAFF-EVENT's world256, STAFF-EVENT BOSS's world257, KETCH-LONGER's world258 and ASK-LONGER's world259 at the merges; the owner's Cloudflare bill; bible/11-Multiplayer/Scale-Arc.md COST-1; NOT YET DEPLOYED - a region's channel whole again unless the relay's REGION_SHARDS names it (net/hubShards.js shardOf, regionsSharded; an older build's link on a region shard is told its channel), a drained room's open windows posted and their timers cleared (server/src/drainWindows.js), a storage write counted by the rows it bills.) AND WILD-REJOIN (2026-10-25, world258 on its branch, renumbered past KETCH-LONGER's world258 and ASK-LONGER's world259 at the merges; FIELD BUGS 2026-10-25h, a player's report: "if you die in the wilderness and alt f4 before you are looted you wont be able to be looted by who killed you. you can also skip the death timer this way"; bible/11-Multiplayer/Wild-Zone.md section 4; NOT YET DEPLOYED) - the zone referee tells a fallen still down that says it stands in the zone how long it has left to lie, and where its body lies when the fall was refereed in that room (`wref` `down`, net/wild/wildRef.js wildDownWord - an older client drops the kind), and signs a fall whose fallen has no socket in the room with `g` 1 (net/wild/wildReceipt.js wildFallGraceS: its killer carries it at once). Deploy the account service's acct191 first: an older service holds a `g` fall's killer to the grace.
 // world259: ASK-LONGER (2026-10-25, world257 on its branch, renumbered past STAFF-EVENT BOSS's world257 and KETCH-LONGER's world258 at the merge; FIELD BUGS 2026-10-25 - Grost on Discord: "Increase perk selection time for Elite Breaches"; bible/01-Overview/bugs/Field-Bugs-2026-10-25.md; NOT YET DEPLOYED) - net/eliteGates/egRun.js EG_ASK_MS 10 s -> 30 s: the company's word at a Redoubt's rest and a Dagon's Bargain is open thirty seconds; no frame changes, a page needs no minimum. world258: KETCH-LONGER (2026-10-25, world257 on its branch, renumbered past STAFF-EVENT BOSS's world257 at the merge; the owner, from players: "the raid is too short and too easy" - bible/11-Multiplayer/Sky-Ketch.md section 19): the Watch's five waves, her constructs' health and blows, the engine's appetite, its cradles and spiders, the Tonal Warden's share, blows and end; the wire takes a wave to five.
 // world257: STAFF-EVENT BOSS (2026-10-25, mob: "boss seems to not spawn every time need be able to eneter a exact amount of healt for mini bosses"; bible/11-Multiplayer/Staff-Events.md section 5; NOT YET DEPLOYED) - net/staffEvent/staffEventLaw.js: an event carries `hp`, the mini boss's exact health staff typed, and the meter calls a boss each time it fills (every `m` kills, one at a time; ledger `hc`, `mc`) - the game stands a lost boss again (systems/staffEvents.js staffBossLost). world256: STAFF-EVENT (2026-10-24, world255 on its branch, renumbered past KETCH's world255 at the merge; mob: "lets start making an event tool for staff to use"; bible/11-Multiplayer/Staff-Events.md; NOT YET DEPLOYED) - a staff event's order (identityToken.js 'sevent') kept in the hub's book and said to everyone (`{t:'sev', k:'ev'|'end'}`), a player's word on it (`{t:'sev', k:'w'}`) kept as its place's cell's kill meter (`k:'st'`), the mini boss called at the meter or by staff's hand; an older relay closes a socket on the frame, so the game sends it only to world255 on (STAFF_EVENT_RELAY_MIN) world255: KETCH (2026-10-24, world253 on its branch, renumbered past ROCKET1's world253 and AUDIT FOE-KEEPS' world254 at the merge; the owner: "A proper dwarven airship flies in once a week over the skies of daggerfall, and you, along with other players venture into it in a raid like format", "Make the dwarven event 8 player"; bible/11-Multiplayer/Sky-Ketch.md section 10; NOT YET DEPLOYED) - one frame, `kt` (validKetchIn, validKetchOut), in a crew's ship's room `kt:<voyage>.<owner>` alone: the Worker mints one only while its voyage holds its crews (net/ketch/ketchLaw.js ketchRoomHolds), the room admits its captain, staff and the captain's party (INSTANCES' kin) to KT_CREW_MAX, and runs the voyage (net/ketch/ketchBrain.js) and its Tonal Warden on the boss seam; the receipts are `y1` (net/ketch/ketchReceipt.js). A page boards only once its relay says KT_RELAY_MIN.
 // world254: AUDIT FOE-KEEPS (2026-10-24, the owner, asked: "Credit the last player"; bible/01-Overview/audits/Audit-Foe-Keeps.md E2; NOT YET DEPLOYED): the zone word carries `dd` 1 - a fighter's word that it left the zone dying, which the referee did not see - and the relay names the last fair player to strike it within WILD_REF.creditMs its killer (net/wild/wildRef.js wildCredit, server/src/index.js _wildCredit): a fall made, said and signed as a blow's. A relay before it drops the field and credits nobody, as before
@@ -4808,7 +4808,10 @@ export const WILD_ORDER_MAX = 1024;
 export const WILD_REF_RELAY_MIN = 185;   // world183, then world184, on its branch, renumbered past CHAP4c's world183 and PERF-RELAY1's world184 at the merges
 export const relaySupportsWildRef = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WILD_REF_RELAY_MIN; };
 /** INT9: the zone referee's word kinds (`{t:'wref', k, ...}`, the relay's alone). */
-export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck', 'wc']);
+export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck', 'wc', 'down']);
+/** WILD-REJOIN: the longest a `down` word says a fallen has left to lie, ms (net/wild/wildRef.js WILD_REF.riseMs, pinned
+ *  equal - this leaf imports no referee). */
+export const WILD_DOWN_MS_MAX = 120_000;
 /**
  * INT9: THE ZONE REFEREE'S WORD, PROJECTED - the relay's `{t:'wref', ...}`, or null:
  *   hp    { by, to, d, r, h }   a blow or a cast landed: who on whom, what it dealt, its kind, both fighters' vitality
@@ -4818,6 +4821,9 @@ export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck'
  *                                bar and of her canvas, a fire set, her bar left
  *   wreck { id, by, r }         SHIP-PVP: a captain's ship wrecked - `by` her killer, `r` the wreck's id
  *   wc    { r, rc }             SHIP-PVP: the wreck signed (wildReceipt.js `n1`): to its captain and its killer
+ *   down  { ms, r?, p? }        WILD-REJOIN (wildRef.js wildDownWord): to a fallen still down whose game closed on the
+ *                                death screen and came back - how long it has left to lie, and, from the room that
+ *                                refereed the fall, its remains' id and where the body lies
  */
 export function validWildRefOut(m) {
   if (!m || typeof m !== 'object' || m.t !== 'wref' || typeof m.k !== 'string' || !WILD_REF_KINDS.includes(m.k)) return null;
@@ -4832,12 +4838,23 @@ export function validWildRefOut(m) {
     if (!idOk(m.by) || !idOk(m.to) || !intIn(m.d, 0, 1000) || !intIn(m.s, 0, 1000) || (m.f !== 0 && m.f !== 1) || !intIn(m.h, 0, 1000)) return null;
     return { k: 'hull', by: m.by, to: m.to, d: m.d, s: m.s, f: m.f, h: m.h };
   }
+  if (m.k === 'down') return validWildDown(m);
   const r = typeof m.r === 'string' && WILD_ID_RE.test(m.r) ? m.r : null;
   if (!r) return null;
   if (m.k === 'fell') return idOk(m.id) && idOk(m.by) ? { k: 'fell', id: m.id, by: m.by, r } : null;
   if (m.k === 'wreck') return idOk(m.id) && idOk(m.by) ? { k: 'wreck', id: m.id, by: m.by, r } : null;   // SHIP-PVP: her ship wrecked
   if (m.k === 'wc') return typeof m.rc === 'string' && m.rc.length && m.rc.length <= DUEL_REF_RECEIPT_MAX ? { k: 'wc', r, rc: m.rc } : null;   // SHIP-PVP: the wreck signed (wildReceipt.js n1)
   return typeof m.rc === 'string' && m.rc.length && m.rc.length <= DUEL_REF_RECEIPT_MAX ? { k: 'rc', r, rc: m.rc } : null;
+}
+/** WILD-REJOIN: a `down` word projected - its time left, and the body's remains' id and place together or neither. */
+function validWildDown(/** @type {any} */ m) {
+  if (!intIn(m.ms, 1, WILD_DOWN_MS_MAX)) return null;
+  if (m.r === undefined && m.p === undefined) return { k: 'down', ms: m.ms };
+  const r = typeof m.r === 'string' && WILD_ID_RE.test(m.r) ? m.r : null;
+  if (!r) return null;
+  if (m.p === undefined) return { k: 'down', ms: m.ms, r };
+  const p = wildPoint(m.p);
+  return p ? { k: 'down', ms: m.ms, r, p } : null;
 }
 /** Is this projected frame one the relay routes to a socket (true), or the room's own (false)? */
 export const wildDirected = (d) => !!d && WILD_DIRECTED.includes(d.k);
