@@ -19,13 +19,17 @@
 | Kills to fill the meter | 1 to the total | 25 |
 | Mini boss | any kind | the first monster picked |
 | Its size | 150-300 % of its kind | 200 % |
-| Its health | 1-100 x its kind's | 10 x |
+| Its health | 1-100 x its kind's, or an EXACT number 1-1,000,000 (`hp`, BOSS-HP - it wins) | 10 x |
 | Ends when it falls | yes / no | yes |
 | Runs for | until ended, 15 min - 1 day | until ended |
 
 Up to four events run at once (`STAFF_EVENTS_MAX`). The page lists every event with its meter (kills / kills to the
 boss, kills / total), its boss's state (not yet, due, up, fallen), the players fighting, and **Spawn mini boss now** and
-**End**. Players never see the meter.
+A staging the law refuses is answered with the field it is refused for (`event-bad-<field>`, EVENT-FAULT:
+`staffEventLaw.js` `staffEventFault`), and the panel says which. **End**, and on an event that is over **Clear** (EVENT-CLEAR, 2026-10-25, mob: "let me clear other events as well form
+history" - one row, or **Clear ended events** for every one over; a running one never; the hub is not asked; audited
+`event-clear`). The list is read again every 5 s while an event runs, and only a row whose words moved is drawn again,
+in place (Staff Panel 0.2.9; mob: "event windows refreshses alot"). Players never see the meter.
 
 ## 2. One law, three readers (`src/net/staffEvent/staffEventLaw.js`)
 
@@ -50,7 +54,9 @@ service, the relay and the game all import. It imports nothing (`raidLaw.js`'s r
    says, every 5 s or at once when it moved, the deaths of the monsters THEY stand (`{t:'sev', k:'w'}`). The cell hears
    a word only in the cell the event's pixel stands in, never in a layer, credits it only from a socket whose pose stands
    on the pixel, the most each account said, under a cap of 10 at once and four a second after. At the meter it calls
-   the boss once (`bd`); each hand call is one more. It hears the boss stand (`bu`) and fall (`bk`) from the one who
+   the boss (`bd`), and again each time the meter fills - every `m` kills - once the last boss fell (BOSS-AGAIN, 2026-10-25,
+   mob: "boss seems to not spawn every time"; `mc` the meter's calls); each hand call is one more (`hc` the hands taken).
+   Every call is the next `fc`. It hears the boss stand (`bu`) and fall (`bk`) from the one who
    stands it, says its ledger to the place (`k:'st'` - the game reads the count only to stop standing monsters at the
    total), and tells the hub (at once for a boss moment, else every 3 s). Done by its ledger - the boss fell with
    "ends when it falls", or every monster fell and no boss stands - the hub ends it.
@@ -67,7 +73,9 @@ an area's while the player stands outdoors on its pixel (`townHere(true)`). Diff
   "and packs quickly to the 25 cap", then "make it take ... 20-45" seconds and "it can be pack of any of the selected
   monsterts"): 3-5 a pack, each one any of staff's kinds, its leader stood anywhere around the runner (any bearing, 20-60
   units off, in view too - nearer when no spot is that far), the rest within 6 of the leader 0.15 s apart, the packs
-  paced so the raid's cap of 25 stands 20-45 s in (the pace rolled once an event) - never more standing or killed than its total
+  paced so the raid's cap of 25 stands 20-45 s in (the pace rolled once an event); PACK-SPREAD (2026-10-25, mob: "evenly
+  swap them between all player in a city"): each pack is led from around the next player in the town in turn - the
+  runner, then each peer standing in its rect, by id (`raidingParties.js` `staffPackPlayer`, the host's `peerFeetInTown`) - never more standing or killed than its total
   (`staffRaidRoom`). A day's raid keeps the mod's one foe at a time just out of view;
 - no town guards come out to defend it;
 - the boss is stood when the cell calls it and none stands for that call (`staffBossWanted`), before any raider;
@@ -88,6 +96,31 @@ An elite (the flag, the 3x blows, the elite's drop), staff's size and health, an
 place of the elite's blue. A puppet boss is promoted from the frame's `sb` side list (`[[record, size %]]`,
 `world/raidShared.js` `validStaffBossTags`, one a frame); its health is its owner's.
 
+BOSS-LOST (2026-10-25, mob: "boss seems to not spawn every time"): a boss stand that does not answer in
+`PENDING_TIMEOUT_S` is given up and asked again (`raidingParties.js` `cancelPending`); and a boss that stood but stands
+nowhere now - not fallen, not mine, no puppet of it - for `STAFF_BOSS_LOST_MS` (a jump's sweep, a removal, a runner
+gone) is stood again by the one who runs the event, for the same call (`staffEvents.js` `staffBossLost`). The wait lets
+a fallen runner's boss come over first.
+
+BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"): while a boss is due or
+stands, no monster is stood; the meter's boss waits until every monster of the event standing is dead - mine and the
+puppets of it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min) for one nobody can reach. Staff's **Spawn mini boss now** stands
+at once (`staffBossByHand`: the book's `fb` past the last I stood). Its line is said once it stands (`bu`), not at its
+call.
+
+BOSS-UNSHAKEN (2026-10-25, mob: "he got stun locked lets stop him from getting stunned", "make the boss not able to be
+stun locked", "just the mini bosses we spawn in event"): a mini boss takes no shove and no Hurt from a player's blow
+(`scenes/exteriorFoes.js`) or a foe's (`scenes/hostCombat.js`), a struck wind-up never staggers it (`ai/tactics.js`
+`windupStruck` - the held blow only), a puppet of it plays no Hurt on its health's fall, and Paralysis never holds it
+(`systems/effects.js` `isImmuneToParalysis`). A departure: DFU has no such foe. Only a staff event's mini boss - every
+other foe and boss is unchanged.
+
+BOSS-HARD (2026-10-25, mob: "apply this logic to all mini bosses we spawn we want them to be very hard for the
+players"): every mini boss is held to the Enemy Expansion Troll's rules (`MonsterBase.mdb.csv` row 272) on top of its
+health - `STAFF_BOSS_MIN_METAL` Silver (a blade below Silver does nothing, `combat/formulas.js`
+`dropWeaponIfTargetImmune`; hand-to-hand lands, as DFU's does) and `STAFF_BOSS_ARMOR` 10 (the Troll's ArmorValue 2 x 5,
+EnemyEntity.cs:264-267) as its worst armour on any part. Owner and puppet alike, so a peer's blow is held to it too.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
@@ -102,6 +135,9 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
   player for about 40 s.
 - Account service `acct182`, migration 0167: drops nobody.
 - Staff Panel 0.2.7: the Events page.
+- STAFF-EVENT BOSS: relay `world257` (the law's `hp` and the meter's boss each fill), account service `acct184` (`hp`
+  staged, `clear`), Staff Panel 0.2.9 (the exact health box, Clear, the quiet list). The relay first; an older relay
+  drops `hp`, so the boss reads its times.
 
 ## 8. Known limits
 
