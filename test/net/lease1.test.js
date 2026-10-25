@@ -9,6 +9,9 @@ import assert from 'node:assert/strict';
 import { fakeRoom, fakeRooms } from '../fakeRoom.mjs';
 import { fakeSocketClass } from '../fakeSocket.mjs';
 import * as H from '../../src/net/hubShards.js';
+/** COST-1: these pins hold a region's channel SPLIT - the way back, the relay's REGION_SHARDS - so their worlds name every region, and a region's shard is asked of the same split (a region's channel is whole by default: test/net/cost1_regions.test.js). */
+const SPLIT_VARS = { REGION_SHARDS: 'all' };
+const SPLIT = H.regionsSharded(SPLIT_VARS.REGION_SHARDS);
 import { leaseKeyOf, mintLease, readLease, leaseRoom, relaySupportsLease, LEASE_MS, LEASE_LIFE_S, LEASE_FRAME_MIN_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_OLD_REASON } from '../../src/net/roomLease.js';
 import { parseClient, cellRoomOfWire, chatRegionRoom, chatLangRoom, CHAT_WORLD_ROOM, CHAT_TRADE_ROOM, CHAT_LFG_ROOM, CLOSE_BUSY, CLOSE_POLICY, PIXEL_UNITS, LEASE_WIRE_MAX, GROUND_LAW, GRANT_HELLO_LAW } from '../../src/net/wire.js';
 import { RELAY_CFG_KEYS, RELAY_INTERNAL_CFG, RELAY_CFG_TTL_MS } from '../../src/net/relayCfg.js';
@@ -319,7 +322,7 @@ test('LEASE1 THE LOAD (mob, 07:57Z: "we need to test if this affected load times
   const secret = await GATE;
   try {
     await quiet(async () => {
-      const W = fakeRooms({ now: () => clock });
+      const W = fakeRooms({ now: () => clock, vars: SPLIT_VARS });
       const room = (k) => { const r = W.room(k); r.env.GATE_SIGNING_KEY = secret; return r; };
       const hub = room(CHAT_WORLD_ROOM);
       let asked = 0;
@@ -401,7 +404,7 @@ test('LEASE1 THE FOURTH REVIEW OF THE PR: a frame that waited at the door is hea
   const LEASE_OLD_ASK_MS = 10 * RELAY_CFG_TTL_MS;   // server/src/index.js
   try {
     await quiet(async () => {
-      const W = fakeRooms({ now: () => clock });
+      const W = fakeRooms({ now: () => clock, vars: SPLIT_VARS });
       const room = (k) => { const r = W.room(k); r.env.GATE_SIGNING_KEY = secret; return r; };
       const hub = room(CHAT_WORLD_ROOM);
       let asked = 0, hold = null;
@@ -552,7 +555,7 @@ async function world(fn, env = {}) {
   const secret = await GATE;
   try {
     return await quiet(async () => {
-      const W = fakeRooms({ now: () => clock });
+      const W = fakeRooms({ now: () => clock, vars: SPLIT_VARS });
       const room = (k) => { const r = W.room(k); Object.assign(r.env, { GATE_SIGNING_KEY: secret }, env); return r; };
       const bus = room(CHAT_WORLD_ROOM);
       const settle = async () => {
@@ -582,8 +585,8 @@ test('LEASE1 THROUGH THE SHARDS: a mute the hub\'s bus took after the hello reac
   await world(async ({ bus, room, link, say, tick }) => {
     const v = 'p0', c = 'p1';
     const hv = H.hubOfSubject(`acct-${v}`), hc = H.hubOfSubject(`acct-${c}`);
-    const region = chatRegionRoom(3);
-    room(region);
+    const region = chatRegionRoom(3), rv = H.shardOf(region, `acct-${v}`, SPLIT), rc = H.shardOf(region, `acct-${c}`, SPLIT);
+    room(region); room(rv); room(rc);
     const wv = await link(v, hv, { peer: undefined });
     assert.equal(of(wv, 'welcome')[0]?.ldo, undefined, 'a shard welcome does not carry the door');
     assert.equal(of(wv, 'ldo').at(-1)?.on, 0, 'the bus says the door, and it is off');
@@ -617,8 +620,8 @@ test('LEASE1 THROUGH THE SHARDS: a mute the hub\'s bus took after the hello reac
 test('LEASE1 A REGION\'S SHARD ASKS THE DOOR BEFORE ITS BUS HEARS (a review of the PR: a region\'s lines went up to the bus unleased): with the door on, a bound socket\'s line on its shard goes up only behind a live lease - unleased, nobody on any shard hears it, and it stands; leased, everyone does; and a lease older than its token hands its freeze up to the bus all the same (mutants: the shard\'s line past the door; the shard\'s parsed line past the door; an older freeze not handed up)', async () => {
   await world(async ({ room, link, say, tick, settle }) => {
     const v = 'p0', c = 'p1', f = 'p2';
-    const region = chatRegionRoom(3);
-    room(region);
+    const region = chatRegionRoom(3), rv = H.shardOf(region, `acct-${v}`, SPLIT), rc = H.shardOf(region, `acct-${c}`, SPLIT), rf = H.shardOf(region, `acct-${f}`, SPLIT);
+    room(region); room(rv); room(rc); room(rf);
     const hv = H.hubOfSubject(`acct-${v}`);
     const wv = await link(v, hv);
     const sv = await link(v, region, { ls: 1 });
@@ -636,9 +639,9 @@ test('LEASE1 A REGION\'S SHARD ASKS THE DOOR BEFORE ITS BUS HEARS (a review of t
     await say(sv, region, { t: 'chat', text: 'leased' });
     assert.ok(lines(sc).includes('leased'), 'leased: everyone hears it');
     // AUDIT SCALE II R1-7's frame, kept by its first key and parsed as a line, passes the same door
-    const sw = await link('p3', region, { ls: 1 });
+    const sw = await link('p3', H.shardOf(region, 'acct-p3', SPLIT), { ls: 1 });
     tick(1000);
-    await room(region).raw(sw, '{"t":"pose","t":"chat","text":"a line dressed as a pose"}');
+    await room(H.shardOf(region, 'acct-p3', SPLIT)).raw(sw, '{"t":"pose","t":"chat","text":"a line dressed as a pose"}');
     await settle();
     assert.ok(!lines(sc).includes('a line dressed as a pose'), 'unleased, it went up to nobody either');
     // a lease minted before its token, carrying a freeze: the shard takes it, and hands it up for the bus to judge

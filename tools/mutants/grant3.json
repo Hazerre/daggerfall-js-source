@@ -112,8 +112,8 @@
   {
     "name": "GRANT3-stand-per-ask",
     "file": "src/scenes/grantHost.js",
-    "old": "    queue.delete(kind);\n    const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;",
-    "new": "    queue.delete(kind);\n    const max = 1;",
+    "old": "    const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;",
+    "new": "    const max = 1;",
     "why": "every stand its own ask - a camp of six spends six",
     "tests": [
       "test/scenes/grant3_pool.test.js"
@@ -162,12 +162,13 @@
   {
     "name": "GRANT3-reader-sender-unchecked",
     "file": "src/scenes/grantHost.js",
-    "old": "grantRefusal(v.gr, { from, cell: cell ?? session()?.room ?? '',",
-    "new": "grantRefusal(v.gr, { from: v.gr.o, cell: cell ?? session()?.room ?? '',",
+    "old": "grantRefusal(v.gr, { from, cell: at,",
+    "new": "grantRefusal(v.gr, { from: v.gr.o, cell: at,",
     "why": "a grant under another's name believed",
     "tests": [
       "test/scenes/grant3_pool.test.js"
-    ]
+    ],
+    "note": "COST-2 3a (re-aimed by content: the cell-scoped law reads the socket's cover)."
   },
   {
     "name": "GRANT3-tally-never-handed",

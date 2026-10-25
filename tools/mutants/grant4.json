@@ -2,12 +2,13 @@
   {
     "name": "GRANT4-room-socket-not-here",
     "file": "server/src/index.js",
-    "old": "    if (isWorldRoom(a.key) || (p && cellRoomOfWire(p.x, p.z) === a.key)) return true;",
-    "new": "    if (p && cellRoomOfWire(p.x, p.z) === a.key) return true;",
+    "old": "    if (isWorldRoom(a.key) || (p && inCover(a, cellRoomOfWire(p.x, p.z)))) return true;",
+    "new": "    if (p && inCover(a, cellRoomOfWire(p.x, p.z))) return true;",
     "why": "a world room's socket told `cell`",
     "tests": [
       "test/net/grant4_relay.test.js"
-    ]
+    ],
+    "note": "COST-2 3a (re-aimed by content: the cell-scoped law reads the socket's cover)."
   },
   {
     "name": "GRANT4-room-pixel-off-a-scene",
@@ -172,8 +173,8 @@
   {
     "name": "GRANT4-kept-unasked",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion),",
-    "new": "memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: false,",
+    "old": "kept: eliteFoe === true || Number.isInteger(champion),",
+    "new": "kept: false,",
     "why": "a saved elite asks its shape's kind",
     "tests": [
       "test/scenes/grant4_lanes.test.js"

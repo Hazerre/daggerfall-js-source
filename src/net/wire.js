@@ -324,6 +324,20 @@ export const poseTsDiff = (a, b) => { const d = ((((a - b) % POSE_TS_MOD) + POSE
 export const CLOSE_REPLACED = 4000;   // another socket said hello with this id and its secret
 export const CLOSE_POLICY = 1008;     // a frame the relay refused; it said why in an error frame first
 export const CLOSE_BUSY = 1013;       // the room is full or its hello gate is shut: try again later
+/** COST-2 (net/cellTree.js): A HALO IN MY OWN ROOM. The Worker maps a page's cell to the node that holds it, and a halo
+ *  whose node is the node of the room the page stands in (`?of=`, HALO_OF_PARAM) is that same object - its sockets are
+ *  already heard. The Worker answers such a halo with a socket closed with this code (a browser sees no HTTP status on a
+ *  refused upgrade), and the page asks that halo again only after HALO_WAIT_MS, counting no drop (online.js). */
+export const CLOSE_SAME_ROOM = 4002;
+/** COST-2 part two (net/cellTree.js): THE TREE MOVED. A node split or merged has handed its rows to the nodes that hold its
+ *  cells now and closes every socket with this code; the page joins its cell again at once (a short jittered wait, no
+ *  drop weighed, no backoff - online.js), and the Worker sends it to the node that holds the cell now. */
+export const CLOSE_REPARTITION = 4003;
+/** COST-2: the query parameter a halo's socket names the rooms its page holds with - its own room first, then its other
+ *  halos, `;` between (a cell's key has a comma of its own) - and the most it names (a halo's neighbours are at most
+ *  three at a corner; the Worker reads no more than this). */
+export const HALO_OF_PARAM = 'of';
+export const HALO_OF_MAX = 9;
 /** SCALE5a (2026-10-10, Mac: "we just hit 500 online people"): THE REASON A BUSY CLOSE GIVES WHEN THE HELLO'S TOKEN WAS
  *  NEVER READ. A room's hello gate is asked before the token (server/src/index.js - a refused hello costs no signature
  *  check), so the token such a hello carried is unspent in that room and may open it on the retry. The client counted
@@ -1129,6 +1143,16 @@ export const LEASE_WIRE_MAX = 256;
 /** GRANT-DOOR: the refusal's close reason (a WebSocket close's reason is at most 123 bytes); the words ride the error frame
  *  before it, GROUND-GATE's own (server/src/index.js GROUND_OLD_WORDS: update the game). */
 export const GRANT_OLD_REASON = 'old grants';
+/** COST-2 part two (bible/11-Multiplayer/Scale-Arc.md COST-2): THE CELL LAW THIS BUILD STANDS ON, by number. A cell's hello
+ *  says it (`cv`): 1 - the page names the rooms it holds on every halo (`?of=`, HALO_OF_PARAM), keeps what each socket
+ *  covers (the welcome's `cells`) and joins again on CLOSE_REPARTITION. A COARSE NODE refuses a cell's hello that says
+ *  less or none (CELL_OLD_REASON, with GROUND-GATE's words: update the game) - a page without `of` would open a halo into
+ *  the object its own socket is in and be replaced by it. A fine cell's object refuses nobody, so at L0 nothing changes. */
+export const CELL_HELLO_LAW = 1;
+/** The most `cv` a hello may say - a later build's number, read; past it, read as none. */
+export const CELL_HELLO_LAW_WIRE_MAX = 65535;
+/** The cell door's close reason (a WebSocket close's reason is at most 123 bytes). */
+export const CELL_OLD_REASON = 'old cells';
 /** SCALE5d (2026-10-11, Mac's decision 3 - a full city overflows into a layer rather than refusing `room full`;
  *  bible/11-Multiplayer/Scale-Arc.md SCALE5d): A CROWDED PLACE OVERFLOWS INTO LAYERS - copies of the same place, each
  *  an object of its own, whose players do not see each other. A room is still its KEY everywhere (every law that reads
@@ -1583,8 +1607,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world261';   // world261: HIBERNATE-FIX (2026-10-25): a foe that stood while alone keeps the grant it is owed once someone arrives, and a finished reaction window posts on the next pose
-// world260: HIBERNATE (2026-10-25): a quiet cell keeps no ten-minute timer and sends no standing pose, a region channel is one room, a lease is asked only while its door is on and then every two minutes, a secret rides the socket
+export const RELAY_VERSION = 'world261';   // world261: HIBERNATE (2026-10-25, world260 then world261 on its branch, renumbered past THE FOLD's world260 at the merge): a quiet cell keeps no timer awake (the grant window and the Staff Panel's network and reaction windows post on their next frame or at the drain), a cell, building or ordinary dungeon with nobody else in it or a halo sends no standing pose until someone arrives, a socket's secret rides its attachment and is never stored, a lease is asked every two minutes and held five while the relay's `leaseDoor` is on (the hub says the door, `ldo`), and a freeze or a mute asks one at once with the door off
+// world260: ONE RELEASE (THE FOLD - travddm's pull requests in one, 2026-10-25): COST-1 (2026-10-24, world256, world257, world258 then world259 on its branch, renumbered past STAFF-EVENT's world256, STAFF-EVENT BOSS's world257, KETCH-LONGER's world258 and ASK-LONGER's world259 at the merges; the owner's Cloudflare bill; bible/11-Multiplayer/Scale-Arc.md COST-1; NOT YET DEPLOYED - a region's channel whole again unless the relay's REGION_SHARDS names it (net/hubShards.js shardOf, regionsSharded; an older build's link on a region shard is told its channel), a drained room's open windows posted and their timers cleared (server/src/drainWindows.js), a storage write counted by the rows it bills.) AND WILD-REJOIN (2026-10-25, world258 on its branch, renumbered past KETCH-LONGER's world258 and ASK-LONGER's world259 at the merges; FIELD BUGS 2026-10-25h, a player's report: "if you die in the wilderness and alt f4 before you are looted you wont be able to be looted by who killed you. you can also skip the death timer this way"; bible/11-Multiplayer/Wild-Zone.md section 4; NOT YET DEPLOYED) - the zone referee tells a fallen still down that says it stands in the zone how long it has left to lie, and where its body lies when the fall was refereed in that room (`wref` `down`, net/wild/wildRef.js wildDownWord - an older client drops the kind), and signs a fall whose fallen has no socket in the room with `g` 1 (net/wild/wildReceipt.js wildFallGraceS: its killer carries it at once). Deploy the account service's acct191 first: an older service holds a `g` fall's killer to the grace. AND COST-2, part one: COST-2 (2026-10-24, part one; world258, world259 then world260 on its branch, after COST-1's world260 (Lattymoy/daggerfall-js-source#1224) and past ASK-LONGER's world259, merged before it; bible/11-Multiplayer/Scale-Arc.md COST-2; NOT YET DEPLOYED - the cell tree fixed at L0: a cell is its node's object (server/src/cellNodes.js, the directory and the Worker's door), a socket covers its node (net/cellTree.js coversCell - every cell-scoped law reads the cover; the welcome's cells), a halo in a room its page holds closed CLOSE_SAME_ROOM, a node's rows handed over (server/src/cellHandover.js), the node's level on the metrics point (blob11).) AND COST-2 part two: COST-2 part two (2026-10-25, world260, then world261, on its branch, renumbered past part one's world260 and world261 at the merges; after COST-2 part one's world261 (Lattymoy/daggerfall-js-source#1228); bible/11-Multiplayer/Scale-Arc.md COST-2 part two; NOT YET DEPLOYED - the cell tree moves: the directory seeds it at the cellSeed setting's level (off unset), its nodes tell their counts, a node splits past CELL_SPLIT_AT and four merge under CELL_MERGE_AT (relay vars), a move made in the directory's alarm in three stages (rows sent and kept, the tree committed, sockets closed CLOSE_REPARTITION and the rows let go), a moved node answers its caller moved, the park registry's drop and a staff event's call through the tree, the seed's pull, the cell door (cv), the directory's moves on blob12 and blob13)
 // world259: ASK-LONGER (2026-10-25, world257 on its branch, renumbered past STAFF-EVENT BOSS's world257 and KETCH-LONGER's world258 at the merge; FIELD BUGS 2026-10-25 - Grost on Discord: "Increase perk selection time for Elite Breaches"; bible/01-Overview/bugs/Field-Bugs-2026-10-25.md; NOT YET DEPLOYED) - net/eliteGates/egRun.js EG_ASK_MS 10 s -> 30 s: the company's word at a Redoubt's rest and a Dagon's Bargain is open thirty seconds; no frame changes, a page needs no minimum. world258: KETCH-LONGER (2026-10-25, world257 on its branch, renumbered past STAFF-EVENT BOSS's world257 at the merge; the owner, from players: "the raid is too short and too easy" - bible/11-Multiplayer/Sky-Ketch.md section 19): the Watch's five waves, her constructs' health and blows, the engine's appetite, its cradles and spiders, the Tonal Warden's share, blows and end; the wire takes a wave to five.
 // world257: STAFF-EVENT BOSS (2026-10-25, mob: "boss seems to not spawn every time need be able to eneter a exact amount of healt for mini bosses"; bible/11-Multiplayer/Staff-Events.md section 5; NOT YET DEPLOYED) - net/staffEvent/staffEventLaw.js: an event carries `hp`, the mini boss's exact health staff typed, and the meter calls a boss each time it fills (every `m` kills, one at a time; ledger `hc`, `mc`) - the game stands a lost boss again (systems/staffEvents.js staffBossLost). world256: STAFF-EVENT (2026-10-24, world255 on its branch, renumbered past KETCH's world255 at the merge; mob: "lets start making an event tool for staff to use"; bible/11-Multiplayer/Staff-Events.md; NOT YET DEPLOYED) - a staff event's order (identityToken.js 'sevent') kept in the hub's book and said to everyone (`{t:'sev', k:'ev'|'end'}`), a player's word on it (`{t:'sev', k:'w'}`) kept as its place's cell's kill meter (`k:'st'`), the mini boss called at the meter or by staff's hand; an older relay closes a socket on the frame, so the game sends it only to world255 on (STAFF_EVENT_RELAY_MIN) world255: KETCH (2026-10-24, world253 on its branch, renumbered past ROCKET1's world253 and AUDIT FOE-KEEPS' world254 at the merge; the owner: "A proper dwarven airship flies in once a week over the skies of daggerfall, and you, along with other players venture into it in a raid like format", "Make the dwarven event 8 player"; bible/11-Multiplayer/Sky-Ketch.md section 10; NOT YET DEPLOYED) - one frame, `kt` (validKetchIn, validKetchOut), in a crew's ship's room `kt:<voyage>.<owner>` alone: the Worker mints one only while its voyage holds its crews (net/ketch/ketchLaw.js ketchRoomHolds), the room admits its captain, staff and the captain's party (INSTANCES' kin) to KT_CREW_MAX, and runs the voyage (net/ketch/ketchBrain.js) and its Tonal Warden on the boss seam; the receipts are `y1` (net/ketch/ketchReceipt.js). A page boards only once its relay says KT_RELAY_MIN.
 // world254: AUDIT FOE-KEEPS (2026-10-24, the owner, asked: "Credit the last player"; bible/01-Overview/audits/Audit-Foe-Keeps.md E2; NOT YET DEPLOYED): the zone word carries `dd` 1 - a fighter's word that it left the zone dying, which the referee did not see - and the relay names the last fair player to strike it within WILD_REF.creditMs its killer (net/wild/wildRef.js wildCredit, server/src/index.js _wildCredit): a fall made, said and signed as a blow's. A relay before it drops the field and credits nobody, as before
@@ -2446,6 +2470,7 @@ export function parseClient(text, { hasHello = false } = {}) {
     // room's door refuses none while its gate is on, and a later build's number is read as it is
     if (Number.isSafeInteger(m.gl) && m.gl >= 1 && m.gl <= GROUND_LAW_WIRE_MAX) hello.gl = m.gl;
     if (Number.isSafeInteger(m.gv) && m.gv >= 1 && m.gv <= GRANT_HELLO_LAW_WIRE_MAX) hello.gv = m.gv;   // GRANT-DOOR: the grants this build stands on - read as GROUND-GATE's `gl` is
+    if (Number.isSafeInteger(m.cv) && m.cv >= 1 && m.cv <= CELL_HELLO_LAW_WIRE_MAX) hello.cv = m.cv;   // COST-2 part two: the cell law this build stands on - read as GROUND-GATE's `gl` is
     if (m.ls === 1) hello.ls = 1;   // LEASE1: this build hands its hub's lease to the room (net/roomLease.js) - 1 or nothing, the `w2` law
     if (m.sm === 1) hello.sm = 1;   // STAFF-PANEL5-MESSAGE: this build shows a staff message's box (net/staffMessages.js) - 1 or nothing, the `w2` law: a hub socket without it is "old game, not shown"
     if (m.fv === 1) hello.fv = 1;   // STAFF-PANEL5-FREEZE: this build shows the freeze screen (net/staffChat.js) - 1 or nothing; a frozen account's socket from a build without it is closed with the reload words
@@ -4809,7 +4834,10 @@ export const WILD_ORDER_MAX = 1024;
 export const WILD_REF_RELAY_MIN = 185;   // world183, then world184, on its branch, renumbered past CHAP4c's world183 and PERF-RELAY1's world184 at the merges
 export const relaySupportsWildRef = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= WILD_REF_RELAY_MIN; };
 /** INT9: the zone referee's word kinds (`{t:'wref', k, ...}`, the relay's alone). */
-export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck', 'wc']);
+export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck', 'wc', 'down']);
+/** WILD-REJOIN: the longest a `down` word says a fallen has left to lie, ms (net/wild/wildRef.js WILD_REF.riseMs, pinned
+ *  equal - this leaf imports no referee). */
+export const WILD_DOWN_MS_MAX = 120_000;
 /**
  * INT9: THE ZONE REFEREE'S WORD, PROJECTED - the relay's `{t:'wref', ...}`, or null:
  *   hp    { by, to, d, r, h }   a blow or a cast landed: who on whom, what it dealt, its kind, both fighters' vitality
@@ -4819,6 +4847,9 @@ export const WILD_REF_KINDS = Object.freeze(['hp', 'fell', 'rc', 'hull', 'wreck'
  *                                bar and of her canvas, a fire set, her bar left
  *   wreck { id, by, r }         SHIP-PVP: a captain's ship wrecked - `by` her killer, `r` the wreck's id
  *   wc    { r, rc }             SHIP-PVP: the wreck signed (wildReceipt.js `n1`): to its captain and its killer
+ *   down  { ms, r?, p? }        WILD-REJOIN (wildRef.js wildDownWord): to a fallen still down whose game closed on the
+ *                                death screen and came back - how long it has left to lie, and, from the room that
+ *                                refereed the fall, its remains' id and where the body lies
  */
 export function validWildRefOut(m) {
   if (!m || typeof m !== 'object' || m.t !== 'wref' || typeof m.k !== 'string' || !WILD_REF_KINDS.includes(m.k)) return null;
@@ -4833,12 +4864,23 @@ export function validWildRefOut(m) {
     if (!idOk(m.by) || !idOk(m.to) || !intIn(m.d, 0, 1000) || !intIn(m.s, 0, 1000) || (m.f !== 0 && m.f !== 1) || !intIn(m.h, 0, 1000)) return null;
     return { k: 'hull', by: m.by, to: m.to, d: m.d, s: m.s, f: m.f, h: m.h };
   }
+  if (m.k === 'down') return validWildDown(m);
   const r = typeof m.r === 'string' && WILD_ID_RE.test(m.r) ? m.r : null;
   if (!r) return null;
   if (m.k === 'fell') return idOk(m.id) && idOk(m.by) ? { k: 'fell', id: m.id, by: m.by, r } : null;
   if (m.k === 'wreck') return idOk(m.id) && idOk(m.by) ? { k: 'wreck', id: m.id, by: m.by, r } : null;   // SHIP-PVP: her ship wrecked
   if (m.k === 'wc') return typeof m.rc === 'string' && m.rc.length && m.rc.length <= DUEL_REF_RECEIPT_MAX ? { k: 'wc', r, rc: m.rc } : null;   // SHIP-PVP: the wreck signed (wildReceipt.js n1)
   return typeof m.rc === 'string' && m.rc.length && m.rc.length <= DUEL_REF_RECEIPT_MAX ? { k: 'rc', r, rc: m.rc } : null;
+}
+/** WILD-REJOIN: a `down` word projected - its time left, and the body's remains' id and place together or neither. */
+function validWildDown(/** @type {any} */ m) {
+  if (!intIn(m.ms, 1, WILD_DOWN_MS_MAX)) return null;
+  if (m.r === undefined && m.p === undefined) return { k: 'down', ms: m.ms };
+  const r = typeof m.r === 'string' && WILD_ID_RE.test(m.r) ? m.r : null;
+  if (!r) return null;
+  if (m.p === undefined) return { k: 'down', ms: m.ms, r };
+  const p = wildPoint(m.p);
+  return p ? { k: 'down', ms: m.ms, r, p } : null;
 }
 /** Is this projected frame one the relay routes to a socket (true), or the room's own (false)? */
 export const wildDirected = (d) => !!d && WILD_DIRECTED.includes(d.k);

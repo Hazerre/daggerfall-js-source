@@ -13,6 +13,9 @@ import { fakeSocketClass } from '../fakeSocket.mjs';
 import { OnlineSession, HUB_FIND_ASK_MS, HUB_FIND_FRESH_MS } from '../../src/net/online.js';
 import { SOCIAL_ROOM, CHAT_ROOMS, isSocialRoom, isChatRoom, isRegionRoom, parseClient, RELAY_VERSION, CLOSE_REPLACED } from '../../src/net/wire.js';
 import * as H from '../../src/net/hubShards.js';
+/** COST-1: these pins hold a region's channel SPLIT - the way back, the relay's REGION_SHARDS - so their worlds name every region, and a region's shard is asked of the same split (a region's channel is whole by default: test/net/cost1_regions.test.js). */
+const SPLIT_VARS = { REGION_SHARDS: 'all' };
+const SPLIT = H.regionsSharded(SPLIT_VARS.REGION_SHARDS);
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const quiet = async (fn) => { const keep = { info: console.info, warn: console.warn, log: console.log }; console.info = console.warn = console.log = () => {}; try { return await fn(); } finally { Object.assign(console, keep); } };
@@ -32,7 +35,7 @@ async function world(fn) {
   Date.now = () => clock;
   try {
     return await quiet(async () => {
-      const W = fakeRooms({ now: () => clock });
+      const W = fakeRooms({ now: () => clock, vars: SPLIT_VARS });
       const bus = W.room(SOCIAL_ROOM);
       /** Every shard's hand-up and the bus's deliveries, until both rest. */
       const settle = async () => {
@@ -531,34 +534,48 @@ test('SCALE5c part two: A REGION\'S CHANNEL, FOUR WAYS - its shards beside it, a
   assert.equal(H.busOf('chat:region.7.2'), 'chat:region.7'); assert.equal(H.busOf('chat:world.3'), SOCIAL_ROOM); assert.equal(H.busOf('chat:region.7'), null);
   assert.equal(H.isChannelBus('chat:region.7'), true); assert.equal(H.isChannelBus(SOCIAL_ROOM), true); assert.equal(H.isChannelBus('chat:world.3'), false); assert.equal(H.isChannelBus('chat:region.62'), false);
   assert.equal(H.channelOf('chat:region.7.2'), 'chat:region.7'); assert.equal(H.channelOf('cell:1,2'), 'cell:1,2');
-  assert.equal(H.shardOf('chat:region.7', 'acct-x'), null, 'a region is one room: nobody is placed on a shard');
+  assert.equal(H.shardOf('chat:region.7', 'acct-x', SPLIT), `chat:region.7.${H.shardHash('acct-x') % H.REGION_SHARDS}`);
+  assert.equal(H.shardOf('chat:region.7', 'acct-x'), null, 'COST-1: whole unless the relay names the region');
   assert.equal(H.shardOf(SOCIAL_ROOM, 'acct-x'), H.hubOfSubject('acct-x'));
   assert.equal(H.shardOf('chat:region.7', ''), null); assert.equal(H.shardOf('chat:world.3', 'acct-x'), null);
   assert.equal(H.hubHopOf({ t: 'hub', key: 'chat:region.7.2' }), 'chat:region.7.2'); assert.equal(H.hubHopOf({ t: 'hub', key: 'chat:region.7' }), 'chat:region.7');
   const MARK = { px: 207, py: 213, fx: 12, fy: 250, h: 64, m: 1, tv: 1 };
   const RB = chatRegionRoom(5);
+  /** Names whose accounts land on distinct shards of the region. */
+  const onRegionShards = (count) => { const out = [], seen = new Set(); for (let i = 0; out.length < count && i < 4096; i++) { const n = `r${i}`; const k = H.shardOf(RB, `acct-${n}`, SPLIT); if (!seen.has(k)) { seen.add(k); out.push(n); } } assert.equal(out.length, count); return out; };
   await world(async ({ W, link, say }) => {
     const bus = W.room(RB);
-    const wa = await link('ra', RB, { kind: 'linked' }), wb = await link('rb', RB), old = await link('regold', RB, { kind: 'linked' });
+    const [a, b, c] = onRegionShards(3);
+    const ka = H.shardOf(RB, `acct-${a}`, SPLIT), kb = H.shardOf(RB, `acct-${b}`, SPLIT), kc = H.shardOf(RB, `acct-${c}`, SPLIT);
+    const wa = await link(a, ka, { kind: 'linked' }), wb = await link(b, kb);
+    const old = await link('regold', RB, { hs: undefined, kind: 'linked' });   // a tab from before: the region's channel itself
     assert.equal(wa.sent[0].t, 'welcome');
-    assert.equal(bus.room._vsocks.size, 0, 'the region holds its own sockets: no shard, no long-poll');
+    assert.equal(bus.room._vsocks.size, 2, 'the region\'s bus holds a ShardSocket each');
+    assert.equal(bus.room._busKey, RB);
     for (const ws of [wa, wb, old]) ws.sent.length = 0;
-    await say(wa, RB, { t: 'chat', text: 'hail, region' });
-    for (const ws of [wa, wb, old]) assert.deepEqual(ofT(ws, 'chat').map((f) => f.text), ['hail, region'], 'the region\'s line on the one room');
-    await say(wa, RB, { t: 'trav', p: MARK });
-    for (const ws of [wb, old]) assert.deepEqual(ofT(ws, 'trav').map((f) => [f.id, f.p?.px]), [['peer-ra', MARK.px]], 'the mark on everyone else');
+    await say(wa, ka, { t: 'chat', text: 'hail, region' });
+    for (const ws of [wa, wb, old]) assert.deepEqual(ofT(ws, 'chat').map((f) => f.text), ['hail, region'], 'the region\'s line on every shard and the bus');
+    const sentAll = [];
+    const vsendAll = bus.room._vsendAll.bind(bus.room);
+    bus.room._vsendAll = (out, x) => { sentAll.push([out, x]); return vsendAll(out, x); };
+    await say(wa, ka, { t: 'trav', p: MARK });
+    assert.ok(sentAll.some(([out, x]) => out.startsWith('{"t":"trav"') && x === `peer-${a}`), 'the mark one entry a shard, its sender\'s own skipped');
+    for (const ws of [wb, old]) assert.deepEqual(ofT(ws, 'trav').map((f) => [f.id, f.p?.px]), [[`peer-${a}`, MARK.px]], 'the mark on every other shard and the bus');
     assert.equal(ofT(wa, 'trav').length, 0, 'never back to its own');
-    const wc = await link('rc', RB);
-    assert.deepEqual((wc.sent.find((f) => f.t === 'welcome').tr ?? []).map((t) => t.id), ['peer-ra'], 'a joiner told the region\'s marks on its welcome');
+    const wc = await link(c, kc);
+    assert.deepEqual(ofT(wc, 'trav').map((f) => f.id), [`peer-${a}`], 'a shard\'s joiner told the region\'s marks by the bus');
     const census = await (await bus.room._sdCensusInternal()).json();
-    assert.equal(census.n, 2, 'the census: the two registered accounts');
+    assert.equal(census.n, 2, 'the census over every shard: the two registered accounts, wherever they stand');
     wb.sent.length = 0;
-    await say(wb, RB, { t: 'find', all: 1 });
-    assert.deepEqual(ofT(wb, 'found').at(-1).l.map((p) => p.name).sort(), ['ra', 'rb', 'rc', 'regold'].sort(), 'everyone in the region, for the Region tab');
-    const hop = await link('ra', H.regionShardRoom(5, 0), { peer: 'peer-ra-x' });
-    assert.deepEqual(hop.sent, [{ t: 'hub', key: RB }], 'a tab still naming a shard is told the bus');
-    const viaBus = await link('rb', RB, { peer: 'peer-rb-y', hs: 1 });
-    assert.equal(viaBus.sent[0].t, 'welcome', 'a link that knows the shards stays on the bus');
+    await say(wb, kb, { t: 'find', all: 1 });
+    assert.deepEqual(ofT(wb, 'found').at(-1).l.map((p) => p.name).sort(), [a, b, c, 'regold'].sort(), 'everyone in the region, for the Region tab');
+    // the hops
+    const wrong = H.REGION_SHARD_ROOMS.find((k) => H.busOf(k) === RB && k !== ka);
+    const hop = await link(a, wrong, { peer: `peer-${a}-x` });
+    assert.deepEqual(hop.sent, [{ t: 'hub', key: ka }]);
+    const viaBus = await link(b, RB, { peer: `peer-${b}-y`, hs: 1 });
+    assert.deepEqual(viaBus.sent, [{ t: 'hub', key: kb }]);
+    // a bus never another channel's
     const res = await bus.room._hubUpInternal(new Request('https://relay.internal/', { method: 'POST', body: JSON.stringify({ hub: 'chat:world.3', e: [] }) }));
     assert.equal(res.status, 400);
   });

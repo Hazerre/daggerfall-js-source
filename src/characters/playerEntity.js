@@ -363,6 +363,22 @@ export function forcePlayerDeath(entity) {
 }
 
 /**
+ * WILD-REJOIN: A DEATH ANOTHER PAGE ALREADY HEARD - the open zone's referee telling a page that came back that its
+ * character is still down from a fall its closed game died of (net/wild/wildRef.js wildDownWord). That page ran the
+ * death's door: OnDeath's subscribers decided it there (Project Legacy wrote its toll or its fall at once). So this
+ * death is presented alone - the health at zero and the host's screen - and no subscriber hears it a second time.
+ * Answers whether it was a death.
+ * @param {any} entity
+ */
+export function presentHeardDeath(entity) {
+  if (!((entity?.health ?? 0) > 0)) return false;
+  entity.health = 0;
+  surfacePlayer();
+  _deathPresenter?.(entity);
+  return true;
+}
+
+/**
  * DUEL1: `spare` - A DUEL'S BLOW NEVER KILLS. Mac: "Loser drops to 1HP". A blow that would take a live player to zero
  * leaves them at ONE instead, and `spare(entity)` is told (the duel's law: the side that falls says so and has lost);
  * the avoid-death hook and the death presenter are never reached, because nobody died. Only the duel's own doors pass

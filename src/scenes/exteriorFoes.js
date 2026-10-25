@@ -640,7 +640,6 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // ever. The record's own word is what the record's word is compared to.
       f.builtLevel = builtLevel;
       if (gm) _net?.grants?.stood(gm.gr, gm.i, f);   // GRANT3: its grant's member, on its record from here
-      else if (!puppet && !(placed && !site)) _net?.grants?.owedStand(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion), replacing, managed, site, placed, loose }), f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
       // AUDIT FOES FOE6: the LAST build to land holds the key, and removePuppet
       // deletes only when the key still names it - so a stale build cannot evict
       // the record that is actually standing.

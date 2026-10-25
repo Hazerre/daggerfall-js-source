@@ -1465,7 +1465,10 @@ function drawStatus(vitals, opts, live = null) {
   powers.push(...techniqueChips(vitals));   // TECH1: and the weapon's technique beside them (the host's - setHudTechniqueChips)
   // SURV5: the needs - one a felt need (survival/status.js), none while every need is met, and none with the switch off
   const needs = survivalOn() ? survivalHudChips(vitals, Math.floor(ownMinutes()), { vampire: !!liveVampirism(vitals), endurance: liveStat(vitals, 'endurance'), rules: survivalRules(), live }) : [];   // AUDIT SURV C: the vampire's strip, the page's drunk bands; AUDIT SURV-BOONS C14: the live tier's, so a turn shows at once (AUDIT C&C S5: and its levels are that tier's); AUDIT C&C S9: the plate's live reading
-  if (needs.some((c) => c.level !== 'boon')) noteFirstUse('survival');   // TUT1: the first felt need - AUDIT SURV-BOONS C2: a boon is none (a fresh Boons character is fed and watered, and met the page in its first minute)
+  // TUT1: the first felt need - AUDIT SURV-BOONS C2: a boon is none (a fresh Boons character is fed and watered, and met
+  // the page in its first minute). CHARGEN-TUT: and only a made character's - the HUD draws under the wizard on the
+  // stand-in, whose needs are nobody's, and the page it raised stood over the wizard where no click could reach it
+  if (vitals?.chargenDone && needs.some((c) => c.level !== 'boon')) noteFirstUse('survival');
   const rested = sharedClockOn() ? { minutes: nightRealMinutesLeft(vitals, ownMinutes()) } : null;   // REST1: the night interval, online
   const all = statusTiles({ spells, powers, afflictions: afflictionRows(vitals), needs, rested });
   const zone = zoneTile();

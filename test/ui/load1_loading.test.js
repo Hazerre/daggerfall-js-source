@@ -375,7 +375,8 @@ test('LOAD1 the hosts: the boot raises the screen at once and its title steps ar
     'every frame: a window up takes the screen aside, then the one question');
   assert.match(w, /const loadingPlaceNow = \(\) => loadingPlaceOf\(\{ dest: _loadingDest, moving: worldMoveBusy\(\), placeAt: placeAtPixel, here: placeHere \}\);/);
   assert.match(w, /_traveling \? \(_partyWaitLine \|\| 'Travelling'\)/, 'the party landing\'s wait is said on the screen over the chat line');
-  assert.match(w, /onWait: \(\) => \{ _partyWaitLine = PARTY_ARRIVAL_TEXT\.waiting; townTalk\.say\(PARTY_ARRIVAL_TEXT\.waiting\); \}/);
+  // PIN MOVED (PARTY-FOLLOW): the wait is systems/party/partyArrival.js's, which hands its line (PARTY_ARRIVAL_TEXT.waiting) to the host's `waiting`
+  assert.match(w, /waiting: \(line\) => \{ _partyWaitLine = line; townTalk\.say\(line\); \},/);
   assert.match(w, /function placeAtPixel\(px, py\) \{\n\s*const key = `\$\{px\},\$\{py\}`;\n\s*if \(_ohGpsName\?\.key === key && _ohGpsName\.name\) return _ohGpsName\.name;/, 'the abyss wears its own name over the pixel it borrows');
   assert.match(w, /if \(!params\.has\('load'\) && !\(params\.has\('classicload'\) && peekPendingClassicSave\(\)\)\) setLoadingPlace\(startLoc\?\.name \|\| locationName\);/, 'a stale ?classicload imports nothing: the start is the place');
   assert.match(w, /setLoadingAside\('window', true\);[^\n]*\n\s*townTalk\.showOverlay\(createChargenWindow\(flow, \{/, 'the chargen shown mid-boot takes the boot\'s screen aside');

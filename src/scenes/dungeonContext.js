@@ -1476,6 +1476,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     get _lootUnreadable() { return _lootUnreadable; },
     get _roomClaimN() { return _roomClaimN; }, set _roomClaimN(v) { _roomClaimN = v; },
     get _roomMintHold() { return _roomMintHold; },
+    get _retyping() { return _retyping; },
     get _roomNowMs() { return _roomNowMs; }, set _roomNowMs(v) { _roomNowMs = v; },
     get _sharedById() { return _sharedById; },
     get _sharedStamp() { return _sharedStamp; },
@@ -1795,7 +1796,6 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const f = await buildFoeAt(e, false);
     if (!f) return null;
     if (gm) grants?.()?.stood(gm.gr, gm.i, f);
-    else if (!bout && grants?.()) grants().owedStand(grantKindOf({ allied, questBehaviour: questSpawn, revenant, loose: true }), f);   // GRANT-SLEEP: stood while alone - asked and attached when someone arrives
     if (yawRad != null && f.ai) f.ai.yaw = yawRad;
     if (bout) { f.entity.bout = bout; f.entity.items = []; f._bout = true; return f; }
     f._loose = true;   // SUMMON-SYNC: a loose stand - it rides the room's own lane to everyone in the room (ownLoose)

@@ -152,40 +152,10 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
   // ── the owner's grants ───────────────────────────────────────────────────────────────────────────────────────────
   const live = new Set();   // grants with my members standing
   const queue = new Map();   // kind -> the stands waiting on this turn's ask
-  const owed = [];   // GRANT-SLEEP: { kind, f } stood while nobody else was here - asked and attached when someone arrives
-  /** Asks owed while this cell was empty of everyone but me, and puts each grant on the foe that is still standing. */
-  function flushOwed() {
-    if (!owed.length || session()?.othersHere === 0) return;
-    const byKind = new Map();
-    for (const o of owed.splice(0)) {
-      if (!o.f || o.f.dead || o.f.puppet || o.f._grant || o.f._gone) continue;
-      const list = byKind.get(o.kind) ?? [];
-      list.push(o.f);
-      byKind.set(o.kind, list);
-    }
-    for (const [kind, foes] of byKind) {
-      const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;
-      for (let at = 0; at < foes.length; at += max) {
-        const chunk = foes.slice(at, at + max);
-        ask({ k: 'mint', kind, n: chunk.length }).then((a) => {
-          if (a?.k !== 'ok') return;
-          const gr = { ...a.gr, _members: 0 };
-          chunk.forEach((f, i) => { if (!f.dead && !f.puppet && !f._grant && !f._gone) stood(gr, i, f); });
-        });
-      }
-    }
-  }
-  /** The foe `f` stood while this cell was empty of everyone but me. Asked and attached when someone arrives. */
-  function owedStand(kind, f) {
-    if (!f || f._grant || f.dead || f.puppet || f._gone || session()?.othersHere !== 0) return;
-    if (!(open() || unsaid()) || !Object.hasOwn(GRANT_KINDS, kind) || owed.some((o) => o.f === f)) return;
-    owed.push({ kind, f });
-  }
   /** A MEMBER FOR A STAND of `kind`: a promise of `{ gr, i }`, `{ refused }` (the law enforcing) or null (no grant came) -
    *  or null at once when no law is on. GRANT6: while the socket's welcome is owed, the stand waits on it (`wait` at most). */
   function memberFor(kind) {
     if (!(open() || unsaid()) || !Object.hasOwn(GRANT_KINDS, kind)) return null;
-    if (session()?.othersHere === 0) return null;   // GRANT-SLEEP: the stand proceeds, the cell stays asleep. owedStand keeps the foe for flushOwed.
     return new Promise((resolve) => {
       const q = queue.get(kind);
       if (q) { q.push(resolve); return; }
@@ -276,17 +246,16 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
   /** THE CLOCK, the pool's frame: carry, renew, drop the expired, hand the tally on, the heirs' waits. */
   function tick() {
     const s = open(), t = now();
-    if (s && s.othersHere !== 0) {   // GRANT-SLEEP: 0 is alone - unset is a session that has not counted, and it asks as before
+    if (s) {
       if (s.room !== lastRoom) { const from = lastRoom; lastRoom = s.room; carryTo = from && isCellRoom(s.room) ? s.room : null; carryTries = 0; }   // GRANT4: cell to cell - a world room's grants stay its own (carry: a cell's alone)
       if (carryTo && !carrying) { const to = carryTo; carryTo = null; if (to === s.room) void carry(to); }   // AUDIT GRANT A13: a crossing made while a carry was out is carried when it lands
       if (!renewing && !carrying) {
         const due = [...live].filter((g) => !g._dead && g.q === s.room && g.x - t <= GRANT_RENEW_LEAD_MS).slice(0, GRANT_RENEW_MAX);
         if (due.length) void renew(due);
       }
-      flushOwed();
-      if (t - tallyAt >= GRANT_TALLY_MS) { tallyAt = t; flushTally(); }
-    } else if (s && s.room !== lastRoom) { const from = lastRoom; lastRoom = s.room; if (from && isCellRoom(s.room)) carryTo = s.room; }   // GRANT-SLEEP: alone, remember the crossing and wake nothing until someone is here
+    }
     for (const g of live) if (t > g.x + GRANT_SKEW_MS) { g._dead = true; live.delete(g); }   // GRANT4: an expired grant is no longer mine to renew or free (a room left keeps none)
+    if (t - tallyAt >= GRANT_TALLY_MS) { tallyAt = t; flushTally(); }
     for (const [k, w] of heirWaits) {
       if (t - w.at < GRANT_HEIR_WAIT_MS) continue;
       heirWaits.delete(k);
@@ -410,7 +379,8 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (!ok) return note(from, 'unsigned');
     pups.set(`${from}|${r.i}`, { s: v.gr.s, i, k: v.gr.k });
     capMap(pups, GRANT_MEMBERS_MAX);
-    const why = grantRefusal(v.gr, { from, cell: cell ?? session()?.room ?? '', nowMs: now(), i })
+    const at = cell ?? session()?.room ?? '';
+    const why = grantRefusal(v.gr, { from, cell: at, cover: session()?.coverOf?.(at) ?? at, nowMs: now(), i })   // COST-2 (b): in any cell the socket it came on covers
       ?? (!grantMarksAllow(v.gr, i, r) ? 'marks' : null)
       ?? diceRefusal(v.gr, r)
       ?? twice(from, g, i, r.i);
@@ -508,7 +478,7 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (g._grantDone && now() - g._grantAt >= GRANT_WATCH_REASK_MS) { g._grantAt = undefined; g._grantDone = false; }   // AUDIT GRANT A12: refused or never come - asked again at the watch's pace
     if (g._grantAt === undefined) {
       const m = memberFor('watch');
-      if (!m) { owedStand('watch', g); return true; }
+      if (!m) return true;
       g._grantAt = now();
       void m.then((a) => { g._grantDone = true; if (a && 'gr' in a && !g._grant && !g._gone) { stood(a.gr, a.i, g); watchmen.set(g, pool); } });
       return false;
@@ -524,5 +494,5 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     for (const [g, p] of watchmen) if (p === pool && (!here.has(g) || g._gone)) { watchmen.delete(g); ended(g); }
   }
 
-  return { memberFor, owedStand, stood, ended, handed, tick, frameGrants, adopted, heard, check, downed, statsRefused, answer, enforcing, standsDown, watchReady, watchSweep, speciesOf, tallied: () => new Map(tallies), live: () => [...live] };
+  return { memberFor, stood, ended, handed, tick, frameGrants, adopted, heard, check, downed, statsRefused, answer, enforcing, standsDown, watchReady, watchSweep, speciesOf, tallied: () => new Map(tallies), live: () => [...live] };
 }

@@ -46,7 +46,7 @@ import { LETTER_SUBJECT_MAX, LETTER_BODY_MAX, LETTER_LINES_MAX, LETTERS_SENT_MAX
 import { banRangeText, bannedText } from './safety/safetyLaw.js';   // SAFE4: a ban's bound in its refusal's sentence, from its home; AUDIT SAFE CLIENT-2: and the ban itself
 import { muteRangeText } from './moderation.js';   // AUDIT 68 S14-mute-range-text-duplicated: the mute's bound in the refusal's sentence, from its home (L10N4: its reader)
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
-import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's
+import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY, DECOR_YARDS_TOWN_MAX } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's; YARD-TOWN: a town's
 import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
 import { NOTES_LIVE_MAX, NOTE_DAYS, NOTICE_DAYS_MAX } from './boardLaw.js';   // NOTICE1: the bounds its refusals name
 import { SIGN_WHY, SIEGE_WHY, ROYAL_WHY, FEALTY_WHY, SELLSWORD_FEE_MAX } from './townSeatLaw.js';   // SEAT2a: the rosters' refusals in the board's own words; the fee's bound
@@ -341,6 +341,7 @@ const REFUSAL_WORDS = {
   // DECOR1: an online home's decor (server-account/src/decor.js)
   'decor-cap': () => t('account.refusal.decorCap', 'A home holds at most {max} pieces. Remove one to place another.', { max: DECOR_CAP }),
   'yard-cap': () => t('account.refusal.yardCap', 'A yard holds at most {max} pieces. Remove one to place another.', { max: DECOR_YARD_CAP }),   // HOME-YARD
+  'yard-town-full': () => t('account.refusal.yardTownFull', "This town's yards hold {max} pieces between them, the most a town can. Remove one of yours to place another.", { max: DECOR_YARDS_TOWN_MAX }),   // YARD-TOWN
   'yard-high': () => DECOR_YARD_HIGH_WHY,   // YARD-HEIGHT (AUDIT Y3): the decorator's own sentence
   'decor-taken': () => t('account.refusal.decorTaken', 'Another piece already stands under that name. Place it again.'),
   'decor-rate': () => t('account.refusal.decorRate', 'You have placed and moved pieces too often this hour. Try again later.'),
