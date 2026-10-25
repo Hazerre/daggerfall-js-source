@@ -29,6 +29,7 @@
 import { QUEST_OWN_SECOND_KEYS, QUEST_WORLD_SECOND_KEYS, shiftQuestStamps, markOwnClock } from './quest/questStamps.js';
 import { LEGACY_VENDOR } from './legacy/family.js';
 import { skyOfEventLaw, eventOfSkyLaw } from './skyCalendar.js';   // AUDIT WAITS B1: a banishment's days are the sky's calendar's
+import { markRealmCopy } from './realmCopyMark.js';
 
 /** AUDIT LIVED1b F3 (S4): a save's clock - classic minutes, an unsigned count below 2^31 (4,000 years of the calendar;
  *  DFU's is a uint) - or null for anything else. The doors and the load (save.js restorePlayer) read the envelope's
@@ -147,6 +148,8 @@ export function offlineCopyOf(snap) {
   if (!copy || typeof copy !== 'object') return copy;
   dropLineage(copy);
   dropSeason(copy);
+  // The copy's new id was never counted by the realm, so customs can never let it in: the Online door reads the mark.
+  markRealmCopy(copy);
   const own = saneSaveClock(copy.classicMinutes), world = saneSaveClock(copy.worldMinutes);
   delete copy.worldMinutes;
   delete copy.joinFresh;

@@ -124,6 +124,8 @@ import {
   sweepUnsent,
 } from '../../systems/realmSaves.js';   // REALM P1.3: the Online door lists the realm's characters, the service's
 import { applyCustoms, customsLines, crossLeveling, LEVELING_CROSS_LINE } from '../../systems/realmCustoms.js';   // REALM P1.5: an offline character comes in once, through customs
+import { REALM_COPY_SAVE_NAME, realmCopyIds } from '../../systems/realmCopyMark.js';   // a copy of a realm character never comes in
+import { bringOnlineButton } from './bringOnlineButton.js';
 import { createRealmLine } from '../../systems/legacy/realmLine.js';   // HOUSE-WAITS (FIELD BUGS 2026-10-09f): the account's lines, read at the door
 import { loadFamily } from '../../systems/legacy/store.js';
 import { waitingHouses, takeUpLine, houseWaitsTitle, houseWaitsLine, heirButtonLabel } from '../../systems/legacy/waitingHouses.js';
@@ -548,6 +550,7 @@ function saveOf(entry) {
     hour: date ? `${String(date.hour).padStart(2, '0')}:${String(date.minute).padStart(2, '0')}` : null,
     chargenDone: snap.chargenDone !== false,
     testRoom: snap.testRoom === true,   // AUDIT SET D4: a Test Room character, which plays offline
+    realmCopy: snap.realmCopy === true,   // a copy of a realm character, which plays offline (systems/realmCopyMark.js)
   };
 }
 
@@ -1290,17 +1293,20 @@ function paneOnline(body) {
   // carries (systems/realmCustoms.js) on a copy, the service makes the realm character, and it appears above to play.
   // The offline character stays exactly what it was.
   body.append(el('h4', null, t('menu.online.bringHeading', 'Bring an offline character in (once)')));
-  body.append(tileGrid(saves, (save) => ({
-    current: false,
-    actions: [{
-      // AUDIT SET D4: a Test Room character's button says why it is dead (the boot refuses it whatever door it comes by)
-      label: save.testRoom ? t('menu.online.testRoomOffline', 'Test Room: offline only') : t('menu.online.bring', 'Bring online'),
-      // ACC1g: signed out is a DEAD button with the reason one card up,
-      // not a live one that fails at the service.
-      disabled: !who || save.testRoom,
-      onClick: () => { if (!realmBusy) bringOnline(save); },
-    }],
-  })));
+  const realmCopies = realmCopyIds(saves);
+  body.append(tileGrid(saves, (save) => {
+    const button = bringOnlineButton(save, { realmCopy: realmCopies.has(save.characterId) });
+    return {
+      current: false,
+      actions: [{
+        label: button.label,
+        // ACC1g: signed out is a DEAD button with the reason one card up,
+        // not a live one that fails at the service.
+        disabled: !who || button.offlineOnly,
+        onClick: () => { if (!realmBusy) bringOnline(save); },
+      }],
+    };
+  }));
   const field = (label, key, placeholder, maxLength) => {
     const wrap = el('label', 'field');
     wrap.append(el('span', 'fieldlabel', label));
@@ -1457,7 +1463,7 @@ function copyToOffline(row) {
     if (!snap || typeof snap !== 'object') return { ok: false, error: 'no-data' };
     snap = offlineCopyOf(snap);   // AUDIT LIVED1 E: the world's stamps rebased onto the character's clock, the one clock offline
     snap.characterId = mintCharacterId();
-    const r = saveSlot(snap.name || row.name, 'Copied from the realm', snap, { storage: appStorage() });
+    const r = saveSlot(snap.name || row.name, REALM_COPY_SAVE_NAME, snap, { storage: appStorage() });
     return r.ok ? { ok: true } : { ok: false, error: 'no-room' };
   }, () => [t('menu.realm.copied', '{name} is copied as a new offline character. Nothing you play on the copy comes back online.', { name: row.name })]);
 }
