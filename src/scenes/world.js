@@ -111,6 +111,7 @@ import { LivingTown, LINE_HEAD_M as LIVING_HEAD_M } from '../systems/livingWorld
 import { REGULAR_HEAD_M as CARD_REGULAR_HEAD_M } from '../world/card/cardRegulars.js';   // CARDS4b: a seated regular's line over his head
 import { livingWorldOn } from '../systems/livingWorld/livingSwitch.js';
 import { makeQuarry } from '../systems/livingWorld/quarry.js';   // WATCH-PROTECTS: a townsperson as a monster's quarry
+import { createRoadStrike } from './livingWorld/roadStrike.js';   // LW7: a swing at the road's travellers - FIELD BUGS 2026-10-25b ROAD-SPARE: under the street's law of who a blow passes by
 import { patrolHalts } from '../systems/standing.js';   // WATCH-KNOWS: the living watch's word by the law - one whose face it knows (FIELD BUGS 2026-10-21d PATROL-GRACE: outside the grace an answered law gives)
 import { LIVING_WORLD_VENDOR } from '../systems/livingWorld/relations.js';   // LW2: how the living world regards this character (modData `LivingWorld`)
 import { characterRelations } from '../systems/livingWorld/regardClock.js';   // FIELD BUGS 2026-10-21d REGARD-OWN: counted in the character's own days
@@ -159,7 +160,7 @@ import { preloadSpellbookArt } from '../ui/spellbookWindow.js';   // U42: the cl
 import { createSpellbookWindow } from '../ui/spellbookDoor.js';   // PX23: the book's one door
 import { calculateCastCost } from '../systems/spellcost.js';   // M2   // T3b
 import { rangedDamageSpells } from '../systems/spellcast.js';   // U42: the flight probe's picker
-import { worldMinutes, skyMinutes, setWorldMinutes, setSharedClock, sharedClockOn, sharedWallMs, alignEntityClocks, CLASSIC_MINUTES_PER_SECOND, setWorldPriceTilt, empireJoin, ownMinutes, advanceOwnMinutes, worldNightfallText, hearSharedClock, ownWalkWaiting, trustedWorldMinutes, raisedMinutes, playerWeaponHitEntity } from '../systems/worldTick.js';   // ECON1 / AUDIT ALL E1: the world's tilt off the file's base powers   // AUDIT 23 (C2): the ONE clock
+import { worldMinutes, skyMinutes, setWorldMinutes, setSharedClock, sharedClockOn, sharedWallMs, alignEntityClocks, CLASSIC_MINUTES_PER_SECOND, setWorldPriceTilt, empireJoin, ownMinutes, advanceOwnMinutes, worldNightfallText, hearSharedClock, ownWalkWaiting, trustedWorldMinutes, raisedMinutes } from '../systems/worldTick.js';   // ECON1 / AUDIT ALL E1: the world's tilt off the file's base powers   // AUDIT 23 (C2): the ONE clock
 import { setSyntheticTimeIncrease } from '../systems/effectBroker.js';   // AUDIT 63 F13: DaggerfallTravelPopUp_OnPostFastTravel (EntityEffectBroker.cs:846-847)
 import { tallySwingSkills, SWING_FATIGUE_COST, playerPainVoice, playPlayerVoice, makeEnemiesHostile, isBowWeapon, enemyHeavyPainVoice, playerClimbStrain, aimedBlowInfo, playerBlowFrame, setWindupAtMeListener } from './hostCombat.js';   // ROAD-B: GameManager.MakeEnemiesHostile
 import { flashPlayerDamage } from '../ui/damageFlash.js';
@@ -781,7 +782,7 @@ import { playerEntity, surfacePlayer, hurtPlayer, forcePlayerDeath, playerBlowCa
 import { bodySayer } from '../net/bossBody.js';   // INT15: my body, said to a boss fight's room
 import { SOUND } from '../systems/soundClips.js';
 import { createWeaponRig, autoBuildArms, armIdentityOf, armBuiltFor, armsReady, sheetHolderOf, buildArmsFor, prebuildArmsForSave } from '../combat/weapon/weaponRig.js';   // MWA1: the arms at boot; MWA3: the identity the arm should stand for, beside the one it does; MW-EARLY: and before the world is read
-import { weaponPoseOf, applyWeaponPose, mergeWeaponPose, playerMeleeCanHit, registerPlayerSwingListener, WEAPON_REACH } from '../combat/playerWeapon.js';   // HARD2c: the sheath+hand pair as ONE law, and SL-2's per-field merge with the mode host's live rig
+import { weaponPoseOf, applyWeaponPose, mergeWeaponPose, playerMeleeCanHit, registerPlayerSwingListener } from '../combat/playerWeapon.js';   // HARD2c: the sheath+hand pair as ONE law, and SL-2's per-field merge with the mode host's live rig
 import { ArrowFlight, playerArrowHitFoe, shaftOnRelayBody } from '../combat/arrowFlight.js';   // C13: visible exterior arrows; AUDIT 39 (#64): and the shaft that LANDS
 import { addItem, addGoldPieces, isGoldPieces, spendAmmoFor, carriedWeight } from '../systems/inventory.js';
 import { guildCardRoll, guildNameOfFaction } from '../systems/card/cardSources.js';   // CARDS9: a guild quest's card
@@ -11441,21 +11442,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const f of exteriorFoes.foes) if (f.puppet && typeof f.livingId === 'string') _livingPeerWatch.add(f.livingId);
     for (const p of built.values()) p.population?.peerLend?.(_livingPeerWatch);
   };
-  /** LW7: a swing that met no one in the street, at the road's travellers - the body on the ray within reach (no wall
-   *  before it), DFU's one-hit civilian (WeaponManager.cs:504-521, less the watch: there is none on the road): struck
-   *  down for good (the roads' deed), the blood, the Brotherhood's five and the racial override's hit. */
-  const livingStrikeRoad = (eye, dir) => {
-    if (!livingRoads || !livingWorldOn() || _mode() !== 'exterior') return false;
-    const near = nearestPerson(eye, dir, livingRoads.talkSeats());   // the talk ray's own pick (SOC5: the one cylinder)
-    if (!near || near.distance > WEAPON_REACH) return false;
-    const wall = collider.raycast(eye, dir, near.distance);
-    if (Number.isFinite(wall) && wall < near.distance - 1e-3) return false;
-    if (!livingRoads.slain(near.entry.person)) return false;
-    hitEffects.showBloodSplash(0, [eye[0] + dir[0] * near.distance, eye[1] + dir[1] * near.distance, eye[2] + dir[2] * near.distance], null, LETHAL_HIT);
-    tallyCrimeGuildRequirements(playerEntity, false, 5);
-    playerWeaponHitEntity(playerEntity, { health: 0 }, { isCivilian: true });
-    return true;
-  };
+  /** LW7: a swing that met no one in the street, at the road's travellers - DFU's one-hit civilian, struck down for good
+   *  (the roads' deed); FIELD BUGS 2026-10-25b ROAD-SPARE: one the street's law spares (Protect Bystanders in a fight, a
+   *  raid) stops it. The law is scenes/livingWorld/roadStrike.js; the road is the open world's alone, so is its blood. */
+  const livingStrikeRoad = createRoadStrike({ roads: () => livingRoads, open: () => livingWorldOn() && _mode() === 'exterior', collider, cityGuards, hitEffects, playerEntity });
   /** SpawnCityGuards(FALSE) - the WITNESS arm, the other half of the
    *  same member: no crime was just seen to be committed, so the pool
    *  is searched for someone who CAN see the player. A guard NPC that
@@ -35388,8 +35378,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           cityGuards.resolveCivilianHit(weaponRig.playerWeapon, cam.pos, lookFwd, player.pos, livingStruckPool(_guardPool()),
             { onMurder: () => _crimeResponse(), onHitSound: guardHitSound, swing }).then((r) => {
             if (r?.carriedHit) tallySwingSkills(playerEntity, weaponRig.playerWeapon.weapon, weaponRig.playerWeapon.blowWeight);
-            if (r?.crime) surfacePlayer();
-            else if (!r?.spared && livingStrikeRoad(cam.pos, lookFwd)) surfacePlayer();   // LW7: a traveller on the road, struck down
+            r ||= livingStrikeRoad(cam.pos, lookFwd);   // LW7: a swing that met nobody in the street, at the road's travellers - ROAD-SPARE: struck, spared, or nobody
+            if (r?.crime || r?.struck) surfacePlayer();   // LW7: a traveller on the road, struck down
             // ROAD-B: WeaponManager.WeaponEnvDamage (:474-477) - a
             // swing that met no living thing is offered to the STATIC
             // DOORS, and a door under it is BASHED (PlayerActivate

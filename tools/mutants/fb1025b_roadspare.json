@@ -1,0 +1,92 @@
+[
+  {
+    "name": "ROAD-SPARE-unasked",
+    "file": "src/scenes/livingWorld/roadStrike.js",
+    "old": "    if (cityGuards.playerSparesPerson(near.entry.person)) return ROAD_SPARED;",
+    "new": "",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "the bug: the road's travellers never asked the street's law - the swing in the fight struck the merchant down"
+  },
+  {
+    "name": "ROAD-SPARE-spared-as-nobody",
+    "file": "src/scenes/livingWorld/roadStrike.js",
+    "old": "return ROAD_SPARED;   // ROAD-SPARE",
+    "new": "return false;   // ROAD-SPARE",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "a spared traveller read as nobody: the swing goes on to the door behind them (AUDIT 29g)"
+  },
+  {
+    "name": "ROAD-SPARE-every-blow-spared",
+    "file": "src/scenes/livingWorld/roadStrike.js",
+    "old": "    if (cityGuards.playerSparesPerson(near.entry.person)) return ROAD_SPARED;",
+    "new": "    if (near) return ROAD_SPARED;",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "no fight: a blow at a traveller is meant, DFU's rule"
+  },
+  {
+    "name": "ROAD-SPARE-struck-answer",
+    "file": "src/scenes/livingWorld/roadStrike.js",
+    "old": "    return ROAD_STRUCK;",
+    "new": "    return true;",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "the struck answer the host's tail reads"
+  },
+  {
+    "name": "ROAD-SPARE-fight-unread",
+    "file": "src/scenes/cityGuards.js",
+    "old": "    return !!person && (!!raidHere() || (getBool('MeleeAttacks', 'MeleeAttackFriendlyProtection') && !!fightHere()));",
+    "new": "    return !!person && (!!raidHere() || (getBool('MeleeAttacks', 'MeleeAttackFriendlyProtection') && true));",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "PROTECT-FIGHT's fight unread: every traveller spared under the protection, the meant blow too"
+  },
+  {
+    "name": "ROAD-SPARE-protection-unread",
+    "file": "src/scenes/cityGuards.js",
+    "old": "    return !!person && (!!raidHere() || (getBool('MeleeAttacks', 'MeleeAttackFriendlyProtection') && !!fightHere()));",
+    "new": "    return !!person && (!!raidHere() || !!fightHere());",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "the protection off still spares: the measured bounty's swing never lands"
+  },
+  {
+    "name": "ROAD-SPARE-struck-unsurfaced",
+    "file": "src/scenes/world.js",
+    "old": "            if (r?.crime || r?.struck) surfacePlayer();",
+    "new": "            if (r?.crime) surfacePlayer();",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "a traveller struck down: the swing met someone (no door bashed), the HUD surfaced"
+  },
+  {
+    "name": "ROAD-SPARE-open-world-unasked",
+    "file": "src/scenes/world.js",
+    "old": "open: () => livingWorldOn() && _mode() === 'exterior', collider, cityGuards",
+    "new": "open: () => livingWorldOn(), collider, cityGuards",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "the road is the open world's alone (its blood the street's pool)"
+  },
+  {
+    "name": "ROAD-SPARE-host-pool",
+    "file": "src/scenes/world.js",
+    "old": "open: () => livingWorldOn() && _mode() === 'exterior', collider, cityGuards, hitEffects",
+    "new": "open: () => livingWorldOn() && _mode() === 'exterior', collider, cityGuards: { playerSparesPerson: () => false }, hitEffects",
+    "tests": [
+      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+    ],
+    "note": "the host hands the strike a law of its own, not the street pool's"
+  }
+]
