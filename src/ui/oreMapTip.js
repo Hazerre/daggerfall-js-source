@@ -10,7 +10,7 @@
 // so the card cannot promise an ore the ground would not give. The host hands it the pixel's witnessed state as the
 // account answers it (net/profBook.js pixel) - null where it has not been asked today.
 //
-// DEEP-OPEN (bible/06-Systems/Professions-Arc.md section 50; the owner: "FULL ORE TABLE"): a dungeon's deep veins draw
+// DEEP-OPEN (bible/06-Systems/Professions-Arc.md section 52; the owner: "FULL ORE TABLE"): a dungeon's deep veins draw
 // their whole table on anyone's word now (nodeLaw.js dungeonVein - DUNGEON_VEINS), so the Dungeons line names that table,
 // and the one deep ore that still waits on a dungeon's own witnesses - its climate's (deepClimateOres: a woodland
 // dungeon's Moonstone) - is said on the state line, which had read the surface table alone: a HauntedWoodlands card

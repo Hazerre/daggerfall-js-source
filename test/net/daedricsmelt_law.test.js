@@ -1,4 +1,4 @@
-// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 50) - THE DAEDRIC INGOT, MADE. The report
+// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 52) - THE DAEDRIC INGOT, MADE. The report
 // (SaberGGaming): no Daedric ingot could be had - the transmutation stops at Platinum (as intended), and the forge's
 // table ended at Orichalcum ("Daedric waits on its heart and its stone") while 27 anvil recipes spent the ingot. The
 // owner: "No band aids", and "the heart may come FROM LOOT OR THE GATE". PROF0 4.1's recipe, built: an Ebony Ingot, a
@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 
 import {
   SMELT_RECIPES, WORK_RECIPES, DAEDRA_HEART, DAEDRIC_EMBERS, EMBER_MADE, workEmbers, smeltRecipe, smeltOrigin, minedMaterial,
-  withdrawable, gemTierOfPrice, MINED_KEYS,
+  withdrawable, gemTierOfPrice, MINED_KEYS, LOOSE_ONLY_KEYS, looseOnly,
 } from '../../src/net/professionLaw.js';
 import { material } from '../../src/net/nodeLaw.js';
 import { UNYIELDED, marketCatalogue, pieceListable } from '../../src/net/marketLaw.js';
@@ -53,12 +53,13 @@ test('DAEDRIC-SMELT law: the forge\'s last smelt - an Ebony Ingot and a Daedra\'
   assert.deepEqual(material('ingot:daedric'), { key: 'ingot:daedric', family: 'metals', tier: 7, value: 40, templateIndex: 629 });
 });
 
-test('DAEDRIC-SMELT law: the heart is DFU\'s own - CreatureIngredients1 53, 500 gold, tier 6 by its price as a body\'s part is - a Stores material the pack mints as DFU\'s heart, so a looted one (a daedra\'s, the faithful\'s chest\'s) is the same unit; registered last (mutants: the row unregistered; its template not DFU\'s)', () => {
+test('DAEDRIC-SMELT law: the heart is DFU\'s own - CreatureIngredients1 53, 500 gold, tier 6 by its price as a body\'s part is - a Stores material the pack mints as DFU\'s heart, so a looted one (a daedra\'s, the faithful\'s chest\'s) is the same unit; registered the loose door\'s, after CLOTH-GEMS\' graded gems (mutants: the row unregistered; its template not DFU\'s)', () => {
   assert.deepEqual(DAEDRA_HEART, { key: 'part:daedra-heart', family: 'hides', tier: 6, group: 'CreatureIngredients1', templateIndex: 53 });
   const row = templateByIndex(53);
   assert.deepEqual([row.name, row.basePrice, gemTierOfPrice(row.basePrice)], ['Daedra\'s Heart', 500, 6]);
   assert.equal(minedMaterial(HEART), DAEDRA_HEART);
-  assert.equal(MINED_KEYS.at(-1), HEART, 'registered last: no key before it moved');
+  assert.equal(LOOSE_ONLY_KEYS.at(-1), HEART, 'the loose door\'s last: no graded gem before it moved');   // PIN MOVED (CLOTH-GEMS at the merge): the loose door\'s, never MINED_KEYS - the market\'s catalogue
+  assert.equal(MINED_KEYS.includes(HEART), false);
   assert.equal(withdrawable(HEART), true, 'a loose heart goes back to the pack as it came');
   const minted = mintMaterialItem(HEART);
   assert.deepEqual([minted.group, minted.templateIndex], ['CreatureIngredients1', 53]);
@@ -69,9 +70,9 @@ test('DAEDRIC-SMELT law: the heart is DFU\'s own - CreatureIngredients1 53, 500 
   assert.equal(materialKeyOfItem(setItemFields({ group: RITE_HEART.group, templateIndex: RITE_HEART.templateIndex })), HEART, 'the Gate\'s heart is the forge\'s');
 });
 
-test('DAEDRIC-SMELT law: the heart through the LOOSE door and never the market - only a station\'s put-in moves units the service never counted; the heart is what nothing the service counts yields (UNYIELDED), out of the catalogue, while the Daedric ingot is the catalogue\'s and its 27 anvil works are made, listed and commissioned (mutants: UNYIELDED the ingot\'s again; looseOrder for every order)', () => {
+test('DAEDRIC-SMELT law: the heart through the LOOSE door and never the market - only a station\'s put-in moves units the service never counted; the heart is the loose door\'s as a graded gem is (LOOSE_ONLY_KEYS), out of the catalogue, while the Daedric ingot is the catalogue\'s and its 27 anvil works are made, listed and commissioned (mutants: UNYIELDED the ingot\'s again; the heart off the loose door\'s list; looseOrder for every order)', () => {
   assert.deepEqual(Object.keys(DEPOSIT_ORDERS).map((o) => [o, looseOrder(o)]), [['all', false], ['spend', false], ['work', true]]);
-  assert.deepEqual([...UNYIELDED], [HEART]);
+  assert.deepEqual([[...UNYIELDED], looseOnly(HEART)], [[], true], 'nothing waits on a yield; the heart is the loose door\'s');   // PIN MOVED (CLOTH-GEMS at the merge): UNYIELDED's no more
   const cat = new Set(marketCatalogue().map((m) => m.key));
   assert.deepEqual([cat.has(HEART), cat.has('ingot:daedric')], [false, true]);
   const daedric = RECIPES.filter((r) => r.inputs.some((i) => i.key === 'ingot:daedric'));

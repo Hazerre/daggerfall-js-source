@@ -1,4 +1,4 @@
-// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 50) - THE DAEDRIC SMELT AS THE ACCOUNT SERVICE
+// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 52) - THE DAEDRIC SMELT AS THE ACCOUNT SERVICE
 // KEEPS IT: a looted heart into the Stores by a station's put-in alone, loose (never by the Stores page's counted order,
 // never onto the market); the smelt's decision asks the account's purse for the ember (its gates', serpents' and
 // Redoubts' embers less what its insignia, the Panoply and the forge took - accounts.js insigniaPurse) and spends it in
@@ -57,7 +57,7 @@ test('DAEDRIC-SMELT service: a looted heart enters the Stores through the LOOSE 
   assert.deepEqual(s.stores(mac, HEART), [['loose', 1]], 'a station\'s alone (bagLaw.js STATION_ORIGINS)');
   s.fund(mac, 1000);
   const o = await s.call('/v1/market/order', { character: mac.character, region: DF, material: HEART, units: 1, price: 10, hubs: HUBS, rid: rid() }, mac.secret);
-  assert.equal(o.body.error, 'market-unyielded', 'an escrow held a week for goods no door of the service counts');
+  assert.equal(o.body.error, 'bad-material', 'an escrow held a week for goods no door of the service counts - the loose door\'s, as CLOTH-GEMS\' graded gems are');
   const l = await s.call('/v1/market/list', { character: mac.character, region: DF, kind: 'material', material: HEART, units: 1, price: 5, hubs: HUBS, rid: rid() }, mac.secret);
   assert.ok(l.status >= 400, `a loose heart is listed by no one: ${JSON.stringify(l.body)}`);
   assert.deepEqual(s.stores(mac, HEART), [['loose', 1]], 'still the station\'s');

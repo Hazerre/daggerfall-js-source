@@ -76,7 +76,7 @@ test('PROF7 law: the leathers (665 Cured tier 2, 666 Hardened tier 5) and the cl
     assert.ok(MINED_KEYS.includes(m.key), m.key);
   }
   assert.equal(professionOfFamily('hides'), null, 'no Court writ asks a hide - bounded, not witnessed (PROF0 11)');
-  assert.deepEqual([...UNYIELDED], ['part:daedra-heart']);   // PIN MOVED (AUDIT-SEATS): the sieges' Spoils yield the silk; PIN MOVED (DAEDRIC-SMELT): the forge smelts the Daedric ingot, and the heart it takes - loose alone - is what nothing the service counts yields
+  assert.deepEqual([...UNYIELDED], []);   // PIN MOVED (AUDIT-SEATS): the sieges' Spoils yield the silk; PIN MOVED (DAEDRIC-SMELT): the forge smelts the Daedric ingot, and the heart it takes - loose alone - is the loose door's, as CLOTH-GEMS' graded gems are (LOOSE_ONLY_KEYS): nothing waits on a yield
   const cat = new Set(marketCatalogue().map((c) => c.key));
   assert.deepEqual([cat.has('hide:bear'), cat.has('leather:hardened'), cat.has('part:dragonscale'), cat.has('food:meat'), cat.has('cloth:standard')], [true, true, true, true, true]);
   assert.deepEqual(FOOD_KEYS.slice(-2), ['food:meat', 'food:fish']);
@@ -192,7 +192,9 @@ test('PROF7 law: the loom cures two hides to a leather (a Tanner\'s two a unit -
     ['cure:scorpion', 'leather:hardened', '2 hide:scorpion', 'loom', 1, 'tanner', 2, 50, null], ['cure:slaughterfish', 'leather:hardened', '2 hide:slaughterfish', 'loom', 1, 'tanner', 2, 50, null],
     ['cure:dreugh', 'leather:hardened', '2 hide:dreugh', 'loom', 1, 'tanner', 2, 50, null], ['cure:dragonling', 'leather:hardened', '2 hide:dragonling', 'loom', 1, 'tanner', 2, 50, null],
   ]);
-  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null]]);
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): and Linen woven of two Root Tendrils, either land's (test/net/clothgems_law.test.js)
+  assert.deepEqual(WEAVE_RECIPES.map((r) => [r.id, r.out, r.inputs.map((i) => `${i.n} ${i.key}`).join(), r.station, r.per, r.more, r.xp]), [['weave:silk', 'cloth:silk', '3 hide:spider', 'loom', 1, null, null],
+    ['weave:linen-north', 'cloth:linen', '2 p1:12', 'loom', 1, null, null], ['weave:linen-south', 'cloth:linen', '2 p2:12', 'loom', 1, null, null]]);
   assert.deepEqual([workPer(smeltRecipe('cure:bear'), { hunting: 'tanner' }), workPer(smeltRecipe('cure:bear'), { hunting: 'tracker' }), workPer(smeltRecipe('cure:bear'))], [2, 1, 1]);
   assert.deepEqual([workSpecRank(smeltRecipe('saw:oak')), workSpecRank(smeltRecipe('ingot:iron')), workSpecRank(smeltRecipe('weave:silk'))], [100, 100, 100], 'the rest read at 100');
   assert.ok(WORK_RECIPES.includes(smeltRecipe('cure:dreugh')));
@@ -232,7 +234,7 @@ test('PROF7 law: Outfitting\'s recipes (9.3) - the leather armour in Cured and H
   assert.deepEqual([net.templateIndex, FISHING_NET_TEMPLATE, net.rank, ins('fishingnet:linen'), net.kind, net.profession], [1603, 1603, 0, '2 cloth:linen', 'tool', 'outfitting']);
   assert.equal(OUTFITTING_RECIPES.length, 14 + 76 * 4 + 4 + 3 + 12 + 1);   // PIN MOVED (DEX-HIDES): skins of six pelts, not four
   assert.ok(OUTFITTING_RECIPES.every((r) => r.profession === 'outfitting' && r.metal === null));
-  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 120);   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
+  assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 504);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem a recipe   // PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   const knife = recipeById('knife:iron');
   assert.deepEqual([knife.templateIndex, knife.rank, knife.profession, ins('knife:iron')], [603, 0, 'smithing', '1 ingot:iron + 1 plank:pine']);

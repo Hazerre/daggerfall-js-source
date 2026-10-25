@@ -23,7 +23,7 @@
 //   bench (professionLaw WORK_RECIPES) - never a transmutation: that
 //   is a Transmuter's choice of what to spend, and its ladder trades
 //   a metal for another the craft may also want. DAEDRIC-SMELT
-//   (Professions-Arc.md section 50): nor a work that spends Deadlands
+//   (Professions-Arc.md section 52): nor a work that spends Deadlands
 //   Embers (the Daedric smelt's, professionLaw workEmbers) - the gate's
 //   currency, the Broker's too, spent by the player's own press at the
 //   forge, never by a craft on its way to the anvil.
@@ -59,7 +59,9 @@ import { WORK_RECIPES, SMELT_MAX, STORES_MAX, workOpen, workPer, workSpecRank, m
  *  Steel), so the bound is a guard, never a limit a real recipe meets. */
 export const CHAIN_DEPTH = 4;
 
-/** A material's tier, the ladder's (professionLaw materialOf; a work takes no herb) - 0 for a key no table names. */
+/** A material's tier, the ladder's (professionLaw materialOf) - 0 for a key no table names. CLOTH-GEMS: and for an herb, read
+ *  here with no herb's table - the Linen's Root Tendrils (professionLaw WEAVE_RECIPES), a common herb, never above the
+ *  tier-1 bolt it weaves. */
 const tierOf = (/** @type {string} */ key) => materialOf(key, () => null)?.tier ?? 0;
 
 /** Whether a work never trades down: every input of a tier at most its product's (41.2) - and DAEDRIC-SMELT: spends no

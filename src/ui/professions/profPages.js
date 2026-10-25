@@ -15,7 +15,8 @@
 //   Crafting, each a row with its rank, its rank's name and a thin bar;
 //   the chosen one below: the XP to the next rank, today's harvests, the
 //   specialisation cards at 50 and 100 (choose one - a change of mind
-//   costs 1,000 Marks and a week, and is pressed twice), the unlocks by
+//   is free for a day after a choice, then costs 1,000 Marks and locks
+//   the next for a week - PERK-TRIAL - and is pressed twice), the unlocks by
 //   rank, and the crafter's limit.
 //   THE STORES PAGE - the materials with their counts, own and bought;
 //   the families to filter by, a search, the sort; a material's action:
@@ -47,12 +48,13 @@
 // The pages draw with the menu's own kit (its `el`, divider and meter,
 // handed in), so they are the sheet's pages and not a second window.
 // ═══════════════════════════════════════════════════════════════════
-import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS } from '../../net/bagLaw.js';   // BAG1: what a character carries
+import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, LOOSE_ORIGIN } from '../../net/bagLaw.js';   // BAG1: what a character carries; CLOTH-GEMS: a station's loose units, spent first
 import {
-  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN,
+  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
-  WEAVE_RECIPES, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,
+  WEAVE_RECIPES, SPIN_RECIPES, LINEN, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,   // CLOTH-GEMS: the loom's Linen and Wool
+  gemGradeOfKey,   // CLOTH-GEMS: a gem's grade at the jeweller's bench
   MASON_RECIPES, MASON_FEE, workOpen,   // PROF11: the mason's bench
   JEWEL_FEE,   // PROF10: the jeweller's bench
   ALCHEMY_FEE, ENCHANT_FEE, TRANSMUTE_RECIPES, TRANSMUTER, APOTHECARY_STOCK,   // PROF12: the alchemy and enchanting stations
@@ -63,6 +65,7 @@ import {
   craftLimitOf,   // CRAFT-LIMIT-SAID: the crafter's limit over a track, as the service's decisions bind it
 } from '../../net/professionLaw.js';
 import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SAID: the Firmament's hand on a craft's XP, as the service applies it
+import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
 import { firmamentStats } from '../../systems/firmamentLive.js';   // CRAFT-LIMIT-SAID: the stars in force
 import {
   POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstPays, ingredientKeys, DISTILLER, POTENT,
@@ -76,6 +79,7 @@ import {
   JEWELCRAFTING_RECIPES, JEWEL_PIECES, jewelBases, jewelHand, jewelPointsPct, jewelPoints, takesCracked, masterworkSpec, facetCount,
   facetWindow, LAPIDARY, JEWEL_HAND_GOLDSMITH, JEWEL_HAND_GEMCUTTER, gemWord,   // PROF10: the jeweller's pieces and the facet
   recipeById,   // AUDIT PROF12 E2: a disenchant's XP is its piece's recipe's tier
+  counterMade,   // CLOTH-GEMS: the recipes AUDIT 32 S1 judges by their units
   patternsOf,   // CRAFT2: a station lists its patterns, the material chosen from what is held
 } from '../../net/recipeLaw.js';
 import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
@@ -98,7 +102,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 import { chainPlan, chainNeeded, chainYield, storesRoom } from '../../net/chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { getPref, setPref } from '../../systems/uiPrefs.js';
 import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a material's picture, the host's
-import { t, localizedText, formatMessage, formatNumber } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
+import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
 
 /**
  * @typedef {object} ProfPagesProvider
@@ -236,6 +240,16 @@ export const PROF_PAGE_SECTIONS = Object.freeze([wordRow('professions', () => t(
 /** What the Professions page has chosen, and a change of specialisation pressed once (the second press buys it). */
 let _sel = 'herbalism';
 let _armed = null;
+/** AUDIT PERK-TRIAL P1: whether the armed card said its change was free (its choice's day of trial) - the second press
+ *  buys what the card said, never what the clock says by then. */
+
+/** AUDIT PERK-TRIAL P6: a moment as the player's language writes a day and a time - the day of the month, the month's
+ *  short name, the hour and minute on a 24-hour clock - in UTC, the professions' clock, and said to be UTC. Here and not
+ *  in textManager.js, which the relay bundles (test/net/relayversion.test.js): a page's words are no deploy. */
+function utcMoment(ms) {
+  try { return new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC', timeZoneName: 'short' }).format(new Date(ms)); } catch { return ''; }
+}
+let _armedFree = false;
 /** The Professions page's last refusal, said under the cards. */
 let _profWord = null;
 /** The Stores page's filter, search, sort, the material chosen and the quantity to withdraw. */
@@ -337,7 +351,7 @@ const _cook = {
  *  Lapidary's Siege-cracked Gem for the gem, the facet being cut and what it cuts (`actRecipe`, its stand-ins), a piece
  *  in flight, its word. */
 const _jewel = {
-  piece: 'ring', base: 'silver', picked: /** @type {string|null} */ (null), heartwood: false, cracked: false,
+  piece: 'ring', base: 'silver', grade: 'plain', picked: /** @type {string|null} */ (null), heartwood: false, cracked: false,   // CLOTH-GEMS: the gems' grade shown
   act: /** @type {any} */ (null), crafting: false, word: /** @type {string|null} */ (null), els: /** @type {any} */ (null),
   off: /** @type {(() => void)|null} */ (null), stop: /** @type {((e?: any) => void)|null} */ (null),
   actRecipe: /** @type {string|null} */ (null), actWood: false, actCracked: false,
@@ -459,7 +473,7 @@ export function resetProfPages() {
   endChisel(); _mason.word = null; _mason.picked = null; _mason.counts = {};   // PROF11
   endPan(); _cook.word = null; _cook.picked = null; _cook.crafting = false;   // PROF9
   _anvil.chained = _bench.chained = _loom.chained = _mason.chained = _jewel.chained = false;   // AUDIT CRAFT1 F1
-  endFacet(); _jewel.word = null; _jewel.piece = 'ring'; _jewel.base = 'silver'; _jewel.picked = null; _jewel.crafting = false; _jewel.heartwood = false; _jewel.cracked = false;   // PROF10
+  endFacet(); _jewel.word = null; _jewel.piece = 'ring'; _jewel.base = 'silver'; _jewel.grade = 'plain'; _jewel.picked = null; _jewel.crafting = false; _jewel.heartwood = false; _jewel.cracked = false;   // PROF10
   _alchemy.word = null; _alchemy.picked = null; _alchemy.crafting = false; _alchemy.counts = {};   // PROF12
   _enchant.word = null; _enchant.armed = null;   // PROF12
 }
@@ -538,7 +552,7 @@ const gatherHow = (id) => (id === 'herbalism' ? t('prof.page.how.herbalism', GAT
  *  Silver, Gold, Platinum or Mithril, read as a bug): the ground's own law, said on the Mining page - a vein holds its
  *  ground's rarer ores only where three players have gathered (net/nodeLaw.js witnessedFact, UNCONFIRMED_VEIN_TIER).
  *  ORE-MAP: and where to read it for a place - the world map's ore card (ui/oreMapTip.js). DEEP-OPEN (bible/06-Systems/
- *  Professions-Arc.md section 50): a dungeon's deep veins draw their whole table on anyone's word (nodeLaw.js
+ *  Professions-Arc.md section 52): a dungeon's deep veins draw their whole table on anyone's word (nodeLaw.js
  *  dungeonVein) - only the woods' Moonstone waits (deepClimateOres) - where this line had said "Silver anywhere". */
 export const MINING_GROUND_LINE = 'Veins hold Silver at most until three different players, each with an account at least a week old, have gathered on that ground. Then Gold, Platinum and Mithril in the mountains, and the region\'s own ore, can appear. Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium among them, in any dungeon; only a woodland dungeon\'s Moonstone waits for three players to gather in it. Point at open ground on the world map to see what its veins hold and whether it has been witnessed yet.';
 /** L10N4: MINING_GROUND_LINE in the player's language. */
@@ -576,15 +590,17 @@ const alchemyHow = () => t('prof.page.how.alchemy', ALCHEMY_HOW);
  *   (recipeLaw SMITH_RECIPES) and from raw ore its chain's smelts (net/chainLaw.js chainPlan, CRAFT1); the workbench's
  *   saws (SAW_RECIPES) and its staves, bows, arrows and furniture (CARPENTRY_RECIPES); the mason's cut and mix
  *   (MASON_RECIPES - Rough Stone, quarried); the loom's cures (CURE_RECIPES - hides, skinned) and its pieces
- *   (OUTFITTING_RECIPES), its Linen and Wool bought, never made (COUNTER_ONLY; WEAVERS_STOCK, at a Clothing Store's loom
- *   and the Market tab - and Linen at a furnisher's counter too, FURNISHER_STOCK: AUDIT FB1018D L1-9); a dish's meat, fish, herbs and Basket's food (recipeLaw DISHES), into the pack.
+ *   (OUTFITTING_RECIPES), its Linen woven from Root Tendrils and its Wool spun from furs (CLOTH-GEMS: WEAVE_RECIPES,
+ *   SPIN_RECIPES) or bought (COUNTER_ONLY; WEAVERS_STOCK, at a Clothing Store's loom and the Market tab - and Linen at a
+ *   furnisher's counter too, FURNISHER_STOCK: AUDIT FB1018D L1-9), the first-time bonus only the made cloth's (AUDIT 32
+ *   S1, judged by the units); a dish's meat, fish, herbs and Basket's food (recipeLaw DISHES), into the pack.
  * - XP: a smelt's (smeltXp) and a piece's (craftXp), a mason's work's (masonXp), a dish's (cookXp) and a brew's, each on
  *   its craft's track (trackOf); a saw and a cure none (`xp: null`).
  */
 export const CRAFT_HOW = Object.freeze({
   smithing: () => t('prof.page.how.smithing', 'Smithing is done at a forge: a Weaponsmith\'s, an Armorer\'s or one in your own home. Open the Stores page there (Holdings > Stores). The Forge smelts the ore you mine into ingots, and the Anvil makes weapons, armor and tools from them, or from raw ore by smelting it first. Jewelry is made at a jeweler\'s bench: a Pawn Shop\'s, a Gem Store\'s or one in your own home. Smelting and every piece you make earn Smithing experience.'),
   building: () => t('prof.page.how.building', 'Carpentry is done at a workbench: a Furniture Store\'s, a joinery\'s or one in your own home; Masonry at a mason\'s bench: a General Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The workbench saws the logs you fell into planks and makes staves, bows, arrows and furniture; the mason\'s bench cuts the stone you quarry and mixes Mortar. Every piece, cut and mix earns Building experience; sawing earns none.'),
-  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, and the loom makes leather armor, clothing, rugs, tapestries and the Fishing-Net. Linen and Wool are bought from the Weavers, at a Clothing Store\'s loom or a Notice Board\'s Market. Every piece earns Outfitting experience; curing earns none.'),
+  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but only cloth you make yourself earns a first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
   provisioning: () => t('prof.page.how.cooking', 'Cook at any lit fire, such as a campfire, a hearth or a brazier: stand close to its flame and open the Stores page (Holdings > Stores). Dishes are made from the meat you skin, the fish you net, herbs and the food a Basket finds, and go to your pack. Brewing and cooking both earn Provisioning experience.'),   // beside ALCHEMY_HOW: Provisioning's cooking (CRAFT3)
 });
 /** PROF12: how Enchanting is practised, and what its rank takes off the item maker's gold. */
@@ -620,6 +636,15 @@ export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).le
  *  craftXpCap of the same ranks), and the Firmament's percent on its XP (FIRM1: the stars in force; the service scales by
  *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
 export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: xpPct(firmamentStats(), trackOf(id)) });
+/** CLOTH-GEMS (AUDIT 32 S1, judged by the units - bible/06-Systems/Professions-Arc.md 50): WHETHER A CRAFT OF `r` WOULD
+ *  SPEND THE CHARACTER'S OWN UNITS ALONE, as the book reads them. A station spends loose units first, then bought ones
+ *  (bagLaw STATION_ORIGINS), so none of either may stand in the Stores, nor a bought one among what the bag and the pack
+ *  carry counted (a station's shortfall puts those in before the own ones). What the pack holds past the service's count
+ *  goes in loose, after the counted - the service's decision is the word, and its answer says it (`firstPaid`). */
+export const ownSpend = (book, r) => !!r && r.inputs.every((/** @type {{ key: string }} */ i) => {
+  const s = book?.store?.(i.key) ?? {};
+  return !((s.bought | 0) > 0) && !((s[LOOSE_ORIGIN] | 0) > 0) && !((book?.carried?.(i.key)?.bought | 0) > 0);
+});
 
 /**
  * THE PROFESSIONS PAGE.
@@ -692,12 +717,17 @@ export function drawProfessionsPage(detail, rerender, kit) {
     if (_sel === 'mining' && tr.specs?.[100] === SURVEYOR) pane.append(el('p', 'px-note', miningSurveyorLine()));   // MINE-PERKS
   }
   // THE SPECIALISATIONS: two cards a rank (CRAFT3: a merged craft's four, each its discipline's), the chosen one lit; a
-  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`)
+  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`); PERK-TRIAL: free and at
+  // once on the choice's day of trial (`trial`), else 1,000 silver and at once, and the week after a paid change locked
   const two = disciplinesOf(_sel).length > 1;
+  const nowS = Date.now() / 1000;
+  const when = (at) => utcMoment(at * 1000);   // AUDIT PERK-TRIAL P6: in the player's language
   for (const r of SPEC_RANKS) {
     pane.append(divider(t('prof.page.specs.at', 'At {rank}', { rank: r })));
     const cards = el('div', 'prof-specs');
     const chosen = tr.specs?.[r] ?? null;
+    const trial = !!chosen && specTrialShown(tr, r, nowS);   // PERK-TRIAL: the choice's day of trial
+    const lock = Number(tr.lock ?? 0) > nowS ? Number(tr.lock) : null;   // PERK-TRIAL: the week after a paid change
     for (const s of SPECIALISATIONS[_sel][r]) {
       const card = el('button', `prof-spec${chosen === s.id ? ' on' : ''}${tr.respec?.to === s.id && tr.respec?.rank === r ? ' coming' : ''}`);
       card.type = 'button';
@@ -705,22 +735,25 @@ export function drawProfessionsPage(detail, rerender, kit) {
       if (two) card.append(el('i', 'prof-of', disciplineName(specDiscipline(s.id))));   // CRAFT3: whose choice it is
       const locked = tr.rank < r || !practised || !!s.later;   // AUDIT 29 A17: a choice whose slice is to come is named, never chosen
       const free = tr.free?.includes(r) === true;   // CRAFT3: the merge's free change
-      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way gates a paid CHANGE, as the service's chooseSpec refuses
-      // one (prof-respec-pending) - never a rank's first choice, nor the merge's free change, which it answers first
-      const waits = !!chosen && !!tr.respec && !free;
+      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way - PERK-TRIAL: or the week's lock after one - gates a paid
+      // CHANGE, as the service's chooseSpec refuses one (prof-respec-pending); never a rank's first choice, the merge's
+      // free change, nor a choice on its day of trial, which it answers first
+      const waits = !!chosen && (!!tr.respec || lock !== null) && !free && !trial;
       card.disabled = locked || chosen === s.id || waits;
       if (s.later) card.append(el('i', 'prof-cost', LATER_WORDS[s.later] ?? t('prof.page.later.any', 'Comes in a later update')));
-      const armedHere = _armed === `${r}|${s.id}`;
+      const armedHere = _armed === `${r}|${s.id}` && _armedFree === trial;   // AUDIT PERK-TRIAL P1: a card armed free whose day ran out on the screen is armed no more - pressed again, it arms at the price it says now
       if (!locked && chosen && chosen !== s.id && !waits) {
         card.append(el('i', 'prof-cost', free ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecFree', 'Change: free, once'))
-          : armedHere ? t('prof.page.specs.respecArmed', 'Press again: {cost, number} silver, in effect in {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })
-            : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
+          : trial ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecTrial', 'Change: free until {date}', { date: when(tr.trial[r]) }))
+            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once. The next change waits {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })   // AUDIT PERK-TRIAL P5: the lock said before it is paid for
+              : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
       }
+      if (chosen === s.id && waits && lock !== null) card.append(el('i', 'prof-cost', t('prof.page.specs.lockedUntil', 'Next change from {date}', { date: when(lock) })));   // PERK-TRIAL
       if (tr.respec?.to === s.id && tr.respec?.rank === r) card.append(el('i', 'prof-cost', t('prof.page.specs.inEffect', 'In effect from {date}', { date: new Date(tr.respec.at * 1000).toUTCString().slice(0, 16) })));
       card.onclick = async () => {
-        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; rerender(); return; }
+        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; _armedFree = trial; rerender(); return; }
         _armed = null;
-        const res = await book.choose(_sel, r, s.id);
+        const res = await book.choose(_sel, r, s.id, chosen ? { trial: _armedFree } : {});   // AUDIT PERK-TRIAL P1: as the card said it
         _profWord = res?.ok ? null : accountRefusalText(res?.error);
         rerender();
       };
@@ -1130,7 +1163,7 @@ function drawCarryStores(detail, rerender, kit) {
 }
 
 /** What the Stores make of a recipe now: the most it can smelt (every input's units over its need), to SMELT_MAX.
- *  DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 50): and over the Deadlands Embers it spends a unit
+ *  DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): and over the Deadlands Embers it spends a unit
  *  (professionLaw workEmbers) where `embers` - the pack's, the book's `embers()` - is known. */
 export function smeltable(r, held, embers = null) {
   let n = SMELT_MAX;
@@ -1247,7 +1280,7 @@ function drawForge(detail, rerender, { el, divider }) {
   const short = purseShort(forge, 'forge');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   workRows(detail, rerender, el, SMELT_RECIPES, _forge, t('prof.page.forge.smelt', 'Smelt'), t('prof.page.forge.smelting', 'Smelting...'), (id, n) => p.smelt(id, n), short);
-  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 50): where the Daedric smelt's heart and ember come from,
+  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): where the Daedric smelt's heart and ember come from,
   // said while the forge cannot smelt one - as the Steel line says the Charcoal (below)
   if (daedricWaits(book)) detail.append(el('p', 'px-note', daedricWord()));
   // PROF4: the logs a forge burns - those the Stores hold (a log a Charcoal; a Charcoal Burner's two)
@@ -1914,6 +1947,11 @@ function drawLoom(detail, rerender, { el, divider }) {
   else detail.append(el('p', 'px-note', t('prof.page.loom.noHides', 'Two hides cure into one leather here (one hide for a Tanner). Hides come from skinning bodies you kill (Hunting).')));
   const weaves = WEAVE_RECIPES.filter((r) => workOf(book, r.inputs[0].key) > 0);
   if (weaves.length) workRows(detail, rerender, el, weaves, _loom, t('prof.page.loom.weave', 'Weave'), t('prof.page.loom.weaving', 'Weaving...'), (id, n) => p.smelt(id, n), short, sewing);
+  // CLOTH-GEMS: furs spun to Wool (SPIN_RECIPES) - and, where the Stores and the pack hold no goods for either, where the
+  // loom's Linen and Wool come from
+  const spins = SPIN_RECIPES.filter((r) => workOf(book, r.inputs[0].key) > 0);
+  if (spins.length) workRows(detail, rerender, el, spins, _loom, t('prof.page.loom.spin', 'Spin'), t('prof.page.loom.spinning', 'Spinning...'), (id, n) => p.smelt(id, n), short, sewing);
+  if (!spins.length && !weaves.some((r) => r.out === LINEN.key)) detail.append(el('p', 'px-note', t('prof.page.loom.noCloth', 'Two Root Tendrils weave into a Linen Bolt here, and two furs - a Rat, Wolf or Tiger Pelt, a Boar or Bear Hide - spin into a Wool Bolt. Root Tendrils grow in the mountain woods, the haunted woods and the swamps.')));
   const held = (k) => workOf(book, k);
   const fams = el('div', 'prof-families');
   for (const [id, word] of LOOM_FAMILIES) {
@@ -1990,8 +2028,9 @@ function drawLoom(detail, rerender, { el, divider }) {
         : specs[50] === 'leatherworker' && r.family === 'leather' ? t('prof.page.loom.oddsLeather', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality. Being a Leatherworker raises leather one more.', a)
           : t('prof.page.loom.odds', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality.', a)));
     }
-    // CRAFT-FIRST-SHOWN: its XP and its first's - or, wholly the Weavers' cloth, that it lays on none (AUDIT 32 S1)
-    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'))));   // CRAFT-LIMIT-SAID
+    // CRAFT-FIRST-SHOWN: its XP and its first's - CLOTH-GEMS: wholly of cloth, its first the made cloth's alone (AUDIT 32
+    // S1, judged by the units: ownSpend)
+    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))));   // CRAFT-LIMIT-SAID
     const gentle = getPref('gentleActs') === true;
     const dye = r.kind === 'garment' && r.dyes === true ? _loom.dye : null;
     const elsewhere = handsAt(_loom);   // AUDIT 32 P2
@@ -2382,7 +2421,7 @@ function drawCookFire(detail, rerender, { el, divider }) {
   if (!p?.fire || !p.craft) return;
   const book = p.book;
   const fire = p.fire();
-  detail.append(divider(t('prof.page.fire', 'The Fire')));
+  detail.append(stationHead(divider, t('prof.page.fire', 'The Fire'), 'fire'));   // AUDIT DECOR-USE D2: a cooking station's press lands here
   if (!fire) {
     endPan();
     detail.append(el('p', 'px-note', fireAwayLine()));
@@ -2489,8 +2528,20 @@ export const FACET_DOWN_LINE = 'You set the stone down; nothing is spent.';
 const facetDownLine = () => t('prof.page.jewel.down', FACET_DOWN_LINE);
 /** Tests: the bench's state - its facet ticked by hand, as a frame would. */
 export const _jewelForTests = () => _jewel;
-/** The recipes the bench lists for a piece in a base (its metal, its Linen, its wood): the plain piece, then a gem each. */
-export const jewelRecipes = (piece, base) => JEWELCRAFTING_RECIPES.filter((r) => r.product === piece && r.id.split(':')[1] === base);
+/** The recipes the bench lists for a piece in a base (its metal, its Linen, its wood): the plain piece, then a gem each -
+ *  CLOTH-GEMS (Professions-Arc 50): of one GRADE of gem (`grade`, gemGrades.js GEM_GRADES'), the plain grade DFU's eight
+ *  and the Pearl with the gemless piece. */
+export const jewelRecipes = (piece, base, grade = 'plain') => JEWELCRAFTING_RECIPES.filter((r) => r.product === piece && r.id.split(':')[1] === base && (gemGradeOfKey(r.gem) ?? 'plain') === grade);
+/** CLOTH-GEMS: a gem grade's word on the bench's row (the plain grade's the gems DFU has; the four the port's rows'). */
+export function gemGradeWord(grade) {
+  switch (grade) {
+    case 'chipped': return t('prof.page.jewel.grade.chipped', 'Chipped');
+    case 'flawed': return t('prof.page.jewel.grade.flawed', 'Flawed');
+    case 'flawless': return t('prof.page.jewel.grade.flawless', 'Flawless');
+    case 'perfect': return t('prof.page.jewel.grade.perfect', 'Perfect');
+    default: return t('prof.page.jewel.grade.plain', 'Plain gems');
+  }
+}
 /** What the bench says a piece's points are: "1,980 enchantment points (+10%)", its DFU template's and the share added. */
 export function jewelPointsLine(r, hand = null) {
   const pct = jewelPointsPct(r, hand);
@@ -2617,11 +2668,25 @@ function drawJewellerBench(detail, rerender, { el, divider }) {
     }
     detail.append(row);
   }
+  // CLOTH-GEMS: the gems' grade, where the piece sets one - DFU's own (plain), and the port's four (Gem-Sockets 4); a graded
+  // gem in the pack is put in by the loose door when the piece is made (the station's shortfall, as any looted gem's)
+  if (!JEWEL_PIECES.find((x) => x.id === _jewel.piece)?.gem) _jewel.grade = 'plain';
+  else {
+    const row = el('div', 'prof-families prof-metals');
+    for (const g of GEM_GRADES) {
+      const b = el('button', `prof-family${_jewel.grade === g ? ' on' : ''}`, gemGradeWord(g));
+      b.type = 'button';
+      b.disabled = cutting;
+      b.onclick = () => { _jewel.grade = g; _jewel.picked = null; rerender(); };
+      row.append(b);
+    }
+    detail.append(row);
+  }
   const crackedHeld = held('gem:siege');
   const lapidary = specs[100] === LAPIDARY;
   /** What the piece spends as this jeweller would: a Heartwood for a plank, a Siege-cracked Gem for the gem. */
   const spendsFor = (r, wood, cracked) => recipeInputs(r, { heartwood: wood && takesHeartwood(r), cracked: cracked && lapidary && takesCracked(r) });
-  const list = jewelRecipes(_jewel.piece, _jewel.base);
+  const list = jewelRecipes(_jewel.piece, _jewel.base, _jewel.grade);
   for (const r of list) {
     const open = recipeOpen(r, rank);
     const can = open && (craftable(r, held) || (lapidary && takesCracked(r) && craftable(r, held, spendsFor(r, false, true))));
@@ -2909,8 +2974,13 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
   // CRAFT-LIMIT-SAID: each piece's XP as the service credits it (the Firmament's percent on disenchantXp, under the room the
   // track has left), and the limit's line once where it holds one of them under what it earns
   const pay = craftPayOf(book, 'enchanting');
-  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points)), { pct: pay.pct }))));
+  // CLOTH-GEMS: a piece made wholly of cloth gives its XP only where its maker's own cloth made it and it was never sold
+  // (alchemyLaw disenchantXp's `own`, the piece's bought_with on the service) - the station cannot see that, so it says the
+  // figure such a piece gives and, once, the rule
+  const ownXp = (/** @type {any} */ pc) => disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points), true);
+  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct }))));
   if (capped) detail.append(el('p', 'px-note', capped));
+  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if its maker wove or spun that cloth and it was never sold.')));
   for (const pc of pieces) {
     // DISENCHANT-SAID (the owner: "List them greyed with the reason"): a piece under one Essence - greyed, its reason, its
     // Disenchant never pressed (the service would refuse it: prof-no-essence)
@@ -2925,7 +2995,7 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
     }
     const row = el('div', 'prof-smelt');
     const base = essenceOf(pc.points);
-    const gives = { points: pc.points, essence: pc.essence, xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base), pay) };
+    const gives = { points: pc.points, essence: pc.essence, xp: paidXp(disenchantXp(recipeById(pc.recipe), rank, base, true), pay) };   // CLOTH-GEMS: an own piece's (the rule said above)
     row.append(el('b', null, pc.name), el('span', 'prof-split', specs[50] === DISENCHANTER
       ? t('prof.page.enchant.givesTwo', '{points, number} points: {essence} Arcane Essence, +{xp} Enchanting experience (two for a Disenchanter)', gives)
       : t('prof.page.enchant.gives', '{points, number} points: {essence} Arcane Essence, +{xp} Enchanting experience', gives)));

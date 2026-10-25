@@ -286,11 +286,11 @@ export const medianText = (m) => (m == null ? '-' : Number.isInteger(m) ? String
 
 /** AUDIT 30 L7: the materials nothing yields yet - an order for one could only hold its Marks for a week. PROF7: Hunting
  *  yields the Bear Hide now; AUDIT-SEATS: a siege's Spoils (SEAT2a, townSeatLaw.js SIEGE_SPOILS) yield the Warforged
- *  Steel Ingot and Standard-bearer's Silk now. DAEDRIC-SMELT (Professions-Arc.md section 50): the forge smelts the Daedric
- *  Ingot now (professionLaw.js SMELT_RECIPES), and its heart takes its place - no door of the service ever counts a
- *  Daedra's Heart (it enters the Stores loose, a station's alone - bagLaw.js looseOrder), so no order, listing or writ
- *  could ever be filled with one: walled off from the market as the loose units are. */
-export const UNYIELDED = Object.freeze(['part:daedra-heart']);
+ *  Steel Ingot and Standard-bearer's Silk now. DAEDRIC-SMELT (Professions-Arc.md section 52): the forge smelts the Daedric
+ *  Ingot now (professionLaw.js SMELT_RECIPES), so nothing waits on a yield today. Its heart is loot's and the Gate's,
+ *  and no door of the service counts one - it is the loose door's, as CLOTH-GEMS' graded gems are (professionLaw.js
+ *  LOOSE_ONLY_KEYS: no catalogue, order, listing, writ or commission). The guards that read this list stand for the next. */
+export const UNYIELDED = Object.freeze([]);
 /** AUDIT 30 L2: a crafted piece lists only of a family the market lists (CRAFTED_FAMILIES) - never arrows (a quiver's
  *  stack, re-minted whole) nor a siege work. */
 export const pieceListable = (recipeId) => CRAFTED_FAMILIES.some(([f]) => f === recipeById(recipeId)?.family);

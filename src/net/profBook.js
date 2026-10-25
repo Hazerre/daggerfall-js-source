@@ -55,7 +55,7 @@
 // Pure - the door, the storage, the clock and the ids are handed in - so
 // the pins drive it without a network.
 // ═══════════════════════════════════════════════════════════════════
-import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
+import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
 import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
 import { recipeById, recipeInputs, recipeOpen } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
@@ -134,7 +134,7 @@ const dayOf = (ms) => Math.floor(ms / 86_400_000);
  *   units the service handed over, every one minted (what finds no room into the pack past its weight - B5's law);
  *   `stamped`/`unstamp`/`stamps` a deposit's stamp in the save (takeCarried's `stamp` - its id, material, units and
  *   order); `flush` a checkpoint that LANDED (the save holding the take is the realm's before the deposit is asked).
- *   DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 50): `embers` the pack's Deadlands Embers - how many it
+ *   DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): `embers` the pack's Deadlands Embers - how many it
  *   holds unlocked, and a take of them with its undo (systems/sigil/sigilBroker.js emberHands) - the pack's half of a
  *   work that spends them, as the Broker's sale takes its price.
  */
@@ -460,7 +460,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BAG1: whether this book carries (a host handed it the bag and the pack) - every harvest and withdrawal is then
      *  the bag's or the pack's, never the Stores'. */
     carrying() { return !!carry; },
-    /** DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 50): the Deadlands Embers the pack holds unlocked - what a
+    /** DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): the Deadlands Embers the pack holds unlocked - what a
      *  work that spends them may take (`carry`'s embers) - or null where this book holds no pack (the Forge bounds by the
      *  service's purse alone, its refusal `prof-embers`). */
     embers() { return carry?.embers ? carry.embers.held() : null; },
@@ -1090,7 +1090,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       m.promise = (async () => {
         // BAG1: the work's inputs the Stores lack, from the bag and the pack first
         const work = smeltRecipe(recipe);
-        // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 50): THE EMBERS A WORK SPENDS - the pack's half (`carry`'s
+        // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): THE EMBERS A WORK SPENDS - the pack's half (`carry`'s
         // embers, the insignia's own law: systems/sigil/sigilBroker.js insigniaSale), the account's purse the service's.
         // Asked before anything moves: a pack short of them puts nothing in the Stores
         const embers = workEmbers(work, count), pack = carry?.embers ?? null;
@@ -1122,25 +1122,34 @@ export function createProfBook({ door, storage = null, character = () => null, n
     // ─── A SPECIALISATION ───────────────────────────────────────────
     /** A specialisation chosen (PROF0 3.3) - free the first time, 1,000 Marks and a week after. Asked with the choice
      *  this client sees standing (AUDIT 29 A15): the service refuses a change the player was shown as free, and a
-     *  refusal that says the track moved reads it again. */
-    async choose(profession, rank, spec) {
+     *  refusal that says the track moved reads it again. PERK-TRIAL: free and at once on its choice's day of trial, and
+     *  asked so (`trial`) - a day run out meanwhile is refused, never charged. AUDIT PERK-TRIAL P1: `shown.trial` is what
+     *  the page offered (free, or paid) - the press buys that, whatever the clock says by the second press; without it,
+     *  the track's own day at the press. */
+    async choose(profession, rank, spec, shown = {}) {
       const c = character();
       if (!c) return { ok: false, error: 'prof-character' };
-      const from = this.track(profession).specs?.[rank] ?? null;
+      const tr = this.track(profession);
+      const from = tr.specs?.[rank] ?? null;
+      const trial = !!from && (typeof shown?.trial === 'boolean' ? shown.trial : specTrialShown(tr, rank, now() / 1000));
       profession = trackOf(profession);   // CRAFT3: asked of the craft's track
       const owner = slot();
-      const key = `spec|${owner}|${profession}|${rank}|${spec}|${from ?? ''}`;
+      const key = `spec|${owner}|${profession}|${rank}|${spec}|${from ?? ''}|${trial ? 't' : ''}`;
       const m = idFor(key, PROF_QUEUE_MS);
       if (m.promise) return m.promise;
       m.promise = (async () => {
-        const r = await ask(() => door.spec(c, profession, rank, spec, from, m.id));
+        const r = await ask(() => door.spec(c, profession, rank, spec, from, m.id, trial));
         m.promise = null;
         if (!keptAnswer(r)) ids.delete(key);
         if (owner !== slot()) return { ok: false, error: 'elsewhere', elsewhere: true };
-        if (r?.ok) applyTrack(r.data?.track);
-        else {
+        if (r?.ok) {
+          applyTrack(r.data?.track);
+          // AUDIT PERK-TRIAL P3: a choice answered is the rank's news - an id kept for another choice at it (an answer
+          // lost) names a request the track has moved past, and asked again it would be answered as made, nothing changed
+          for (const k of [...ids.keys()]) if (k !== key && k.startsWith(`spec|${owner}|${profession}|${rank}|`)) ids.delete(k);
+        } else {
           shutBy(r);
-          if (r?.error === 'prof-spec-stale' || r?.error === 'prof-spec-taken') await book.refresh({ force: true });
+          if (r?.error === 'prof-spec-stale' || r?.error === 'prof-spec-taken' || r?.error === 'prof-trial-over') await book.refresh({ force: true });
         }
         return r;
       })();

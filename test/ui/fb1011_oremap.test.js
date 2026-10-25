@@ -24,7 +24,7 @@ const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const GLENUMBRA = 59, SENTINEL = 20, ORSINIUM = 26, ALIKR = 0, BETONY = 19;
 
 test('ORE-MAP: the card says a pixel\'s veins, its dungeons\', its kingdom\'s own ore and its ground\'s witnessed state - for the report\'s own case, a Daggerfall woodland nobody has read yet (mutants: the signature unsaid; the held ores unsaid; a confirmed pixel said unwitnessed)', () => {
-  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 50): the Dungeons line is the table every dungeon draws on anyone's
+  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 52): the Dungeons line is the table every dungeon draws on anyone's
   // word, and the woods' deep Moonstone - which still waits on its dungeon's witnesses - is said on the state line
   assert.deepEqual(oreMapTip({ climate: CLIMATES.Woodlands, region: GLENUMBRA, fact: null }), { title: ORE_TIP_TITLE, lines: [
     'Veins: Iron, Copper, Tin, Lodestone',

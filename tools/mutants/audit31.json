@@ -26,9 +26,7 @@
     "tests": [
       "test/net/audit31_law.test.js",
       "test/net/audit31_service.test.js"
-    ],
-    "equivalent": true,
-    "why": "DAEDRIC-SMELT (Professions-Arc.md section 50) left it alive on purpose: no recipe asks a material nothing yields since the forge smelts the Daedric ingot (UNYIELDED is the Daedra's Heart's, and no anvil, loom or bench work spends one), so the guard protects no recipe today - kept as belt-and-braces for the next unyielded input, the law reading UNYIELDED whole"
+    ]
   },
   {
     "name": "AUDIT31-law-writmay-proto",
@@ -249,9 +247,7 @@
     "new": "  if (!commissionable(recipe)) return { error: 'commission-recipe' };",
     "tests": [
       "test/net/audit31_service.test.js"
-    ],
-    "equivalent": true,
-    "why": "DAEDRIC-SMELT (Professions-Arc.md section 50) left it alive on purpose: no recipe asks a material nothing yields since the forge smelts the Daedric ingot (UNYIELDED is the Daedra's Heart's, and no anvil, loom or bench work spends one), so the guard protects no recipe today - kept as belt-and-braces for the next unyielded input, the law reading UNYIELDED whole"
+    ]
   },
   {
     "name": "AUDIT31-svc-fulfil-uncollected",
@@ -306,7 +302,9 @@
     "new": "'bad-material'",
     "tests": [
       "test/net/prof6_service.test.js"
-    ]
+    ],
+    "equivalent": true,
+    "why": "DAEDRIC-SMELT (Professions-Arc.md section 52) left it alive on purpose: nothing waits on a yield since the forge smelts the Daedric ingot, and its heart is the loose door's (professionLaw.js LOOSE_ONLY_KEYS, CLOTH-GEMS' home for the materials no door of the service counts - refused there first), so UNYIELDED stands empty and this guard reads a list with nothing in it today - kept for the next unyielded material, the law reading UNYIELDED whole"
   },
   {
     "name": "AUDIT31-svc-commission-elsewhere",

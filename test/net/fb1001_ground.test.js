@@ -43,7 +43,7 @@ import { HEIGHTMAP_DIMENSION, TERRAIN_SIZE } from '../../src/world/terrain/terra
 
 const DAY = 86_400;
 const MOUNTAIN = 226, REGION = 6;   // the Ravennian Forest: no crown, no march - no signature slot to move the count
-/** DEEP-OPEN (Professions-Arc.md section 50): a dungeon's confirmed veins differ from its unconfirmed ones only by its
+/** DEEP-OPEN (Professions-Arc.md section 52): a dungeon's confirmed veins differ from its unconfirmed ones only by its
  *  climate's own ore - a woodland dungeon's Moonstone - so the dungeons these pins stand are woodland ones. */
 const DEEP_WOODS = CLIMATES.Woodlands;
 const D = utcDay(T0);

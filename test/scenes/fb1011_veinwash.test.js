@@ -104,7 +104,7 @@ test('VEIN-WASH: a deep vein wears its ore\'s wash on the dungeon\'s own batch -
     keyLabel: () => 'E', input: () => ({ held: false, attack: false, choice: false }), active: () => false, activeDungeon: () => true,
   });
   const stoodBatches = [];
-  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 50): an unwitnessed dungeon draws its whole deep table now - 88's every
+  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 52): an unwitnessed dungeon draws its whole deep table now - 88's every
   // vein was Silver and is Platinum today - so the dungeon is 92, its Silver beside an Adamantium
   const DUNGEON = 92;
   const law = dungeonVeins({ dungeon: DUNGEON, day: 20500, climate: WOODS, confirmed: false });

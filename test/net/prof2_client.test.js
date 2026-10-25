@@ -354,11 +354,11 @@ test('PROF2 forge: what the Stores can smelt of a recipe - every input\'s units 
   assert.equal(smeltable(smeltRecipe('metal:brass'), held), 3);
   assert.equal(smeltable(smeltRecipe('ingot:steel'), held), 0, 'no Charcoal');
   assert.equal(smeltable(smeltRecipe('ingot:iron'), () => 1000), 100);
-  assert.equal(SMELT_RECIPES.length, 11, 'PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 50): the Daedric smelt, the eleventh');
+  assert.equal(SMELT_RECIPES.length, 11, 'PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 52): the Daedric smelt, the eleventh');
   // DAEDRIC-SMELT: and over the pack's embers where the work spends any - unknown (no pack in the book), its inputs alone
   const daedric = smeltRecipe('ingot:daedric'), all = () => 1000;
   assert.deepEqual([smeltable(daedric, all, 3), smeltable(daedric, all, 0), smeltable(daedric, all, null), smeltable(smeltRecipe('ingot:iron'), all, 0)], [3, 0, 100, 100]);
-  assert.deepEqual([...DECOR_STATIONS], ['alchemy', 'spells', 'enchant', 'forge', 'workbench', 'loom', 'mason', 'jeweller', 'vendor']);   // PROF4: the workbench, a fifth; PROF7: the loom, a sixth; PIN MOVED (PROF11): the mason's bench, a seventh; PIN MOVED (PROF10): the jeweller's bench, an eighth; PIN MOVED (HOME-VENDOR): the hired trader, a ninth
+  assert.deepEqual([...DECOR_STATIONS], ['alchemy', 'spells', 'enchant', 'forge', 'workbench', 'cooking', 'loom', 'mason', 'jeweller', 'vendor']);   // PIN MOVED (DECOR-USE): the cooking station   // PROF4: the workbench, a fifth; PROF7: the loom, a sixth; PIN MOVED (PROF11): the mason's bench, a seventh; PIN MOVED (PROF10): the jeweller's bench, an eighth; PIN MOVED (HOME-VENDOR): the hired trader, a ninth
   assert.deepEqual([DECOR_STATION_FEES.forge, DECOR_STATION_NAMES.forge], [50_000, 'Forge']);
 });
 

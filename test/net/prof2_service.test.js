@@ -156,7 +156,7 @@ test('PROF2 service: a dungeon\'s vein - no hours underground; its whole deep ta
   clock(secondAt(today() * DAY + 60, 2));
   const r = await s.call('/v1/prof/harvest', deep(mac, 0), mac.secret);
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 50; the owner: "FULL ORE TABLE"): unconfirmed, the deep table's own draw -
+  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 52; the owner: "FULL ORE TABLE"): unconfirmed, the deep table's own draw -
   // it was the least a deep vein is, Silver at tier 3
   const un = dungeonVeins({ dungeon: id, day: today(), climate: MOUNTAIN, confirmed: false })[0];
   assert.deepEqual([r.body.material, r.body.xp], [un.material, harvestXp(un.tier, 99, false)], 'unconfirmed: the whole table\'s draw');
