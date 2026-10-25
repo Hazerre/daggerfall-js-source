@@ -246,7 +246,7 @@ export function wildStep(st, now) {
 export const WILD_DOWN_SAY_MIN_MS = 5_000;
 
 /**
- * WILD-REJOIN (FIELD BUGS 2026-10-25, "if you die in the wilderness and alt f4 before you are looted ... you can also skip
+ * WILD-REJOIN (FIELD BUGS 2026-10-25b, "if you die in the wilderness and alt f4 before you are looted ... you can also skip
  * the death timer this way"): THE REFEREE'S WORD TO A FALLEN THAT IS STILL DOWN. A fall lives in the referee and on the
  * dying game's screen alone: the account service's record is the last save from before it (a dead character is never
  * saved), so a game closed on the death screen came back alive. The referee keeps the fighter down for WILD_REF.riseMs -

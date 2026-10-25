@@ -305,7 +305,7 @@ Either death, at the first dead frame, while the room is still the player's (`wi
   relay) is the room's old take: the piece off the record into the remains, the killer's alone (section 5).
   While the body lies the fallen's socket stays in the
   room, so the signed fall reaches them; a fallen that lets `WILD_FALL_GRACE_S` (30 s) go by is seized by its killer
-  (the record moved where it stands, its lease cleared). WILD-REJOIN (FIELD BUGS 2026-10-25): a fall signed while its
+  (the record moved where it stands, its lease cleared). WILD-REJOIN (FIELD BUGS 2026-10-25b): a fall signed while its
   fallen had no socket in the room - its game closed on the death screen - says so (`g` 1,
   `wildReceipt.js:"export const wildFallGraceS"`), and its killer carries it at once: no tab of the fallen's is there to
   take the drop first. A death at a player's hand underground drops the bag and the
@@ -317,7 +317,7 @@ Either death, at the first dead frame, while the room is still the player's (`wi
   zone map"): always locks the hall for the hour and sets the crows over it, whether or not the pack had anything to
   drop (`world.js:"if (modes?.mode === 'dungeon' && _wdunInside)"`; section 13).
 - THE WAIT: the death screen holds `WILD_DEATH_HOLD_S` (120 s) and takes no Enter; the killer's body lies as long.
-- A GAME CLOSED ON THE DEATH SCREEN (WILD-REJOIN, FIELD BUGS 2026-10-25, a player's report: "if you die in the
+- A GAME CLOSED ON THE DEATH SCREEN (WILD-REJOIN, FIELD BUGS 2026-10-25b, a player's report: "if you die in the
   wilderness and alt f4 before you are looted you wont be able to be looted by who killed you. you can also skip the
   death timer this way"): the fall is the referee's, and the referee keeps the fighter down its two minutes
   (`WILD_REF.riseMs`) - in its room, and by the hub's carry in any other. The record the game comes back to is the save
@@ -451,7 +451,7 @@ renumbered past main's SUPER-DUNGEONS (world176) - its parts written on their br
   its takes (section 3-5). INT9 (world185, `WILD_REF_RELAY_MIN`): the zone word (`zone`), the blows refereed and routed
   to nobody, the killer's `pick` the room's, a deposit carrying the service's order on every chunk; `gave` and
   `result` retired. The referee's own frame `{t:'wref', k}` (`validWildRefOut`): `hp`, `fell`, `rc` (the signed fall).
-  WILD-REJOIN (world259 - world258 on its branch, renumbered past KETCH-LONGER at the merge - account acct187, acct186 on its branch): `down` (`ms`, and `r` with `p` from the fall's own room - section 4), said
+  WILD-REJOIN (world260 - world258 on its branch, renumbered past KETCH-LONGER and ASK-LONGER at the merges - account acct187, acct186 on its branch): `down` (`ms`, and `r` with `p` from the fall's own room - section 4), said
   before the receipts a socket is owed; an older client drops the kind. A fall receipt signed with its fallen gone from
   the room carries `g` 1. Deploy the account service first (an older one holds a `g` fall's killer to the grace - the
   killer's tab then asks again past it, `wildSeizeHost.js:"a?.error === 'grace'"`), then the relay, then the site.
@@ -1043,5 +1043,5 @@ zone; through the real drop law, the real naval host's party, the real feud's sw
 `test/systems/fb1019f_companiondrop.test.js`, `tools/mutants/fb1019f_companiondrop.json`. FOE-KEEPS (a death to a foe drops
 nothing; a kill's tenth): `test/systems/wild/foekeeps.test.js`, int9's FOE-KEEPS THE SERVICE, `tools/mutants/foekeeps.json`.
 AUDIT FOE-KEEPS (`01-Overview/audits/Audit-Foe-Keeps.md`): `test/systems/wild/auditfoekeeps.test.js`,
-`test/net/auditfoekeeps_relay.test.js`, `tools/mutants/auditfoekeeps.json`. WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25.md`):
+`test/net/auditfoekeeps_relay.test.js`, `tools/mutants/auditfoekeeps.json`. WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25b.md`):
 `test/systems/wild/wildrejoin.test.js`, int9's WILD-REJOIN THE SERVICE, `tools/mutants/wildrejoin.json` (19, all dead).

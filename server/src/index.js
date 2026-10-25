@@ -10877,7 +10877,7 @@ export class Room {
     const owed = await this._wildOwedOf(a.sub, now), sk = this._siegeSocketOf(a.sub);
     if (owed && sk) { for (const w of owed) this._send(sk[0], JSON.stringify(w)); this._wildOwed?.delete(a.sub); this._wildOwedKeep(a.sub); }
   }
-  /** WILD-REJOIN (FIELD BUGS 2026-10-25): a fallen still down that says it stands in the zone - its game closed on the
+  /** WILD-REJOIN (FIELD BUGS 2026-10-25b): a fallen still down that says it stands in the zone - its game closed on the
    *  death screen and came back alive from the save before the fall - is told how long it has left to lie, and where its
    *  body lies when the fall was refereed here (wildRef.js wildDownWord). Its game lies down again for the rest. */
   _wildDownSay(st, sub, now) {

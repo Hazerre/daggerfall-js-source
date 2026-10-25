@@ -1,62 +1,68 @@
-# FIELD BUGS 2026-10-25 - a death in the open zone escaped by closing the game
+# FIELD BUGS 2026-10-25 - an artifact's doll layer, and the company's word
 
-One report, from a player, with the killer's own account of it: "if you die in the wilderness and alt f4 before you
-are looted you wont be able to be looted by who killed you. you can also skip the death timer this way. Its way faster
-to log in than wait 2 minutes." - "I killed a guy and was unable to loot him. He had Daedric gear on, i could see it. he
-must have Alt f4'd. He then came back immedietly". Read on main's `80eafd01ff`. The pins are
-`test/systems/wild/wildrejoin.test.js` and int9's WILD-REJOIN THE SERVICE (`test/net/int9_wild_ref.test.js`), the
-mutants `tools/mutants/wildrejoin.json` (19, all dead). Not seen with two live clients: the relay, the service and the
-page's decisions run in the pins, the world host's wiring of them does not.
+Two Discord threads, handed over by the owner as two phone screenshots. In #general, Andink: "My Daggerfall fashion is
+broken because artifacts like Spellbreaker looks like a typical Dwarven Tower Dorito instead of the unique texture (like
+in the thumbnail). I feel like all the artifacts may be using the wrong texture, the thumbnails are correct but not on
+the paper doll." In #suggestions, Grost's "Increase perk selection time for Elite Breaches": "Having only 10 seconds to
+read over potentially 16 different options, with a total of 5 different categories, is not enough for time to think for
+perk/boss/hall decisions ... At the very least, increase it to 20 seconds, maybe even 30", six thumbs under it; SeQueL:
+"10 seconds is far to short. 20 seconds minimum". Read on main's `175f4ff48`, with the freeware's data
+(`tools/fetch-data.sh`). The pins are `test/ui/fb1025_artifactdoll.test.js` and
+`test/net/eliteGates/fb1025_asklonger.test.js`, the mutants `tools/mutants/fb1025_artifactdoll.json` (9) and
+`tools/mutants/fb1025_asklonger.json` (3), all dead.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | "you can also skip the death timer this way" | A fall lives in the relay's referee and on the dying game's screen. The account service's record is the last save from before it - a dead character is never saved (`realmCheckpoint`), and the death's own save runs only when the fall's receipt reaches the game. A game closed on the death screen came back alive, where it last saved, its two minutes skipped. The referee still held the fighter down - so it walked the zone alive and could not be struck | WILD-REJOIN |
-| 2 | "you wont be able to be looted by who killed you" | Nothing reached the killer while the fallen's game was gone: its receipt waited `WILD_FALL_GRACE_S` (and the pick, or `WILD_REF.pickMs`) for the fallen's own tab to take the drop first. A game that came back in the same room took its drop when its owed receipt arrived - and laid nothing, since the body it remembers was read at a death this page never had (`_wildBody` null). The pile then stood only if the killer's own seizure asked again inside the order's minute | WILD-REJOIN |
+| 1 | "artifacts like Spellbreaker looks like a typical Dwarven Tower Dorito ... the thumbnails are correct but not on the paper doll" | The doll resolved an artifact as its base template: Spell Breaker's Tower Shield record from the body's armor archive, dyed by its plate band's Dwarven. The list took DFU's artifact carve-out; the doll never did | ART-DOLL |
+| 2 | "only 10 seconds to read over potentially 16 different options" | The company's word (`EG_ASK_MS`, Elite-Gates.md 16.4) was open 10 s; FIELD BUGS 2026-10-18d item 5 had named it tight and left its length to the owner | ASK-LONGER |
 
-## WILD-REJOIN (1, 2) - `src/net/wild/wildRef.js`, `server/src/index.js`, `src/net/wild/wildReceipt.js`, `server-account/src/wild.js`, `src/systems/wild/wildRejoin.js`, `src/scenes/world.js`
+## ART-DOLL (1) - `src/ui/paperDoll.js`
 
-No DFU member: the open zone and its referee are DFO's own (`11-Multiplayer/Wild-Zone.md`), so no Ledger row is owed.
+WHAT DFU DOES. PaperDollRenderer.BlitItems asks GetItemImage(item, true, true), and GetItemImage reads the item's
+InventoryTextureArchive and InventoryTextureRecord (`ItemHelper.cs:405-406`) - the same two virtuals the inventory list
+reads. For an artifact those are what SetArtifact wrote: the archive from GetArtifactTextureIndices (432 male, 433
+female) and the record from MAGIC.DEF (GetInventoryTextureRecord's carve-out, `DaggerfallUnityItem.cs:1745-1747`), with
+the dye left Unchanged (`:611`). So DFU's doll and list draw one picture of an artifact, from TEXTURE.432.
 
-THE CHANGE:
+WHAT THE PORT DID. `inventoryItemImage` (systems/item/itemTemplates.js) took the carve-out at AUDIT 63 F21 - the
+thumbnails. `paperdollItemImage` resolved by group alone: an artifact shield went down the Armor arm, the base
+template's record (the Tower Shield) in the body's armor archive (249/245 + morphology), dyed by its material - Spell
+Breaker is `0x204`, Dwarven, so a yellow Tower Shield. Every armor and weapon artifact drew its base the same way: Lord's
+Mail and Ebony Mail a plate cuirass, the Ebony Blade a katana, Auriel's Shield a kite shield.
 
-- THE REFEREE SAYS A FALL IS STILL DOWN. The fighter keeps where its body lay with its fall
-  (`wildRef.js:"t.fell = { r: rid, at: now, pose: t.pose ? { ...t.pose } : null };"`), and a socket that says it stands
-  in the zone while its fighter is down is told `{ t: 'wref', k: 'down', ms, r?, p? }`
-  (`wildRef.js:"export function wildDownWord"`, said by `server/src/index.js:"_wildDownSay(st, sub, now) {"`) - the time left and,
-  from the room that refereed the fall, its remains' id and the body's place. It is said BEFORE the receipts the socket
-  is owed, so the page is dead when it takes its drop. A fall carried from another room (the hub's carry) says its time
-  alone. Nothing is said inside `WILD_DOWN_SAY_MIN_MS` (5 s) of the rise: a hall's death rises in a town of the zone, and
-  a risen fallen is never killed again by clocks a moment apart.
-- THE PAGE LIES DOWN AGAIN (`systems/wild/wildRejoin.js`, wired in `world.js:"const wildDownIn = (g, room) => {"`). A
-  living page that saw no death of its own in the zone inside `WILD_REJOIN_KNOWN_MS` takes the word: the death's words
-  set (a kill, nothing dropped yet, `served` the seconds it already lay - kept through the death's later words), the
-  character put down by `playerEntity.js:"export function presentHeardDeath"` (the health at zero and the host's screen,
-  no subscriber told again: Project Legacy decided the death on the page that closed), and the body laid where the word
-  says. The death screen holds `WILD_DEATH_HOLD_S` less `served` (`deathScreen.js:"get holdSeconds()"`). The first dead
-  frame takes that death once (`wildRejoin.begin`) and offers no worn piece; the rise is the zone's as ever. A page that
-  knows its death - on the screen, risen, raised by a party's Resurrect - takes nothing.
-- THE KILLER DOES NOT WAIT FOR A GAME THAT HAS GONE. A fall signed while its fallen had no socket in the room carries
-  `g` 1 (`server/src/index.js:"const fallenGone = this._siegeSocketOf(fall.fallen) ? 0 : 1;"`), and its grace is none
-  (`wildReceipt.js:"export const wildFallGraceS"`): the service lets the killer seize at once, and the killer's tab
-  carries it five seconds after the receipt, where it waited thirty-five. An account service from before the word
-  answers 'grace'; the tab asks again once the old grace has gone by, once.
+Measured on the player's TEXTURE.432: 27 records. Spell Breaker is artifact 20, mapped to record 22, 57 x 112 at screen
+(260, 72) - its own shield, on the doll's left arm. The four records no artifact maps to - 4, 6, 11 and 14 - follow 3, 5,
+10 and 13, the Chrysamere's, the Ebony Blade's, the Mace of Molag Bal's and the Mehrunes Razor's: the right-hand
+records GetItemImage's Either-hand bump (`ItemHelper.cs:412-414`) reaches, so the bump applies to artifacts as to
+any weapon (the Chrysamere is two-handed, so its 4 stays unread).
 
-THE SEIZURE'S FRAME MOVED (HOST-SPLIT): `bootWorld` stood one logical line under its ceiling. `wildSeizeFrame` - one
-member, writing nothing of the host's - went verbatim to `src/scenes/wildSeizeHost.js` (`createWildSeizeHost`) by
-`tools/hostMove.mjs` before the change touched it, 17 logical lines out; the wiring took them back (36,386 before and
-after). Two pins that quoted it read the moved spelling (`host.online`).
+FIXED. An artifact's armor or weapon draws its own record in the artifact archive, undyed, bumped by one when an
+Either-hand artifact weapon is worn right (`paperDoll.js:"if (item.artifact && Number.isFinite(item.playerTextureRecord) && (item.group === 'Armor' || item.group === 'Weapons')) {"`).
+One departure, named in Port-Ledger section A: the archive is the WEARER's gender, not the minter's - an item here
+changes hands between players, and a woman wearing a man's Ebony Mail would draw his cuirass (433's record 7 is 37 x 54,
+432's 38 x 50). The item keeps the minter's fields, so the list's icon and Open.CheckCastByItem's Skeleton's Key law
+are unmoved.
 
-DECIDED (2026-10-25, the two questions asked with the fix, answered "with your recommended defaults"): a page that comes
-back serves the time LEFT of the two minutes, never a fresh two; the killer keeps the whole pick window when the fallen's
-game closes before it picks.
+NOT DONE. A peer's doll still draws an artifact as its base: the look carries six fields of an item
+(`wire.js:"export const LOOK_ITEM_FIELDS = Object.freeze(['templateIndex', 'group', 'material', 'dye', 'variant', 'equipSlot']);"`),
+and neither the artifact mark nor its record is one of them. Carrying them is a change to the relay's look, its own
+slice.
 
-THE FOUR HOSTS: `world.js` wired (the zone's death, its referee's words and its seizure are the streaming host's alone).
-`exterior.js`, `worldModes.js` and `dungeonContext.js` run no zone death of their own - the zone's halls and buildings
-die through `world.js`'s online frame - so none is wired.
+## ASK-LONGER (2) - `src/net/eliteGates/egRun.js`
 
-DEPLOY: the account service `acct187` (acct186 on its branch, renumbered past DECOR-USE and PERK-TRIAL at the merge) FIRST (an older one holds a `g` fall's killer to the grace), then the relay
-`world259` (world258 on its branch, renumbered past KETCH-LONGER at the merge), then the site.
+WHAT IT WAS. At a Redoubt the rest's window opens 6 s after the fall with the Vestige offer, the next circle's decrees
+(up to four families, two cards each), the Ready and the respite together, and every question was open 10 s
+(`egRun.js:"export const EG_ASK_MS = 30_000;"`, then 10_000). A decree nobody answered took the first shown. The Ready was
+read when its ask closed, so a solo Ready ended the rest about 13 s after the window.
 
-LIMITS (`11-Multiplayer/Wild-Zone.md` section 22): a page that comes back outside the zone, or inside one of its
-buildings, says no zone word and hears no `down` until it steps into the zone; the hub's carry is in memory alone; a
-fallen whose socket blinked just as its fall was signed is counted gone.
+CHANGED. The word is open 30 s - the top of what the thread asked, and well inside the rest's 90 s (`EG_REST_S`), so
+every question closes before the rest can end. It is one constant for every ask (Elite-Gates.md 16.4): the decrees, a
+Dagon's Bargain at its shrine, the respite and the Ready alike. The screens count from the relay's `until`, so no client
+changes. egRun.js rides the relay's bundle, so the law is a new relay: `world259` (`wire.js` RELAY_VERSION, its row in
+`test/net/relayversion.test.js`; no frame changes, so a page needs no minimum), NOT YET DEPLOYED. What moves with it: a Ready voted at once now ends the rest 33 s after the window, not 13 s - the time to read
+is the point, and it is the same for every company on the season's boards.
+
+NOT DONE. SeQueL's longer answer (its end is cut off in the screenshot) reaches for "a 'ready' button"; the Ready vote
+already ends a rest early, read when its word closes. Closing a word early once every member has answered alike is a
+change to 16.4's law, left to the owner. FIELD BUGS 2026-10-18d item 5's key clash (Y is FreeMouse and the Ready vote)
+stands as that record left it.
