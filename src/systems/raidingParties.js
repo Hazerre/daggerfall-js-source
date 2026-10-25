@@ -767,10 +767,12 @@ export const STAFF_SPAWN_INTERVAL_MAX_S = 2;
 /**
  * STAFF-EVENT PACKS (2026-10-25, mob: "when we do a raid spawn they need to be spread all over not a SINGLE SPAWN POINT
  * ... SHOULD DO PACK SPAWNING", "3-5 per pack of the monster chosen trhis need to feel like a take over", "and packs
- * quickly to the 25 cap"): a staff event stands its monsters in PACKS of STAFF_PACK_MIN to STAFF_PACK_MAX of one kind -
+ * quickly to the 25 cap", "it can be pack of any of the selected monsterts"): a staff event stands its monsters in PACKS of
+ * STAFF_PACK_MIN to STAFF_PACK_MAX, each one any of staff's kinds -
  * a leader anywhere around me (any bearing, STAFF_PACK_FAR_MIN to STAFF_PACK_FAR_MAX off, in front of me too), its pack
- * within STAFF_PACK_NEAR of it, STAFF_PACK_STEP_S apart - and the next pack STAFF_PACK_GAP_MIN_S to STAFF_PACK_GAP_MAX_S
- * after, to MAX_RAID_ENEMIES standing. A leader with no spot that far is tried nearer (a narrow street) - never lost. A
+ * within STAFF_PACK_NEAR of it, STAFF_PACK_STEP_S apart - and the next pack after a gap paced so the event stands its
+ * MAX_RAID_ENEMIES in STAFF_PACK_FILL_MIN_S to STAFF_PACK_FILL_MAX_S (mob 2026-10-25: "make it take 120-45 secdon for a
+ * pack to full hit 25", then "20-45" - the event's own pace, rolled once, each gap its pack's share of it). A leader with no spot that far is tried nearer (a narrow street) - never lost. A
  * town raid keeps the mod's one foe at a time just out of view.
  */
 export const STAFF_PACK_MIN = 3;
@@ -779,22 +781,30 @@ export const STAFF_PACK_FAR_MIN = 20;
 export const STAFF_PACK_FAR_MAX = 60;
 export const STAFF_PACK_NEAR = 6;
 export const STAFF_PACK_STEP_S = 0.15;
-export const STAFF_PACK_GAP_MIN_S = 0.3;
-export const STAFF_PACK_GAP_MAX_S = 0.8;
-/** The pack standing now: `{ key, mt, left, at, far }` - its raid, its kind, how many more, its leader's feet, whether its leader is sought far. */
+export const STAFF_PACK_FILL_MIN_S = 20;
+export const STAFF_PACK_FILL_MAX_S = 45;
+/** A pack's gap after it: its share of the event's pace (`paceS`). The first pack comes at once, so the cap stands when
+ *  all but its last pack - 1 to 5, the cap cutting it short - have had their gaps. @param {number} paceS @param {number} size */
+export const staffPackGapS = (paceS, size) => paceS * size / (MAX_RAID_ENEMIES - 1);
+/** The wait after a pack's last: its gap less the steps its pack already took. @param {number} paceS @param {number} size */
+const packWaitS = (paceS, size) => Math.max(STAFF_PACK_STEP_S, staffPackGapS(paceS, size) - STAFF_PACK_STEP_S * (size - 1));
+/** The event's pace, rolled once: a last pack of STAFF_PACK_MAX stands the cap at its least, of one at its most. @param {() => number} roll */
+export const staffPackPaceS = (roll) => rangeFloat(STAFF_PACK_FILL_MIN_S * (MAX_RAID_ENEMIES - 1) / (MAX_RAID_ENEMIES - STAFF_PACK_MAX), STAFF_PACK_FILL_MAX_S, roll);
+/** The pack standing now: `{ key, left, size, at, far }` - its raid, how many more, how many in all, its leader's feet, whether its leader is sought far. */
 let _pack = null;
 /** One step of a staff event's packs (section I's, the clock run out). @param {any} raid @param {number} standing */
 function staffPackStep(raid, standing) {
   const key = raidKey(raid);
   if (_pack && (_pack.key !== key || _pack.left <= 0)) _pack = null;
   if (!staffRaidRoom(raid, standing, MAX_RAID_ENEMIES)) { _pack = null; scheduleNextSpawn(raid.type); return 'idle'; }
-  _pack ??= { key, mt: staffRaider(raid, rnd()), left: rangeInt(STAFF_PACK_MIN, STAFF_PACK_MAX + 1, rnd()), at: null, far: true };
+  raid.fillS ??= staffPackPaceS(rnd());   // the event's pace, once
+  if (!_pack) { const size = rangeInt(STAFF_PACK_MIN, STAFF_PACK_MAX + 1, rnd()); _pack = { key, left: size, size, at: null, far: true }; }
   const pack = _pack;
   pack.left--;
   const o = pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false }
     : pack.far ? { min: STAFF_PACK_FAR_MIN, max: STAFF_PACK_FAR_MAX, los: false } : { min: RAID_SPAWN_MIN_DISTANCE, max: RAID_SPAWN_MAX_DISTANCE, los: false };
-  _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : rangeFloat(STAFF_PACK_GAP_MIN_S, STAFF_PACK_GAP_MAX_S, rnd());
-  spawn(raid, 'raider', pack.mt, o, pack);
+  _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : packWaitS(raid.fillS, pack.size);
+  spawn(raid, 'raider', staffRaider(raid, rnd()), o, pack);   // any of staff's kinds, each one
   return 'raider';
 }
 /** THE REWARD: a staff event's monster another stands that fell after a blow of mine is my kill on the board (its

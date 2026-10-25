@@ -14,7 +14,8 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number }} StaffRaid
+ *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
  *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced.
  */
@@ -31,7 +32,7 @@ const ENDED_KEPT = 32;
 const raidOf = (e) => ({
   staff: e, key: staffEventKey(e.id), regionIndex: e.rg, locationIndex: e.loc, locationName: e.nm, px: e.px, py: e.py,
   startMinute: -Infinity, endMinute: Infinity, attackAmount: e.n, type: 9, killed: 0, struck: false, announced: false,
-  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0,
+  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0, fillS: undefined,
 });
 
 const endOne = (/** @type {string} */ id) => {

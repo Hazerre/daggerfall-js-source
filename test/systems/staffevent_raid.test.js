@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  STAFF_PACK_MIN, STAFF_PACK_MAX, STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, STAFF_PACK_NEAR, MAX_RAID_ENEMIES, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE,
+  STAFF_PACK_MIN, STAFF_PACK_MAX, STAFF_PACK_FILL_MIN_S, STAFF_PACK_FILL_MAX_S, staffPackGapS, staffPackPaceS, STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, STAFF_PACK_NEAR, MAX_RAID_ENEMIES, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE,
   raidFrame as frame, raidWireWord, raidRelayWord, setRaidingPartiesHost, restoreRaidSaveData, _resetRaidingParties,
   STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine,
 } from '../../src/systems/raidingParties.js';
@@ -148,7 +148,7 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   assert.equal(staffBossWanted(staffRaids()[0]), 2);
 });
 
-test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of one kind, each led from anywhere around me, its pack around its leader, quickly to the 25 cap', async () => {
+test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of any of the kinds picked, each led from anywhere around me, its pack around its leader, to the 25 cap in 20-45 s', async () => {
   const { at, log, h } = rig();
   restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
   setSharedClock(() => at.now);
@@ -157,8 +157,16 @@ test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of one kind, each led fr
   h.random = () => rolls[r++ % rolls.length];
   raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100, mt: [7, 12, 21] }] } }, 'social');
   let secs = 0;
-  while (log.raiders.length < MAX_RAID_ENEMIES && secs < 30) { frame(0.15); await tick(); secs += 0.15; }
-  assert.ok(secs < 15, `the 25 stood quickly (${secs.toFixed(1)} s)`);
+  while (log.raiders.length < MAX_RAID_ENEMIES && secs < 200) { frame(0.05); await tick(); secs += 0.05; }
+  assert.ok(secs >= STAFF_PACK_FILL_MIN_S && secs <= STAFF_PACK_FILL_MAX_S + 2, `the 25 stood in 20-45 s (${secs.toFixed(1)} s, a frame a stand on top)`);
+  assert.deepEqual([STAFF_PACK_FILL_MIN_S, STAFF_PACK_FILL_MAX_S], [20, 45]);
+  for (const roll of [() => 0, () => 0.999]) {   // the pace's ends, a last pack either size: the gaps before it inside 20-45 s
+    const pace = staffPackPaceS(roll);
+    for (const last of [1, STAFF_PACK_MIN, STAFF_PACK_MAX]) {   // the cap may cut the last pack to one
+      const t = staffPackGapS(pace, MAX_RAID_ENEMIES - last);   // every pack's gap but the last's, summed
+      assert.ok(t >= STAFF_PACK_FILL_MIN_S - 1e-9 && t <= STAFF_PACK_FILL_MAX_S + 1e-9, `a pace of ${pace.toFixed(1)} s, a last pack of ${last}: ${t.toFixed(1)} s`);
+    }
+  }
   assert.equal(log.raiders.length, MAX_RAID_ENEMIES);
   await run(5, 0.5);
   assert.equal(log.raiders.length, MAX_RAID_ENEMIES, 'never past the cap');
@@ -170,10 +178,10 @@ test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of one kind, each led fr
   }
   for (const [lead, ...rest] of packs) {
     assert.deepEqual([lead.o.min, lead.o.max, lead.o.los], [STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, false]);
-    assert.ok(rest.every((f) => f.mobileType === lead.mobileType && f.o.max === STAFF_PACK_NEAR && f.o.los === false && f.o.at[0] === lead.ai.feet[0]));
+    assert.ok(rest.every((f) => f.o.max === STAFF_PACK_NEAR && f.o.los === false && f.o.at[0] === lead.ai.feet[0]));
   }
+  assert.ok(packs.some((p) => new Set(p.map((f) => f.mobileType)).size > 1), 'a pack of any of the kinds picked (mob: "not one kind")');
   assert.ok(packs.slice(0, -1).every((p) => p.length >= STAFF_PACK_MIN && p.length <= STAFF_PACK_MAX), packs.map((p) => p.length).join(','));
-  assert.ok(new Set(packs.map((p) => p[0].mobileType)).size > 1, 'the kinds mixed pack by pack');
   // the host's placement: a town raid's the mod's just out of view
   assert.deepEqual(raidSpawnRange(undefined), { minDistance: RAID_SPAWN_MIN_DISTANCE, maxDistance: RAID_SPAWN_MAX_DISTANCE, lineOfSightCheck: true });
   assert.deepEqual(raidSpawnRange({ min: 1.5, max: 6, los: false }), { minDistance: 1.5, maxDistance: 6, lineOfSightCheck: false });
