@@ -42,7 +42,7 @@ const take = (W) => async (target, payload) => (await W.room(target).room.fetch(
 const ledOf = (W, k) => owLedgerOf(W.room(k).store.get(OW_LEDGER_KEY));
 
 test('COST-2 EVERY KEY HAS A CLASS, AND WHAT IS NOT HANDED OVER BLOCKS: the parked teams and the ledger are partitioned, the settings, bans and freezes copied, the looks and secrets dropped with the drain - and any other key, a fight\'s, a debt\'s, a raid\'s, a star\'s, the wild\'s remains, one nobody has named, blocks the move; the blockers listed a page at a time (mutants: an unknown key handed; a raid let through; a prefix read as exact)', async () => {
-  assert.deepEqual(KEY_CLASSES.map(([k, c]) => `${k}=${c}`), ['park:=part', `${OW_LEDGER_KEY}=part`, 'relaycfg=copy', 'bans=copy', 'freezes=copy', 'look:=drop', 'secret:=drop', 'hellos=drop']);
+  assert.deepEqual(KEY_CLASSES.map(([k, c]) => `${k}=${c}`), ['park:=part', `${OW_LEDGER_KEY}=part`, 'relaycfg=copy', 'bans=copy', 'freezes=copy', 'look:=drop', 'secret:=drop', 'hellos=drop', 'cellmoved=drop', 'cellpulled=drop']);   // PIN MOVED (COST-2 part two): a node's moved mark and its pulled cells, never handed over - test/server/cellmoves.test.js
   assert.equal(keyClass(parkKey('aaaaaaaaaaaaaaaaaaaaaaaa')), 'part');
   assert.equal(keyClass('park'), 'block', 'a prefix is a prefix');
   assert.equal(keyClass('hellosx'), 'block', 'an exact key exactly');

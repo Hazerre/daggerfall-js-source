@@ -156,3 +156,93 @@ export function partitionRows(rows, pixelOf, targets) {
   }
   return { by, rest };
 }
+
+// ═══ COST-2 PART TWO: THE TREE MOVES ═══════════════════════════════════════════════════════════════════════════════
+// The directory starts from a SEED (every node above the seed's level split, every node at it whole) and moves one node
+// at a time: a crowded leaf SPLITS into its four children, four quiet sibling leaves MERGE into their parent. Every tree
+// a move makes lists only nodes the walk reaches, so a tree stays a town's nodes long, never the map's.
+
+/** The tree seeded at level `L` (0 to CELL_LEVEL_MAX): every node above it split, every node at it whole - nothing listed.
+ *  L0 is L0_TREE. Null for any other `L`. @param {unknown} L */
+export function seedTree(L) {
+  if (!Number.isInteger(L) || /** @type {number} */ (L) < 0 || /** @type {number} */ (L) > CELL_LEVEL_MAX) return null;
+  return L === 0 ? L0_TREE : Object.freeze({ v: 1, base: /** @type {number} */ (L), split: Object.freeze([]), joined: Object.freeze([]) });
+}
+/** Is `tree` today's partition - every node split down to L0? (A base-0 tree lists no split node: its joined list is
+ *  what it merged.) @param {{base: number, joined: readonly string[]}} tree */
+export const isL0Tree = (tree) => tree.base === 0 && tree.joined.length === 0;
+/** Does the walk reach node `key` in `tree` - is every node above it split? @param {any} tree @param {string} key */
+export function isReached(tree, key) {
+  if (!isNodeRoom(key)) return false;
+  for (let p = parentNode(key); p; p = parentNode(p)) if (!isSplit(tree, p)) return false;
+  return true;
+}
+/** Is node `key` a LEAF of `tree` - the object its fine cells' sockets share: reached, and not split itself? @param {any} tree @param {string} key */
+export const isLeaf = (tree, key) => isReached(tree, key) && !isSplit(tree, key);
+
+/** `tree` with each of `whole` made whole and each of `cut` split, every node in `drop` unlisted - or null past
+ *  TREE_NODES_MAX. @param {any} tree @param {{ whole?: string[], cut?: string[], drop?: string[] }} change */
+function changed(tree, { whole = [], cut = [], drop = [] }) {
+  const s = setsOf(tree), split = new Set(s.split), joined = new Set(s.joined);
+  for (const k of drop) { split.delete(k); joined.delete(k); }
+  for (const k of whole) { if (/** @type {number} */ (nodeLevelOf(k)) > tree.base) joined.add(k); else split.delete(k); }
+  for (const k of cut) { if (/** @type {number} */ (nodeLevelOf(k)) > tree.base) joined.delete(k); else split.add(k); }
+  if (split.size > TREE_NODES_MAX || joined.size > TREE_NODES_MAX) return null;
+  return Object.freeze({ v: 1, base: tree.base, split: Object.freeze([...split].sort()), joined: Object.freeze([...joined].sort()) });
+}
+/** THE SPLIT: `tree` with leaf `key` (above L0) split into its four children, each a leaf - or null when `key` is no such
+ *  leaf. @param {any} tree @param {string} key */
+export function splitTree(tree, key) {
+  if (!isLeaf(tree, key) || !nodeLevelOf(key)) return null;
+  return changed(tree, { cut: [key], whole: childNodes(key) });
+}
+/** THE MERGE: `tree` with the split node `parent`, whose four children are leaves, made a leaf itself - its children no
+ *  longer listed - or null when it is no such node. @param {any} tree @param {string} parent */
+export function mergeTree(tree, parent) {
+  const kids = childNodes(parent);
+  if (!kids.length || !isReached(tree, parent) || !isSplit(tree, parent) || !kids.every((k) => isLeaf(tree, k))) return null;
+  return changed(tree, { drop: kids, whole: [parent] });
+}
+/** The tree a move leaves: a split's of its one departing node, a merge's of its one receiving node. @param {any} tree @param {{kind: string, from: string[], to: string[]}} move */
+export const treeAfter = (tree, move) => (move.kind === 'split' ? splitTree(tree, move.from[0]) : move.kind === 'merge' ? mergeTree(tree, move.to[0]) : null);
+
+/**
+ * THE TREE'S HYSTERESIS (pure): the move due at `now` - `{ kind, from, to }`, the nodes it hands over from and to - or
+ * null, and the dwell carried to the next ask.
+ * - A SPLIT: a leaf above L0 whose count stays past `splitAt` for `splitDwellMs` splits into its four children.
+ * - A MERGE: four sibling leaves whose players together stay under `mergeAt` for `mergeDwellMs` merge into their parent.
+ * `counts` maps a leaf to its players now (a node with no fresh word counts none, so an emptied node merges); `dwell`
+ * `{ over, under }` maps a node (split) or a parent (merge) to when its condition began; `cool` maps a node to the time
+ * before which no move touches it (one its rows blocked). One move at a time: a split first - a crowd is
+ * the cost that grows - and the longest dwell first among each.
+ * @param {any} tree @param {Map<string, number>} counts
+ * @param {{ over: Record<string, number>, under: Record<string, number> }} dwell @param {Record<string, number>} cool
+ * @param {number} now @param {{ splitAt: number, splitDwellMs: number, mergeAt: number, mergeDwellMs: number }} law
+ */
+export function cellMoveDue(tree, counts, dwell, cool, now, law) {
+  const cold = (/** @type {string} */ k) => !(now < (cool[k] ?? -Infinity));
+  const n = (/** @type {string} */ k) => counts.get(k) ?? 0;
+  const over = /** @type {Record<string, number>} */ ({}), under = /** @type {Record<string, number>} */ ({});
+  const splits = [], merges = [];
+  for (const [k, c] of counts) {
+    if (!(c > law.splitAt) || !nodeLevelOf(k) || !isLeaf(tree, k) || !cold(k)) continue;
+    over[k] = dwell.over[k] ?? now;
+    if (now - over[k] >= law.splitDwellMs) splits.push(k);
+  }
+  const parents = new Set([...counts.keys()].map(parentNode).filter((p) => p != null));
+  for (const p of /** @type {Set<string>} */ (parents)) {
+    const kids = childNodes(p);
+    if (!isReached(tree, p) || !isSplit(tree, p) || !kids.every((k) => isLeaf(tree, k) && cold(k)) || !cold(p)) continue;
+    if (!(kids.reduce((s, k) => s + n(k), 0) < law.mergeAt)) continue;
+    under[p] = dwell.under[p] ?? now;
+    if (now - under[p] >= law.mergeDwellMs) merges.push(p);
+  }
+  const first = (/** @type {string[]} */ ks, /** @type {Record<string, number>} */ at) => ks.sort((a, b) => at[a] - at[b] || (a < b ? -1 : 1))[0];
+  const s = first(splits, over), m = s ? null : first(merges, under);
+  const move = s ? { kind: 'split', from: [s], to: childNodes(s) } : m ? { kind: 'merge', from: childNodes(m), to: [m] } : null;
+  return { move, dwell: { over, under } };
+}
+
+/** The `cellSeed` relay setting (net/relayCfg.js) read: the level 1 to CELL_LEVEL_MAX the directory seeds its tree at, 0
+ *  for off (or unset) - the tree fixed at L0 - and undefined for a value it is not. @param {unknown} v */
+export const cellSeedOf = (v) => (v == null || v === '' || v === 'off' ? 0 : /^[1-4]$/.test(String(v)) ? Number(v) : undefined);

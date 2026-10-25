@@ -112,8 +112,8 @@
   {
     "name": "COST2-walk-other-name",
     "file": "server/src/cellNodes.js",
-    "old": "return layerWalk(env.ROOMS, node, new Request(request, { headers }),",
-    "new": "return layerWalk(env.ROOMS, key, new Request(request, { headers }),",
+    "old": "await layerWalk(env.ROOMS, node, new Request(request, { headers }),",
+    "new": "await layerWalk(env.ROOMS, key, new Request(request, { headers }),",
     "tests": [
       "test/server/cellnodes.test.js"
     ]
@@ -121,8 +121,8 @@
   {
     "name": "COST2-node-header-page",
     "file": "server/src/cellNodes.js",
-    "old": "const headers = { ...Object.fromEntries(request.headers), [NODE_HEADER]: node };",
-    "new": "const headers = { [NODE_HEADER]: node, ...Object.fromEntries(request.headers) };",
+    "old": "const headers = { ...Object.fromEntries(request.headers), [NODE_HEADER]: node, [CELL_TELL_HEADER]:",
+    "new": "const headers = { [NODE_HEADER]: node, ...Object.fromEntries(request.headers), [CELL_TELL_HEADER]:",
     "tests": [
       "test/server/cellnodes.test.js"
     ]
@@ -130,8 +130,8 @@
   {
     "name": "COST2-directory-unasked",
     "file": "server/src/cellNodes.js",
-    "old": "  const tree = await cellTreeOf(env);\n  const node = cellNodeOf(tree, key);",
-    "new": "  const tree = null;\n  const node = cellNodeOf(tree, key);",
+    "old": "    const tree = await cellTreeOf(env);\n    const node = cellNodeOf(tree, key);",
+    "new": "    const tree = null;\n    const node = cellNodeOf(tree, key);",
     "tests": [
       "test/server/cellnodes.test.js"
     ]
@@ -392,7 +392,7 @@
   {
     "name": "COST2-level-unsaid",
     "file": "server/src/cellNodes.js",
-    "old": "(room._node ? String(nodeLevelOf(room._node)) : '')",
+    "old": "{ const n = nodeOfRoom(room); return n ? String(nodeLevelOf(n)) : ''; }",
     "new": "''",
     "tests": [
       "test/server/cellnodes.test.js"
@@ -419,8 +419,8 @@
   {
     "name": "COST2-blob11-dropped",
     "file": "server/src/relayScale.js",
-    "old": "String(c.beats), String(level)],",
-    "new": "String(c.beats)],",
+    "old": "String(c.beats), String(level), String(c.cellMoves)",
+    "new": "String(c.beats), String(c.cellMoves)",
     "tests": [
       "test/server/cellnodes.test.js"
     ]
@@ -482,7 +482,7 @@
   {
     "name": "COST2-blocked-handed",
     "file": "server/src/cellHandover.js",
-    "old": "  if (blocked.length) return { ok: false, blocked };\n",
+    "old": "  if (blocked.length && !force) return { ok: false, blocked };\n",
     "new": "",
     "tests": [
       "test/server/cellhandover.test.js"

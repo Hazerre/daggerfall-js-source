@@ -70,7 +70,7 @@ test('COST-2 (b) THE RELAY: an object told a coarse node keeps it on the socket\
     const a = r.connect();
     a.att = { ...a.att, nd: NODE };
     r.room._adopt(a, a.att);
-    await r.hello(a, 'peer-0001', null);
+    await r.hello(a, 'peer-0001', null, { cv: 1 });   // PIN MOVED (COST-2 part two): a coarse node's hello says the cell law (cv), or the cell door refuses it - test/server/cellmoves.test.js
     assert.deepEqual(a.sent.find((m) => m.t === 'welcome')?.cells, [24, 8, 26, 10], 'the welcome: the cells the socket covers');
     const there = band(205, 174);   // map pixel (410, 151): world:25,9
     await r.raw(a, JSON.stringify({ t: 'ow', k: 'sp', ids: [there] }));

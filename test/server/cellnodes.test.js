@@ -14,7 +14,7 @@ import {
   cellTreeInternal, nodeHeard, cellLevelOf,
 } from '../../server/src/cellNodes.js';
 import { RoomMetrics } from '../../server/src/relayScale.js';
-import { L0_TREE } from '../../src/net/cellTree.js';
+import { L0_TREE, seedTree } from '../../src/net/cellTree.js';
 import { roomOf, CLOSE_SAME_ROOM, HALO_OF_PARAM, LAYER_HEADER, LAYER_ASK_HEADER } from '../../src/net/wire.js';
 
 const upgrade = (path) => new Request(`https://relay.invalid/room/${path}`, { headers: { Upgrade: 'websocket', 'x-df-node': 'cell:4:0,0' } });   // a page's own node header is never believed
@@ -25,6 +25,7 @@ const SEEDED = { v: 1, base: 2, split: [], joined: [] };
 function relay({ tree = null, down = false } = {}) {
   const dir = fakeRoom(CELL_DIRECTORY);
   if (tree) dir.store.set(CELL_TREE_KEY, tree);
+  if (tree?.base) dir.room.env.CELL_SEED = String(tree.base);   // PIN MOVED (COST-2 part two): the directory serves the tree it stores only while `cellSeed` is on - L0_TREE while it is off
   const asks = [], dirAsks = [];
   const ROOMS = {
     idFromName: (name) => name,
@@ -156,12 +157,17 @@ test('COST-2 AN OBJECT BELIEVES ITS NODE ONLY WHEN IT HOLDS THE CELL, AND SAYS I
   nodeHeard(room, req('world:25,9'), 'world:25,9');
   assert.equal(cellLevelOf(room), '0');
   // the directory: a stored tree read strictly, kept for the instance
+  // PIN MOVED (COST-2 part two): served only while `cellSeed` is on (L0 while it is off: the way back), and a tree it
+  // cannot read seeded afresh at the setting's level - test/server/cellmoves.test.js holds the seed
   const dir = fakeRoom(CELL_DIRECTORY);
   dir.store.set(CELL_TREE_KEY, SEEDED);
+  assert.deepEqual(await (await cellTreeInternal(dir.room)).json(), L0_TREE, 'cellSeed off: L0, whatever it stores');
+  dir.room.env.CELL_SEED = '2';
   assert.deepEqual(await (await cellTreeInternal(dir.room)).json(), SEEDED);
   const bad = fakeRoom(CELL_DIRECTORY);
+  bad.room.env.CELL_SEED = '3';
   bad.store.set(CELL_TREE_KEY, { v: 1, base: 2, split: ['world:1,1'] });
-  assert.deepEqual(await (await cellTreeInternal(bad.room)).json(), L0_TREE, 'a tree it cannot read is L0');
+  assert.deepEqual(await (await cellTreeInternal(bad.room)).json(), seedTree(3), 'a tree it cannot read: seeded afresh');
   // blob11
   let p = null;
   const m = new RoomMetrics(0);

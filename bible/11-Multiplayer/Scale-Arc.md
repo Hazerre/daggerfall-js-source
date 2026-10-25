@@ -4018,7 +4018,7 @@ place. The object is told its node (NODE_HEADER, set whatever the page sent) and
 socket's cell. A page's own coarse node key (`/room/cell:...`) is refused 404.
 
 **The directory**: one object, CELL_DIRECTORY (`#cells`, a name wire.js roomOf never gives), answers the tree
-(CELL_INTERNAL_TREE): `L0_TREE` while it stores none, and nothing writes one in this drop. **It fails safe to the last
+(CELL_INTERNAL_TREE): `L0_TREE` while it stores none, and nothing writes one in this drop (part two seeds and moves it while the `cellSeed` setting is on - below). **It fails safe to the last
 tree an isolate saw**, and to the fine key only when it never saw one: once part two seeds the tree coarse, the fine key
 is not today's behaviour - it would stand a player alone in a fine object no one else of its node is in. A failed ask is
 not repeated for CELL_TREE_RETRY_MS (5 s), so a directory down costs an isolate one ROOM_CALL_MS deadline, not every page.
@@ -4059,8 +4059,8 @@ own keys, and the departing node lets its rows go only when every receiver took 
 partial failure leaves every receiver as one would.
 
 **The node's level** rides each room's metrics point (`server/src/relayScale.js` RoomMetrics, blob11): `0` for a fine
-cell, 1-4 for a coarse node, '' for a room told none. No question reads it yet: a `levels` question in
-`tools/relayLoad.mjs`, counting awake rooms by level before and after, is part two's.
+cell, 1-4 for a coarse node, '' for a room told none (part two: a coarse node woken by a frame reads its own back). Part
+two's `levels` question in `tools/relayLoad.mjs` reads it (below).
 
 **Read in the code and left for part two, each with its reason.**
 - **The plan named caravan decor and cell memory**: neither lives in a cell. A caravan's decor is its own room's
@@ -4070,11 +4070,12 @@ cell, 1-4 for a coarse node, '' for a room told none. No question reads it yet: 
   later slice partitions each by its pixel before it stops blocking.
 - **The calls between rooms name a cell by its fine key** (the park registry's drop, a raid's cleanse, a star held, a
   gate's kill, a Super dungeon's find, a staff event's call) through `idFromName` directly, never through the Worker. Once
-  a fine key's object is a coarse node they must ask the tree too: part two's.
+  a fine key's object is a coarse node they must ask the tree too: part two's. (Part two read them: two name a cell - the
+  park drop and the staff event's call - and the rest are a cell's calls to the hub.)
 - **A page from before this drop names no `of`**: in part two its halo toward its own node would reach that object and
-  replace its own socket (CLOSE_REPLACED). Part two raises the ground law (wire.js GROUND_LAW) so such pages reload first,
-  or ships days after this one.
-- **Layers keep no ledger, but they may keep parks**: part two hands over a crowded node's layers too, or blocks on them.
+  replace its own socket (CLOSE_REPLACED). Part two keeps such pages out of a coarse node with a door of its own
+  (wire.js CELL_HELLO_LAW, below); it does not raise the ground law.
+- **Layers keep no ledger, but they may keep parks**: part two hands over a crowded node's layers too (it asks every one).
 
 **Expected:** nothing saved in this drop - the tree is L0 - and one object more: the directory, which every Worker
 isolate asks once a CELL_TREE_KEEP_MS, so at peak it is awake around the clock (about $4 a month). Part two: $9-19 a day on duration (the 64-pixel saving, more at
@@ -4107,3 +4108,153 @@ a wait and not a drop, no `of` for a page in no cell. `tools/mutants/cost2.json`
 
 **The deploy.** One relay drop at the merge, after COST-1's, and the page with it (GitHub Pages). No account-service
 change, no migration, no object renamed: every cell's object is the one it was.
+
+## COST-2 part two: built (2026-10-25, this branch - relay world260, NOT YET DEPLOYED; cut from part one, Lattymoy/daggerfall-js-source#1228, and merges after it) - the tree moves
+
+The second drop of COST-2: the directory seeds its tree coarse and moves it one node at a time, by its nodes' counts.
+**The tree moves only once a developer sets the relay setting `cellSeed`** (off unset), after the site serves this
+build. Part one's plumbing - the tree, the Worker's door, the cover, the handover - keeps its shape; this is what it adds.
+
+**The seed is a setting, off until the site serves this build.** `cellSeed` (`src/net/relayCfg.js`, var CELL_SEED,
+read by `src/net/cellTree.js` cellSeedOf): `off` or unset - the tree is L0_TREE, part one exactly - or the level 1 to 4
+the directory seeds at; 2 is 64-pixel cells. The directory (`server/src/cellNodes.js` directoryTree) asks the hub for the
+settings as a ground room's door does, seeds its tree the first time it holds none it can read (seedTree: every node
+above the level split, every node at it whole, nothing listed) and stores it. A stored tree outlives the setting turned
+off and on again, and a later level changes nothing while one is stored. Why a setting and not the deploy: the relay
+deploys first (`deploy.yml` publishes the site only once the account service serves its version, and
+`account-deploy.yml` waits on the relay), and a coarse node turns away every page from before this build (the cell door,
+below) - seeded at the deploy, every player in the open country would be turned away until the site landed.
+
+**The cell door** (`src/net/wire.js` CELL_HELLO_LAW; `server/src/cellMoves.js` cellDoorShut, wired in index.js
+`_doorRefused`): a cell's hello says `cv` 1 - this build names its rooms on every halo (`?of=`), keeps what each socket
+covers (`cells`) and joins again on CLOSE_REPARTITION. A COARSE node refuses a cell's hello without it, with GROUND-GATE's
+words (update the game) and CELL_OLD_REASON; a fine cell's object refuses nobody. This is the relay's own check that no
+page from before this build - so none without `of` - stands in a coarse node. **A departure from the brief**, which said
+"the ground-law bump for pages without `of`": GROUND_LAW is the terrain's law (pinned to fb1017f's fingerprint) and gated
+by `groundGate`, and a bump would refuse every ground room's hello - towns, dungeons, interiors - from part one's pages
+too. The cell door refuses only in a coarse node.
+
+**The counts** (cellTell): an object the Worker says stands in a moving tree (`cellNodes.js` CELL_TELL_HEADER, the
+Worker's word whatever the page sent) tells the directory its named sockets, by node and layer, at most every
+COUNT_TELL_MS (15 s), from its metrics tick and never awaited. A page poses at least every HEARTBEAT_MS, so a node with
+players is heard; a node unheard for COUNT_STALE_MS (60 s) counts none. An instance woken by a frame (the runtime tells a
+hibernated object nothing at its wake) reads its coarse node back off a socket's attachment (nodeOfRoom), so it tells its
+count, and its metrics point its level, again.
+
+**The law** (`src/net/cellTree.js` cellMoveDue, pure): a leaf above L0 whose count stays past CELL_SPLIT_AT for
+CELL_SPLIT_DWELL_MS splits into its four children; four sibling leaves whose players together stay under CELL_MERGE_AT for
+CELL_MERGE_DWELL_MS merge into their parent - above the seed's level too, so empty country coarsens to 256 pixels. One
+move at a time, a split first, the longest dwell first. Every tree a move makes (splitTree, mergeTree) lists only nodes
+the walk reaches, so its leaves hold every fine cell once.
+
+| var (`server/wrangler.toml`) | default | why |
+|---|---|---|
+| CELL_SPLIT_AT | 150 named sockets | SOCKETS_MAX is 256: a crowd splits before its node fills and layers |
+| CELL_SPLIT_DWELL_MS | 60000 (a minute) | a crowd that stays |
+| CELL_MERGE_AT | 40, the four siblings together | far under a split's 150, so a split's children never merge back |
+| CELL_MERGE_DWELL_MS | 600000 (ten minutes) | quiet that stays |
+
+A var that is not a whole number is its default, and a merge line not under the split line makes all four their defaults
+(cellLawOf). A node whose move its rows blocked, or a layer of which never answered, is left alone MOVE_COOLDOWN_MS (ten
+minutes).
+
+**The move**, made by the directory's alarm (cellPlanAlarm - the directory knows itself by its id, isCellDirectory, so no
+other room's alarm reads anything for it), never inside a node's own call to it. The plan is stored before each stage, so
+a directory that stops resumes where it stopped:
+1. **MOVE** - each departing node, every layer (LAYERS_MAX of them), sends its rows to the receivers and keeps them
+   (`server/src/cellHandover.js` handOver `keep`): the node still serves its sockets, so a directory that stops here loses
+   nothing. A key that blocks, or a receiver that never takes, drops the plan with nothing committed.
+2. **COMMIT** - the tree and the closing plan written together.
+3. **CLOSE** - each departing layer marks itself moved (its place always, and any layer that held anyone), closes every
+   socket CLOSE_REPARTITION (4003) and reaps them as a refusal's, then sends its rows again (a take is idempotent, so the
+   second send is the first's delta) and lets them go. A key that blocks and arrived since stage 1 is left behind and named
+   in the log (`force`: the tree is committed). A layer that does not answer is asked again CLOSE_RETRY_MS (5 s) on.
+
+**A moved node** answers a socket, a park drop or a staff event's call from a caller in a moving tree 503 with
+MOVED_HEADER, for MOVED_KEEP_MS (twice an isolate's keep of its tree); after it, it admits them and lets the mark go. A
+node that takes rows is a node again. The Worker (cellDoor), answered "moved", marks its kept tree stale, asks the
+directory at once and walks once more; with the directory down it keeps the tree it had - part one's law, never the fine
+key - and the page is answered the 503 and retries.
+
+**The page** (`src/net/online.js`): a socket closed CLOSE_REPARTITION joins its cell again BACKOFF_MIN_MS on and within
+REPARTITION_SPAN_MS (2 s) more - a split's crowd spread over its children's hello gates - with no drop weighed and no
+backoff; a halo the same.
+
+**The calls between rooms that name a cell** go through the tree (`cellNodes.js` cellCall, on ROOM_CALL_MS, walked once
+more past a move): the park registry's drop (index.js `_parkTellDrop`: the registry's fine cell and layer, now that
+layer of the node that holds the cell) and a staff event's call to its cell (`server/src/staffEvents.js` tellCell).
+**Read in the code**: the others the brief named - a raid's cleanse, a star held, a gate's kill, a Super dungeon's find -
+are a cell's calls to the hub (SOCIAL_ROOM); none names a cell.
+
+**The seed has no handover: a coarse node pulls.** A fine cell's first socket in a coarse node (its place, layer 0) pulls
+the rows that cell's own object kept before the seed - its parks, its ledger and its copy keys (CELL_INTERNAL_GIVE, taken
+by takeHandover), then CELL_INTERNAL_FORGET there - and the node remembers the cell (CELL_PULLED_KEY). A cell that gave
+once gives nothing again, so the pulled set is never handed over.
+
+**Metrics.** blob12 and blob13 (`server/src/relayScale.js` RoomMetrics): the directory's moves made and moves blocked, on
+its points (kind `cells`). Two questions in `tools/relayLoad.mjs`, which `relay-load.yml` asks with the others: `levels`,
+the cells' points by their node's level (blob11) - the room-windows each level was awake (over 12 an hour: its objects
+awake on the mean), the sockets and the most one held, the sockets refused full, the poses and the sends - and `moves`,
+the moves made and blocked.
+
+**Departures from the plan, named.**
+- The seed at the deploy: a setting a developer turns on instead (above). So the tree moves only once the site serving
+  this build has gone out - which means part one's site has too.
+- The ground-law bump: the cell door instead (above).
+- A `busy` flag while a duel, serpent fight, siege or gate stands: the handover's own classes instead - a node holding a
+  key that blocks never moves (part one's law), and the blocked moves are counted (`moves`).
+- Six calls between rooms through the tree: two name a cell (above).
+
+**Known gaps**, each the deploy's or a later slice's to weigh:
+- **The seed cuts off what a fine cell's object holds that blocks.** A live raid, a held star, a serpent's fight, a staff
+  event's ledger, the wild's remains and debts stay in the L0 object when the seed goes on: its sockets go to the coarse
+  node, and the pull takes the parks, the ledger and the copy keys alone. Set the seed at a quiet hour with no raid,
+  star, serpent fight or staff event live in the open country, or accept that those reset.
+- **The park registry's layer is stale after a move.** It keeps the layer the storing object said; a move hands that park
+  to the new node's place (layer 0), so a drop asked at the old layer misses it, and a ghost wagon stands up to
+  PARK_TTL_MS (72 hours) or until its owner's next park word.
+- **A park dropped between stage 1 and the close** stands on the same way in the node that took stage 1's copy. The window
+  is the seconds of one alarm.
+- **The way back** is `/relay cellSeed off`: the directory answers L0 within a settings TTL, but a socket already in a
+  coarse node stays there until it reconnects - follow it with `relay-deploy.yml`'s redeploy to move everyone at once. Rows
+  written in coarse nodes since the seed stay in them (the fine cells gave theirs at the pull); the stored tree is kept,
+  and a later `/relay cellSeed 2` finds them in its nodes again.
+- **The directory hears every node that has players every 15 s.** It was awake whenever anyone played already (part
+  one: the Worker's asks); now it does a little work for each node too.
+
+**Expected:** -$9-19 a day on duration once the seed is on, nothing before it (the plan's 64-pixel figure; more at night,
+when coarse nodes hold the few players still awake). Over static 64-pixel cells the quadtree saves only about $2-3 a day
+more: it is built for town visibility - no layering until a 16-pixel cell itself fills - and the 10,000 target, not for
+the dollars.
+
+**Confirming it**, read for a week before the seed and a week after:
+- `do-active.yml` (Lattymoy/daggerfall-js-source#1220, "Durable Objects awake"): the relay's awake objects and their
+  duration - the object-days x $0.135 that the bill's duration line is. It cannot tell a cell's level: an object's id is
+  a hash.
+- `relay-load.yml` `levels` (this drop): **the node count by level**. Before the seed every cell's point is level 0 (part
+  one) or '' (a relay before it); after it, level 2 carries most room-windows, a town's crowd sits at 1 or 0, and empty
+  country that merged at 3 or 4. Mean objects awake at a level = room_windows / (12 x hours).
+- `relay-load.yml` `moves`: moves made and blocked. If blocked dominates, a later slice partitions the keys that block
+  (raids, stars, serpents, staff events, the wild's remains) by their pixel.
+- `relay-load.yml` `crowds`: a town's peak in one object - `room_full` stays 0 while a split comes before a node fills.
+
+**Pins.** `test/net/celltreemoves.test.js` (4): the seed and the setting read; a split and a merge above and below the
+base, the joined top split back to leaves; 400 random moves each reading back whole, listing only reached nodes, every
+fine cell in one leaf; the hysteresis (the dwell, the line, the sum, staleness, the cool, an L0 or split node, the order).
+`test/server/cellmoves.test.js` (13): the directory knowing itself and its vars; the seed set at the hub and read; the
+count told, a woken node's too; the plan; a split in three stages over every layer; a move resumed after stage 1, after
+the commit, past an unanswered layer and past a late key that blocks; a blocked move; the moved mark; the Worker's second
+walk; the calls that name a cell; the seed's pull; the cell door; the questions and the blobs.
+`test/net/cellrepartition.test.js` (2): the `cv` hello; CLOSE_REPARTITION a short wait, the primary's and a halo's.
+`tools/mutants/cost2b.json`: 77, all dead.
+- PIN MOVED: a coarse node's hello says `cv` (`cellcover`, `world6biiib`); the key classes `cellmoved` and
+  `cellpulled` (`cellhandover`); the directory serves its stored tree only while `cellSeed` is on, an unreadable one
+  seeded afresh (`cellnodes`); blob12 and blob13 (`scale2b`, `fb1021b_foeshold`); the park drop's call is
+  `cellNodes.js` cellCall's now - 28 calls between rooms in index.js, 19 on ROOM_CALL_MS (`scale2b`); the setting
+  `cellSeed` and its floor, world260 (`scale5b`, `heraldcards`); the two questions (`relayload`); twelve records
+  re-aimed by content (cost2: six, fb1021b_foeshold: three, heraldcards, ketch_herald, relayload).
+- RELAY_VERSION world260, its hash and the bundle's new file (`server/src/cellMoves.js`) in
+  `test/net/relayversion.test.js`, every pin on world259 moved.
+
+**The deploy.** One relay drop at the merge (after part one's), and the site with it; the tree stays L0 until a developer
+sets `/relay cellSeed 2` at the hub, once the site serves this build. No account-service change, no migration.

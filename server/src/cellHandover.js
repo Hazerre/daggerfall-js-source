@@ -22,6 +22,10 @@ import { FREEZES_KEY } from './staffFreeze.js';
 
 /** The receiving node's door. */
 export const CELL_INTERNAL_TAKE = '/internal/cells/take';
+/** COST-2 part two (cellMoves.js): a node closed by a move keeps when it was (an isolate's stale tree is answered
+ *  "moved" for a while), and a coarse node the fine cells whose rows it pulled at the seed. */
+export const CELL_MOVED_KEY = 'cellmoved';
+export const CELL_PULLED_KEY = 'cellpulled';
 /** The payload's shape. */
 export const HANDOVER_V = 1;
 /** Every key class, `[key or prefix (ending ':'), class, what it is]`; any key matching none blocks. */
@@ -34,6 +38,8 @@ export const KEY_CLASSES = Object.freeze([
   ['look:', 'drop', 'an id\'s look - swept at the drain, said again at its hello'],
   ['secret:', 'drop', 'an id\'s secret - swept at the drain, said again at its hello'],
   ['hellos', 'drop', 'a relay before SCALE2b\'s hello bucket'],
+  [CELL_MOVED_KEY, 'drop', 'when a move closed this node - a node that takes rows is one again'],
+  [CELL_PULLED_KEY, 'drop', 'the fine cells a coarse node pulled at the seed - a cell that gave once gives nothing again'],
 ].map((e) => Object.freeze(e)));
 /** A key's class - 'part', 'copy', 'drop', or 'block' for any key no entry names. @param {string} key */
 export const keyClass = (key) => {
@@ -83,30 +89,51 @@ export const roomPost = (env) => async (/** @type {string} */ target, /** @type 
 /**
  * THE HANDOVER: the departing node `room`'s rows posted to `targets` (each asked again once on a miss), and only when
  * every target took its part are the handed rows let go here. A node holding a key that blocks hands nothing.
- * Answers `{ ok, blocked?, failed?, sent? }`.
+ * COST-2 part two: a move hands over TWICE (cellMoves.js). First with `keep` - sent, nothing let go - while the node
+ * still serves its sockets, so a directory that stops before its tree is committed loses nothing. Then at the close,
+ * once its sockets are gone, the whole again (a take is idempotent, so the second is the first's delta) and let go; the
+ * close passes `force`, since the tree is committed: a key that blocks and arrived since the first is left behind and
+ * named (`orphaned`), not left holding the move half made. A node that holds no row posts nothing.
+ * Answers `{ ok, blocked?, failed?, sent?, orphaned? }`.
  * @param {any} room the departing Room (index.js) @param {string[]} targets
  * @param {(target: string, payload: any) => Promise<boolean>} post @param {number} [now]
+ * @param {{ keep?: boolean, force?: boolean }} [how]
  */
-export async function handOver(room, targets, post, now = Date.now()) {
+export async function handOver(room, targets, post, now = Date.now(), { keep = false, force = false } = {}) {
   const st = room.state.storage;
   const blocked = await blockersOf(st);
-  if (blocked.length) return { ok: false, blocked };
+  if (blocked.length && !force) return { ok: false, blocked };
+  const orphaned = blocked.length ? { orphaned: blocked } : {};
+  const rows = await rowsOf(st, now);
+  if (emptyRows(rows)) return { ok: true, sent: {}, ...orphaned };
+  const payloads = handoverPayloads(rows, targets);
+  const once = async (/** @type {string} */ t) => { try { return await post(t, payloads.get(t)); } catch { return false; } };
+  const failed = [];
+  for (const t of targets) if (!(await once(t)) && !(await once(t))) failed.push(t);
+  if (failed.length) return { ok: false, failed };
+  if (!keep) await letGo(room, rows.parks);
+  return { ok: true, sent: Object.fromEntries([...payloads].map(([t, p]) => [t, p.parks.length + p.sp.length + p.dg.length + p.gr.length])), ...orphaned };
+}
+/** A node's rows that part or copy: its parks, its ledger (pruned), its copy keys. @param {any} st @param {number} now */
+export async function rowsOf(st, now) {
   const parks = [...(await st.list({ prefix: 'park:' }))];
   const led = owLedgerOf(await st.get(OW_LEDGER_KEY));
   owPrune(led, now);
   const copy = /** @type {Record<string, unknown>} */ ({});
   for (const [k, c] of KEY_CLASSES) if (c === 'copy') { const v = await st.get(k); if (v !== undefined) copy[k] = v; }
-  const payloads = handoverPayloads({ parks, led, copy }, targets);
-  const once = async (/** @type {string} */ t) => { try { return await post(t, payloads.get(t)); } catch { return false; } };
-  const failed = [];
-  for (const t of targets) if (!(await once(t)) && !(await once(t))) failed.push(t);
-  if (failed.length) return { ok: false, failed };
+  return { parks, led, copy };
+}
+/** Does a node hold no row that parts or copies? @param {{ parks: any[], led: any, copy: object }} rows */
+const emptyRows = (rows) => !rows.parks.length && !rows.led.sp.length && !Object.keys(rows.led.dg).length && !Object.keys(rows.led.gr ?? {}).length && !Object.keys(rows.copy).length;
+/** The handed rows let go here - the parks listed and the ledger - and the instance's kept copies read again on their
+ *  next use. @param {any} room @param {Array<[string, any]>} parks */
+export async function letGo(room, parks) {
+  const st = room.state.storage;
   const handed = parks.map(([k]) => k);
   for (let i = 0; i < handed.length; i += 128) await st.delete(handed.slice(i, i + 128));
   await st.delete(OW_LEDGER_KEY);
-  room._parks = null;   // the instance's kept copies, read again on their next use
+  room._parks = null;
   room._owLoad = null;
-  return { ok: true, sent: Object.fromEntries([...payloads].map(([t, p]) => [t, p.parks.length + p.sp.length + p.dg.length + p.gr.length])) };
 }
 
 /**
@@ -120,6 +147,7 @@ export async function takeHandover(room, payload, now = Date.now()) {
   if (!payload || payload.v !== HANDOVER_V) return null;
   const st = room.state.storage;
   let n = 0;
+  if (room._cellMoved !== null) { await st.delete(CELL_MOVED_KEY); room._cellMoved = null; }   // COST-2 part two: a node that takes rows is a node again
   const kept = room._parks ? await room._parks : null;
   for (const e of Array.isArray(payload.parks) ? payload.parks : []) {
     const [k, rec] = Array.isArray(e) ? e : [];
