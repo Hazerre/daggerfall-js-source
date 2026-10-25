@@ -5572,7 +5572,8 @@ band aids".
   `prof10_service`, `prof11_law`, `prof11_service`, `prof11_client`, `prof12_law`, `prof12_service`, `prof12_client`,
   `prof12_apothecary`, `audit32_law`, `audit32_service`, `fb1015f_firstcraft` (CRAFT-FIRST-SHOWN), `fb1018f_craftlimit`,
   `audit_uicalm_firm1`, `fb1018d_crafthowto`, `fb1011f_stationdoor`, `brand` (A-2), `audit26_potionmaker`,
-  `audit63_windows`, `potionmakerwindow`, `bag1_client`, `hostceiling`, and the account version's pins (acct182).
+  `audit63_windows`, `potionmakerwindow`, `bag1_client`, `enhancedPorts` (PORT4: the window made inside its port's call),
+  `disc22d_flail_icon` and `buildingLocks.js`'s cites, `hostceiling`, and the account version's pins (acct182).
 - **Mutants**: `tools/mutants/firstbudget.json` (17: 16 dead; `counter-guard-dropped` equivalent - no pattern at a tier
   both pays and is wholly the counter's goods, FACT, pinned), `tools/mutants/potiondoor.json` (22, all dead); 41 records
   re-aimed by content - in `prof12`, `prof11`, `prof9`, `prof3`, `audit30`, `audit32`, `audit_uicalm_firm1`, `craft4`,
