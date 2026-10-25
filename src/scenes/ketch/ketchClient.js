@@ -41,7 +41,7 @@ import { createKetchSky, ketchSkyPose } from './ketchSky.js';
 import { bosunLineAt } from '../../world/ketch/ketchModel.js';
 import { ketchSpoilsOf, KT_SPOILS_TEXT, KT_SPOILS_KEYS, KT_SPOILS_RECORDS_MAX, KT_SPOILS_GATHERED } from '../../systems/ketch/ketchSpoils.js';
 import { createSpoilsPool, recoverSpoils } from '../spoilsPool.js';
-import { createKetchShares } from './ketchShares.js';
+import { createKetchShares, ketchChestMouth } from './ketchShares.js';
 import { addItem, addGoldPieces } from '../../systems/inventory.js';
 import { itemIconColor32 } from '../../ui/item/itemIconColor32.js';
 import { lootPileName } from '../../systems/worldTooltips.js';
@@ -300,7 +300,7 @@ export function createKetchClient(deps) {
     if (c && Number.isSafeInteger(c.c)) shares.paid(c);
   }
   function openChest() {
-    const at = deckToDungeon(KT_VAULT.x, 0.6, KT_VAULT.z), f = player.feetAt();
+    const at = ketchChestMouth(), f = player.feetAt();   // KETCH-FIX: out of the chest's mouth, never its solid middle
     if (!shares.chest(at, Math.atan2(f[0] - at[0], f[2] - at[2]))) mid(KT_CLIENT_TEXT.chestEmpty);
   }
   // ── the presses aboard ──

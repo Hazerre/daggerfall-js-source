@@ -465,3 +465,53 @@ draw count), `loot21_stones.test.js` (the switch off), and `relayversion.test.js
 DEPLOYED). Mutants: `ketch_brain.json` (+2, one re-aimed), `ketch_relay.json` (+1), `ketch_fight.json` (+1),
 `ketch_look_law.json` (+7, two re-aimed), `lostspoils.json` (+2, one re-aimed), `pelletsscarce.json` (+1), and re-aimed
 by content `ketch_client.json` (1) and `ketch_look_light.json` (2) - the 22 each run once and dead.
+
+## 18. KETCH-FIX - the invisible panels and the stuck share (2026-10-25)
+
+The owner, from players: *"The invisable panels cam fuck up players and that loot gets stuck inside the chest at the
+end"*.
+
+**How they were found.** A reachability audit on the real ship: every part posed at each stage, the real Collider, and
+a flood fill of the space a body occupies. The fill walks, jumps (with a running jump's carry), falls and climbs as
+DFU's climbing does, seeded at every deck a ride reaches. Every collider face it touches is then checked from the
+side the body stands on: does a drawn face show it there (culling is on, so a face shows from its front alone)? A
+pinned check follows each fix. The one real-motor run that started it: on the bridge, a running jump at the fore rail
+(0.95 m, no net) cleared it, passed through the engine house's aft wall and fell through the ship, past −43 m and on.
+
+**Found and fixed:**
+- **The engine house** (`world/ketch/ketchModel.js`) was drawn only, and its walls are seen from outside alone. Its
+  walls, eaves and roof are solid now. Every invisible floor and wall a body found began in it:
+  - its floor, which is the top of the gun deck's ceiling and was never drawn;
+  - the hull's void past its floor;
+  - the quarter wall's back, which a body climbed onto the waist's lid.
+- **The deck between the house and the bridge** was never laid, so the hull's dark lay open under the fore rail. It is
+  laid now (`ketchAftDeck`), solid, and its edge is the disc's own rim. The strips beside the house were drawn only;
+  they are solid now and end at the house's aft wall.
+- **Her sides below her deck** were drawn only. A body down her side passed through into the void between the gun
+  deck's walls and the hull, and stood on the hold ceiling's undrawn top. That spot was recorded as its last ground, so
+  every cast-back returned it there. Every run of the outline is now solid below the deck, in its own plane
+  (`hullRunSolid`). The one exception is the bow's run, where the anchor-lift's cage rises.
+- **The stairs' undersides.** The Watch hatch's stair and the hold's walked a slope that is solid from both faces but
+  drawn from above alone, so under each stair there was an invisible ceiling. The kit's stairs now draw the underside
+  (`soffitRec`).
+- **The waist's lid** stays. It is the unseen ceiling at 7 m that stops anyone climbing out over the nets or the
+  quarter wall, and its edge is the nets' top cord. From above, though, it was an invisible floor in the air. A body
+  standing on it is now cast back as the nets cast it, with the same cost and line (`scenes/ketch/ketchDeckHost.js`
+  `ketchOnLid`). The mast-lift's shaft is excepted, since its cage rides through that height.
+- **The share stuck in the chest.** The chest threw its share from its middle, 0.6 m up, which is inside its own solid
+  box (0 to 0.8). Every piece's first ray met the box's inside, and the run reproduced 80 of 80 pieces at rest in the
+  chest. It now throws from its mouth, a metre out from its front and above its lid (`ketchChestMouth`). The throw is
+  also kept to the cabin's floor (`KT_SPOILS_KEEP`, the Hour's keep law), between the chest and the door and clear of
+  the stern lift's ring.
+
+**Left as they are:**
+- The rails' and nets' panels. Their bars and nets are drawn on them, so they are a railing's collision, not invisible
+  walls.
+- The stairs' slope under their treads.
+- The lid's underside, which only a body climbing to the nets' top cord meets.
+
+**Pins:** `test/world/ketch_panels.test.js` (5): the house and the aft deck on the real motor (three running jumps over
+the fore rail, all stopped at the house's wall, none under her deck), the strips; her sides from outside, and the bow
+open alone; the stairs' undersides; the lid's cast-back and its shaft; the share flown over the real collider from six
+places to stand at six seeds, all on the cabin's floor and out of the chest, the door and the lift, and the keep
+handed to the pool. `tools/mutants/ketch_panels.json`: 10, each run once and dead.
