@@ -58,6 +58,10 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { createDecorRoom, decorBoxSeen, DECOR_DRAW, DECOR_SKIP } from './decor/decorRoom.js';   // YARD-RANGE: a piece too small to see
+import { decorKey } from '../systems/decor/decorCatalogue.js';
+import { decorPlaque } from '../systems/decor/decorLook.js';
+import { pickActivatableHit } from '../player/activate.js';
+import { plaqueActionFor } from '../systems/quickLoot.js';
 import { YARD_RANGE_TIERS, YARD_RANGE_DEFAULT, yardRangeOf, YARD_DRAW_M } from '../net/yardRange.js';   // YARD-RANGE: how far a stranger's yard is drawn
 import { createDecorTool } from './decor/decorTool.js';
 import { decorYardPieceOf, DECOR_YARD_CAP, decorYardHighOk, DECOR_YARD_HIGH_WHY } from '../net/decorLaw.js';   // YARD-HEIGHT: how high a piece stands, and its words
@@ -729,6 +733,7 @@ export function createHomeYards(deps) {
     put: (p) => { cur?.yard.pool.put(p); keep(); },
     remove: (id) => { cur?.yard.pool.remove(id); keep(); },
     list: () => cur?.yard.pool.list() ?? [],
+    pieceOf: (id) => cur?.yard.pool.pieceOf(id) ?? null,
     size: () => cur?.yard.pool.size() ?? 0,
     holdsAny: () => false, ownOf: () => null, keepOwn() {}, takeOwn: () => null, ownIds: () => [],
   };
@@ -748,14 +753,20 @@ export function createHomeYards(deps) {
     move: (a) => deps.api.move(a),
     remove: (a) => deps.api.remove(a),
     hidden: async () => ({ ok: false, error: 'bad-decor' }),
+    // HOME-YARD: the street's Confirm is the room's draft, over the yard's pieces and the same revision
+    ...(typeof deps.api.list === 'function' && typeof deps.api.batch === 'function' ? {
+      list: (mapId, buildingKey) => deps.api.list(mapId, buildingKey, false, true),
+      batch: (a) => deps.api.batch({ ...a, yard: true }),
+    } : {}),
   } : null;
   const collider = {
     raycastHit: (o, d, m, f = null) => deps.collider?.()?.surfaceHit?.(o, d, m, f) ?? deps.collider?.()?.raycastHit?.(o, d, m, f) ?? null,
   };
+  const names = new Map();
   /** AUDIT GUILD-YARD: a hall's yard says the hall's words, never "your house". */
   const hallWords = (why) => (cur?.hall && why === YARD_IN_HOUSE ? YARD_IN_HALL : why);
   const tool = createDecorTool({
-    doc: deps.doc ?? null, win: deps.win ?? null, canvas: deps.canvas ?? null, touch: !!deps.touch, renderer: deps.renderer, pool, names: new Map(),
+    doc: deps.doc ?? null, win: deps.win ?? null, canvas: deps.canvas ?? null, touch: !!deps.touch, renderer: deps.renderer, pool, names,
     // GUILD-YARD: a hall's yard is `hall` - a piece's half goes to the guild's treasury, never the purse (decorTool.js)
     // DECOR-OUTDOOR: `natureBase` - its climate's nature set, the one its catalogue offers trees and plants of
     room: () => (cur ? { kind: 'home', yard: true, ...(cur.hall ? { hall: true } : {}), where: homeYardWhere(cur), mapId: cur.yard.mapId, buildingKey: cur.yard.bk, natureBase: entryOf(cur.yard)?.forest?.base ?? null } : null),
@@ -930,6 +941,28 @@ export function createHomeYards(deps) {
     cameraOverride: (c) => tool.cameraOverride(c),
     flying: () => tool.flying(),
     panelOpen: () => tool.panelOpen(),
+    /** The yard being decorated, while a piece is not in hand: the hover ray's boxes, keyed `decor:<id>`. */
+    targets() {
+      if (!tool.flying() || tool.ghost()) return [];
+      return cur?.yard.pool.targets() ?? [];
+    },
+    /** The plaque's rows on a yard piece: Move, Duplicate, Remove. */
+    hoverName(key) {
+      if (!tool.flying() || tool.ghost() || typeof key !== 'string' || !key.startsWith('decor:')) return null;
+      const piece = cur?.yard.pool.pieceOf(key.slice('decor:'.length)) ?? null;
+      if (!piece) return null;
+      const named = piece.model != null || piece.flat ? names.get(decorKey(piece)) : null;
+      return decorPlaque(null, { piece, mayEdit: true, name: piece.name || named || null });
+    },
+    /** The lit row on the piece under the crosshair. True when a yard piece took the ray, so the door behind it does not. */
+    press(eye, dir) {
+      if (!tool.flying() || tool.ghost()) return false;
+      const hit = pickActivatableHit(eye, dir, cur?.yard.pool.targets() ?? [], deps.collider?.() ?? null);
+      if (typeof hit?.key !== 'string' || !hit.key.startsWith('decor:')) return false;
+      const verb = plaqueActionFor(hit.key);
+      if (verb) tool.act(verb, hit.key.slice('decor:'.length));
+      return true;
+    },
     /** The yards standing (the pins' window). */
     yards: () => [...yards.values()],
     here: () => cur,

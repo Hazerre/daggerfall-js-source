@@ -131,7 +131,7 @@ test('HOME-TRANSFER refuses a buyer who cannot pay, a full character, a house th
   env.DB._raw.prepare('DELETE FROM homes WHERE building_key IN (?,?,?)').run(0x10204, 0x10205, 0x10206);
   const withGoods = await call('POST', '/v1/homes/transfer', { op: 'offer', ...HOME, character: A.id, to: 'Mara', price: 0, keepDecor: true, keepItems: true }, aldric);
   assert.equal(withGoods.status, 200, JSON.stringify(withGoods.body));
-  env.DB._raw.prepare('INSERT INTO decor_access (map_id, building_key, piece_id, kind, mode, friends) VALUES (?, ?, ?, ?, ?, ?)').run(HOME.mapId, HOME.buildingKey, 'p1', 'storage', 'chosen_friends', '["someone"]');
+  env.DB._raw.prepare('INSERT INTO decor_access (map_id, building_key, piece_id, kind, mode, friends) VALUES (?, ?, ?, ?, ?, ?)').run(HOME.mapId, HOME.buildingKey, 'p1', 'storage', 'friends', '["someone"]');
   env.DB._raw.prepare('INSERT INTO decor_rev (map_id, building_key, rev) VALUES (?, ?, 1) ON CONFLICT(map_id, building_key) DO UPDATE SET rev = rev + 1').run(HOME.mapId, HOME.buildingKey);
   const stale = await call('POST', '/v1/homes/transfer', { op: 'accept', id: withGoods.body.id, character: M.id, realm: realmAt(env, M.id) }, mara);
   assert.equal(stale.body?.error, 'offer-stale');

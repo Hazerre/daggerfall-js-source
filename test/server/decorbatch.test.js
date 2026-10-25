@@ -173,3 +173,52 @@ test('DECOR-BATCH the room\'s bounds: the final count is what the cap sees, a bo
   assert.equal(other.status, 400, 'another route stays inside 4 KiB');
   assert.deepEqual(decorHeldBlocks({ sceneCache: { scenes: [{ decorItems: { a: [{ n: 1 }], b: [] } }] } }, ['a', 'b']), ['a']);
 });
+
+test('DECOR-BATCH a yard Confirm reads the yard, and the room list stays the room', async () => {
+  const { env, call, registered } = await stand();
+  const aldric = await registered('Aldric');
+  const A = await seatRealm(env, aldric, 'Aldric', RICH('Aldric'));
+  assert.equal((await call('POST', '/v1/homes/claim', home({ character: A.id, realm: A.at() }), aldric)).status, 200);
+  const at = () => ({ ...HOME, character: A.id, realm: realmAt(env, A.id) });
+  const stood = await call('POST', '/v1/homes/decor/place', { ...at(), piece: piece({ id: 'yard1' }), yard: true }, aldric);
+  assert.equal(stood.status, 200, JSON.stringify(stood.body));
+  assert.deepEqual(ids((await call('POST', '/v1/homes/decor', HOME, aldric)).body), []);
+  const yard = await call('POST', '/v1/homes/decor', { ...HOME, yard: true }, aldric);
+  assert.deepEqual(ids(yard.body), ['yard1']);
+  const moved = await call('POST', '/v1/homes/decor/batch', { ...at(), yard: true, rev: yard.body.rev, txn: txn(9), put: [piece({ id: 'yard1', pos: [3, 0, 3] })], drop: [] }, aldric);
+  assert.equal(moved.status, 200, JSON.stringify(moved.body));
+  const after = await call('POST', '/v1/homes/decor', { ...HOME, yard: true }, aldric);
+  assert.equal(after.body.pieces[0].pos[0], 3);
+  assert.deepEqual(ids((await call('POST', '/v1/homes/decor', HOME, aldric)).body), []);
+});
+
+test('DECOR-BATCH a guild hall Confirm charges the keeper and pays the treasury, and does not net them', async () => {
+  const { env, call, registered } = await stand();
+  const aldric = await registered('Aldric');
+  const A = await seatRealm(env, aldric, 'Aldric', RICH('Aldric'));
+  assert.equal((await call('POST', '/v1/homes/claim', home({ character: A.id, realm: A.at() }), aldric)).status, 200);
+  const owner = env.DB._raw.prepare('SELECT player FROM homes WHERE map_id = ?').get(HOME.mapId).player;
+  env.DB._raw.prepare(`INSERT INTO guilds (id, name, name_key, tag, ranks, treasury, founded_at) VALUES ('g1', 'The Hall', 'the hall', 'HALL', '[]', 0, 1)`).run();
+  env.DB._raw.prepare('INSERT INTO guild_members (player, char_id, guild_id, rank, name, joined_at) VALUES (?, ?, \'g1\', 0, \'Aldric\', 1)').run(owner, A.id);
+  env.DB._raw.prepare('UPDATE homes SET guild_id = \'g1\' WHERE map_id = ?').run(HOME.mapId);
+  const at = () => ({ ...HOME, character: A.id, realm: realmAt(env, A.id) });
+  const before = recordOf(env, A.id).goldPieces;
+  const own = await call('POST', '/v1/homes/decor/batch', { ...at(), rev: 0, txn: txn(1), put: [piece({ paid: 0, item: { t: 1, g: 8 } })], drop: [] }, aldric);
+  assert.equal(own.body.error, 'hall-item');
+  const placed = await call('POST', '/v1/homes/decor/batch', { ...at(), rev: 0, txn: txn(2), put: [piece(), piece({ id: 'p2', pos: [2, 0, 2] })], drop: [] }, aldric);
+  assert.equal(placed.status, 200, JSON.stringify(placed.body));
+  assert.equal(placed.body.gold, -360);
+  assert.equal(recordOf(env, A.id).goldPieces, before - 360);
+  assert.equal(env.DB._raw.prepare(`SELECT treasury FROM guilds WHERE id = 'g1'`).get().treasury, 0);
+  const mixed = await call('POST', '/v1/homes/decor/batch', { ...at(), rev: 1, txn: txn(3), put: [piece({ id: 'p3', pos: [4, 0, 4] })], drop: ['p2'] }, aldric);
+  assert.equal(mixed.status, 200, JSON.stringify(mixed.body));
+  assert.equal(mixed.body.gold, -180, 'the new piece is paid in full');
+  assert.equal(mixed.body.treasury, 90, 'the removal is the guild\'s');
+  assert.equal(recordOf(env, A.id).goldPieces, before - 540);
+  assert.equal(env.DB._raw.prepare(`SELECT treasury FROM guilds WHERE id = 'g1'`).get().treasury, 90);
+  const yard = await call('POST', '/v1/homes/decor/batch', { ...at(), yard: true, rev: mixed.body.rev, txn: txn(4), put: [piece({ id: 'yard1', pos: [1, 0, 1] })], drop: [] }, aldric);
+  assert.equal(yard.status, 200, JSON.stringify(yard.body));
+  assert.equal(yard.body.gold, -180);
+  assert.deepEqual(ids((await call('POST', '/v1/homes/decor', { ...HOME, yard: true }, aldric)).body), ['yard1']);
+  assert.deepEqual(ids((await call('POST', '/v1/homes/decor', HOME, aldric)).body), ['p1', 'p3']);
+});

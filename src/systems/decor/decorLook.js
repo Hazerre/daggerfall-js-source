@@ -6,6 +6,27 @@
 
 const NONE = Object.freeze({ move: false, duplicate: false, remove: false, out: false });
 
+/** Who may use a chest or a station, in the door's order: a press moves it on. */
+export const DECOR_USE_MODES = Object.freeze(['private', 'friends', 'party', 'guild']);
+/** The row's word, the door's shape: "Who may use: Me". */
+export const DECOR_USE_WORDS = Object.freeze({ private: 'Me', friends: 'Friends', party: 'Party', guild: 'Guild' });
+export const decorUseLabel = (mode) => `Who may use: ${DECOR_USE_WORDS[mode] ?? DECOR_USE_WORDS.private}`;
+export const decorUseNext = (mode) => DECOR_USE_MODES[(Math.max(0, DECOR_USE_MODES.indexOf(mode)) + 1) % DECOR_USE_MODES.length];
+/** A hall chest is the guild's. A press moves the lowest rank that may open it, and every higher rank may too. */
+export const HALL_USE_RANKS = Object.freeze([3, 2, 1, 0]);
+export const HALL_USE_WORDS = Object.freeze({ 3: 'Everyone', 2: 'Members', 1: 'Officers', 0: 'Guildmaster' });
+export const decorHallRankNext = (rank) => HALL_USE_RANKS[(Math.max(0, HALL_USE_RANKS.indexOf(rank)) + 1) % HALL_USE_RANKS.length];
+export const decorHallUseLabel = (rank) => `Who may use: ${HALL_USE_WORDS[rank] ?? HALL_USE_WORDS[3]}`;
+/** The handles a press on Friends or Party sends. Party leaves the owner out. */
+export function decorUseCircle(social) {
+  const friends = [];
+  const party = [];
+  if (social?.friends?.values) for (const r of social.friends.values()) if (typeof r?.name === 'string' && r.name) friends.push(r.name);
+  const mine = social?.name;
+  for (const m of social?.party?.members ?? []) if (typeof m?.name === 'string' && m.name && m.name !== mine) party.push(m.name);
+  return { friends, party };
+}
+
 /** `decor` a placed piece, `container` or `station` one that does that, `door` a placed door, `roomdoor` one of
  *  the building's own swing doors, `base` the building's own furniture, `structural` an exit, a chained door or a ladder. */
 export function decorAimKind(key, piece) {
@@ -36,12 +57,12 @@ export function decorLookOffers(aim) {
   if (kind === 'base') return { move: false, duplicate: false, remove: false, out: true };
   if (!aim.piece) return { ...NONE };
   if (kind !== 'decor' && kind !== 'container' && kind !== 'station' && kind !== 'door') return { ...NONE };
-  const row = { move: true, duplicate: !aim.piece.item, remove: !aim.holds, out: false };
+  const row = { move: true, duplicate: !aim.piece.item, remove: !aim.holds, out: false, rename: true };
   if (kind === 'container' || kind === 'station') row.access = true;
   return row;
 }
 
-const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', out: 'Take out', access: 'Access' };
+const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', rename: 'Rename', out: 'Take out' };
 
 /**
  * The hover plaque's title and its wheel list, for one aim while decorating. No list, the name the room already
@@ -55,7 +76,8 @@ export function decorPlaque(named, aim) {
   if (offers.move) actions.push({ id: 'move', label: PLAQUE_LABEL.move });
   if (offers.duplicate) actions.push({ id: 'duplicate', label: PLAQUE_LABEL.duplicate });
   if (offers.remove) actions.push({ id: 'remove', label: PLAQUE_LABEL.remove });
-  if (offers.access) actions.push({ id: 'access', label: PLAQUE_LABEL.access });
+  if (offers.rename) actions.push({ id: 'rename', label: PLAQUE_LABEL.rename });
+  if (offers.access) actions.push({ id: 'access', label: aim.use || decorUseLabel('private') });
   if (offers.out) actions.push(aim?.holds
     ? { id: 'out', label: PLAQUE_LABEL.out, disabled: true, why: 'it holds something' }
     : { id: 'out', label: PLAQUE_LABEL.out });

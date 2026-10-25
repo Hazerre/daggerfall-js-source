@@ -166,7 +166,7 @@ async function hallPieceBack(ctx, player, guildId, { delta, write, after, refusa
 /** GUILD-YARD: WHAT A HALL'S RULE BARS of a placement - a keeper's own thing anywhere, and a yard's piece at a palace
  *  alone (a guild's hall stands its yard); 1 barred, 0 not. */
 const hallBars = (piece, S, out) => (piece.item || (out && S.seat) ? 1 : 0);
-const placeJson = ({ pos, rot, scale, light, storage, paid, station }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}) });   // HOME-STATIONS: the craft, when it serves one
+const placeJson = ({ pos, rot, scale, light, storage, paid, station, name }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) });   // HOME-STATIONS: the craft, when it serves one
 
 /** A stored row as a piece - projected again on the way out, so a row the law would refuse is never handed out.
  *  DECOR2a: `item` (migration 0012) is the owner's own item's descriptor, or NULL. */
@@ -230,8 +230,16 @@ async function shopOf(db, mapId, pieces) {
  * trips in a row - three waits in the primary's queue for a read every visitor at a door makes (HOMES-SHED's law for
  * homes/town, Scale-Arc). A shunned home's traders, its shop, go as one more (they had been a trip apiece).
  */
-export async function decorOf({ db }, player, { mapId, buildingKey, seat = false } = {}) {
+export async function decorOf({ db }, player, { mapId, buildingKey, seat = false, yard = false } = {}) {
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey)) return { error: 'bad-home' };
+  // HOME-YARD: the street's Confirm reads the yard's pieces and the home's revision. The room's list stays the room's.
+  if (yard === true) {
+    const yardRead = db.prepare(`SELECT * FROM home_decor WHERE map_id = ? AND building_key = ? AND yard = 1
+      ORDER BY placed_at, id LIMIT ?`).bind(mapId, buildingKey, DECOR_YARD_CAP);
+    const yardRev = db.prepare('SELECT rev FROM decor_rev WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey);
+    const [{ results = [] }, revRow] = await db.batch([yardRead, yardRev]);
+    return { mapId, buildingKey, pieces: results.map(pieceOfRow).filter(Boolean), hidden: [], rev: Number(revRow?.results?.[0]?.rev) || 0 };
+  }
   const S = storeOf(seat);   // SEAT-HALL: a palace's Charter Room, its own table - nothing taken out of a palace
   const piecesRead = db.prepare(`SELECT * FROM ${S.table} WHERE map_id = ? AND building_key = ? AND yard = 0
     ORDER BY placed_at, id LIMIT ?`).bind(mapId, buildingKey, S.seat ? S.cap : DECOR_HALL_CAP);   // HOME-YARD: the room's alone. A house never passes DECOR_CAP; a guild hall may hold DECOR_HALL_CAP. The Charter Room keeps its own cap.

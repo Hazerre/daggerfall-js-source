@@ -384,7 +384,7 @@ import {
 } from '../systems/homeRent.js';
 // DECOR1c: the pieces a room's owner placed (their law, and the pool that stands them in the room)
 import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
-import { noteDecorGrants, decorMayStorage, decorMayStation, bindDecorHouseFrom, openSharedChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
+import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
 import { openHomeTransfer, answerHomeTransfer } from '../systems/online/homeTransfer.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
 import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, focusStoresStation } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
@@ -1857,6 +1857,7 @@ export function createWorldModes(host) {
     actionOf: (e) => actionOf(e, keys),
     locked: () => typeof document !== 'undefined' && document.pointerLockElement === canvas, cursorOff: () => (setCursorActive(false), requestLook(canvas)),
     wallet: () => decorWallet(), homeDecor: decorDoor(), character: () => host.decorCharacter?.() ?? null,
+    social: () => host.social?.() ?? null,   // DECOR-ACCESS: Friends and Party, the lists the row sends
     charterClear: (pt) => charterClear(pt),   // SEAT-HALL: two metres from the court
     realm: () => host.realmAct ?? null,   // REALM P2.2b: a realm character's piece and its gold, one write on the service
     // DECOR2a: the player's own things - what is carried, one of it out, one back
@@ -3493,10 +3494,10 @@ export function createWorldModes(host) {
         return decorPlaque(indoorDecorHover(piece, {
           itemTitle: piece?.item ? ((kept ? itemLongName(kept) : null) || decorItemName(piece.item)) : null,
           boardTitle: piece && isHallBoard(piece) && hallMemberHere() ? HALL_BOARD_TITLE : null,
-          catalogueName: piece ? (decorNames.get(decorKey(piece)) ?? null) : null,
+          catalogueName: piece ? (piece.name || (decorNames.get(decorKey(piece)) ?? null)) : null,
           containerName: piece?.model != null ? houseContainerName(piece.model) : null,
           stationName: piece?.station ? (DECOR_STATION_NAMES[piece.station] ?? null) : null,
-        }), decorTool.flying() && !decorTool.ghost() ? { piece, holds: !!interiorDecor.holdsAny?.(piece.id), mayEdit: true, name: piece ? (decorNames.get(decorKey(piece)) ?? null) : null } : null);
+        }), decorTool.flying() && !decorTool.ghost() ? { piece, holds: !!interiorDecor.holdsAny?.(piece.id), mayEdit: true, name: piece ? (piece.name || (decorNames.get(decorKey(piece)) ?? null)) : null, use: piece ? decorTool.useLabel(piece.id) : null } : null);
       }
       // .cs:304-312 - a LIVE entity is `Entity.Name`, and only when
       // its motor says it is not hostile.
@@ -3510,7 +3511,7 @@ export function createWorldModes(host) {
         const o = interiorCtx.actions.objects.get(key) ?? null;
         if (!o) return null;
         const placed = key.startsWith('act:decor:') ? interiorDecor.pieceOf(key.slice(10)) : null;
-        return decorPlaque(actionObjectName(o, { hideInteract: hide }), decorTool.flying() && !decorTool.ghost() ? (o.roomDoor ? { piece: o, mayEdit: true, name: 'Door' } : (placed ? { piece: placed, holds: !!interiorDecor.holdsAny?.(placed.id), mayEdit: true, name: decorNames.get(decorKey(placed)) ?? 'Door' } : null)) : null);   // .cs:400-471 then .cs:641-650 - SENSE1: the mod's order, and a special door is no DaggerfallActionDoor. Decorating adds Remove on a swing door, and the full list on a placed one.
+        return decorPlaque(actionObjectName(o, { hideInteract: hide }), decorTool.flying() && !decorTool.ghost() ? (o.roomDoor ? { piece: o, mayEdit: true, name: 'Door' } : (placed ? { piece: placed, holds: !!interiorDecor.holdsAny?.(placed.id), mayEdit: true, name: placed.name || (decorNames.get(decorKey(placed)) ?? 'Door'), use: decorTool.useLabel(placed.id) } : null)) : null);   // .cs:400-471 then .cs:641-650 - SENSE1: the mod's order, and a special door is no DaggerfallActionDoor. Decorating adds Remove on a swing door, and the full list on a placed one.
       }
       // .cs:325-393, through the port's own StaticNPC.DisplayName -
       // the same member the Info click speaks through, so the plaque
@@ -5059,9 +5060,9 @@ export function createWorldModes(host) {
     if (piece?.storage && caravanGuestHere()) { say(homeBelongsLine({ owner: privateVisitOwner })); return; }   // WAGONS2-VISIT: a caravan's storage is its owner's, as a home's cupboards are - shut to its visitor, in its owner's name
     if (isHallBoard(piece)) { openHallBoard(); return; }   // GUILD1e: the board in a guild's hall
     if (!piece?.storage) return;
-    if ((interiorHome?.hall && interiorHome.member) || interiorSeatHall?.member) { openHallChest(); return; } else if (interiorSeatHall && !interiorHome) { say(CROWN_HALL_TEXT.chestShut(interiorSeatHall.name)); return; }   // AUDIT SEATS-2 C6: a visitor told whose it is   // GUILD1d: the guild's chest, as its cupboards; SEAT-HALL: a palace's too
-    if (!decorOwnerHere()) {
-      if (decorMayStorage(piece.id)) { openSharedChest(piece.id); return; }
+    if ((interiorHome?.hall && interiorHome.member) || interiorSeatHall?.member) { (interiorHome?.hall ? openSharedChest(piece.id) : openHallChest()); return; } else if (interiorSeatHall && !interiorHome) { say(CROWN_HALL_TEXT.chestShut(interiorSeatHall.name)); return; }   // AUDIT SEATS-2 C6: a visitor told whose it is   // GUILD1d: a placed chest is that piece's bin; the cupboards stay the Stores. SEAT-HALL: a palace's too
+    if (decorIsShared(piece.id) || !decorOwnerHere()) {
+      if (decorIsShared(piece.id) || decorMayStorage(piece.id)) { openSharedChest(piece.id); return; }
       if (interiorHome) say(homeBelongsLine(interiorHome));
       return;
     }
@@ -5084,7 +5085,7 @@ export function createWorldModes(host) {
    *  maker's spellbook, what each charges). No guild is asked: the licence was paid when the piece was made a station. */
   function useDecorStation(piece) {
     if (!stationOwnerHere() && !decorMayStation(piece.id)) {
-      if (!hallMemberHere()) {   // GUILD1d: a hall's stations are its members'
+      if (!hallMemberHere() || decorStationShut(piece.id)) {   // GUILD1d: a hall's stations are its members', narrowed when its Access says so
         if (interiorHome) say(homeBelongsLine(interiorHome));
         if (!caravanGuestHere()) return;   // WAGONS2-VISIT: a caravan's stations serve its visitor
       }
@@ -5487,7 +5488,7 @@ export function createWorldModes(host) {
         if (!shown) { interiorCtx?.base?.setHidden([]); return; }   // HOME-VOTE: the room as Daggerfall furnished it
         interiorCtx?.base?.setHidden(Array.isArray(r.data.hidden) ? r.data.hidden : []);   // BASE-HIDE: the room its owner cleared, for everyone
         noteDecorGrants(host.homeDecor, Number(homeTownOf(b)) >>> 0, b.buildingKey, host.decorCharacter?.() ?? null);   // DECOR-ACCESS
-        bindDecorHouseFrom(host, playerEntity, say, accountRefusalText, Number(homeTownOf(b)) >>> 0, b.buildingKey);
+        bindDecorHouseFrom(host, playerEntity, say, accountRefusalText, Number(homeTownOf(b)) >>> 0, b.buildingKey, (loot) => (interiorOverlay = openDecorChest(interiorInventory, loot) ?? interiorOverlay));
       },
     });
   }
@@ -7998,7 +7999,7 @@ export function createWorldModes(host) {
           // room to rent - asks which room, and for how long, before Daggerfall's lock ladder
           if (home && !home.own && !isBash && !homeAsked && getInteractionMode() !== 'steal'
             && (verb === HOME_VERB.rent || (verb == null && door === 'locked' && home.rent))) { openHomeRent(bd, home).catch((e) => console.error(e)); return true; }
-          if (home?.offer && !isBash && !homeAsked && (verb === HOME_VERB.take || verb === HOME_VERB.refuse)) { answerHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, home, verb === HOME_VERB.take, host, (t) => townTalk?.say?.(t), accountRefusalText); return true; }
+          if (home?.offer && !isBash && !homeAsked && (verb === HOME_VERB.take || verb === HOME_VERB.refuse)) { answerHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, home, verb === HOME_VERB.take, host, (t) => townTalk?.say?.(t), accountRefusalText, (w) => townTalk?.showOverlay?.(w)); return true; }
           // HOME-VOTE: a vote row pressed - the vote its row says, on the home as it stands now (AUDIT B5: one gone since is
           // said so, never handed to Daggerfall's lock ladder); and an Info press on a home I may vote on asks - only where
           // the plaque lists no rows (AUDIT B1: a touch screen, World Tooltips off; a drawn plaque's plain click goes in)
@@ -8014,7 +8015,7 @@ export function createWorldModes(host) {
             if (verb === HOME_VERB.buy && price) { pressHomeBuy(bd, price); return true; }
             if (verb === HOME_VERB.entry && door === 'own') { turnHomeEntry(bd, home); return true; }
             if (verb === HOME_VERB.sell && door === 'own') { openHomeSale(bd); return true; }
-            if (verb === HOME_VERB.give && door === 'own') { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving); return true; }
+            if (verb === HOME_VERB.give && door === 'own') { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)); return true; }
             if (verb === HALL_VERB.buy && price) { pressHallBuy(bd, price); return true; }   // GUILD1d: the house bought as the guild's hall
             if (verb === HALL_VERB.entry && hallEntryTurnable(home)) { turnHallEntry(bd, home); return true; }   // GUILD1d: who may walk into the hall; AUDIT PROF-541 G2: as the service lets set it (R2-H1: the row's own gate)
           }
@@ -8370,6 +8371,7 @@ export function createWorldModes(host) {
         { code: 'KeyG', label: 'G - go in', action: homeOnward(hit, entries) },
         { code: 'KeyW', label: 'W - who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
         { code: 'KeyS', label: 'S - sell it', action: () => openHomeSale(bd) },
+        { code: 'KeyT', label: 'T - transfer it', action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     }));

@@ -2,7 +2,7 @@
 // Take out alone. A cancelled action writes nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decorAimKind, decorLookOffers, decorPlaque } from '../../../src/systems/decor/decorLook.js';
+import { decorAimKind, decorLookOffers, decorPlaque, decorUseLabel, decorUseNext, decorUseCircle, decorHallRankNext, decorHallUseLabel } from '../../../src/systems/decor/decorLook.js';
 import { decorListKey, primeDecorList, primedDecorList } from '../../../src/scenes/decor/decorRoom.js';
 import { toolRig, placeFrom, all, settle, text, one } from '../../decorFakes.mjs';
 import { loadDecorHotbar, saveDecorHotbar } from '../../../src/systems/decor/decorHotbar.js';
@@ -21,7 +21,7 @@ test('the look tells a placed piece from the building\'s own furniture, a cupboa
   assert.equal(decorAimKind('intdoor:2'), 'roomdoor');
   assert.deepEqual(decorLookOffers({ key: 'intdoor:2', kind: 'roomdoor', mayEdit: true }), { move: false, duplicate: false, remove: true, out: false });
   assert.equal(decorLookOffers({ key: 'intdoor:2', kind: 'roomdoor', mayEdit: false }).remove, false);
-  assert.deepEqual(decorLookOffers({ piece, kind: 'decor', holds: false, mayEdit: true }), { move: true, duplicate: true, remove: true, out: false });
+  assert.deepEqual(decorLookOffers({ piece, kind: 'decor', holds: false, mayEdit: true }), { move: true, duplicate: true, remove: true, out: false, rename: true });
   assert.equal(decorLookOffers({ piece, kind: 'container', holds: true, mayEdit: true }).remove, false);
   assert.equal(decorLookOffers({ piece: { ...piece, item: { id: 1 } }, kind: 'decor', mayEdit: true }).duplicate, false);
   assert.deepEqual(decorLookOffers({ piece, kind: 'base', mayEdit: true }), { move: false, duplicate: false, remove: false, out: true });
@@ -29,7 +29,13 @@ test('the look tells a placed piece from the building\'s own furniture, a cupboa
   assert.deepEqual(decorLookOffers({ key: 'exit:0', mayEdit: true }), { move: false, duplicate: false, remove: false, out: false });
   assert.equal(decorLookOffers({ piece, kind: 'decor', mayEdit: false }).move, false);
   assert.equal(decorLookOffers({ piece, kind: 'station', holds: false, mayEdit: true }).move, true);
-  assert.deepEqual(decorPlaque(null, { piece, mayEdit: true, name: 'Chair' }).actions.map((a) => a.id), ['move', 'duplicate', 'remove']);
+  assert.equal(decorPlaque(null, { piece: { ...piece, station: 'alchemy' }, mayEdit: true, name: 'Bed' }).actions.at(-1).label, 'Who may use: Me');
+  assert.equal(decorPlaque(null, { piece: { ...piece, station: 'alchemy' }, mayEdit: true, name: 'Bed', use: decorUseLabel('guild') }).actions.at(-1).label, 'Who may use: Guild');
+  assert.deepEqual(['private', 'friends', 'party', 'guild'].map((m, i, a) => decorUseNext(a[i])), ['friends', 'party', 'guild', 'private']);
+  assert.deepEqual([3, 2, 1, 0].map((rank) => decorHallRankNext(rank)), [2, 1, 0, 3]);
+  assert.equal(decorHallUseLabel(1), 'Who may use: Officers');
+  assert.deepEqual(decorUseCircle({ name: 'Aldric', friends: new Map([['m', { name: 'Mara' }]]), party: { members: [{ name: 'Aldric' }, { name: 'Sven' }] } }), { friends: ['Mara'], party: ['Sven'] });
+  assert.deepEqual(decorPlaque(null, { piece, mayEdit: true, name: 'Chair' }).actions.map((a) => a.id), ['move', 'duplicate', 'remove', 'rename']);
   assert.deepEqual(decorPlaque(null, { key: 'm1:41000', kind: 'base', mayEdit: true, name: 'Stool' }).actions.map((a) => a.label), ['Take out']);
   assert.equal(decorPlaque({ title: 'Chest' }, null).title, 'Chest');
   assert.equal(decorPlaque(null, null), null);
@@ -105,8 +111,13 @@ test('decorating starts as a flight, the catalogue opens from the bar and closin
   const catalog = all(bar, 'dfdecor-chip').find((c) => c.textContent === 'Catalogue');
   assert.equal(catalog.hidden, false);
   assert.equal(all(bar, 'dfdecor-btn').find((b) => b.textContent === 'Place').hidden, true);
-  const pressed = rig.win.fire('keydown', { code: 'KeyE' });
+  const pressed = rig.win.fire('keydown', { code: 'Tab' });
   assert.equal(pressed.stopped, true);
+  assert.equal(rig.tool.panelOpen(), true);
+  rig.win.fire('keydown', { code: 'Tab' });
+  assert.equal(rig.tool.panelOpen(), false);
+  assert.equal(rig.tool.flying(), true);
+  rig.win.fire('keydown', { code: 'Tab' });
   assert.equal(rig.tool.panelOpen(), true);
   const atClose = rig.cursorOffs();
   rig.win.fire('keydown', { code: 'Escape' });
@@ -213,7 +224,7 @@ test('the hotbar keeps ten catalogue ids on this device', () => {
   assert.deepEqual(loadDecorHotbar(storage).slice(0, 3), ['m41000', null, 'f210.3']);
 });
 
-test('the hotbar keeps a catalogue piece, the wheel moves along it, and leaving a placement from it stays in the flight', async () => {
+test('the hotbar keeps a catalogue piece, the wheel does not move along it, and leaving a placement from it stays in the flight', async () => {
   const rig = toolRig({ gold: 5000, keys: [['Digit1', 'QuickUse1']] });
   rig.frame();
   rig.doc.body.children.find((c) => String(c.className).startsWith('dfdecor-open')).fire('click');
@@ -224,7 +235,8 @@ test('the hotbar keeps a catalogue piece, the wheel moves along it, and leaving 
   assert.equal(barRoot().dataset.up, '1');
   assert.equal(all(hot()[0], 'hb-icon').length, 1);
   rig.win.fire('wheel', { deltaY: 100 });
-  assert.equal(String(hot()[1].className).includes('hb-active'), true);
+  assert.equal(String(hot()[0].className).includes('hb-active'), true);
+  assert.equal(String(hot()[1].className).includes('hb-active'), false);
   assert.equal(rig.tool.ghost(), null);
   all(rig.doc.body.children.find((c) => String(c.className).startsWith('dfdecor-bar')), 'dfdecor-chip').find((c) => c.textContent === 'Catalogue').fire('click');
   for (let i = 0; i < 6; i++) { rig.frame({ overlayUp: true }); await settle(); }

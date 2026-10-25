@@ -315,7 +315,26 @@ export function resolveHover(hit, { name = null, contents = null } = {}) {
   // (ui/worldPlaque.js), as the name over their head does, and the signature below sees it
   const renowned = (f) => { if (Number.isSafeInteger(named.renown) && named.renown > 0) f.renown = named.renown; return f; };
   if (acts.length) {
-    const f = frame(key, 'actions', named.title, named.subs ?? [], acts.map((a) => ({
+    const subs = [...(named.subs ?? [])];
+    // Decorating keeps the verb wheel. A chest's goods ride under the title, so a hall still shows what it holds.
+    if (typeof key === 'string' && (key.startsWith('decor:') || key.startsWith('container:'))) {
+      const held = contents?.(key);
+      if (Array.isArray(held)) {
+        if (!held.length) subs.push('Empty');
+        else {
+          let n = 0;
+          for (const it of held) {
+            if (n === 6) { subs.push('...'); break; }
+            const label = typeof it === 'string' ? it : (it?.shortName || it?.name);
+            if (!label) continue;
+            const count = it?.stackCount;
+            subs.push(count > 1 ? `${label} x${count}` : String(label));
+            n += 1;
+          }
+        }
+      }
+    }
+    const f = frame(key, 'actions', named.title, subs, acts.map((a) => ({
       // PROF-MENU: a refusal whose label already says it ('Red Rose - gathered today') carries an EMPTY reason - no
       // "(not now)" after it; an absent one still says that
       name: a.disabled ? (a.why === '' ? a.label : `${a.label} (${a.why || 'not now'})`) : a.label, id: a.id, disabled: !!a.disabled, stack: 0, rarity: null, item: null,

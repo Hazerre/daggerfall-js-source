@@ -1,11 +1,13 @@
 // @ts-check
 // DECOR-BATCH: one Confirm writes a home's final differences, all of them or none.
-// A guild hall and a palace keep the one-piece writes (decor.js). A personal home does not.
-import { accountKind } from './accounts.js';
+// A guild hall does too: the keeper pays for what is placed, and what comes back goes to the guild's treasury.
+// A palace keeps the one-piece writes (seat-batch).
+import { accountKind, displayName } from './accounts.js';
+import { GUILD_TREASURY_MAX } from '../../src/net/guild/guildLaw.js';
 import { CHAR_ID_RE } from './service.js';
 import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import {
-  DECOR_BATCH_OPS, DECOR_CAP, DECOR_ID_RE, DECOR_OPS_MAX, DECOR_OPS_WINDOW_S, DECOR_TXN_RE, DECOR_YARD_CAP,
+  DECOR_BATCH_OPS, DECOR_CAP, DECOR_HALL_CAP, DECOR_ID_RE, DECOR_OPS_MAX, DECOR_OPS_WINDOW_S, DECOR_TXN_RE, DECOR_YARD_CAP,
   decorGoldMove, decorPieceOf, decorScaleOk, decorYardHighOk, decorYardPieceOf,
 } from '../../src/net/decorLaw.js';
 import { OWNS, provenOf, vendorStocked } from './decor.js';
@@ -14,7 +16,7 @@ import {
 } from './realm.js';
 import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
 
-const placeJson = ({ pos, rot, scale, light, storage, paid, station }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}) });
+const placeJson = ({ pos, rot, scale, light, storage, paid, station, name }) => JSON.stringify({ pos, rot, scale, light, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) });
 
 /** Ids in `save` whose storage still holds something. The record is the authority, not the client's word. */
 export function decorHeldBlocks(save, ids) {
@@ -93,7 +95,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
 
   const home = await db.prepare('SELECT guild_id, region FROM homes WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first();
   if (!home) return { error: 'no-home' };
-  if (home.guild_id != null) return { error: 'hall-batch' };
+  const hall = home.guild_id != null;
 
   if (body.realm != null) {
     const first = await realmActFirst(db, player.id, character, body.realm);
@@ -118,6 +120,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
     if (!p) return { error: 'bad-decor' };
     puts.push(p);
   }
+  if (hall) for (const p of puts) if (p.item) return { error: 'hall-item' };
 
   const out = yard ? 1 : 0;
   const { results = [] } = await db.prepare('SELECT * FROM home_decor WHERE map_id = ? AND building_key = ? AND yard = ?')
@@ -133,16 +136,19 @@ export async function commitDecorBatch(ctx, player, body = {}) {
   if (!puts.length && !drops.length) return { ok: true, rev: curRev, gold: 0 };
   if (await chargeOps(db, nowS, player.id, puts.length + drops.length)) return { error: 'decor-rate' };
 
-  let delta = 0;
+  let net = 0;
+  let pay = 0;
+  let refund = 0;
+  const addGold = (d) => { net += d; if (d > 0) refund += d; else if (d < 0) pay -= d; };
   const next = new Map(have);
   for (const id of drops) {
     const had = have.get(id);
     if (!had) return { error: 'no-decor' };
     if (had.piece.station === 'vendor' && await vendorStocked(db, mapId, id)) return { error: 'vendor-stocked' };
-    delta += decorGoldMove(had.piece, null, had.row.paid).delta;
+    addGold(decorGoldMove(had.piece, null, had.row.paid).delta);
     next.delete(id);
   }
-  const cap = yard ? DECOR_YARD_CAP : DECOR_CAP;
+  const cap = yard ? DECOR_YARD_CAP : (hall ? DECOR_HALL_CAP : DECOR_CAP);
   /** @type {{ p: any, had: any }[]} */
   const writes = [];
   for (const p of puts) {
@@ -153,11 +159,16 @@ export async function commitDecorBatch(ctx, player, body = {}) {
       /* emptying the flag does not empty the chest; the drop path is the one that can lose goods */
     }
     const move = decorGoldMove(had?.piece ?? null, p, had ? had.row.paid : 0);
-    delta += move.delta;
+    addGold(move.delta);
     writes.push({ p: { ...p, paid: had ? move.ledger : (move.ledger || p.paid) }, had, ledger: move.ledger });
     next.set(p.id, { piece: p });
   }
   if (next.size > cap) return { error: yard ? 'yard-cap' : 'decor-cap' };
+  const delta = hall ? -pay : net;
+  if (hall && refund > 0) {
+    const g = await db.prepare('SELECT treasury FROM guilds WHERE id = ?').bind(home.guild_id).first();
+    if (!g || g.treasury + refund > GUILD_TREASURY_MAX) return { error: g ? 'guild-treasury-full' : 'no-home' };
+  }
 
   if (drops.length) {
     const marks = drops.map(() => '?').join(', ');
@@ -194,7 +205,7 @@ export async function commitDecorBatch(ctx, player, body = {}) {
     if (prep.error) return prep;
   } else if (delta !== 0) return { error: 'realm-needed' };
 
-  const answer = { ok: true, rev: curRev + 1, gold: delta, ...(prep ? { realm: { seq: prep.seq } } : {}) };
+  const answer = { ok: true, rev: curRev + 1, gold: delta, ...(hall && refund > 0 ? { treasury: refund } : {}), ...(prep ? { realm: { seq: prep.seq } } : {}) };
   const steps = [];
   if (prep) steps.push(...prep.steps);
   const ownsTail = [mapId, buildingKey, player.id, character];
@@ -217,6 +228,11 @@ export async function commitDecorBatch(ctx, player, body = {}) {
         .bind(mapId, buildingKey, w.p.id, w.p.model, w.p.flat?.[0] ?? null, w.p.flat?.[1] ?? null, placeJson(w.p), nowS,
           w.p.item ? JSON.stringify(w.p.item) : null, w.ledger, out, ...ownsTail, mapId, buildingKey, out, cap, ...(pv ? [pv, player.id] : [])));
     }
+    steps.push(mustChange(db));
+  }
+  if (hall && refund > 0) {
+    steps.push(db.prepare(`UPDATE guilds SET treasury = treasury + ?1, realm_gold = realm_gold + ?1, moved_by = ?2, moved_at = ?3, moved_kind = 'hall-piece'
+      WHERE id = ?4 AND treasury + ?1 <= ?5`).bind(refund, displayName(player), nowS, home.guild_id, GUILD_TREASURY_MAX));
     steps.push(mustChange(db));
   }
   steps.push(db.prepare('INSERT INTO decor_rev (map_id, building_key, rev) VALUES (?, ?, 0) ON CONFLICT(map_id, building_key) DO NOTHING').bind(mapId, buildingKey));

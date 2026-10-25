@@ -13,6 +13,7 @@ const shapeOf = (p) => JSON.stringify({
   storage: !!p?.storage,
   paid: p?.paid ?? 0,
   station: p?.station ?? null,
+  name: p?.name ?? null,
 });
 
 /** A Confirm's id: long enough for decorLaw's DECOR_TXN_RE, and a new one after each kept Confirm. */
@@ -37,17 +38,35 @@ export function decorDelta(before, after) {
   return { put, drop };
 }
 
-/** What the record gains for the whole session (negative: the purse pays), off the same law as one piece. */
-export function decorDraftGold(before, after) {
+/** What the session costs, split. `delta` is the purse's net (negative: it pays). `pay` is what is spent.
+ *  `back` is what comes back. A hall spends `pay` from the keeper and gives `back` to the guild, and does not net them. */
+export function decorDraftParts(before, after) {
   const was = new Map((before ?? []).filter((p) => p?.id).map((p) => [p.id, p]));
   const now = new Map((after ?? []).filter((p) => p?.id).map((p) => [p.id, p]));
   let delta = 0;
-  for (const [id, p] of was) if (!now.has(id)) delta += decorGoldMove(p, null, p.paid).delta;
+  let pay = 0;
+  let back = 0;
+  const add = (d) => { delta += d; if (d > 0) back += d; else if (d < 0) pay -= d; };
+  for (const [id, p] of was) if (!now.has(id)) add(decorGoldMove(p, null, p.paid).delta);
   for (const [id, p] of now) {
     const old = was.get(id) ?? null;
-    if (!old || shapeOf(old) !== shapeOf(p)) delta += decorGoldMove(old, p, old?.paid ?? 0).delta;
+    if (!old || shapeOf(old) !== shapeOf(p)) add(decorGoldMove(old, p, old?.paid ?? 0).delta);
   }
-  return delta;
+  return { delta, pay, back };
+}
+
+/** What the record gains for the whole session (negative: the purse pays), off the same law as one piece. */
+export function decorDraftGold(before, after) {
+  return decorDraftParts(before, after).delta;
+}
+
+/** The bar's line in a guild hall: the keeper pays the cost, and what comes back is the guild's. */
+export function decorHallDraftText(parts) {
+  const pay = parts?.pay ?? 0;
+  const back = parts?.back ?? 0;
+  if (pay && back) return `${pay.toLocaleString('en-US')} gold to confirm, ${back.toLocaleString('en-US')} to the guild`;
+  if (back) return `${back.toLocaleString('en-US')} gold to the guild`;
+  return decorDraftText(-pay);
 }
 
 /** The bar's line for that gold, before Confirm. */

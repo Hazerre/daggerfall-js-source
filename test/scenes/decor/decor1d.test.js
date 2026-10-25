@@ -133,7 +133,7 @@ test('DECOR1d the panel: it opens over the room as the host slot\'s window (it p
   assert.equal(root.dataset.state, 'open');
   assert.equal(rows(root).length, entries.length, 'every piece listed');
   const firstRow = rows(root)[0];
-  assert.match(text(firstRow), /gold$/);
+  assert.match(text(firstRow), /gold/);
   // filters
   chipNamed(root, 'Lights').fire('click');
   assert.deepEqual(rows(root).map((r) => r.dataset.key), ['f210.3'], 'a kind');
@@ -199,7 +199,7 @@ test('DECOR1d the panel reads the scan as it goes: "reading" while the blocks ar
   panel.update(view({ ready: false, progress: 0.9 }));
   assert.equal(rows(panel.root).length, entries.length, 'the list the moment the blocks are read');
   const r0 = rows(panel.root).find((r) => r.dataset.key === entries[0].key);
-  assert.match(text(r0), /\.\.\.$/, 'no size yet: no price yet');
+  assert.match(text(r0), /\.\.\./, 'no size yet: no price yet');
   r0.fire('click');
   assert.equal(all(panel.root, 'dfdecor-btn').find((b) => b.textContent === 'Place').disabled, true);
   assert.match(one(panel.root, 'dfdecor-pick-why').textContent, /still being read/);

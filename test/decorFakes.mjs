@@ -83,7 +83,7 @@ export function fakeWin() {
 export const all = (n, cls, out = []) => { if (String(n.className).split(/\s+/).includes(cls)) out.push(n); for (const c of n.children ?? []) all(c, cls, out); return out; };
 export const one = (n, cls) => all(n, cls)[0];
 export const text = (n) => (n.textContent || '') + (n.children ?? []).map(text).join('');
-export const chipNamed = (root, label) => all(root, 'dfdecor-chip').find((c) => c.textContent === label);
+export const chipNamed = (root, label) => all(root, 'dfdecor-chip').find((c) => c.textContent === label || c.getAttribute?.('aria-label') === label);
 
 /** A small catalogue: two beds (models - rrRealism.js BED_MODELS), a chest (storage), a candle (a light flat), a book (a flat). */
 export function catalogue() {

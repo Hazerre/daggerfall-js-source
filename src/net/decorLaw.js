@@ -244,6 +244,17 @@ export const DECOR_STATION_NAMES = Object.freeze({ alchemy: 'Alchemy station', s
  * HOME-STATIONS: `station` the craft it serves (DECOR_STATIONS), carried only when it serves one - a piece holds
  * things or serves a craft, never both (one press, one thing it does).
  */
+/** A placed piece's own name. Empty clears it. Longer than this, or with a control character, is no name. */
+export const DECOR_NAME_MAX = 32;
+export function decorNameOf(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw !== 'string') return false;
+  const name = raw.replace(/\s+/g, ' ').trim();
+  if (!name) return null;
+  if (name.length > DECOR_NAME_MAX || /[\u0000-\u001f\u007f<>]/.test(name)) return false;
+  return name;
+}
+
 export function decorPlaceOf(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const { pos, rot, scale, light = null, storage = false, paid, station = null } = raw;
@@ -254,7 +265,9 @@ export function decorPlaceOf(raw) {
   if (!Number.isSafeInteger(paid) || paid < 0 || paid > DECOR_PRICE_MAX) return null;
   const lit = light === null ? null : decorLightOf(light);
   if (light !== null && !lit) return null;
-  return { pos: pos.map((v) => round(v, 3)), rot: rot.map((v) => round(v, 1)), scale: round(scale, 3), light: lit, storage, paid, ...(station ? { station } : {}) };
+  const name = decorNameOf(raw.name);
+  if (name === false) return null;
+  return { pos: pos.map((v) => round(v, 3)), rot: rot.map((v) => round(v, 1)), scale: round(scale, 3), light: lit, storage, paid, ...(station ? { station } : {}), ...(name ? { name } : {}) };
 }
 
 /** A WHOLE piece - its id, what it is, where it stands - projected, or null. DECOR2a: the owner's own item costs

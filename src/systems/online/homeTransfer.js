@@ -1,96 +1,138 @@
 // A house offered at its own door. The service keeps the gold, the goods and the owner.
+// The questions are the game's own windows. A form on the page sits under the canvas and cannot be used.
 
-function field(doc, label, kind) {
-  const row = doc.createElement('label');
-  row.textContent = label;
-  const input = doc.createElement('input');
-  input.type = kind;
-  row.append(input);
-  return { row, input };
-}
+import { ChoiceWindow } from '../../ui/talkWindow.js';
+import { InputMessageBoxWindow } from '../../ui/inputMessageBox.js';
 
-function ask(doc, title, build, onYes) {
-  const root = doc.createElement('div');
-  root.className = 'dfhome-transfer';
-  const box = doc.createElement('form');
-  const head = doc.createElement('p');
-  head.textContent = title;
-  box.append(head);
-  const bits = build(box);
-  const yes = doc.createElement('button');
-  yes.type = 'submit';
-  yes.textContent = 'Confirm';
-  const no = doc.createElement('button');
-  no.type = 'button';
-  no.textContent = 'Cancel';
-  box.append(yes, no);
-  root.append(box);
-  const close = () => root.remove();
-  no.addEventListener('click', close);
-  box.addEventListener('submit', (e) => {
-    e.preventDefault();
-    close();
-    onYes(bits);
-  });
-  (doc.body ?? doc.documentElement).append(root);
-}
+const NAME_RE = /^[A-Za-z0-9]{3,16}$/;
+const PRICE_MAX = 100_000_000;
 
-async function send(host, body) {
-  const homes = host.onlineHomes;
-  if (!homes?.transfer) return { ok: false, error: 'server' };
-  const act = host.realmAct;
-  if (!act || body.op !== 'accept') return homes.transfer(body);
-  return act({ needsAnswer: true, call: (at) => homes.transfer({ ...body, realm: at }) });
-}
-
-/** The owner's door: who receives the house, for how much, and whether its furnishings and goods go with it. */
-export function openHomeTransfer(mapId, buildingKey, host, say, refusal, giving = null) {
-  const doc = typeof document !== 'undefined' ? document : null;
-  if (!doc || !host?.onlineHomes) return false;
+/**
+ * The owner's door: who receives the house, for how much, and whether its furnishings and goods go with it.
+ * `giving` is an offer already out (its id). `show` is the town's overlay slot.
+ * @param {number} mapId
+ * @param {number} buildingKey
+ * @param {{ onlineHomes?: { transfer?: Function }, realmAct?: Function }} host
+ * @param {(text: string) => void} say
+ * @param {(code: string) => string} refusal
+ * @param {string | null} [giving]
+ * @param {(win: object) => void} [show]
+ */
+export function openHomeTransfer(mapId, buildingKey, host, say, refusal, giving = null, show = null) {
+  const tell = typeof say === 'function' ? say : () => {};
+  const word = typeof refusal === 'function' ? refusal : (c) => String(c ?? '');
+  const mount = typeof show === 'function' ? show : () => {};
+  if (!host?.onlineHomes?.transfer) { tell('You are not signed in.'); return false; }
   if (giving) {
-    ask(doc, 'An offer is already out.', () => ({}), async () => {
-      const r = await send(host, { op: 'cancel', id: giving, mapId, buildingKey });
-      say?.(r?.ok ? 'The offer is withdrawn.' : (refusal?.(r?.error) ?? 'It could not be withdrawn.'));
-    });
+    mount(new ChoiceWindow({
+      lines: ['An offer for this house is already out.'],
+      options: [
+        { code: 'KeyW', label: 'W - withdraw the offer', action: () => { void send(host, { op: 'cancel', id: giving, mapId, buildingKey }, tell, word); } },
+        { code: 'Escape', label: 'Esc - leave it', action: () => {} },
+      ],
+    }));
     return true;
   }
-  ask(doc, 'Transfer ownership', (box) => {
-    const name = field(doc, 'Account', 'text');
-    const price = field(doc, 'Price', 'number');
-    price.input.value = '0';
-    price.input.min = '0';
-    const decor = field(doc, 'Keep decorations', 'checkbox');
-    decor.input.checked = true;
-    const goods = field(doc, 'Transfer all contents', 'checkbox');
-    decor.input.addEventListener('change', () => { if (!decor.input.checked) goods.input.checked = false; });
-    goods.input.addEventListener('change', () => { if (goods.input.checked) decor.input.checked = true; });
-    box.append(name.row, price.row, decor.row, goods.row);
-    return { name, price, decor, goods };
-  }, async (bits) => {
-    const keepDecor = bits.decor.input.checked;
-    const keepItems = bits.goods.input.checked && keepDecor;
-    const r = await send(host, {
-      op: 'offer', mapId, buildingKey, to: bits.name.input.value.trim(),
-      price: Number(bits.price.input.value), keepDecor, keepItems,
-      character: host.decorCharacter?.() ?? null,
-    });
-    say?.(r?.ok ? 'The offer is out.' : (refusal?.(r?.error) ?? 'It could not be offered.'));
-  });
+  askName(mapId, buildingKey, host, tell, word, mount);
   return true;
 }
 
 /** The account named on the offer: accept it, or decline it. */
-export function answerHomeTransfer(mapId, buildingKey, home, accept, host, say, refusal) {
+export function answerHomeTransfer(mapId, buildingKey, home, accept, host, say, refusal, show = null) {
   const offer = home?.offer;
-  if (!offer) return false;
-  const word = accept
-    ? (offer.price > 0 ? `Take this house for ${offer.price} gold?` : 'Take this house?')
-    : 'Decline this house?';
-  const doc = typeof document !== 'undefined' ? document : null;
-  if (!doc) return false;
-  ask(doc, word, () => ({}), async () => {
-    const r = await send(host, { op: accept ? 'accept' : 'decline', id: offer.id, mapId, buildingKey, character: host.decorCharacter?.() ?? null });
-    say?.(r?.ok ? (accept ? 'The house is yours.' : 'The offer is declined.') : (refusal?.(r?.error) ?? 'It could not be answered.'));
-  });
+  if (!offer?.id) return false;
+  const tell = typeof say === 'function' ? say : () => {};
+  const word = typeof refusal === 'function' ? refusal : (c) => String(c ?? '');
+  const mount = typeof show === 'function' ? show : () => {};
+  const price = Math.max(0, Math.floor(Number(offer.price) || 0));
+  const kept = `${offer.keepDecor ? 'The furnishings stay.' : 'The furnishings do not stay.'}${offer.keepItems ? ' The goods stay.' : ''}`;
+  const line = accept ? (price > 0 ? `Take this house for ${price} gold? ${kept}` : `Take this house? ${kept}`) : 'Decline this house?';
+  const op = accept ? 'accept' : 'decline';
+  mount(new ChoiceWindow({
+    lines: [line],
+    options: [
+      { code: 'KeyY', label: accept ? 'Y - accept' : 'Y - decline', action: () => { void send(host, { op, id: offer.id, mapId, buildingKey }, tell, word); } },
+      { code: 'Escape', label: 'Esc - not now', action: () => {} },
+    ],
+  }));
   return true;
+}
+
+function askName(mapId, buildingKey, host, tell, word, mount) {
+  mount(new InputMessageBoxWindow({
+    lines: ['Transfer this house'],
+    label: 'To account: ',
+    maxCharacters: 16,
+    onSubmit: (raw) => {
+      const to = String(raw ?? '').trim();
+      if (!NAME_RE.test(to)) { tell('That is not an account name.'); askName(mapId, buildingKey, host, tell, word, mount); return; }
+      askPrice(mapId, buildingKey, host, tell, word, mount, to);
+    },
+  }));
+}
+
+function askPrice(mapId, buildingKey, host, tell, word, mount, to) {
+  mount(new InputMessageBoxWindow({
+    lines: [`Offer the house to ${to}.`],
+    label: 'Price in gold (0 is a gift): ',
+    numeric: true,
+    maxCharacters: 9,
+    onSubmit: (raw) => {
+      const price = Math.max(0, Math.min(PRICE_MAX, Math.floor(Number(raw) || 0)));
+      askKeep(mapId, buildingKey, host, tell, word, mount, to, price);
+    },
+  }));
+}
+
+function askKeep(mapId, buildingKey, host, tell, word, mount, to, price) {
+  mount(new ChoiceWindow({
+    lines: ['Leave the furnishings with the house?'],
+    options: [
+      { code: 'KeyY', label: 'Y - leave them', action: () => askGoods(mapId, buildingKey, host, tell, word, mount, to, price) },
+      { code: 'KeyN', label: 'N - take them back', action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, false, false) },
+      { code: 'Escape', label: 'Esc - cancel', action: () => {} },
+    ],
+  }));
+}
+
+function askGoods(mapId, buildingKey, host, tell, word, mount, to, price) {
+  mount(new ChoiceWindow({
+    lines: ['Leave the goods in its chests and stalls?'],
+    options: [
+      { code: 'KeyY', label: 'Y - leave the goods', action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, true) },
+      { code: 'KeyN', label: 'N - keep the goods', action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, false) },
+      { code: 'Escape', label: 'Esc - cancel', action: () => {} },
+    ],
+  }));
+}
+
+function confirm(mapId, buildingKey, host, tell, word, mount, to, price, keepDecor, keepItems) {
+  const kept = `${keepDecor ? 'furnishings stay' : 'furnishings return'}${keepItems ? ', goods stay' : ''}`;
+  mount(new ChoiceWindow({
+    lines: [`Offer this house to ${to} for ${price} gold. ${kept}.`],
+    options: [
+      { code: 'KeyY', label: 'Y - offer it', action: () => { void send(host, { op: 'offer', mapId, buildingKey, to, price, keepDecor, keepItems }, tell, word); } },
+      { code: 'Escape', label: 'Esc - cancel', action: () => {} },
+    ],
+  }));
+}
+
+async function send(host, body, tell, word) {
+  const homes = host.onlineHomes;
+  const act = host.realmAct;
+  let r;
+  try {
+    r = !act || body.op !== 'accept'
+      ? await homes.transfer(body)
+      : await act({ needsAnswer: true, call: (at) => homes.transfer({ ...body, realm: at }) });
+  } catch {
+    tell('The offer could not be sent.');
+    return { ok: false, error: 'server' };
+  }
+  if (!r?.ok) tell(word(r?.error ?? 'server'));
+  else if (body.op === 'offer') tell('The offer is out. It stands for three days.');
+  else if (body.op === 'accept') tell('The house is yours.');
+  else if (body.op === 'decline') tell('The offer is declined.');
+  else if (body.op === 'cancel') tell('The offer is withdrawn.');
+  return r;
 }

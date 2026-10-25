@@ -105,6 +105,10 @@ test('DECOR1 the law: a piece is WHAT it is (one model, or one flat\'s archive a
   assert.deepEqual(pl, { pos: [1.235, -0, 256], rot: [180, -90, 0], scale: 1.235, light: null, storage: true, paid: 55 });
   assert.deepEqual(decorPlaceOf({ pos: [0, 0, 0], rot: [0, 0, 0], scale: 1, paid: 0 }), { pos: [0, 0, 0], rot: [0, 0, 0], scale: 1, light: null, storage: false, paid: 0 }, 'no light, holds nothing, by default');
   const good = { pos: [0, 0, 0], rot: [0, 0, 0], scale: 1, light: null, storage: false, paid: 20 };
+  assert.equal(decorPlaceOf({ ...good, name: '  The red chest  ' }).name, 'The red chest');
+  assert.equal('name' in decorPlaceOf(good), false, 'a piece with no name of its own reads as it always did');
+  assert.equal(decorPlaceOf({ ...good, name: 'x'.repeat(33) }), null);
+  assert.equal(decorPieceOf({ ...piece(), name: 'Сундук' }).name, 'Сундук');
   for (const [k, v] of [['pos', [0, 0, DECOR_POS_MAX + 0.1]], ['pos', [0, 0]], ['pos', [0, NaN, 0]], ['rot', [181, 0, 0]], ['scale', DECOR_SCALE_MIN - 0.01], ['scale', DECOR_SCALE_MAX + 0.01], ['storage', 1], ['paid', DECOR_PRICE_MAX + 1], ['paid', -1], ['paid', 2.5], ['light', { color: [1, 1, 1], range: 0.5, intensity: 1 }], ['light', 'bright']]) {
     assert.equal(decorPlaceOf({ ...good, [k]: v }), null, `${k} ${JSON.stringify(v)}`);
   }
