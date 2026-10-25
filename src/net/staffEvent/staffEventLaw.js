@@ -103,18 +103,31 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
  * @param {any} e @returns {StaffEvent|null}
  */
 export function validStaffEvent(e) {
-  if (!e || typeof e !== 'object' || Array.isArray(e)) return null;
-  if (typeof e.id !== 'string' || !STAFF_EVENT_ID_RE.test(e.id)) return null;
-  if (!intIn(e.rg, 0, 255) || !intIn(e.loc, -1, 9999) || !intIn(e.px, 0, 999) || !intIn(e.py, 0, 499)) return null;
-  if (!Array.isArray(e.mt) || !e.mt.length || e.mt.length > STAFF_EVENT_KINDS_MAX || !e.mt.every(staffEventKindOk)) return null;
+  if (staffEventFault(e)) return null;
   const mt = [...new Set(/** @type {number[]} */ (e.mt))];
-  if (!intIn(e.n, STAFF_EVENT_TOTAL_MIN, STAFF_EVENT_TOTAL_MAX) || !intIn(e.m, STAFF_EVENT_METER_MIN, Math.min(STAFF_EVENT_METER_MAX, e.n))) return null;
-  if (!staffEventKindOk(e.b) || !intIn(e.bs, STAFF_BOSS_SIZE_MIN, STAFF_BOSS_SIZE_MAX)) return null;
-  if (!intIn(e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, STAFF_BOSS_HEALTH_MIN, STAFF_BOSS_HEALTH_MAX) || !intIn(e.hp ?? 0, 0, STAFF_BOSS_HP_MAX)) return null;
-  if (!Number.isSafeInteger(e.at) || e.at <= 0) return null;
-  if (!(e.ue === 0 || (Number.isSafeInteger(e.ue) && e.ue > e.at && e.ue - e.at <= STAFF_EVENT_LONGEST_MS))) return null;
-  if (!intIn(e.fb ?? 0, 0, 99)) return null;
   return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, hp: e.hp ?? 0, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX) };
+}
+/**
+ * EVENT-FAULT (mob 2026-10-25: "service refused", "toop of event menu says the refusal"): the first field validStaffEvent
+ * refuses, by name - the panel says which - or null for an event it takes.
+ * @param {any} e @returns {string|null}
+ */
+export function staffEventFault(e) {
+  if (!e || typeof e !== 'object' || Array.isArray(e)) return 'event';
+  if (typeof e.id !== 'string' || !STAFF_EVENT_ID_RE.test(e.id)) return 'id';
+  if (!intIn(e.rg, 0, 255)) return 'region';
+  if (!intIn(e.loc, -1, 9999)) return 'place';
+  if (!intIn(e.px, 0, 999) || !intIn(e.py, 0, 499)) return 'pixel';
+  if (!Array.isArray(e.mt) || !e.mt.length || e.mt.length > STAFF_EVENT_KINDS_MAX || !e.mt.every(staffEventKindOk)) return 'monsters';
+  if (!intIn(e.n, STAFF_EVENT_TOTAL_MIN, STAFF_EVENT_TOTAL_MAX)) return 'total';
+  if (!intIn(e.m, STAFF_EVENT_METER_MIN, Math.min(STAFF_EVENT_METER_MAX, e.n))) return 'meter';
+  if (!staffEventKindOk(e.b)) return 'boss';
+  if (!intIn(e.bs, STAFF_BOSS_SIZE_MIN, STAFF_BOSS_SIZE_MAX)) return 'size';
+  if (!intIn(e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, STAFF_BOSS_HEALTH_MIN, STAFF_BOSS_HEALTH_MAX) || !intIn(e.hp ?? 0, 0, STAFF_BOSS_HP_MAX)) return 'health';
+  if (!Number.isSafeInteger(e.at) || e.at <= 0) return 'start';
+  if (!(e.ue === 0 || (Number.isSafeInteger(e.ue) && e.ue > e.at && e.ue - e.at <= STAFF_EVENT_LONGEST_MS))) return 'runs';
+  if (!intIn(e.fb ?? 0, 0, 99)) return 'calls';
+  return null;
 }
 /** Is the event over by its own clock at `nowMs`? @param {StaffEvent} e @param {number} nowMs */
 export const staffEventLapsed = (e, nowMs) => e.ue > 0 && nowMs >= e.ue;

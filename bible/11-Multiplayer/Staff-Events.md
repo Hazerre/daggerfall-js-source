@@ -25,7 +25,8 @@
 
 Up to four events run at once (`STAFF_EVENTS_MAX`). The page lists every event with its meter (kills / kills to the
 boss, kills / total), its boss's state (not yet, due, up, fallen), the players fighting, and **Spawn mini boss now** and
-**End**, and on an event that is over **Clear** (EVENT-CLEAR, 2026-10-25, mob: "let me clear other events as well form
+A staging the law refuses is answered with the field it is refused for (`event-bad-<field>`, EVENT-FAULT:
+`staffEventLaw.js` `staffEventFault`), and the panel says which. **End**, and on an event that is over **Clear** (EVENT-CLEAR, 2026-10-25, mob: "let me clear other events as well form
 history" - one row, or **Clear ended events** for every one over; a running one never; the hub is not asked; audited
 `event-clear`). The list is read again every 5 s while an event runs, and only a row whose words moved is drawn again,
 in place (Staff Panel 0.2.9; mob: "event windows refreshses alot"). Players never see the meter.
@@ -72,7 +73,9 @@ an area's while the player stands outdoors on its pixel (`townHere(true)`). Diff
   "and packs quickly to the 25 cap", then "make it take ... 20-45" seconds and "it can be pack of any of the selected
   monsterts"): 3-5 a pack, each one any of staff's kinds, its leader stood anywhere around the runner (any bearing, 20-60
   units off, in view too - nearer when no spot is that far), the rest within 6 of the leader 0.15 s apart, the packs
-  paced so the raid's cap of 25 stands 20-45 s in (the pace rolled once an event) - never more standing or killed than its total
+  paced so the raid's cap of 25 stands 20-45 s in (the pace rolled once an event); PACK-SPREAD (2026-10-25, mob: "evenly
+  swap them between all player in a city"): each pack is led from around the next player in the town in turn - the
+  runner, then each peer standing in its rect, by id (`raidingParties.js` `staffPackPlayer`, the host's `peerFeetInTown`) - never more standing or killed than its total
   (`staffRaidRoom`). A day's raid keeps the mod's one foe at a time just out of view;
 - no town guards come out to defend it;
 - the boss is stood when the cell calls it and none stands for that call (`staffBossWanted`), before any raider;

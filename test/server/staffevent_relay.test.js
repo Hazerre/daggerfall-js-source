@@ -235,8 +235,11 @@ test('STAFF-EVENT: THE ACCOUNT DOORS - Admins alone; a start stored, audited and
     assert.equal(JSON.parse(audit[0].detail).health, 25);
     // bad stagings refused before the relay is asked
     const before = s.door.pushed;
-    for (const bad of [{ ...STAGE, n: 0 }, { ...STAGE, m: 31 }, { ...STAGE, mt: [146] }, { ...STAGE, bh: 101 }, { ...STAGE, hp: 1_000_001 }, { ...STAGE, mins: 1441 }, { ...STAGE, mins: -1 }]) {
-      assert.deepEqual((await s.call('/v1/staff/event', { op: 'start', ev: bad }, s.mob.session)).body, { error: 'event-bad' });
+    // EVENT-FAULT (mob 2026-10-25: "service refused"): each refusal names its field
+    for (const [bad, field] of [[{ ...STAGE, n: 0 }, 'total'], [{ ...STAGE, m: 31 }, 'meter'], [{ ...STAGE, mt: [146] }, 'monsters'], [{ ...STAGE, bh: 101 }, 'health'], [{ ...STAGE, hp: 1_000_001 }, 'health'],
+      [{ ...STAGE, mins: 1441 }, 'runs'], [{ ...STAGE, mins: -1 }, 'runs'], [{ ...STAGE, b: 39 }, 'boss'], [{ ...STAGE, bs: 99 }, 'size'], [{ ...STAGE, px: 1000 }, 'pixel'], [{ ...STAGE, loc: 10000 }, 'place'], [{ ...STAGE, rg: 256 }, 'region']]) {
+      const r2 = await s.call('/v1/staff/event', { op: 'start', ev: bad }, s.mob.session);
+      assert.deepEqual([r2.status, r2.body], [400, { error: `event-bad-${field}` }], JSON.stringify(bad));
     }
     assert.equal(s.door.pushed, before);
     // Spawn mini boss now: one more call at the hub, which tells the place's cell (its ledger calls the boss)

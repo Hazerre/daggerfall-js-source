@@ -195,6 +195,30 @@ test('BOSS-LOST and BOSS-HP (mob 2026-10-25: "boss seems to not spawn every time
   assert.ok(!log.raiders.slice(-2).some((f) => isStaffBoss(f.entity) && !f.dead), 'fallen: no second boss');
 });
 
+test('PACK-SPREAD (mob 2026-10-25: "evenly swap them between all player in a city"): each pack led from around the next player in the town in turn - me, then each peer in its rect', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  const ana = [100, 0, 100], bo = [-80, 0, 40];
+  h.peerFeetInTown = () => [['zzz-0009', bo], ['aaa-0001', ana], ['mmm-0002', [9, 9, 9]], ['bad', null]];
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100 }] } }, 'social');
+  let secs = 0;
+  while (log.raiders.length < MAX_RAID_ENEMIES && secs < 200) { frame(0.05); await tick(); secs += 0.05; }
+  const leaders = log.raiders.filter((f) => !f.o?.at);
+  assert.ok(leaders.length >= 5);
+  assert.deepEqual(leaders.slice(0, 6).map((f) => f.o.near ?? 'me'), [ana, 'me', bo, ana, 'me', bo], 'by id in turn: aaa, mmm (me, my own feet), zzz; a peer with no feet left out');
+  assert.ok(leaders.every((f) => f.o.min === STAFF_PACK_FAR_MIN && f.o.max === STAFF_PACK_FAR_MAX));
+  // alone: every pack around me
+  _resetRaidingParties(); _resetStaffEvents();
+  const solo = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => solo.at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100 }] } }, 'social');
+  for (let i = 0; i < 200 && solo.log.raiders.length < 10; i++) { frame(0.05); await tick(); }
+  assert.ok(solo.log.raiders.every((f) => f.o?.at || f.o?.near == null), 'my own feet');
+  assert.ok(rd('src/scenes/world.js').includes('feet: at?.at ?? at?.near ?? enchantFeet()'), 'the host stands a leader around the player it was given');
+});
+
 test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of any of the kinds picked, each led from anywhere around me, its pack around its leader, to the 25 cap in 20-45 s', async () => {
   const { at, log, h } = rig();
   restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });

@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  validStaffEvent, validStaffEventIn, validStaffEventOut, validStaffEventTell, newStaffLedger, staffEventCap, staffBossCall,
+  validStaffEvent, staffEventFault, validStaffEventIn, validStaffEventOut, validStaffEventTell, newStaffLedger, staffEventCap, staffBossCall,
   foldStaffWord, staffEventDone, staffLedgerState, staffEventTell, staffEventKey, staffEventIdOf, staffEventLapsed, isAreaEvent,
   relaySupportsStaffEvents, staffEventKindOk, STAFF_EVENT_KILLS_BURST, STAFF_EVENT_KILL_MS, STAFF_BOSS_HEALTH_DEFAULT,
   STAFF_EVENT_ACCOUNTS_MAX, STAFF_EVENT_PRESENT_MS, STAFF_BOSS_HP_MAX,
@@ -26,7 +26,10 @@ test('STAFF-EVENT: an event is held to its bounds - kinds any monster but the tw
   for (const bad of [{ id: 'AB' }, { rg: 256 }, { loc: -2 }, { px: 1000 }, { py: 500 }, { mt: [] }, { mt: [39] }, { mt: [146] }, { mt: Array.from({ length: 13 }, (_, i) => i) },
     { n: 0 }, { n: 501 }, { m: 51 }, { m: 0 }, { b: 39 }, { bs: 149 }, { bs: 301 }, { bh: 0 }, { bh: 101 }, { bh: 2.5 }, { hp: -1 }, { hp: STAFF_BOSS_HP_MAX + 1 }, { hp: 1.5 }, { at: 0 }, { ue: EV.at }, { ue: EV.at + 24 * 3600_000 + 1 }, { fb: 100 }]) {
     assert.equal(validStaffEvent({ ...EV, ...bad }), null, JSON.stringify(bad));
+    assert.ok(staffEventFault({ ...EV, ...bad }), `EVENT-FAULT names it: ${JSON.stringify(bad)}`);
   }
+  assert.equal(staffEventFault(EV), null);
+  assert.deepEqual([{ m: 51 }, { mt: [39] }, { bh: 0 }, { ue: EV.at }].map((x) => staffEventFault({ ...EV, ...x })), ['meter', 'monsters', 'health', 'runs']);
   assert.deepEqual(validStaffEvent({ ...EV, mt: [7, 7, 12] }).mt, [7, 12], 'each kind once');
   assert.equal(validStaffEvent({ ...EV, nm: '<b>Dagger\u0000fall</b>' }).nm, 'bDaggerfall/b', 'a name with no markup or control');
   for (const k of [0, 42, 128, 145, 256, 290, 384, 398]) assert.ok(staffEventKindOk(k), `kind ${k}`);
