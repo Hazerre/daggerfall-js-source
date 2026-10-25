@@ -285,6 +285,15 @@ export const STAFF_BOSS_ARMOR = 10;
  *  a spell's damage a mini boss takes - every spell's, its rounds and a strike's too, and a whole-health one (a
  *  Disintegrate) is a tenth of its health, never a kill. */
 export const STAFF_BOSS_SPELL_TAKEN = 0.1;
+/** BOSS-HIT-SHARE (mob 2026-10-25: "needs to scal with players", "1% per heaslth with 40 player ins much", "magfic and
+ *  melee"): the most one hit takes off a mini boss is this share of its maximum, split among the players fighting it -
+ *  forty fighting, a four-hundredth each, so a crowd's every round of hits takes about 1% whatever its size. */
+export const STAFF_BOSS_HIT_SHARE = 0.01;
+/** The fighters the split counts at most (a town's whole crowd). */
+export const STAFF_BOSS_FIGHTERS_MAX = 100;
+/** One hit of `damage` on a mini boss of `maxHealth` with `fighters` on it, held to its share - at least 1. */
+export const staffBossHit = (damage, maxHealth, fighters) =>
+  Math.min(damage, Math.max(1, Math.round(((maxHealth > 0 ? maxHealth : 1) * STAFF_BOSS_HIT_SHARE) / Math.max(1, fighters))));
 /** Is this entity a staff event's mini boss? */
 export const isStaffBoss = (entity) => !!entity?.staffBoss;
 /**

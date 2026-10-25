@@ -155,8 +155,8 @@
   {
     "name": "MENUORDER-trade-figures-together",
     "file": "src/ui/enhanced/enhancedTrade.js",
-    "old": "figs.append(fig(TRADE_COST_WORD[mode] ?? TRADE_COST_WORD.Buy, tradeGoldText(c)), fig(t('trade.counter.gold', TRADE_GOLD_WORD), tradeGoldText(deps.gold?.() ?? 0)));",
-    "new": "figs.append(fig(TRADE_COST_WORD[mode] ?? TRADE_COST_WORD.Buy, `${tradeGoldText(c)} ${tradeGoldText(deps.gold?.() ?? 0)}`));",
+    "old": "figs.append(fig(TRADE_COST_WORD[mode] ?? TRADE_COST_WORD.Buy, tradeGoldText(lotPrice(lot))), fig(t('trade.counter.gold', TRADE_GOLD_WORD), tradeGoldText(deps.gold?.() ?? 0)));",
+    "new": "figs.append(fig(TRADE_COST_WORD[mode] ?? TRADE_COST_WORD.Buy, `${tradeGoldText(lotPrice(lot))} ${tradeGoldText(deps.gold?.() ?? 0)}`));",
     "tests": [
       "test/ui/menuorder.test.js"
     ]

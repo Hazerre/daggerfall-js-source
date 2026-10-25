@@ -161,6 +161,14 @@ owner's, a lasting spell's rounds, a weapon's strike spell - at least 1; a whole
 tenth of its health and never kills it. Cut once, where its health is (`scenes/exteriorFoes.js` `damageFoe`): a puppet
 sends its owner the spell whole. A departure: DFU has no such foe.
 
+BOSS-HIT-SHARE (2026-10-25, mob: "needs to scal with players", "1% per heaslth with 40 player ins much", "magfic and
+melee", "just make this the stock option so it always is challenging bosss"): one hit on a mini boss - a blade's, a
+spell's after its cut, a round's, a peer's or the owner's - takes at most `STAFF_BOSS_HIT_SHARE` (1%) of its maximum
+divided by the players fighting it (`systems/eliteFoes.js` `staffBossHit`; PSCALE1's 30-second window, counted to
+`STAFF_BOSS_FIGHTERS_MAX` 100, not the party's eight seats: `systems/party/partyScale.js` `foeFightersUpTo`), at least 1.
+Alone a hit takes up to 1%; forty fighting, 0.025% each - a round of everyone's hits about 1% whatever the crowd. Always
+on, every mini boss; no switch.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the

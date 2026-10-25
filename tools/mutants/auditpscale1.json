@@ -435,5 +435,41 @@
     "tests": [
       "test/systems/auditpscale1.test.js"
     ]
+  },
+  {
+    "name": "BOSS-HIT-SHARE-uncapped",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "      damage = staffBossHit(damage, f.entity.maxHealth, foeFightersUpTo(f, _now(), STAFF_BOSS_FIGHTERS_MAX));",
+    "new": "",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-HIT-SHARE-unsplit",
+    "file": "src/systems/eliteFoes.js",
+    "old": "* STAFF_BOSS_HIT_SHARE) / Math.max(1, fighters))));",
+    "new": "* STAFF_BOSS_HIT_SHARE))));",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-HIT-SHARE-party-seats",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "foeFightersUpTo(f, _now(), STAFF_BOSS_FIGHTERS_MAX)",
+    "new": "foeFighters(f, _now())",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-HIT-SHARE-striker-uncounted",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "      if (hitter != null) noteFighter(f, hitter, _now());",
+    "new": "",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
   }
 ]
