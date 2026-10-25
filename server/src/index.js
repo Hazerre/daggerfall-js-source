@@ -182,6 +182,9 @@ import { routeStaffTeleport } from './staffTeleport.js';
 import { followNoted, withoutRoom, followHello, followJoined, followLeft, followSayInternal } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the where note kept and read, and a player followed
 import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
+import { cellDoor, cellTreeInternal, nodeHeard, cellLevelOf, CELL_INTERNAL_TREE } from './cellNodes.js';   // COST-2: a cell's node, the directory, the node an object is told
+import { cellTakeInternal, CELL_INTERNAL_TAKE } from './cellHandover.js';   // COST-2: a node's rows handed over when the tree moves
+import { isCoarseNode } from '../../src/net/cellTree.js';   // COST-2: a coarse node is the Worker's name for an object, never a page's room
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
 import { hiddenMay, hiddenAsked, seatsTaken, hiddenSeats, hiddenHello, hiddenPose, hiddenLapse, hiddenEntered, isHidden } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff spectator, named by nobody
 import { takeStaffEventLaw, sayStaffBook, staffEventWord, staffBookInternal, staffTellInternal, staffCallInternal, SEV_INTERNAL_BOOK, SEV_INTERNAL_TELL, SEV_INTERNAL_CALL } from './staffEvents.js';   // STAFF-EVENT: a staff event's book (the hub) and meter (its place's cell)
@@ -692,6 +695,8 @@ export default {
     // KETCH: a crew's ship is `kt:<voyage>.<owner>` and stands only while its voyage holds its crews (net/ketch/ketchLaw.js) -
     // no object is minted for a voyage the clock has not brought, nor one gone west
     if (key.startsWith('kt:') && !ketchRoomHolds(key, Date.now())) return json({ error: 'the Ketch is gone' }, 404);
+    // COST-2: a coarse node is an object the Worker names for a page's cell (server/src/cellNodes.js) - no page asks for it
+    if (isCoarseNode(key)) return json({ error: 'no such room' }, 404);
     if (String(request.headers.get('Upgrade') ?? '').toLowerCase() !== 'websocket') return json({ error: 'websocket only' }, 426);
     // SD3: and it stands only while the hub's record holds its slot - found, or fallen and collapsing (the gate's law, read
     // from the hub, after the socket's own check so no other request asks it): no object is minted for a slot the hub
@@ -700,6 +705,7 @@ export default {
     // SCALE5d: A CROWDED PLACE OVERFLOWS INTO LAYERS (wire.js isLayered) - its own object first, or the layer the page
     // asks for (its party's, `?ly=`), and past a full one the next, round to LAYERS_MAX; each object told which layer
     // it is (LAYER_HEADER, set here whatever the page sent). A refusal for anything but a full room is answered as it was
+    if (isCellRoom(key)) return cellDoor(env, key, url, request);   // COST-2: A CELL IS ITS NODE'S OBJECT (net/cellTree.js) - the node the directory's tree names, walked through its layers as below; a halo of the page's own node answered CLOSE_SAME_ROOM
     if (isLayered(key)) return layerWalk(env.ROOMS, key, request, layerOf(url.searchParams.get('ly')));
     // SCALE5d part two: A GATE'S COURT OVERFLOWS INTO ITS COPIES (hubShards.js isCourtCopy) - the court itself first,
     // always (its fight is there), and past it full the copies, which hand the court their sockets' fight
@@ -1090,6 +1096,8 @@ export class Room {
     if (path === EG_INTERNAL_RCPT) return this._egRcInternal(request);   // EG-ZA: a breach's room telling the hub the receipts it minted
     if (path === HOLDEM_INTERNAL_VOID) return this._holdemVoidInternal(request);   // AUDIT SCALE II R3-3 (c): a layer's void, spent by its place
     if (path === SAFE_INTERNAL_LAW) return this._lawInternal(request);   // SAFE4: an order the account service pushed through the Worker's door
+    if (path === CELL_INTERNAL_TREE) return cellTreeInternal(this);   // COST-2: the Worker asking the directory for the cell tree
+    if (path === CELL_INTERNAL_TAKE) return cellTakeInternal(this, request);   // COST-2: a departing node handing this one its rows (cellHandover.js)
     if (path === FOLLOW_INTERNAL_SAY) return followSayInternal(this, request);   // STAFF-PANEL5-FOLLOW: a room telling the bus a followed account came or went
     const key = roomOf(new URL(request.url).pathname);
     if (!key || (key.startsWith('owned:') && !privateInteriorOf(key))) return json({ error: 'no such private room' }, 404);
@@ -1113,6 +1121,7 @@ export class Room {
     // included - and the look sits in storage under the id (its meters
     // are the instance's: AUDIT ATTACH)
     this.state.acceptWebSocket(server);
+    if (isCellRoom(key)) nodeHeard(this, request, key);   // COST-2: the node the Worker says this object is (cellNodes.js NODE_HEADER)
     const ly = isLayered(key) || isGateRoom(key) ? layerOf(request.headers.get(LAYER_HEADER)) : 0;   // SCALE5d part two: and a gate court's copy   // SCALE5d: the layer the Worker says this object is
     const att = { key, id: null, name: null, pose: null, at: Date.now(), ...(ly ? { ly } : {}) };   // AUDIT WB A1: when it opened
     if (hs) att.hs = 1;   // STAFF-PANEL5-HIDDEN: the seat is the hidden reserve's - its hello must be a hidden token's
@@ -3288,7 +3297,7 @@ export class Room {
   _metricsTick(force = false) {
     const n = this._idx?.size ?? 0;
     if (n > this._metrics.c.peak) this._metrics.c.peak = n;   // SCALE5b: the window's most, seen at every door that ticks (and every socket adopted)
-    try { this._metrics.flush(this.env?.METRICS, this._kind ?? 'none', this._idx?.size ?? 0, RELAY_VERSION, Date.now(), force); } catch { /* a metric never costs a frame */ }
+    try { this._metrics.flush(this.env?.METRICS, this._kind ?? 'none', this._idx?.size ?? 0, RELAY_VERSION, Date.now(), force, cellLevelOf(this)); } catch { /* a metric never costs a frame */ }   // COST-2: and the node level a cell is (blob11)
   }
 
   /**

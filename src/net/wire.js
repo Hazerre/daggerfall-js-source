@@ -324,6 +324,13 @@ export const poseTsDiff = (a, b) => { const d = ((((a - b) % POSE_TS_MOD) + POSE
 export const CLOSE_REPLACED = 4000;   // another socket said hello with this id and its secret
 export const CLOSE_POLICY = 1008;     // a frame the relay refused; it said why in an error frame first
 export const CLOSE_BUSY = 1013;       // the room is full or its hello gate is shut: try again later
+/** COST-2 (net/cellTree.js): A HALO IN MY OWN ROOM. The Worker maps a page's cell to the node that holds it, and a halo
+ *  whose node is the node of the room the page stands in (`?of=`, HALO_OF_PARAM) is that same object - its sockets are
+ *  already heard. The Worker answers such a halo with a socket closed with this code (a browser sees no HTTP status on a
+ *  refused upgrade), and the page asks that halo again only after HALO_WAIT_MS, counting no drop (online.js). */
+export const CLOSE_SAME_ROOM = 4002;
+/** COST-2: the query parameter a halo's socket names its page's own room with. */
+export const HALO_OF_PARAM = 'of';
 /** SCALE5a (2026-10-10, Mac: "we just hit 500 online people"): THE REASON A BUSY CLOSE GIVES WHEN THE HELLO'S TOKEN WAS
  *  NEVER READ. A room's hello gate is asked before the token (server/src/index.js - a refused hello costs no signature
  *  check), so the token such a hello carried is unspent in that room and may open it on the retry. The client counted

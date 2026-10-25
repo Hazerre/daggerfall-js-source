@@ -70,6 +70,8 @@ export class Bounded extends Map {
  *  | blob8      | held frames that left the hold unsent (stale, sender gone)   |
  *  | blob9      | the held frames' waits summed, ms (blob9 / blob7: the mean)  |
  *  | blob10     | beats: empty frames said for a held sender (FOES-HOLD)       |
+ *  | blob11     | a cell's node level (COST-2, net/cellTree.js: 0 a fine cell, |
+ *  |            | 1-4 a coarse node), '' for a room told no node              |
  *
  *  Per kind, sends a pose: SUM(double8) / SUM(double7); storage a hello: SUM(double10 + double11) / SUM(double3).
  *
@@ -92,13 +94,13 @@ export class RoomMetrics {
   /** Anything to say? */
   get busy() { const c = this.c; return c.hellos + c.busy + c.frames + c.sends + c.reads + c.writes + c.refusals + c.full > 0; }   // SCALE5b: a room that only refused a socket for being full has that to say
   /** The window's point to `sink` (env.METRICS) when it is over (or `force`d), and a new window. True when written. */
-  flush(sink, kind, sockets, version, now = Date.now(), force = false) {
+  flush(sink, kind, sockets, version, now = Date.now(), force = false, level = '') {
     if (!force && now - this.since < METRICS_WINDOW_MS) return false;
     const c = this.c, wrote = this.busy && !!sink && typeof sink.writeDataPoint === 'function';
     if (wrote) {
       try {
         sink.writeDataPoint({
-          indexes: [kind], blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls), String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats)],   // FOES-FIRST: blob3 to 5, counts - the doubles are all spoken for; FOES-HOLD: blob6 to 10
+          indexes: [kind], blobs: [kind, String(version), String(c.hitDrops), String(c.fullDrops), String(c.fulls), String(c.held), String(c.heldSent), String(c.heldGone), String(Math.round(c.heldMs)), String(c.beats), String(level)],   // FOES-FIRST: blob3 to 5, counts - the doubles are all spoken for; FOES-HOLD: blob6 to 10; COST-2: blob11 the node's level
           // SCALE5b (2026-10-10; bible/11-Multiplayer/Scale-Arc.md SCALE5b): WHAT SAYS A ROOM'S LIMIT IS NEAR, from double13 -
           // the sockets refused 'room full' (the Worker's door, which counted nothing - AUDIT SCALE II R1-5: a refusal the
           // walk could not get past, its last try's or a room's that does not layer, never a full layer it walked on from),
