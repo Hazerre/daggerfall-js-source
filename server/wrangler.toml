@@ -65,6 +65,16 @@ IDENTITY_MAX_TTL_S = "300"
 # repository holds only its hash. EMPTY IS A LEGAL STATE: the draws
 # alone are read, as the relay did before it held a table.
 RAID_TOWNS_SHA256 = ""
+# ═══ COST-1: THE REGIONS WHOSE CHANNEL STAYS SPLIT ═════════════════
+#
+# Region numbers separated by commas ("0,23"), or "all" - each named
+# region's channel is split in four shards as SCALE5c part two split it
+# (src/net/hubShards.js regionsSharded). EMPTY IS THE DEFAULT: every
+# region's channel is whole, so a quiet region sleeps (bible/
+# 11-Multiplayer/Scale-Arc.md COST-1). Name a region here only if its
+# reconnect wave through its one hello gate shows (the relay's metrics,
+# `chat` busy refusals) - a split region keeps up to five objects awake.
+REGION_SHARDS = ""
 # ═══ DISCORD-GATES: THE ROLE THE OMEN PINGS ════════════════════════
 #
 # The Discord id of the opt-in role the hub pings on each gate's omen
