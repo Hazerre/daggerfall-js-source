@@ -43,7 +43,13 @@ THE CALL:
   restored in the `finally`, as its level is).
 - **The base stamps its own cap.** A plain copy's build stamps FOE-CAP's `lootCap` on the entity, and a champion's chain
   stamps none, so the base would have carried the build's cap into its record - which the player's own bonus reads
-  (`rollRoomBonus`'s `lootCap`). `roomBodyBase` sets the build's cap aside for the roll and restores it after.
+  (`rollRoomBonus`'s `lootCap`). `roomBodyBase` sets the build's cap aside for the roll and restores it after. No death
+  handler caps a room body after its base: the kill's `raiseEnemyDeath` skips a room body (`if (!_roomBody)`), and an
+  execution's runs before the body is born, which is when its base first rolls.
+
+FLAGGED, not taken: the personal bonus (`roomBonusOf`) still hands `rollRoomBonus` the entity's own mark
+(`f.entity.champion`), so a level-2 player's bonus over a champion's base rolls on a plain foe's corpse source. It is
+the player's own layer, never said to the room, so no base splits.
 
 NOT EXPLAINED. "You will have to leave and come back": this cause holds at one level. Re-entry clears it only if the
 character has reached level 3 since, which a new character does quickly. Ruled out while looking for a cause re-entry
