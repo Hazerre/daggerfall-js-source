@@ -231,8 +231,8 @@
   {
     "name": "CRAFT4-law-reforge-legendary",
     "file": "src/net/temperLaw.js",
-    "old": "  (tier === 'magic' || tier === 'rare') && Number.isSafeInteger(count) && count >= 0 && count <= REFORGE_COUNT_MAX ? REFORGE_ESSENCE[tier] * 2 ** count : null);",
-    "new": "  (tier === 'magic' || tier === 'rare' || !!tier) && Number.isSafeInteger(count) && count >= 0 && count <= REFORGE_COUNT_MAX ? (REFORGE_ESSENCE[tier] ?? 5) * 2 ** count : null);",
+    "old": "  (tier === 'magic' || tier === 'rare') && Number.isSafeInteger(count) && count >= 0 && count <= REFORGES_MAX ? REFORGE_ESSENCE[tier] * 2 ** count : null);",
+    "new": "  (tier === 'magic' || tier === 'rare' || !!tier) && Number.isSafeInteger(count) && count >= 0 && count <= REFORGES_MAX ? (REFORGE_ESSENCE[tier] ?? 5) * 2 ** count : null);",
     "tests": [
       "test/net/craft4_temper.test.js"
     ],

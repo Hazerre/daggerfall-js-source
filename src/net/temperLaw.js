@@ -59,6 +59,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN } from './recipeLaw.js';
+import { REFORGES_MAX } from '../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the most reforges a piece counts - the ladder's one bound (the service loads the ladder already, through the item law)
 
 /** The highest quality a temper reaches: Superior (QUALITY_NAMES[3]). */
 export const TEMPER_TOP = 3;
@@ -130,12 +131,9 @@ export function temperStep(q) {
 export const REFORGE_RANK = 50;
 /** The Arcane Essence a piece's first Reforge takes, by the piece's tier (41.2: "2 (Magic) or 5 (Rare)"). */
 export const REFORGE_ESSENCE = Object.freeze({ magic: 2, rare: 5 });
-/** REFORGE-REPLACE: the most reforges a piece counts (systems/loot/lootRarity.js REFORGES_MAX, which this leaf may not
- *  import - the service loads it headless; pinned equal). */
-export const REFORGE_COUNT_MAX = 31;
 /** The Essence a piece's next Reforge takes, or null for a tier it does not take (Legendary and up - law 7) or a count
  *  that is no piece's. REFORGE-REPLACE (the owner: "Replace, price rises"): its tier's first price doubled for every
- *  reforge the piece has taken (`count`, lootRarity.js reforgeCount - none by default, a request from before the count),
+ *  reforge the piece has taken (`count`, lootRarity.js reforgeCount - none by default, a request from before the count; at most REFORGES_MAX),
  *  as the Mages Guild's doubles (systems/reforge.js reforgePrice). */
 export const reforgeEssence = (/** @type {string|null|undefined} */ tier, count = 0) => (
-  (tier === 'magic' || tier === 'rare') && Number.isSafeInteger(count) && count >= 0 && count <= REFORGE_COUNT_MAX ? REFORGE_ESSENCE[tier] * 2 ** count : null);
+  (tier === 'magic' || tier === 'rare') && Number.isSafeInteger(count) && count >= 0 && count <= REFORGES_MAX ? REFORGE_ESSENCE[tier] * 2 ** count : null);

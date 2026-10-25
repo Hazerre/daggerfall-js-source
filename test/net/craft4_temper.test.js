@@ -19,7 +19,7 @@ import { xpForRank, ARCANE_ESSENCE } from '../../src/net/professionLaw.js';
 import { recipeById, craftXp, QUALITY_EFFECTS, ARMOR_CHAIN, ARMOR_PLATE, ARMOR_LEATHER, pieceLines } from '../../src/net/recipeLaw.js';
 import {
   TEMPER_TOP, TEMPER_KINDS, temperableRecipe, pieceQuality, temperRecipeOf, temperCost, temperXp, temperFrom, temperRefusal, temperStep,
-  REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence, REFORGE_COUNT_MAX,
+  REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence,
 } from '../../src/net/temperLaw.js';
 import { mintProductRecord, readProductRecord } from '../../src/net/productRecord.js';
 import { mintPiece, asMinted, temperItem, reforgeItem, essenceReforgeRefusal } from '../../src/systems/smithItems.js';
@@ -188,11 +188,10 @@ test('CRAFT4 law: the recipe a piece is tempered by - its own where made; a foun
   assert.deepEqual([REFORGE_RANK, REFORGE_ESSENCE.magic, REFORGE_ESSENCE.rare], [50, 2, 5]);
   assert.deepEqual(['magic', 'rare', 'legendary', 'aetheric', 'artifact', 'common', undefined].map((tier) => reforgeEssence(tier)), [2, 5, null, null, null, null, null]);
   // REFORGE-REPLACE: doubled for every reforge the piece has taken, up to the count a piece may hold (lootRarity.js
-  // REFORGES_MAX, pinned equal); a count no piece holds is no price
+  // REFORGES_MAX, the one bound); a count no piece holds is no price
   assert.deepEqual([0, 1, 2, 3].map((n) => [reforgeEssence('magic', n), reforgeEssence('rare', n)]), [[2, 5], [4, 10], [8, 20], [16, 40]]);
-  assert.equal(REFORGE_COUNT_MAX, REFORGES_MAX, 'the leaf\'s bound the ladder\'s');
-  assert.equal(reforgeEssence('rare', REFORGE_COUNT_MAX), 5 * 2 ** REFORGE_COUNT_MAX);
-  for (const bad of [-1, REFORGE_COUNT_MAX + 1, 1.5, '1', null, NaN]) assert.equal(reforgeEssence('rare', /** @type {any} */ (bad)), null, `a count no piece holds (${bad})`);
+  assert.equal(reforgeEssence('rare', REFORGES_MAX), 5 * 2 ** REFORGES_MAX);
+  for (const bad of [-1, REFORGES_MAX + 1, 1.5, '1', null, NaN]) assert.equal(reforgeEssence('rare', /** @type {any} */ (bad)), null, `a count no piece holds (${bad})`);
   assert.equal(reforgeEssence('legendary', 1), null, 'law 7, whatever the count');
 });
 
@@ -232,7 +231,7 @@ test('CRAFT4 the Reforge with Essence through the real Worker: Enchanting 50, 2 
   // no piece holds is refused before a unit moves
   t.give(ARCANE_ESSENCE.key, 30);
   const had = t.held(ARCANE_ESSENCE.key);   // the 30, and the 9 gold's units no reforge spends
-  for (const bad of [-1, REFORGE_COUNT_MAX + 1, 1.5, '1']) assert.equal((await ask('rare', rid(), bad)).body.error, 'prof-reforge', `count ${bad}`);
+  for (const bad of [-1, REFORGES_MAX + 1, 1.5, '1']) assert.equal((await ask('rare', rid(), bad)).body.error, 'prof-reforge', `count ${bad}`);
   assert.equal(t.held(ARCANE_ESSENCE.key), had, 'nothing spent for a count refused');
   const second = await t.book.reforge('magic', reforgeCount(sword));
   assert.deepEqual([second.ok, second.data?.essence, t.held(ARCANE_ESSENCE.key)], [true, 4, had - 4], 'a piece reforged once: twice the Essence');

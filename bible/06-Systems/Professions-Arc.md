@@ -4265,7 +4265,7 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   the next quality's condition and weight over its own. THE REFORGE: `REFORGE_RANK` 50, `REFORGE_ESSENCE` 2 (Magic) and
   5 (Rare); `reforgeEssence` none for any other tier. REFORGE-REPLACE (2026-10-25): `reforgeEssence(tier, count)` -
   the tier's Essence doubled for every reforge the piece has taken (`count`, `lootRarity.js` reforgeCount), none for a
-  count no piece holds (past `REFORGE_COUNT_MAX` 31, the ladder's REFORGES_MAX, which this headless leaf may not import).
+  count no piece holds (past the ladder's `REFORGES_MAX`, 31 - the leaf imports the one bound).
 - **The service** - `server-account/src/professions.js` `temperPiece` (`/v1/prof/temper`): `{ character, recipe,
   quality, provenance?, rid }`; the craft's track (`trackOf`) at the recipe's rank, the cost from the Stores (never gold's
   units), the XP under the crafter's limit, one `prof_tempers` row deciding and answering a request asked twice. The
