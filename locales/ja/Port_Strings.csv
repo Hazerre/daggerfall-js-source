@@ -595,6 +595,7 @@ account.refusal.writShort,"その令状が今求めている数は、それよ�
 account.refusal.writTaken,"その令状はすでに別の人が納品しました。"
 account.refusal.writsClosed,"ギルドの令状と依頼は、このアカウントでは利用できません。"
 account.refusal.yardCap,"庭に置けるのは{max}個までです。別のものを置くには1つ取り除いてください。"
+account.refusal.yardTownFull,"この町の庭には合わせて{max}個までしか置けません。別のものを置くには、自分のものを1つ取り除いてください。"
 account.wear.aura,"オーラ"
 account.wear.glyphHidden,"非表示 - 押すと表示します"
 account.wear.glyphShown,"表示中 - 押すと非表示にします"

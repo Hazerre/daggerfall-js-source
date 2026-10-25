@@ -10802,6 +10802,59 @@ was written against among them.
   standing, a room's high shelf kept, a malformed place passed over, a second run nothing more), the town read, the
   client's yard over the real pool; `tools/mutants/yardsweep.json` (5, all killed).
 
+### YARD-TOWN - a town's yards bound at the placement, and stood a few a frame (2026-10-25)
+
+Two field reports: "There's a bug in the top right part of Daggerfall City's map. Decorative items placed in any house
+yard in that area disappear after restarting the game, even when the Saved to the Realm notification pops up", and "More
+than half of Daggerfall city cannot place outdoor decorations due to bug with yards".
+
+- **Found.** A town's yards were answered at most DECOR_YARDS_TOWN_MAX pieces (2,000), read in building-key order
+  (`server-account/src/decor.js` yardRowsSql), and placing asked only the yard's own cap (DECOR_YARD_CAP, 60). A building
+  key's high byte is its block's column (`systems/talk/talkTopics.js` makeBuildingKey), so the cut fell on the east of
+  the city first: every piece there was written, paid for and shown for the session (the owner's own write is held -
+  YARD-STALE), then never served again. Daggerfall held 3,357 yard pieces on 2026-10-19 (migration 0136's own count). The
+  live answer on 2026-10-25 was 110 yards and exactly 2,000 pieces, every one in block columns 1 to 3 of its 8 by 8.
+- **The bound is the placement's.** `net/decorLaw.js` DECOR_YARDS_TOWN_MAX is 6,500, and placeDecor writes a yard piece
+  only while its town's yards hold fewer, in the same INSERT as the yard's own cap (TOWN_ROOM_SQL, a count off
+  idx_home_decor_yard_order's `(map_id, yard)` prefix). Past it the word is `yard-town-full` (capWord, on both the paid
+  and the free path), said by the client with the bound (`net/accountClient.js`, `account.refusal.yardTownFull`, drafted
+  in every language). A room's piece never counts. So a piece placed is always one its town's answer serves.
+- **Why 6,500.** It is as many rows as the town's built row keeps (YARD-SNAP, `keptBoard.js` KEPT_BOARD_MAX_BYTES, 1.5
+  MB), with room to spare: Daggerfall's live rows take 179 bytes there and its widest 187; the widest the yard's law takes
+  (a 24-character id, the widest place) 216, so 6,944 of those fit. Past the built row's bound a town is still answered,
+  read every time - the cost YARD-SNAP took away. The bound has a price: the answer a player in a town downloads each
+  minute grows with it, about 144 bytes a piece (26 compressed) - Daggerfall's 2,000 were 288 KB (52 KB), a town at 6,500
+  about 0.9 MB (170 KB).
+- **Every town built again.** The bound is part of the build's shape (YARD_SNAP_SHAPE), so every row 0136 and the clock
+  built became another shape: each read as its rows stand until the minute's clock, fifty towns a firing, reached it.
+  Migration `0175_yard_town.sql` builds them all at the deploy, in the shape the code reads (`05361a66`), as 0136 did.
+- **A few a frame.** Measured in Daggerfall's city on a local build (Edge, 1280 by 720, an RTX 5080; the account service's
+  answers given by the probe: the live 2,000 pieces, and a city of 4,000 with columns 4 to 6 filled like 1 to 3; two runs
+  a case): the steady frame follows the Yard decorations range, not the yards standing - at 75 m every yard stands and the
+  frame is within noise of Off; at 300 m the city of 4,000 costs 2.2 to 2.5 ms and 270 to 350 draws. What grows with the
+  town is the frame its answer lands in: 108 to 138 ms for the live city and 142 to 208 ms for the 4,000, at any range
+  above Off, because every yard was stood in one sync. `scenes/homeYards.js` YARD_STANDS_A_FRAME (4) strangers' yards stand
+  a sync now, and a town not yet stood syncs again the next frame (never YARD_SYNC_S apart); the owner's own yard and the
+  one the decorator stands in never wait. Measured again with it, the same way: the longest frame of the landing is 33 to
+  46 ms for the live city (it was 113) and 38 to 63 ms for the 4,000 (it was 142 to 208), the whole town stood within the
+  15 seconds watched.
+- **Not known.** In the classic offline layout the probe booted, 24 of the 110 served yards stood on buildings with no
+  yard frame (86 yards, 1,538 pieces stood). Their owners placed them online, where the town's layout gave them one; the
+  measured costs are a quarter low for it. What the frame of up to 63 ms left in the landing holds (the answer read, the
+  models' builds or the merges) was not profiled.
+- **Next, if the city outgrows 6,500.** Reading and standing yards by block (`cell = building_key >> 8`; a block holds at
+  most 32 buildings in BLOCKS.BSA, so 1,920 pieces) bounds the answer by the blocks within reach instead of the town.
+  Not built: the bound and the spread are what the measurements asked for.
+- **The four hosts.** Yards stand in `scenes/world.js` alone (unchanged); `scenes/exterior.js`, `scenes/worldModes.js`
+  (interiors) and `scenes/dungeonContext.js` stand none. No relay change. acct191 (acct177 and migration 0163 on its branch, renumbered past main's acct177-acct190
+  and 0163-0174 at its merges).
+- **Pinned**: `test/server/yard_town.test.js` (2) - over the real Worker, the town's last piece placed and the next refused
+  as `yard-town-full`, paid or free, another town never counted, a room's piece never refused, one taken away making room,
+  the client's sentence naming the bound; a town at the bound, every row as wide as the law allows, kept in its built row.
+  `test/scenes/yardtown.test.js` (1) - over the real yards and pools, four strangers' yards a frame, frame after frame, the
+  owner's own in the first. `test/server/yard_snap.test.js` - 0136's backfill in its own shape at its 2,000 bound, 0175's
+  in the code's at DECOR_YARDS_TOWN_MAX. `tools/mutants/yard_town.json` (15, all killed).
+
 ### STALL-SHAPE's re-seat - a yard's saved stalls and boulders, put back where their owners put them (2026-10-16)
 
 FIELD BUGS 2026-10-16b STALL-SHAPE (the Discord, 2026-10-15: "market stalls all shifted into the ground/walls" - a red
@@ -10939,8 +10992,8 @@ early price and offer checks, which the write's own guards repeat).
   ground a piece covers (its turned box), not its middle; yards stand again the frame the world recentres; far yards
   are not drawn (`YARD_DRAW_M`); yard pieces take their pixel's climate swaps; a full yard says so (`yard-cap`); the
   painter offers only the styles a roof's or a door's family holds.
-- Known limits kept: a town's yards are read up to DECOR_YARDS_TOWN_MAX pieces (a town of more than about 33 full
-  yards shows the first by building key); a tenancy's end is read on the client's clock; a refused rent's reserve
+- Known limits kept: a town's yards hold at most DECOR_YARDS_TOWN_MAX pieces between them (YARD-TOWN, above: a piece
+  past it is refused, `yard-town-full`); a tenancy's end is read on the client's clock; a refused rent's reserve
   comes back to the region's account, as a refused home purchase's does.
 
 Pinned: `test/scenes/decor/homedoors.test.js` (14), `test/server/homerent.test.js` (10), `test/net/homelook.test.js` (7),
