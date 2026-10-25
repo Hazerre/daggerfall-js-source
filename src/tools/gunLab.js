@@ -95,9 +95,8 @@ export { createGunMachine } from '../combat/gun/gunMachine.js';
 // THUNDERLOCK-LAB (2026-10-25): the page draws the owner's seven-frame strip, cut as the game cuts it
 // (combat/thunderlockArt.js), and lights the room on the Thunderlock's own curve (gunFeel.js THUNDERLOCK_MUZZLE_CURVE).
 export { thunderlockFrames, THUNDERLOCK_STRIP } from '../combat/thunderlockArt.js';
-/** The room's light off the strip's flash: the Thunderlock's curve while the page's machine fires, 0 otherwise. Not
- *  systems/thunderlock.js thunderlockMuzzleLight, the light the game's player carries - its own name, so the two never read as one. */
-export const thunderlockMuzzleGlow = (state, frame) => (state === 'Firing' ? THUNDERLOCK_MUZZLE_CURVE[frame] ?? 0 : 0);
+/** The room's light off the strip's flash: the Thunderlock's curve while the page's machine fires, 0 otherwise. */
+export const labThunderlockLight = (state, frame) => (state === 'Firing' ? THUNDERLOCK_MUZZLE_CURVE[frame] ?? 0 : 0);
 
 /**
  * The muzzle light. The flash is on frames 1-2 of the sheet
