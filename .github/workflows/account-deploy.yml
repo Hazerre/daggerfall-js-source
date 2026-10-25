@@ -81,6 +81,7 @@ on:
       - "src/net/homeVoteLaw.js"
       - "src/net/guild/guildLaw.js"
       - "src/net/repairLaw.js"
+      - "src/systems/crimeGuilds.js"
       - "src/net/hallLaw.js"
       - "src/net/heraldryLaw.js"
       - "src/net/townSeatLaw.js"

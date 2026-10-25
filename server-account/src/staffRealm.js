@@ -74,7 +74,7 @@ export const REMOVE_REASONS = Object.freeze(['duplicated', 'duped-gold', 'bug-re
 const READ_ROW_S = 10 * 60;
 
 export const REALM_ROUTES = Object.freeze(['/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold',
-  '/v1/staff/rollback', '/v1/staff/fix/repair', '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull',
+  '/v1/staff/rollback', '/v1/staff/fix/repair', '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/fix/letter', '/v1/staff/gains', '/v1/staff/market/pull',
   '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence', '/v1/staff/evidence/return', '/v1/staff/item/catalogue', '/v1/staff/item/give']);
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
@@ -518,6 +518,17 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
         drakes, marketPurse: Number(purse?.gold ?? 0),
       },
     };
+  }
+
+  if (path === '/v1/staff/fix/letter') {
+    // GUILD-LETTER-FIX (2026-10-25, mob: "do it"): review.js `letter` - a crime guild's letter sent again or called off,
+    // `{ ticket, guild, op, note }`; the playing tab's seat taken as a mend's
+    const note = noteOf(body.note);
+    const { ticket, guild, op } = body;
+    const detail = { ...ch, note, ticket: typeof ticket === 'string' ? ticket.slice(0, 64) : null, guild: typeof guild === 'string' ? guild.slice(0, 8) : null, op: typeof op === 'string' ? op.slice(0, 8) : null };
+    if (!note) return said('fix-letter', row.player, detail, { error: 'staff-note' });
+    const r = await reviewAct(c, me, env, 'letter', { id: row.id, note, ticket, guild, op });
+    return said('fix-letter', row.player, r.error ? detail : { ...detail, was: r.was, repeat: r.repeat }, r.error ? r : { ...r, playing: playing(row) });
   }
 
   if (path === '/v1/staff/fix/repair' || path === '/v1/staff/fix/mend' || path === '/v1/staff/fix/bank') {
