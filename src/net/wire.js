@@ -1,4 +1,5 @@
 // @ts-check
+import { validStaffEventIn } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT: a staff event's word in
 import { validStaffTeleportIn } from './staffTeleport.js';
 import { validRelayCfgIn } from './relayCfg.js';   // SCALE5b: a relay setting, said to the hub
 import { HUB_SHARD_ROOMS, isHubShard, HUB_FIND_Q_MAX, REGION_SHARD_ROOMS } from './hubShards.js';   // SCALE5c: the hub, sixteen ways
@@ -458,7 +459,7 @@ export function validHomeFrame(m) {
  * the relay carries one of these names and nothing a stager could shape into anything else. Appended, never
  * reordered or renamed - a client that does not know a word shows no event, so a new one is safe against an old build.
  */
-export const LIVE_EVENTS = Object.freeze(['dread', 'sunbaby']);   // SUNBABY1: the sun baby's sky of flowers (world/sunbabySky.js), world163
+export const LIVE_EVENTS = Object.freeze(['dread', 'sunbaby', 'rocket']);   // SUNBABY1: the sun baby's sky of flowers (world/sunbabySky.js), world163; ROCKET1: the rocket's mounds, farting horses and frenzy (world/rocketEvent.js), world253
 /** EVENT1: stages a second - a dev's deliberate act, and tokenGate cannot go lower (RED_HZ_MAX's reason). */
 export const EVENT_HZ_MAX = 1;
 /** EVENT1: the hub's storage key for the event staged now - its own prefix, apart from every one a drain or the hub's
@@ -1582,7 +1583,15 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world247';   // world247: STAFF-PANEL5 (2026-10-22, mob: "do all 6"; design doc "DFO Staff Panel: design"; NOT YET DEPLOYED) - the staff panel's relay half, one release: a hidden staff spectator's follow (staffFollow.js), Message on screen's nudge (`smsg`), the Staff Panel's counts (staffFeeds.js), a cut staff member's sockets closed (`staffcut`), hidden staff named by nobody (`hide`, staffHidden.js), and freeze player with its staff chat (`freeze`, `staffline`, staffFreeze.js)
+export const RELAY_VERSION = 'world257';   // world257: STAFF-EVENT BOSS (2026-10-25, mob: "boss seems to not spawn every time need be able to eneter a exact amount of healt for mini bosses"; bible/11-Multiplayer/Staff-Events.md section 5; NOT YET DEPLOYED) - net/staffEvent/staffEventLaw.js: an event carries `hp`, the mini boss's exact health staff typed, and the meter calls a boss each time it fills (every `m` kills, one at a time; ledger `hc`, `mc`) - the game stands a lost boss again (systems/staffEvents.js staffBossLost). world256: STAFF-EVENT (2026-10-24, world255 on its branch, renumbered past KETCH's world255 at the merge; mob: "lets start making an event tool for staff to use"; bible/11-Multiplayer/Staff-Events.md; NOT YET DEPLOYED) - a staff event's order (identityToken.js 'sevent') kept in the hub's book and said to everyone (`{t:'sev', k:'ev'|'end'}`), a player's word on it (`{t:'sev', k:'w'}`) kept as its place's cell's kill meter (`k:'st'`), the mini boss called at the meter or by staff's hand; an older relay closes a socket on the frame, so the game sends it only to world255 on (STAFF_EVENT_RELAY_MIN) world255: KETCH (2026-10-24, world253 on its branch, renumbered past ROCKET1's world253 and AUDIT FOE-KEEPS' world254 at the merge; the owner: "A proper dwarven airship flies in once a week over the skies of daggerfall, and you, along with other players venture into it in a raid like format", "Make the dwarven event 8 player"; bible/11-Multiplayer/Sky-Ketch.md section 10; NOT YET DEPLOYED) - one frame, `kt` (validKetchIn, validKetchOut), in a crew's ship's room `kt:<voyage>.<owner>` alone: the Worker mints one only while its voyage holds its crews (net/ketch/ketchLaw.js ketchRoomHolds), the room admits its captain, staff and the captain's party (INSTANCES' kin) to KT_CREW_MAX, and runs the voyage (net/ketch/ketchBrain.js) and its Tonal Warden on the boss seam; the receipts are `y1` (net/ketch/ketchReceipt.js). A page boards only once its relay says KT_RELAY_MIN.
+// world254: AUDIT FOE-KEEPS (2026-10-24, the owner, asked: "Credit the last player"; bible/01-Overview/audits/Audit-Foe-Keeps.md E2; NOT YET DEPLOYED): the zone word carries `dd` 1 - a fighter's word that it left the zone dying, which the referee did not see - and the relay names the last fair player to strike it within WILD_REF.creditMs its killer (net/wild/wildRef.js wildCredit, server/src/index.js _wildCredit): a fall made, said and signed as a blow's. A relay before it drops the field and credits nobody, as before
+// world253: ROCKET1 (2026-10-23, the owner: "when I type /event rocket I want mounds to appear and shoot poop up from the ground and a horse to fart across the sky neighing and then smaller horses farting across the sky"; bible/11-Multiplayer/Rocket-Event.md; NOT YET DEPLOYED) - LIVE_EVENTS gains its third word, `rocket` (LIVE_EVENT_RELAY_MIN 253): the hub stages it, keeps it and says it as it says the dread and the sun baby. An older relay answers the word 'bad stage' and closes the socket, so a client sends `/event rocket` only through this one (relayKnowsLiveEvent); a client that does not know the word shows no event. Deploy the relay first, then the site.
+// world252: DECK-POSE (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at one merge, and past HERALD-CARDS' world250 and AUDIT MIXED-PAIR / SPELL-HAND's world251 at the next; the owner: "Players on board the ship jitter while sailing instead of staying put. Other players also slide when on board your ship/npc ships"; NOT YET DEPLOYED) - validPose carries `ab`, a place aboard a boat (validAboard: her owner, which of their boats, the feet in her frame), so a reader plays a passenger's place on a deck out with their walk. A relay before this field strips it and the reader falls back to the foes frame's `ab`, as before.
+// world251: AUDIT MIXED-PAIR / SPELL-HAND (2026-10-23, world249 on its branch - renumbered past STAFF-PANEL5-MONSTERS' world249 and HERALD-CARDS' world250 at the merge; the owner: "Audit this and ensure perfection", of MIXED-PAIR and SPELL-HAND - bible/01-Overview/audits/Audit-Mixed-Pair-Spell-Hand.md L4-3; bible/05-Combat/Two-Hands.md; NOT YET DEPLOYED): validPose carries `ah` - a pair's LEFT hand struck last - so the others draw a pair in both hands and play each strike with the hand that made it (net/peer/peerBodies.js peerHandsOf). A relay before this field strips it and the socket stays open: an older relay's peers play every strike with the right hand's weapon, as before.
+// world250: HERALD-CARDS (2026-10-22, world243 on its branch - renumbered past PARTY-PING's world243, SPAWN-THIN's world244, AUDIT PISTOLET's world245, SEA VENTURES' world246, STAFF-PANEL5's world247, AUDIT EG-FALL's world248 and STAFF-PANEL5-MONSTERS' world249 at the merge; the owner: "I want to overhaul our discord world event notification system to be more organized"; net/herald/heraldCard.js; NOT YET DEPLOYED) - every herald's Discord post is one card of its family (Dagon's Breach, the Sea Serpent, the Abyss Dungeon, the Battlespire): its colour, the moment's title, its facts as fields, the moment its footer; content only when it pings. Each family may post to a thread of its own of the world events' channel - the relay settings gateThread, serpentThread, sdThread and egThread (vars GATE_DISCORD_THREAD and the rest), the gate's thread else, the channel itself with none. net/herald/heraldCard.js joins the bundle. No frame changes shape; the client says a thread setting only to a relay at world243 or later (relayCfg.js RELAY_CFG_KEY_MIN).
+// world249: STAFF-PANEL5-MONSTERS (2026-10-23, world248 on its branch - renumbered past AUDIT EG-FALL's world248 at the merge; mob wants all three feed pages working with grantStrip off; NOT YET DEPLOYED) - the Staff Panel's Monster watch counts a full foes frame's live monsters whatever grantStrip says (server/src/staffFeeds.js staffFoesSeen, on _foesSend's path: read, never changed, nothing at all while STAFF_NET_FEED_URL is unset), and the net batch says `ms` 1 always, so the panel shows it measured; grantStrip stays off (an audit showed it hides honest players' monsters). The feed's law (staffFeedLaw.js, `staff-net1`, `ms` 0 or 1) is unchanged, so the account service takes it as it is. Nothing a player receives changes. With it STAFF-CHAT-RED (mob: "give me a option next to chat to chat as /red or myself at all times"): a hidden staff socket is heard in /red's ask (server/src/staffHidden.js HIDDEN_FRAMES), so a hidden Admin's Red line still speaks as the server, naming nobody.
+// world248: AUDIT EG-FALL (2026-10-21, world240 on its branch - renumbered past GUILD-CAP's world240, SD-THROUGH's world241, LEASE1's world242, PARTY-PING's world243, SPAWN-THIN's world244, AUDIT PISTOLET's world245, SEA VENTURES' world246 and STAFF-PANEL5's world247 at the merge; the owner: "Audit this", of EG-FALL - bible/01-Overview/audits/Audit-EG-FALL.md L1-2, L2-2; bible/11-Multiplayer/Elite-Gates.md EG-FALL; NOT YET DEPLOYED): an Elite Breach's felled lord LIES WHERE IT FELL - net/eliteGates/egLords.js egLordHit stops its walk at its fall (egStop, said to every screen as a walk of no speed), where the room had carried a dead lord on along its last walk, so the next whole fight moved its falling body away from its own burst and corpse, and a screen that came to the hall later laid the corpse metres from where the company's lay. No word changes and no client gate: a page facing an older relay holds the fall's place itself (scenes/eliteGates/egLordFall.js placeOf), and an older page reads the stop as any walk's.
+// world247: STAFF-PANEL5 (2026-10-22, mob: "do all 6"; design doc "DFO Staff Panel: design"; NOT YET DEPLOYED) - the staff panel's relay half, one release: a hidden staff spectator's follow (staffFollow.js), Message on screen's nudge (`smsg`), the Staff Panel's counts (staffFeeds.js), a cut staff member's sockets closed (`staffcut`), hidden staff named by nobody (`hide`, staffHidden.js), and freeze player with its staff chat (`freeze`, `staffline`, staffFreeze.js)
 // world246: SEA VENTURES (2026-10-22, world241 on its branch, then world242 and world245 - renumbered past SD-THROUGH's world241, LEASE1's world242, PARTY-PING's world243, SPAWN-THIN's world244 and AUDIT PISTOLET's world245 at the merges; the owner: "Build ever single bit of this and dont return until its perfected" - the Eltheric Ocean's ventures; bible/03-World/Eltheric-Ocean.md SEA-VAULTS and the sections after it; NOT YET DEPLOYED): the hub reads a vault of the deep by its cell (`wdun` keys `"e<cx>,<cy>"` - wdunHall, wdunRoomKey, WDUN_SEA_RELAY_MIN) and keeps a treasure fleet's flagship sunk for its sailing (`fk`, `fd` - SEA-EVENTS), refuses an instance of an isle's dungeon (seaRoomCell), a fall at another's hand signs its room and its killer's character (net/wild/wildReceipt.js `m`, `kc` - SEA-BOUNTY: the service's word on a kill at sea; a receipt up to 512 long, DUEL_REF_RECEIPT_MAX), and the referee judges a broadside between captains in the open sea (SHIP-PVP - net/sea/seaRef.js: a captain's `helm`, `shot` and `board` in, the `hull` a shot landed, a `wreck` and its signed receipt `wc` out - net/wild/wildReceipt.js `n1`; relaySupportsSeaPvp). An older client never sends a sea key, and an older relay is never asked one.
 // world245: AUDIT PISTOLET (2026-10-22, world242 on its branch, renumbered past LEASE1's world242, PARTY-PING's world243 and SPAWN-THIN's world244 at the merge; the owner: "Now lets do a comprehensive audit on everything"; bible/01-Overview/audits/Audit-Pistolet.md C7/D1, A1; NOT YET DEPLOYED) - the siege referee's arms know the Dwarven Pistolet (net/siege/siegeRef.js SIEGE_PISTOLET: its top, and a shot is a bow's blow), and the duel's roll takes `off` for a shot as for a swing (combat/duelCombat.js), so a pair's off-hand shot at a player lands DUAL's share. The PISTOLET branch edited the relay's graph under world237 (world241 at its merges) without a bump. Client and relay move together: an older relay rolls an off-hand shot whole.
 // world244: SPAWN-THIN (2026-10-19, world224 on its branch, then world242, renumbered past PARTY-PING's world243 at the merge; bible/06-Systems/Systems-Arc.md; NOT YET DEPLOYED): the overworld keep drops a quarter of the spawn band (net/overworldLaw.js OW_SPAWN_KEEP), so a cell and a client agree which ruins stand.
@@ -1842,10 +1851,20 @@ export function wire2Batch(items) {
   return f.length === 1 ? f[0] : `{"t":"fb","f":[${f.join(',')}]}`;
 }
 
+/**
+ * AUDIT MIXED-PAIR L4-3: THE POSE'S HANDS - what a peer needs to draw them (net/peer/peerBodies.js peerHandsOf): `lh` the
+ * LEFT hand leads (DISC12, WeaponManager.UsingRightHand false), `ah` the last strike was a pair's LEFT hand's - each omitted
+ * at 0 (the wire's omission law). One spread at the pose's sender (scenes/world.js), so the host grows no entry for it; the wire's,
+ * so the host reads no two-hands module (TWO-HANDS, THE FOUR HOSTS).
+ * @param {boolean} usingRightHand
+ * @param {'R'|'L'|null} strikeHand the last strike's hand in a pair, else null
+ */
+export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand ? {} : { lh: 1 }), ...(strikeHand === 'L' ? { ah: 1 } : {}) });
+
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -1886,6 +1905,11 @@ export function validPose(p) {
     // werewolf and 2 the wereboar (LycanthropyTypes), so the others see the beast, not the person. Both OMITTED at 0
     // (validLook's `class` law): a right-handed human's pose keeps the bytes it always had.
     ...(uint(lh, 1) ? { lh: 1 } : {}),
+    // AUDIT MIXED-PAIR L4-3 (bible/05-Combat/Two-Hands.md, Peers on the wire): `ah` 1 when the last strike was a PAIR's
+    // LEFT hand's - a blade-and-Pistolet pair's or two blades' - so the others play it with that hand's weapon and group
+    // (a shot as a shot, a blade's blow as a blade's) off the two hands the look carries. It changes with `an` alone, so
+    // poseChanged's swing edge carries it. OMITTED otherwise: a pose with no left blow keeps the bytes it always had.
+    ...(uint(ah, 1) ? { ah: 1 } : {}),
     ...(uint(wb, 2) ? { wb: uint(wb, 2) } : {}),
     // PCORPSE1 (2026-09-23, Discord: "add dead corpses to players that died against mobs ... right now they just
     // disappear"): THE DEATH. `dd` 1 on the ONE pose a dying player sends before it leaves the room (the dead
@@ -1930,6 +1954,7 @@ export function validPose(p) {
     ...climbOf(cl, cw, ck, cy, cd),
     ...seatOf(st),   // CARDS2b: seated at a card table, and the table's top - omitted standing
     ...riddenOf(pl),   // EG-H1: RIDDEN POSES - a pose on an Elite Breach's moving piece, its index and its offset from the piece's top
+    ...aboardOf(ab),   // DECK-POSE: a pose aboard a boat - whose, which of theirs, and the feet in her own frame
     // PEER-ACTS (GATHER-FEEL II, 2026-10-13): `ga` the player's GATHERING ACT and `gm` the net's throw, and `gb` the
     // beats - its own, as `hk` is, so a beat counted as an act ends rides the pose that ends it (gatherOf) - so the
     // others see the swing, the kneel and the throw and hear each beat at the act's place (net/peer/peerGather.js). OMITTED
@@ -1997,6 +2022,28 @@ function peerFxOf(hk, hp, hb, hq, hu, uq) {
 export const POSE_RIDE_OFF_MAX = 8;
 const riddenOf = (pl) => (Array.isArray(pl) && pl.length === 4 && Number.isInteger(pl[0]) && pl[0] >= 0 && pl[0] <= 255 && pl.slice(1).every((v) => finite(v) && Math.abs(v) <= POSE_RIDE_OFF_MAX)
   ? { pl: [pl[0], Math.round(pl[1] * 100) / 100, Math.round(pl[2] * 100) / 100, Math.round(pl[3] * 100) / 100] } : {});
+/** DECK-POSE (2026-10-23, the owner: "Players on board the ship jitter while sailing instead of staying put. Other players
+ *  also slide when on board your ship/npc ships"): A POSE ABOARD A BOAT SAYS WHERE ON HER DECK. `ab` - `[owner, slot, x,
+ *  y, z]`, Come Sail Away's place aboard (scenes/comeSailAway/comeSailAwayAboard.js `word`, and `helmWord` at one's own
+ *  helm): her owner's id, which boat of their word, and the feet in her own frame (m, to the cm). The foes frame's `ab`
+ *  said it alone, at most five times a second, only when it changed (a crowded cell's relay keeps its full frames alone:
+ *  once in two seconds), and a reader eased toward each word - a body walking a deck was drawn in lurches and slid on
+ *  after it stopped. On the pose it is played out with the walk it rides (net/online.js lerpPose) and stood on the deck as
+ *  it is drawn here. OMITTED ashore (validLook's `class` law); a field out of bounds is no place aboard, never clamped. */
+export const POSE_ABOARD_SLOTS = 8;   // the boats one Come Sail Away word carries (comeSailAwayWire.js CSA_WIRE_BOATS_MAX is this)
+export const POSE_ABOARD_LOCAL_MAX = 100;   // a place on a deck from her root, each way (comeSailAwayAboard.js CSA_ABOARD_LOCAL_MAX is this)
+export const POSE_ABOARD_OWNER_MAX = 64;
+/** DECK-POSE: a place aboard through the door - `[owner, slot, x, y, z]` to the cm, or null. Pure. */
+export function validAboard(ab) {
+  if (!Array.isArray(ab) || ab.length !== 5) return null;
+  const [owner, slot, x, y, z] = ab;
+  if (typeof owner !== 'string' || !owner || owner.length > POSE_ABOARD_OWNER_MAX) return null;
+  if (!Number.isInteger(slot) || slot < 0 || slot >= POSE_ABOARD_SLOTS) return null;
+  if (![x, y, z].every((v) => finite(v) && Math.abs(v) <= POSE_ABOARD_LOCAL_MAX)) return null;
+  const cm = (v) => { const r = Math.round(v * 100) / 100; return r === 0 ? 0 : r; };   // never a -0
+  return [owner, slot, cm(x), cm(y), cm(z)];
+}
+const aboardOf = (ab) => { const w = validAboard(ab); return w ? { ab: w } : {}; };
 /** CARDS2b (bible/11-Multiplayer/Tavern-Cards.md section 12): the most the seat's `st` says - the table's top above the
  *  sitter's feet in 5 cm steps (player/seatPose.js SEAT_TOP_STEP), so 40 is two metres. */
 export const POSE_SEAT_TOP_MAX = 40;
@@ -2156,7 +2203,7 @@ export function inRangeOf(roomKey, from) {
   return (to) => !!to && Math.max(Math.abs(fx - Math.floor(to.x / PIXEL_UNITS)), Math.abs(fy - Math.floor(to.z / PIXEL_UNITS))) <= RANGE_PIXELS;
 }
 
-/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit'|'lease', ...}
+/** One client frame, parsed and checked: {t:'hello'|'pose'|'ping'|'chat'|'roll'|'say'|'narrate'|'stage'|'mute'|'ban'|'renown'|'guild'|'guildout'|'home'|'world'|'foes'|'own'|'hit'|'act'|'who'|'quest'|'social'|'party'|'trade'|'cast'|'card'|'page'|'duel'|'wed'|'park'|'caravan'|'look'|'gate'|'grant'|'siege'|'arena'|'raid'|'raidtowns'|'sev'|'rite'|'star'|'ow'|'trav'|'amap'|'stp'|'cfg'|'find'|'serpent'|'sd'|'kt'|'eg'|'wild'|'wdun'|'holdem'|'iliac'|'gambit'|'lease', ...}
  *  or {error} - the caller closes on an error. INSPECT1: every arm below, named - this line had fallen seven behind
  *  (test/net/auditworld2.test.js derives the list from the arms now, so it cannot fall behind again - the merge with
  *  main's HCC-PARK was its first catch: the park arm, unnamed). */
@@ -2269,6 +2316,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     const r = validRaidIn(m);
     return r ? { t: 'raid', ...r } : { error: 'bad raid' };
   }
+  if (m.t === 'sev') {   // STAFF-EVENT: a word on a staff event, to its place's cell - projected by its own law (net/staffEvent/staffEventLaw.js); the cell's ledger (server/src/staffEvents.js) judges it
+    if (!hasHello) return { error: 'sev before hello' };
+    const r = validStaffEventIn(m);
+    return r ? { t: 'sev', ...r } : { error: 'bad sev' };
+  }
   if (m.t === 'serpent') {   // SERPENT1: a word on the sea serpent's fight, to its site's cell - projected by validSerpentIn; the cell's brain (net/serpent/serpentBrain.js) judges it
     if (!hasHello) return { error: 'serpent before hello' };
     const r = validSerpentIn(m);
@@ -2283,6 +2335,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     if (!hasHello) return { error: 'star before hello' };
     const r = validStarIn(m);
     return r ? { t: 'star', ...r } : { error: 'bad star' };
+  }
+  if (m.t === 'kt') {   // KETCH: a word aboard a crew's ship - projected by validKetchIn; the ship's director (net/ketch/ketchBrain.js) judges it
+    if (!hasHello) return { error: 'kt before hello' };
+    const r = validKetchIn(m);
+    return r ? { t: 'kt', ...r } : { error: 'bad kt' };
   }
   if (m.t === 'eg') {   // EG-PLAY: a word on an Elite Breach - the open to the hub, a member's admission, door and blows to its room - projected by validEgIn; the hub and the room's director (net/eliteGates/egBrain.js) judge it
     if (!hasHello) return { error: 'eg before hello' };
@@ -3571,7 +3628,7 @@ export const relaySupportsEvent = (v) => { const m = /^world(\d+)$/.exec(typeof 
 /** SUNBABY1: THE FIRST RELAY THAT KNOWS EACH LIVE EVENT'S WORD. A relay's parseClient answers a word it does not know
  *  with 'bad stage' and CLOSES the socket, so knowing the frame (EVENT_RELAY_MIN) is not knowing every word on it: a
  *  word is staged only on a relay at or past its own row. One row a word of LIVE_EVENTS, appended with it. */
-export const LIVE_EVENT_RELAY_MIN = Object.freeze({ dread: EVENT_RELAY_MIN, sunbaby: 163 });
+export const LIVE_EVENT_RELAY_MIN = Object.freeze({ dread: EVENT_RELAY_MIN, sunbaby: 163, rocket: 253 });
 export const relayKnowsLiveEvent = (v, kind) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Object.hasOwn(LIVE_EVENT_RELAY_MIN, kind) && Number(m[1]) >= LIVE_EVENT_RELAY_MIN[kind]; };
 export const relaySupportsPark = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= PARK_RELAY_MIN; };
 export const relaySupportsCast = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= CAST_RELAY_MIN; };
@@ -4702,7 +4759,7 @@ export function validWildData(d) {
     out = { to, k: 'worn', s, items: it };
   } else if (d.k === 'zone') {
     if (d.z !== 0 && d.z !== 1) return null;
-    out = { k: 'zone', z: d.z };   // INT9: my word on the zone
+    out = { k: 'zone', z: d.z, ...(d.z === 0 && d.dd === 1 ? { dd: 1 } : {}) };   // INT9: my word on the zone - AUDIT FOE-KEEPS E2: `dd` 1, left it dead
   } else if (d.k === 'helm') {
     // SHIP-PVP: my word at my helm - my hull (-1: left it), my toughness in hundredths, my boat's uid, my hull per mille
     // AUDIT SEA VENTURES A4: a ship said is a boat the service can name - a hull with no uid (u 0) was a ship that could be
@@ -6736,4 +6793,155 @@ export function validEgOpenTell(v) {
   if (!intIn(b.seed, 0, 0xffffffff) || !gateMs(b.op) || !co || !site || !co.some((t) => t[0] === b.s)) return null;
   const wg = Array.isArray(b.wg) && b.wg.length <= 3 && b.wg.every((x) => intIn(x, 0, 31)) ? [...b.wg] : [];
   return { b: b.b, ez: b.ez, s: b.s, o: sanitizeName(b.o), ew: b.ew, rh: b.rh, seed: b.seed, op: b.op, co, site, wg };
+}
+
+// ── KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md section 10): THE SKY-KETCH'S WORDS ──────────────────────────
+// One frame type, `kt`, in a crew's ship's room alone (`kt:<voyage>.<owner>` - net/ketch/ketchLaw.js; anywhere else
+// junk), behind its relay version: a relay before it closes the socket on a frame it does not know, so no page boards
+// until its relay says KT_RELAY_MIN. Each blow on it is the Spire's FULL shape stamp (egBlowW, above), with the Ketch's
+// two own fields: `a` the Warden's blow (its table's number) and `jp` 1 for one a jump lets pass.
+/** The relay that keeps ships (RELAY_VERSION world255 - world253 on its branch). */
+export const KT_RELAY_MIN = 255;
+export const relaySupportsKetch = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= KT_RELAY_MIN; };
+/** What a member may say: its `in` to the bridge's fight, a blow (`hit`), a cell taken, set, let go or knocked from its
+ *  hands, and its body's word (`vt`). */
+export const KT_IN_KINDS = Object.freeze(['in', 'hit', 'pick', 'bank', 'drop', 'hurt', 'vt', 'spent']);   // AUDIT KETCH L1-2: `spent`, a voyage's share given - to the hub alone
+/** What the room says (a page drops any other kind). */
+export const KT_OUT_KINDS = Object.freeze(['st', 'nb', 'mv', 'bl', 'hp', 'dn', 'sg', 'cl', 'wave', 'wk', 'drop', 'pick', 'bank', 'wf', 'ws', 'whp', 'ph', 'ward', 'rs', 'fk', 'fkh', 'fkb', 'stun', 'sec', 'lost', 'wl', 'fell', 'rcpt', 'no', 'bd']);
+/** The fight's brain, by number (the Hour's SD_BRAIN_V law): said on every `in`, refused below KT_BRAIN_MIN. */
+export const KT_BRAIN_V = 1;
+export const KT_BRAIN_MIN = 1;
+/** The ship's words' own bucket - the gate's fight's (its four blows a second, a swing's bodies under one `q`, the cells'
+ *  words), the relay's deeper. */
+export const KT_HZ = 16;
+export const ketchGate = (bucket, nowMs) => tokenGate(bucket, nowMs, KT_HZ);
+export const ketchRelayGate = (bucket, nowMs) => tokenGate(bucket, nowMs, KT_HZ, KT_HZ + 4);
+/** The ship's bounds the wire reads (net/ketch/ketchDeck.js and ketchBrain.js - the wire imports no law, so they are pinned
+ *  equal there): a deck coordinate's; a body's number; a cradle's, a socket's; the crew's. */
+export const KT_XZ_MAX = 400;
+export const KT_BODY_ID_MAX = 99_999;
+export const KT_CELL_SPOT_MAX = 13;
+export const KT_CREW_WIRE_MAX = 8;
+export const KT_KIND_MAX = 4;
+export const KT_HP_MAX = 99_999_999;
+/** The receipt on the wire - a `y1` (net/ketch/ketchReceipt.js KT_RECEIPT_MAX, pinned equal), signed or not. */
+export const KT_RECEIPT_WIRE_MAX = 560;
+const KT_RECEIPT_RE = /^y1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/;
+/** Why a ship refuses an `in` or a word, by the number on the wire - the voyage gone, the fight over, a game whose brain
+ *  is older. The page says each in the player's language (net/ketch/ketchLink.js KT_LINK_TEXT.no, in this order). */
+export const KT_NO_WORDS = Object.freeze(['gone', 'over', 'older']);
+/** A member's word, projected - or null. */
+export function validKetchIn(m) {
+  if (!m || typeof m !== 'object' || !KT_IN_KINDS.includes(m.k)) return null;
+  if (m.k === 'vt') return intIn(m.v, 0, BODY_WORD_MAX) ? { k: 'vt', v: m.v } : null;
+  if (m.k === 'in') return intIn(m.lv, 1, GATE_LV_WIRE_MAX) ? { k: 'in', lv: m.lv, ...(intIn(m.bv, 0, 999) ? { bv: m.bv } : {}) } : null;
+  if (m.k === 'drop' || m.k === 'hurt') return { k: m.k };
+  if (m.k === 'pick') return intIn(m.c, 0, KT_CELL_SPOT_MAX) ? { k: 'pick', c: m.c } : intIn(m.l, 1, 1e9) ? { k: 'pick', l: m.l } : null;
+  if (m.k === 'bank') return intIn(m.s, 0, KT_CELL_SPOT_MAX) ? { k: 'bank', s: m.s } : null;
+  if (m.k === 'spent') return intIn(m.n, 0, KT_VOYAGE_N_MAX) ? { k: 'spent', n: m.n } : null;
+  if (!intIn(m.o, 1, KT_BODY_ID_MAX) || !intIn(m.q, 0, GATE_SEQ_MAX) || !finite(m.d) || m.d <= 0 || m.d > GATE_DMG_WIRE_MAX || (m.r !== 0 && m.r !== 1 && m.r !== 2)) return null;
+  return { k: 'hit', o: m.o, q: m.q, d: m.d, r: m.r };
+}
+const ktXZ = (v) => finite(v) && Math.abs(v) <= KT_XZ_MAX;
+const ktMs = (v) => Number.isSafeInteger(v) && v >= 0;
+const ktMv = (m) => (m && typeof m === 'object' && intIn(m.o, 1, KT_BODY_ID_MAX) && [m.x, m.z, m.tx, m.tz].every(ktXZ) && finite(m.v) && m.v >= 0 && m.v <= 20 && ktMs(m.at)
+  ? { k: 'mv', o: m.o, x: m.x, z: m.z, tx: m.tx, tz: m.tz, v: m.v, at: m.at } : null);
+const ktBlow = (m) => { const b = egBlowW(m); if (!b) return null; if (m.a != null && !intIn(m.a, 0, 15)) return null; return { ...b, ...(m.a != null ? { a: m.a } : {}), ...(m.jp === 1 ? { jp: 1 } : {}) }; };
+const ktBody = (b) => (Array.isArray(b) && b.length >= 8 && intIn(b[0], 1, KT_BODY_ID_MAX) && intIn(b[1], 0, KT_KIND_MAX) && ktXZ(b[2]) && ktXZ(b[3]) && ktXZ(b[4]) && finite(b[5]) && Math.abs(b[5]) <= 8 && intIn(b[6], 0, KT_HP_MAX) && intIn(b[7], 0, KT_HP_MAX)
+  ? [b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8] === 0 ? 0 : 1, ktMs(b[9]) ? b[9] : 0] : null);
+const ktCells = (m) => {
+  const spots = (a, n) => Array.isArray(a) && a.length === n && a.every((v) => v === 1 || ktMs(v));
+  if (!m || typeof m !== 'object' || !spots(m.cr, 6) || !spots(m.br, 2) || !Array.isArray(m.lo) || m.lo.length > 32 || !Array.isArray(m.ca) || m.ca.length > KT_CREW_WIRE_MAX) return null;
+  if (!m.lo.every((l) => Array.isArray(l) && l.length === 5 && intIn(l[0], 1, 1e9) && ktXZ(l[1]) && ktXZ(l[2]) && ktXZ(l[3]) && ktMs(l[4]))) return null;
+  if (!m.ca.every((c) => Array.isArray(c) && typeof c[0] === 'string' && ID_RE.test(c[0]) && intIn(c[1], 1, 1e9))) return null;
+  if (!intIn(m.bk, 0, 7) || !intIn(m.nd, 0, 7) || !Array.isArray(m.sk) || m.sk.length !== 7 || !m.sk.every((v) => v === 0 || v === 1)) return null;
+  return { k: 'cl', cr: [...m.cr], br: [...m.br], lo: m.lo.map((l) => [...l]), ca: m.ca.map((c) => [c[0], c[1]]), bk: m.bk, nd: m.nd, sk: [...m.sk] };
+};
+const ktWardenState = (m) => {
+  if (!m || typeof m !== 'object' || !intIn(m.fi, 1, 1e9) || !intIn(m.ph, 1, 3) || !intIn(m.h, 0, KT_HP_MAX) || !intIn(m.m, 0, KT_HP_MAX) || !ktMs(m.op)) return null;
+  const W = m.wd;
+  if (!W || !ktXZ(W.x) || !ktXZ(W.z) || !finite(W.yw)) return null;
+  const mv = W.mv ? ktMv({ ...W.mv, o: 1 }) : null;
+  const bl = Array.isArray(m.bl) && m.bl.length <= 32 ? m.bl.map(ktBlow) : null;
+  if (!bl || !bl.every(Boolean) || !Array.isArray(m.rs) || m.rs.length !== 4 || !m.rs.every((v) => v === 0 || v === 1)) return null;
+  const fk = m.fk == null ? null : (intIn(m.fk.i, 1, 1e9) && ktMs(m.fk.at) && intIn(m.fk.m, 0, KT_HP_MAX) && Array.isArray(m.fk.c) && m.fk.c.length <= 7 && m.fk.c.every((q) => Array.isArray(q) && ktXZ(q[0]) && ktXZ(q[1]) && intIn(q[2], 0, KT_HP_MAX)) ? { i: m.fk.i, at: m.fk.at, m: m.fk.m, c: m.fk.c.map((q) => [q[0], q[1], q[2]]) } : undefined);
+  if (fk === undefined) return null;
+  const sec = Array.isArray(m.sec) && m.sec.length <= 8 && m.sec.every((s) => Array.isArray(s) && intIn(s[0], 0, 7) && ktMs(s[1]) && ktMs(s[2])) ? m.sec.map((s) => [s[0], s[1], s[2]]) : null;
+  if (!sec) return null;
+  return {
+    k: 'ws', fi: m.fi, ph: m.ph, h: m.h, m: m.m, op: m.op, ou: ktMs(m.ou) ? m.ou : 0, wd: { x: W.x, z: W.z, yw: W.yw, mv }, bl, ward: m.ward === 1 ? 1 : 0, rs: [...m.rs],
+    da: ktMs(m.da) ? m.da : 0, su: ktMs(m.su) ? m.su : 0, sa: ktMs(m.sa) ? m.sa : 0, fk, sec, ends: ktMs(m.ends) ? m.ends : 0, ended: ktMs(m.ended) ? m.ended : 0,
+    n: intIn(m.n, 0, KT_CREW_WIRE_MAX) ? m.n : 0, fell: m.fell && ktMs(m.fell.at) ? { at: m.fell.at, top: Array.isArray(m.fell.top) ? m.fell.top.filter((x) => typeof x === 'string').slice(0, 3).map(sanitizeName) : [], n: intIn(m.fell.n, 0, KT_CREW_WIRE_MAX) ? m.fell.n : 0 } : null,
+    lost: ktMs(m.lost) ? m.lost : 0, ...(m.me === 1 ? { me: 1 } : {}),
+  };
+};
+/** The room's word, projected for the page - or null. */
+export function validKetchOut(m) {
+  if (!m || typeof m !== 'object' || !KT_OUT_KINDS.includes(m.k)) return null;
+  const name = (v) => (typeof v === 'string' && v.length <= 48 ? sanitizeName(v) : '');
+  switch (m.k) {
+    case 'bd': return { k: 'bd' };
+    case 'no': return intIn(m.m, 0, KT_NO_WORDS.length - 1) ? { k: 'no', m: m.m } : null;
+    case 'rcpt': return typeof m.r === 'string' && m.r.length <= KT_RECEIPT_WIRE_MAX && KT_RECEIPT_RE.test(m.r) ? { k: 'rcpt', r: m.r } : null;
+    case 'nb': { const b = ktBody(m.b); return b && ktMs(m.up) ? { k: 'nb', b, up: m.up, wk: m.wk === 0 ? 0 : 1 } : null; }
+    case 'mv': return ktMv(m);
+    case 'bl': { const b = ktBlow(m.b); return b ? { k: 'bl', b } : null; }
+    case 'hp': return Array.isArray(m.h) && m.h.length <= 64 && m.h.every((e) => Array.isArray(e) && intIn(e[0], 1, KT_BODY_ID_MAX) && intIn(e[1], 0, KT_HP_MAX)) ? { k: 'hp', h: m.h.map((e) => [e[0], e[1]]) } : null;
+    case 'dn': return intIn(m.o, 1, KT_BODY_ID_MAX) && ktMs(m.at) ? { k: 'dn', o: m.o, n: name(m.n), at: m.at } : null;
+    case 'wk': return intIn(m.o, 1, KT_BODY_ID_MAX) && ktMs(m.at) ? { k: 'wk', o: m.o, at: m.at } : null;
+    case 'sg': return intIn(m.sg, 0, 5) && ktMs(m.at) ? { k: 'sg', sg: m.sg, at: m.at, ...(m.by != null ? { by: name(m.by) } : {}) } : null;
+    case 'wave': return intIn(m.w, 1, 3) && ktMs(m.at) ? { k: 'wave', w: m.w, at: m.at } : null;
+    case 'cl': return ktCells(m);
+    case 'drop': case 'pick': case 'bank': return typeof m.s === 'string' && ID_RE.test(m.s) && ktMs(m.at) ? { k: m.k, s: m.s, n: name(m.n), at: m.at, ...(m.k === 'drop' && typeof m.why === 'string' && /^[a-z]{1,8}$/.test(m.why) ? { why: m.why } : {}), ...(m.k === 'bank' && intIn(m.sk, 0, KT_CELL_SPOT_MAX) ? { sk: m.sk } : {}) } : null;
+    case 'wf': return intIn(m.fi, 1, 1e9) && ktMs(m.at) ? { k: 'wf', fi: m.fi, at: m.at } : null;
+    case 'ws': return ktWardenState(m);
+    case 'whp': return intIn(m.h, 0, KT_HP_MAX) && intIn(m.m, 0, KT_HP_MAX) ? { k: 'whp', h: m.h, m: m.m } : null;
+    case 'ph': return intIn(m.n, 2, 3) && ktMs(m.at) && ktMs(m.up) ? { k: 'ph', n: m.n, at: m.at, up: m.up } : null;
+    case 'ward': return (m.on === 0 || m.on === 1) && ktMs(m.at) ? { k: 'ward', on: m.on, at: m.at, ...(ktMs(m.stun) ? { stun: m.stun } : {}) } : null;
+    case 'rs': return Array.isArray(m.rs) && m.rs.length === 4 && m.rs.every((v) => v === 0 || v === 1) && ktMs(m.at) ? { k: 'rs', rs: [...m.rs], at: m.at } : null;
+    case 'fk': return intIn(m.i, 1, 1e9) && ktMs(m.at) && intIn(m.m, 0, KT_HP_MAX) && Array.isArray(m.c) && m.c.length <= 7 && m.c.every((q) => Array.isArray(q) && ktXZ(q[0]) && ktXZ(q[1])) ? { k: 'fk', i: m.i, at: m.at, m: m.m, c: m.c.map((q) => [q[0], q[1]]) } : null;
+    case 'fkh': return intIn(m.i, 1, 1e9) && Array.isArray(m.h) && m.h.length <= 7 && m.h.every((v) => intIn(v, 0, KT_HP_MAX)) ? { k: 'fkh', i: m.i, h: [...m.h] } : null;
+    case 'fkb': return intIn(m.i, 1, 1e9) && intIn(m.c, 0, 6) && ktMs(m.at) ? { k: 'fkb', i: m.i, c: m.c, n: name(m.n), at: m.at } : null;
+    case 'stun': return ktMs(m.until) && ktMs(m.at) ? { k: 'stun', until: m.until, at: m.at } : null;
+    case 'sec': return Array.isArray(m.s) && m.s.length <= 8 && m.s.every((s) => Array.isArray(s) && intIn(s[0], 0, 7) && ktMs(s[1]) && ktMs(s[2])) ? { k: 'sec', s: m.s.map((s) => [s[0], s[1], s[2]]) } : null;
+    case 'lost': case 'wl': return ktMs(m.at) ? { k: m.k, at: m.at } : null;
+    case 'fell': return ktMs(m.at) ? { k: 'fell', at: m.at, top: Array.isArray(m.top) ? m.top.filter((x) => typeof x === 'string').slice(0, 3).map(sanitizeName) : [], n: intIn(m.n, 0, KT_CREW_WIRE_MAX) ? m.n : 0 } : null;
+    case 'st': {
+      if (!intIn(m.n, 0, 0xffffffff) || !intIn(m.sg, 0, 5) || !ktMs(m.sga) || !Array.isArray(m.cr) || m.cr.length > KT_CREW_WIRE_MAX) return null;
+      if (!m.cr.every((c) => Array.isArray(c) && typeof c[0] === 'string' && ID_RE.test(c[0]))) return null;
+      const bd = Array.isArray(m.bd) && m.bd.length <= 64 ? m.bd.map(ktBody) : null;
+      const mv = Array.isArray(m.mv) && m.mv.length <= 64 ? m.mv.map(ktMv) : null;
+      const bl = Array.isArray(m.bl) && m.bl.length <= 64 ? m.bl.map(ktBlow) : null;
+      const cl = ktCells(m.cl), ws = m.ws == null ? null : ktWardenState(m.ws);
+      if (!bd || !bd.every(Boolean) || !mv || !mv.every(Boolean) || !bl || !bl.every(Boolean) || !cl || (m.ws != null && !ws)) return null;
+      return {
+        k: 'st', n: m.n, sg: m.sg, sga: m.sga, cr: m.cr.map((c) => [c[0], name(c[1])]), bd, mv, bl, wv: intIn(m.wv, 0, 3) ? m.wv : 0, cl,
+        br: m.br && ktMs(m.br.at) ? { at: m.br.at, by: name(m.br.by) } : null, ws,
+        fell: m.fell && ktMs(m.fell.at) ? { at: m.fell.at, top: Array.isArray(m.fell.top) ? m.fell.top.filter((x) => typeof x === 'string').slice(0, 3).map(sanitizeName) : [], n: intIn(m.fell.n, 0, KT_CREW_WIRE_MAX) ? m.fell.n : 0 } : null,
+      };
+    }
+    default: return null;
+  }
+}
+/** Where a ship's room keeps its voyage (net/ketch/ketchBrain.js newVoyage's record - outside every swept prefix). */
+export const KT_VOYAGE_KEY = 'ktvoyage';
+/** AUDIT KETCH L1-2 (an earner off the ship at the fall, who never boarded her again, lost its receipt - every other
+ *  event's are kept at the hub): WHERE THE HUB KEEPS AN EARNER'S KETCH RECEIPT - its latest voyage's, `{ n, r, e }`, or
+ *  `{ n, spent: true, e }` once its account says that voyage's share is given (`kt` `spent`, on the hub's socket) - for
+ *  the receipt's life, handed at its account's next hello (the Hour's SD9a, rung for rung). */
+export const KT_RC_PREFIX = 'ktrc:';
+export const ketchReceiptKey = (sub) => `${KT_RC_PREFIX}${sub}`;
+/** The hub's internal door a ship's room tells its fall's receipts at, and how long it waits to tell again. */
+export const KT_INTERNAL_RC = '/internal/ketch/rc';
+export const KT_TELL_RETRY_MS = 30_000;
+/** The most a voyage's number is on the wire (two centuries of Saturdays). */
+export const KT_VOYAGE_N_MAX = 10_000;
+/** A ship's receipts as told to the hub - its voyage and `[account, receipt]` each, the wire's own receipts alone -
+ *  projected, or null. */
+export function validKtRcTell(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const b = /** @type {any} */ (v);
+  if (!intIn(b.n, 0, KT_VOYAGE_N_MAX) || !Array.isArray(b.rc)) return null;
+  const rc = b.rc.slice(0, KT_CREW_WIRE_MAX).filter((e) => Array.isArray(e) && typeof e[0] === 'string' && ID_RE.test(e[0]) && typeof e[1] === 'string' && e[1].length <= KT_RECEIPT_WIRE_MAX && KT_RECEIPT_RE.test(e[1])).map((e) => [e[0], e[1]]);
+  return { n: b.n, rc };
 }

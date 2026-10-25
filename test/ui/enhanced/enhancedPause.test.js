@@ -373,7 +373,8 @@ test('PX22: the rail is three named sections, always - Main, Side, Archived', ()
   // One helper, three calls, in order - not a conditional pair.
   // PIN MOVED (QL3): Main Quests is the first heading unless the rewards waiting stand above it (their section takes the
   // first heading's place while any wait) - the three sections stand either way
-  assert.match(fn, /section\(t\('pause\.journal\.main', 'Main Quests'\), mains, '', !offers\.length\);/);
+  // PIN MOVED (QUEST-AUDIT III STORY-AGAIN): and the main story's failed steps under it, after the running ones
+  assert.match(fn, /section\(t\('pause\.journal\.main', 'Main Quests'\), \[\.\.\.mains, \.\.\.story\], '', !offers\.length\);/);
   assert.match(fn, /section\(t\('pause\.journal\.side', 'Side Quests'\), sides, ''\);/);
   assert.match(fn, /section\(t\('pause\.journal\.archived', 'Archived'\), finished, ' done'\);/);
   assert.ok(fn.indexOf("'Main Quests'") < fn.indexOf("'Side Quests'"), 'main above side');
@@ -494,7 +495,7 @@ test('PX25: the Stats page carries the doors, and only the ones a host handed ov
   // The window goes DOWN before it opens: two overlays at once is the
   // stacking bug U55 found the other way round on this seam. ESC-BOOK:
   // as a handoff - the door's window takes the slot, nothing relocks.
-  assert.match(fn, /b\.onclick = \(\) => \{ onAction\('handoff'\); if \(fn\(\) === false\) onAction\('resume'\); \};/);
+  assert.match(fn, /b\.onclick = \(\) => \{ handoff\(fn\); \};/);   // PIN MOVED (AUDIT SEASON-BOOK S3): the handoff's one home
   assert.match(read('src/ui/enhanced/enhancedStyle.js'), /\.px-sheetdoors \.act \{ min-height: 44px; \}/);
 });
 
