@@ -8302,7 +8302,7 @@ roll's now: `world/spawnGroundPlace.js` `groundLocationAt` answers what stands t
 clocks never asked (`spawnAt(px, py, { clocks: false })` - the sea, a wet plateau, a path across the pixel; none offline, past
 the Veil or in the open zone), and the pixel build shapes the blend, the tiles, World of Daggerfall's pick and the
 woods' clearings for it. What stands - the ruin, its door, its plate, its foes - is still the clocks'. A dead spawn
-leaves its level clearing and the ruin's ground tiles until it stands again. `01-Overview/bugs/Field-Bugs-2026-10-24.md`.
+leaves its level clearing and the ruin's ground tiles until it stands again. `01-Overview/bugs/Field-Bugs-2026-10-24b.md`.
 
 ### DISC29-F - a mode change stops the riding loop, as UpdateMode does (2026-09-28, Skibbster)
 

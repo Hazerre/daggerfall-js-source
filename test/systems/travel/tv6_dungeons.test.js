@@ -483,7 +483,7 @@ test('AUDIT OW4 D2/D4 host: a spawn is GONE by the feature\'s own test (the ledg
   clock = NaN;
   assert.equal(gone(5, 6), false, 'a clock not yet running expires nothing');
   // what would stand
-  // PIN MOVED (GROUND-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the stand is the shared spawn law's
+  // PIN MOVED (GROUND-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): the stand is the shared spawn law's
   // (world/spawnGroundPlace.js), run here over the same cases
   assert.match(w, /const tvSpawnAt = spawnGroundPlace\.spawnAt;/, 'the stand');
   const pathAtThree = new Uint8Array(1000 * 500);

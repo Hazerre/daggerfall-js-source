@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-24 (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md) - "players seeing other players underneath the
+// FIELD BUGS 2026-10-24 (bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md) - "players seeing other players underneath the
 // ground", and the foes those players spawn out of reach, mostly at world events outside the breach portals with a crowd
 // about. A pose and a foe record carry a height on their sender's own ground, so two clients that build one pixel on two
 // grounds see each other sunk or floating. Two of a client's own beliefs moved the ground on the same build:

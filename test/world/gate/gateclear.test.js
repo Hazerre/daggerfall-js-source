@@ -4,7 +4,7 @@
 // 114,087 of the pixels the gate may take; nothing kept the two apart. world/gate/gateClearance.js is the law, ROADS-CLEAR's
 // shape: a whole site reaching the clearing stands none of its objects, any other piece reaching it is not stood, and the
 // streamer's sweep builds a pixel again when the gate the clock is about turns. GATE-AGREE (bible/01-Overview/bugs/
-// Field-Bugs-2026-10-24.md): the clearing never decides a pick - a pick levels the ground, and the clearings are each
+// Field-Bugs-2026-10-24b.md): the clearing never decides a pick - a pick levels the ground, and the clearings are each
 // client's own word (the arches it believes), so a held site keeps its pick and its level ground.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -258,7 +258,7 @@ test('GATE-CLEAR by source: the build reads the clearing once and asks it at the
   assert.equal(w.match(/(?<!get )_gateClearNow\(\)/g)?.length, 3,   // (HOST-SPLIT 2: the pixel build reads it live through its getter, `get _gateClearNow()`, which is no read)
     'read by the build, by the sweep and by the hub\'s word of the site (DISCORD-GATES) - nowhere else');
   assert.match(w, /const gateClear = host\._gateClearNow\(\);\n\s*const gateLedger = \{ refused: false, reach: \[\] \};[^\n]*\n\s*const gateSite = gateSiteTest\(gateClear, px, py, gateLedger\);\n\s*if \(wod && onTheBay\(px, py\) && await wodOpened\) \{/, 'read once, before the pick');   // PIN MOVED (AUDIT CAPTAIN'S SEA G8): the pick the Bay's alone
-  // PIN MOVED (GATE-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the road alone picks; the clearing asks each
+  // PIN MOVED (GATE-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): the road alone picks; the clearing asks each
   // pick after it is made, the kernel levels every pick's ground, and a held pick stands nothing
   assert.match(w, /\}, wodPathsPoint, \(name, prefab, rect\) => wodSiteClear\(terrainGen\.roads\(\), px, py, name, prefab, rect\)\);/, 'the road alone decides a pick');
   assert.match(w, /if \(picks\.length && onTheBay\(px, py\)\) \{ wodPicks = picks; wodHeld = picks\.map\(\(p\) => !gateSite\(p\.prefabName, p\.prefab, p\.rect\)\); \}/, 'then the gate, of each pick');

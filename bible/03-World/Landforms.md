@@ -882,7 +882,7 @@ Roads network, in scratch, with the slice's own functions:
   blend) is outside it, and its slice names the bump itself. The room's
   memory (WORLD1) holds dungeon and building places only, no exterior height.
 - TWO BELIEFS IN ONE ROOM (GROUND-AGREE and GATE-AGREE, 2026-10-24,
-  `01-Overview/bugs/Field-Bugs-2026-10-24.md`). One build, two grounds: a pixel
+  `01-Overview/bugs/Field-Bugs-2026-10-24b.md`). One build, two grounds: a pixel
   was levelled by what its client believed as it built it - whether a spawned
   dungeon stood there (each client's clocks), and which breach arches' clearings
   refused a World of Daggerfall site at its pick (each client's own word of a

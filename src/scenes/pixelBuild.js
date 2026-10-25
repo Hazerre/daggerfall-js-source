@@ -222,7 +222,7 @@ export function createPixelBuild(host) {
     const made = {};   // BUILD-FAIL1: this build's ledger, until publish hands it to the entry
     _building.set(key, made);
     const dfLocation = _locationToBuild(px, py) || null;   // SPAWNED-DUNGEONS1: an empty pixel may stand one (AUDIT OW5b D2: a spawn the index holds asked its clocks)
-    // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the terrain is shaped for the place the roll stands
+    // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): the terrain is shaped for the place the roll stands
     // here, alive or dead (world/spawnGroundPlace.js) - every client's the same - and what STANDS is dfLocation's alone
     const groundLocation = spawnGroundPlace.groundLocationAt(px, py, dfLocation);
     // EV7: the LOCATION half stays here - setLocationTiles reads
@@ -244,7 +244,7 @@ export function createPixelBuild(host) {
     // and again here, where the list is read), every announced folder
     // lands, and the first valid instance naming this pixel takes it.
     let wodPicks = null;
-    // GATE-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): per pick, whether a clearing withholds its objects. The
+    // GATE-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): per pick, whether a clearing withholds its objects. The
     // clearings - the gate's, every arch this client believes and every fallen star's - are each client's own word, so
     // they never decide a pick: a pick levels the ground. A whole site reaching one keeps its pick and its level ground,
     // and none of its objects stand (GATE-CLEAR: a camp never half stood); the ledger says what it cost

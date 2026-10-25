@@ -1,5 +1,5 @@
 // @ts-check
-// GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): THE PLACE A PIXEL'S GROUND IS SHAPED FOR.
+// GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): THE PLACE A PIXEL'S GROUND IS SHAPED FOR.
 //
 // A location levels its whole pixel (DFU's BlendLocationTerrain, world/terrain/terrainTiles.js blendLocationTerrain), and
 // online a spawned dungeon is a location. Whether a spawn STANDS is each client's clocks (TTL1, SPAWN-REBIRTH: seven days

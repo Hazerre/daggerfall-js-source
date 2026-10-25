@@ -324,7 +324,7 @@ test('AUDIT LANDFORMS B1: a pixel not built yet is asked what its build will sta
   // swapped its x and y answered the same, so three transposed bindings survived
   const town = { name: 'Town' }, rolled = { name: 'Rolled', spawned: true };
   const index = new Map([['5,2', town], ['2,5', spawn]]), before = [...index];
-  // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the ground's place - what the index holds, else the
+  // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): the ground's place - what the index holds, else the
   // roll's spawn alive or dead (world/spawnGroundPlace.js, run in test/scenes/fb1024_groundagree.test.js)
   const ask = probe(index, (x2, y2, stood) => stood ?? (x2 === 3 && y2 === 7 ? rolled : null));
   assert.equal(ask(5, 2), town, 'the index\'s place');

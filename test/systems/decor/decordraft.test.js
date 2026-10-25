@@ -24,6 +24,58 @@ test('DECOR-BATCH the differences: several edits of one piece are its last state
   assert.match(decorDraftText(90), /90 gold back/);
 });
 
+test('DECOR-BATCH standing reads the revision, and the room only when it moves', async () => {
+  const calls = [];
+  let rev = 3;
+  const rig = toolRig({
+    room: { kind: 'home', mapId: 11, buildingKey: 22 },
+    homeDecor: {
+      batch: async () => ({ ok: true }),
+      rev: async () => { calls.push('rev'); return { ok: true, data: { rev } }; },
+      list: async () => { calls.push('list'); return { ok: true, data: { rev, pieces: [] } }; },
+      use: async () => { calls.push('use'); return { ok: true, data: {} }; },
+    },
+  });
+  rig.frame({ dt: 2.1 });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, ['rev'], 'the first look remembers the revision and does not fetch the room');
+  rig.frame({ dt: 2.1 });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, ['rev', 'rev']);
+  rev = 4;
+  rig.frame({ dt: 2.1 });
+  await new Promise((r) => setTimeout(r, 0));
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(calls, ['rev', 'rev', 'rev', 'list', 'use']);
+});
+
+test('DECOR-BATCH a room that did not arrive is asked again on the same revision', async () => {
+  const calls = [];
+  let rev = 3;
+  let fail = true;
+  const rig = toolRig({
+    room: { kind: 'home', mapId: 11, buildingKey: 22 },
+    homeDecor: {
+      batch: async () => ({ ok: true }),
+      rev: async () => { calls.push('rev'); return { ok: true, data: { rev } }; },
+      list: async () => { calls.push('list'); return fail ? { ok: false } : { ok: true, data: { rev, pieces: [] } }; },
+      use: async () => { calls.push('use'); return { ok: true, data: {} }; },
+    },
+  });
+  const tick = async () => { rig.frame({ dt: 2.1 }); await new Promise((r) => setTimeout(r, 0)); await new Promise((r) => setTimeout(r, 0)); };
+  await tick();
+  rev = 4;
+  await tick();
+  assert.deepEqual(calls, ['rev', 'rev', 'list']);
+  await tick();
+  assert.deepEqual(calls, ['rev', 'rev', 'list', 'rev', 'list'], 'the same revision is fetched again after a miss');
+  fail = false;
+  await tick();
+  assert.deepEqual(calls, ['rev', 'rev', 'list', 'rev', 'list', 'rev', 'list', 'use']);
+  await tick();
+  assert.deepEqual(calls, ['rev', 'rev', 'list', 'rev', 'list', 'rev', 'list', 'use', 'rev']);
+});
+
 test('DECOR-BATCH the decorator: Confirm sends the difference once, a refusal keeps the draft, Discard puts the room back and Escape will not throw it away', async () => {
   const sent = [];
   let rev = 4;

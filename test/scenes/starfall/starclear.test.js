@@ -187,7 +187,7 @@ test('STAR-CLEAR over the shipped lists: a star\'s spot DOES land in the mod\'s 
     for (const p of pickLocations(tile(x, y), session, getPrefab, paths, null)) for (const o of p.prefab.obj) if (Math.abs(o.pos.y) <= 1000 && pointNearGate(clear, x, y, p.rect.x * 6.4 + o.pos.x, p.rect.y * 6.4 + o.pos.z)) within++;
     if (within) hit++;
     const ledger = { refused: false, reach: [] };
-    // PIN MOVED (GATE-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the road alone picks, then the clearing asks
+    // PIN MOVED (GATE-AGREE, bible/01-Overview/bugs/Field-Bugs-2026-10-24b.md): the road alone picks, then the clearing asks
     // each pick - a held site keeps its pick (and its level ground) and stands none of its objects
     for (const p of pickLocations(tile(x, y), session, getPrefab, paths, (nm, pf, r) => wodSiteClear(net, x, y, nm, pf, r))) {
       if (!gateSiteTest(clear, x, y, ledger)(session.prefab[p.index], p.prefab, p.rect)) continue;

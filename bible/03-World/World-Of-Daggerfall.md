@@ -801,7 +801,7 @@ clearing of the gate's day, RITE_CLEAR_M (20 m) about the circle the day's law
 places (`riteLocalOf`): the same refusals, so no boulder stands through the altar,
 the braziers or the faithful's tents (AUDIT WB12d G12).
 
-GATE-AGREE (2026-10-24, `01-Overview/bugs/Field-Bugs-2026-10-24.md`): A CLEARING
+GATE-AGREE (2026-10-24, `01-Overview/bugs/Field-Bugs-2026-10-24b.md`): A CLEARING
 NEVER MOVES THE GROUND. The gate's clearing became a set - every Elite Breach arch
 (EG-F) and every fallen star (STAR-CLEAR) - and a stranger's arch is each client's
 own word: believed only near its opener, two to a cell. A site refused at its

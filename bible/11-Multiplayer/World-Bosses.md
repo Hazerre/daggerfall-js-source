@@ -1124,9 +1124,11 @@ the `price`). ONE UPDATE is the sale - the id
 joins the column and the price the spend only where the row does not hold it yet and its gates still cover it - so two
 sales pressed at once never spend the same stones, and a piece is never bought twice (409 `owned`); a guest row keeps
 none (403 `guest`), and the id is appended in the UPDATE itself (AUDIT WB9 I3). The Broker HOLDS the stones before it
-asks the service and gives them back unless the service holds the sale - a lost answer asked after - and saves a held
-sale at once (AUDIT WB9 I1/I2: `systems/sigil/sigilBroker.js insigniaSale`), so a refused sale takes nothing and no sale goes
-unpaid; the account view says the purse beside the wardrobe.
+asks the service, gives them back where the service refuses the sale, and saves a held sale at once (AUDIT WB9 I1/I2:
+`systems/sigil/sigilBroker.js insigniaSale`); a press whose answer was lost is asked after by its own request id, and
+the service answers that sale or fences the id - the stones back - and one unheard twice is owed and settled at her
+next open (BROKER-RID, AUDIT FB1024: `01-Overview/bugs/Field-Bugs-2026-10-24.md`), so a refused sale takes nothing and
+no sale goes unpaid; the account view says the purse beside the wardrobe.
 
 HELD, WORN, SIGNED. A title bought is held as a founder's is (`server-account/src/titles.js titlesHeld` reads it off the
 row) and worn through the title's own door. An aura is held off the row (`aurasHeld`) and worn through its own
