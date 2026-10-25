@@ -14,7 +14,7 @@ import {
   takesHeartwood, qualitySteps, craftXp, firstCraftPays, recipeOpen, craftCount, FIRST_CRAFT_XP, pieceLines,
   FACET_ACT, facetBand, facetCount, facetWindow, bearingGap, HAND_CHEF,
 } from '../../src/net/recipeLaw.js';
-import { SPECIALISATIONS, specOk, specDiscipline, TIER_RANKS, JEWEL_FEE, MASON_FEE, GEMS, PEARL, SIEGE_GEM, ACT_BANDS, minedMaterial, GRADED_GEMS } from '../../src/net/professionLaw.js';
+import { SPECIALISATIONS, specOk, specDiscipline, TIER_RANKS, JEWEL_FEE, MASON_FEE, GEMS, PEARL, SIEGE_GEM, ACT_BANDS, minedMaterial, GRADED_GEMS, looseOnly } from '../../src/net/professionLaw.js';
 import { GROUP_TEMPLATE_INDICES } from '../../src/systems/item/itemTemplatesData.js';
 import { templateByIndex } from '../../src/systems/item/itemTemplates.js';
 import { mintProductRecord, readProductRecord, productRecordValid } from '../../src/net/productRecord.js';
@@ -78,7 +78,8 @@ test('PROF10 law: the jeweller\'s bench\'s 504 recipes (CLOTH-GEMS: every grade 
 test('PROF10 law: a piece of jewellery takes a quality and lists among the Jewellery (commissioned at a quality; a Masterwork to auction); one piece a craft; a Wand takes a Heartwood for a plank, its step; no family step for a jeweller', () => {
   for (const r of JEWELCRAFTING_RECIPES) {
     assert.equal(takesQuality(r), true, r.id);
-    assert.deepEqual([pieceListable(r.id), commissionable(r.id), commissionTakesQuality(r.id), auctionable(r.id, 4), auctionable(r.id, 3)], [true, true, true, true, false], r.id);
+    // PIN MOVED (CLOTH-GEMS): a graded gem's jewel is no commission's - the loose door's goods fill none (writLaw commissionUnyielded)
+    assert.deepEqual([pieceListable(r.id), commissionable(r.id), commissionTakesQuality(r.id), auctionable(r.id, 4), auctionable(r.id, 3)], [true, !looseOnly(r.gem), true, true, false], r.id);
     assert.equal(craftCount(r, 'quartermaster', 'cook'), 1);
   }
   assert.deepEqual(CRAFTED_FAMILIES.at(-1), ['jewellery', 'Jewellery']);

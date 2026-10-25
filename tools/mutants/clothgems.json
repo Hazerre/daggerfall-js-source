@@ -453,5 +453,15 @@
     "tests": [
       "test/systems/clothgems_jewel.test.js"
     ]
+  },
+  {
+    "name": "CLOTHGEMS-commission-loose-open",
+    "file": "src/net/writLaw.js",
+    "old": "UNYIELDED.includes(i.key) || looseOnly(i.key));",
+    "new": "UNYIELDED.includes(i.key));",
+    "tests": [
+      "test/net/audit31_law.test.js",
+      "test/net/prof10_law.test.js"
+    ]
   }
 ]

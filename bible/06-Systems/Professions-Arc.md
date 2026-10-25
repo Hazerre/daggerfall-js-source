@@ -5533,8 +5533,9 @@ and the jeweller ACCEPTS EVERY GRADE of gem.
   `materialOf`) and is in no `MINED_KEYS` - the market's catalogue - so no buy order, writ or guild names one, and one in
   the pack still lists from the pack (`marketLaw.js` `storesForm`). The service counts none carried (no harvest yields
   one), so the Stores page's Put in and a writ's put-in move none; a station's shortfall alone (`bagLaw.js` `looseOrder`)
-  brings one in, as loose, and the piece made of it is walled to gold as every loose good's. `market.js` refuses a buy
-  order and a Stores listing of one (`bad-material`); withdrawn, it is the gem it came in as. `materialsBag.js`
+  brings one in, as loose, and the piece made of it is walled to gold as every loose good's - so no commission asks a
+  jewel of one (`writLaw.js` `commissionUnyielded`: its piece could fill none, AUDIT 31 L2's law). `market.js` refuses a
+  buy order and a Stores listing of one (`bad-material`); withdrawn, it is the gem it came in as. `materialsBag.js`
   `materialKeys` maps every graded gem item to its key.
 - **A grade in the recipe id** - `recipeLaw.js` `JEWEL_GEMS`: 41 gems (DFU's eight, the Pearl, the thirty-two), a recipe
   each - `ring:gold:flawless-ruby`, "Gold Flawless Ruby Ring" - 504 jewels where 120 stood. The first-craft key stays the
@@ -5555,7 +5556,9 @@ and the jeweller ACCEPTS EVERY GRADE of gem.
 `ACCOUNT_VERSION` acct182 (`service.js`, `wrangler.toml` - `01-Overview/audits/Audit-Foe-Keeps.md` L3's rule): the
 decision's `p`, the answer's `firstPaid`, the loom's seven works, the graded gems' keys and recipes, the disenchant's origin,
 the kin's one bind (`json_each`, `craftWrits.js`'s way - the decision binds at most 29 of D1's 100) and the market's two
-refusals. No migration: `prof_crafts` and `products` keep every column as they were.
+refusals. No migration: `prof_crafts` and `products` keep every column as they were. The Worker bundles the new leaf
+(`src/systems/loot/gemGrades.js`, through the professions' law), so `.github/workflows/account-deploy.yml`'s path filter
+names it (`test/server/accountdeploy.test.js` ACC4: a bundled file outside the filter would never deploy).
 
 ### 50.6 The four hosts and the process laws
 
@@ -5575,18 +5578,19 @@ twelve drafting languages owe the rest of their backlog as before (`06-Systems/L
 
 ### 50.8 As built
 
-`src/net/professionLaw.js`, `src/net/recipeLaw.js`, `src/net/alchemyLaw.js`, `src/net/chainLaw.js` (a word),
+`src/net/professionLaw.js`, `src/net/recipeLaw.js`, `src/net/alchemyLaw.js`, `src/net/writLaw.js`, `src/net/chainLaw.js` (a word),
 `src/systems/loot/gemGrades.js` (new), `src/systems/loot/lootRarity.js`, `src/systems/gems.js`, `src/systems/materialsBag.js`,
 `src/ui/craftXpWords.js`, `src/ui/professions/profPages.js`, `server-account/src/professions.js`, `alchemy.js`, `market.js`,
 `service.js`, `wrangler.toml`, `locales/*/Port_Strings.csv` and their records. Pinned: `test/net/clothgems_law.test.js`
 (4), `test/net/clothgems_service.test.js` (2), `test/systems/clothgems_client.test.js` (2), `test/net/clothgems_gems.test.js`
-(4), `test/systems/clothgems_jewel.test.js` (2). `tools/mutants/clothgems.json` (49, all dead); re-aimed by content, each
+(4), `test/systems/clothgems_jewel.test.js` (2). `tools/mutants/clothgems.json` (50, all dead); re-aimed by content, each
 still dead: `audit32` (5), `audit_uicalm_firm1`, `prof3` (2), `prof11`, `prof12` (4), `fb1015f_firstcraft` (7),
 `fb1018d_crafthowto`, `fb1018f_craftlimit` (5), `craft2`, `prof10` (4), `gem1`, `loot20`, and the version's ten. PIN MOVED:
 `prof7_law`, `prof4_law`, `craft1_chain` (the loom's works, the chain's), `fb1015f_firstcraft` (the words), `prof12_service`
 and `prof7_service` (the counter's cloth bought, an own piece's XP), `prof7_client` (a Wool shirt from raw),
 `fb1018d_crafthowto`, `prof12_client`, `audit_uicalm_firm1`, `audit32_service` (its title: the units decide),
-`prof10_law`, `prof10_client` and `craft2_patterns` (every grade, the kin), and the version's pins. FOUND on the way:
+`prof10_law`, `prof10_client` and `craft2_patterns` (every grade, the kin), `prof9_law` and `prof11_law` (the recipes'
+order behind the jeweller's 504), `audit31_law` (the commissions no one could fill), and the version's pins. FOUND on the way:
 `test/server/founder5.test.js` was time-bombed - its "later" guest stood at 2026-09-25 + 30 days, which the real clock
 passed at 00:00Z on 2026-10-25; its row now stands a day past the real clock, as the pin means it.
 

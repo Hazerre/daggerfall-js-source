@@ -766,8 +766,8 @@ export const firstCraftPays = (r, own = false) => !!r && (!counterMade(r) || own
  */
 export const firstCraftKey = (r) => (!r ? null : `${r.product}@${r.tier}`);
 /** CRAFT2: the recipes a first craft is counted among - every recipe of its pattern at its tier, in the table's order (the
- *  service's `recipe IN (...)`: any one of them made before, and this one is no first). At most 18 (the Wand at tier 6:
- *  two woods, nine gems). */
+ *  service's `recipe IN (...)`: any one of them made before, and this one is no first). At most 82 (the Wand at tier 6:
+ *  two woods, CLOTH-GEMS' 41 gems - every grade), so the service binds the list as one (json_each). */
 const KIN = new Map();
 for (const r of RECIPES) KIN.set(firstCraftKey(r), [...(KIN.get(firstCraftKey(r)) ?? []), r.id]);
 export const firstCraftKin = (r) => (!r ? [] : Object.freeze([...(KIN.get(firstCraftKey(r)) ?? [r.id])]));
