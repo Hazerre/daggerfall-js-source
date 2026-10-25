@@ -65,12 +65,10 @@ export const isChannelShard = (key) => busOf(key) != null;
 export const isChannelBus = (key) => key === HUB_BUS || isRegionBus(key);
 /** A key's channel: a shard's bus, or the key itself. */
 export const channelOf = (key) => busOf(key) ?? key;
-/** The shard of the channel `bus` an account lands on, by its verified subject - null for no subject or no such bus. */
-export const shardOf = (bus, sub) => {
-  if (bus === HUB_BUS) return hubOfSubject(sub);
-  if (!isRegionBus(bus) || typeof sub !== 'string' || !sub) return null;
-  return `${bus}.${shardHash(sub) % REGION_SHARDS}`;
-};
+/** The shard of the channel `bus` an account lands on, by its verified subject - null for no subject or no such bus.
+ *  HIBERNATE-REGION: a region's channel is one room. Its shard keys stay valid so a tab still naming one is told the
+ *  bus; nobody is placed on one, and no region shard holds a long-poll. */
+export const shardOf = (bus, sub) => (bus === HUB_BUS ? hubOfSubject(sub) : null);
 
 /**
  * SCALE5d part two (2026-10-11, the plan's "the gate's court ... as copies around one fight object that takes their blows

@@ -71,3 +71,17 @@ test('GRANT2-GRANT3 THE HOST WIRED: world.js makes one grants\' host, hands it t
   assert.match(W, /\.\.\.\(hit\.spawnOpts \?\? \{\}\), grantKind: hit\.fixed \? 'bounty' : hit\.kind === 'band' \? 'band' : 'camp',/);
   assert.equal(typeof createGrantHost, 'function');
 });
+
+test('GRANT-SLEEP: alone, a stand asks the cell nothing; once someone is here, that kind is asked once', async () => {
+  let others = 0;
+  const asks = [];
+  const session = () => ({ room: CELL, status: 'open', grantMode: 'measure', othersHere: others, sendGrant(a) { asks.push(a); return true; } });
+  const h = createGrantHost({ session, now: () => 1_000, climateAt: () => 231 });
+  assert.equal(h.memberFor('enc'), null, 'the stand proceeds with no ask');
+  h.tick();
+  assert.equal(asks.length, 0, 'still alone: nothing on the wire');
+  others = 1;
+  h.tick();
+  await Promise.resolve();
+  assert.deepEqual(asks.map((a) => [a.k, a.kind, a.n]), [['mint', 'enc', 1]], 'one ask when someone arrives');
+});

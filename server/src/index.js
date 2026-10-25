@@ -182,7 +182,7 @@ import { routeStaffTeleport } from './staffTeleport.js';
 import { followNoted, withoutRoom, followHello, followJoined, followLeft, followSayInternal } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the where note kept and read, and a player followed
 import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
-import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
+import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft, staffNetFlush, staffReactFlush, staffFeedsStop } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
 import { hiddenMay, hiddenAsked, seatsTaken, hiddenSeats, hiddenHello, hiddenPose, hiddenLapse, hiddenEntered, isHidden } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff spectator, named by nobody
 import { takeStaffEventLaw, sayStaffBook, staffEventWord, staffBookInternal, staffTellInternal, staffCallInternal, SEV_INTERNAL_BOOK, SEV_INTERNAL_TELL, SEV_INTERNAL_CALL } from './staffEvents.js';   // STAFF-EVENT: a staff event's book (the hub) and meter (its place's cell)
 import { STAFF_ORDER_KINDS, takeStaffOrder, frozenHello, busFreeze, frozenFrame, staffLine, freezeMoved, seatBarred, frozenAt, busMissed } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freeze player and the staff chat
@@ -721,7 +721,6 @@ const ARENA_LIVE_TELL_MS = 2000;
 const arenaId = () => [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, '0')).join('');
 
 const lookKey = (id) => `look:${id}`;
-const secretKey = (id) => `secret:${id}`;
 /** SCALE5a: one socket moved between two keys' sets of a kept index (`from`/`to` null for none) - nothing for a dropped
  *  index (`m` null: it is rebuilt whole) or a socket that did not move. */
 const keyMove = (m, ws, from, to) => {
@@ -1778,6 +1777,7 @@ export class Room {
     const secret = typeof p.m?.secret === 'string' && p.m.secret ? p.m.secret : null;
     const kept = await this._secretOf(a.id);
     if (kept && kept !== secret) { vws.att = a; this._refuse(vws, 'id taken'); return; }
+    if (secret) a = { ...a, sc: secret };
     // AUDIT SCALE II R2-5: THE BUS'S ORDERS OVER A SHARD'S HELLO. A mute the bus applied after the hello's token was minted,
     // and a guild member removed (or a guild gone) since, win over the token - MOD1's and GUILD1c's laws, as `_named`
     // applies a room's own over a hello said to it; the shard never hears the orders, so its own hello applied none
@@ -1801,7 +1801,7 @@ export class Room {
       this._closed(other);
     }
     this._adopt(vws, a);
-    if (secret && (kept !== secret || !this._secrets.has(a.id))) { await this.state.storage.put(secretKey(a.id), secret); this._secrets.set(a.id, secret); }   // the hub's own law: written when it is new
+    if (secret && (kept !== secret || !this._secrets.has(a.id))) this._secrets.set(a.id, secret);   // the id's secret rides the socket, not storage
     this._vlaw(vws, p.att, a);   // AUDIT SCALE II R2-5: an order applied here is the shard's word too
     this._metrics.c.hellos++;
     const held = hubBus && a.sub ? this._otherTabsOf(a.sub, vws, a.id).filter((o) => !o.virtual) : [];   // ONE-SEAT is the hub's (a region's channel never held a seat)
@@ -1813,6 +1813,7 @@ export class Room {
     const ev = await this._liveEvent();
     if (ev) this._send(vws, JSON.stringify({ t: 'event', kind: ev.kind, at: ev.at, w: 1 }));   // `w`: as a welcome says it - a joiner's, not a fresh staging
     await sayStaffBook(this, vws, now);   // STAFF-EVENT: the staff events live
+    this._send(vws, `{"t":"ldo","on":${relayCfgValue(await this._relayCfgOf(), this.env, 'leaseDoor') === 'on' ? 1 : 0}}`);   // LEASE1: the bus holds the door; a shard's own welcome does not
     await this._hubHelloWords(vws, m, a.sub, now);
   }
   /** (a region's bus) SCALE5c part two: a shard's joiner told the region's fresh traveller marks (TV3) - its shard's
@@ -2481,34 +2482,35 @@ export class Room {
   /** The room forgets its looks and secrets (and its hello bucket) - never its world (WORLD1). */
   /** SOC1: and its parties - the hub drained, so nobody is online to hold one (a member back inside PARTY_OFFLINE_MS
    *  finds its record pointing at a party that is gone, and the hello clears it); never an account or its secret. */
-  async _sweep() {
+  async _sweep(key) {
     this._looks.clear();
     const dead = ['hellos'];   // SCALE2b: a relay before it kept the hello bucket here - the key goes with the drain
-    this._secrets.clear();   // SCALE2b: nothing is left to hold an id (the list below takes the stored ones)
-    for (const prefix of ['look:', 'secret:']) { const m = await this.state.storage.list({ prefix }); for (const k of m.keys()) dead.push(k); }
-    const tables = await this._holdemOf();   // AUDIT CARDS-3 A3: no seat outlives an empty room - the secrets go, so its id is anyone's
-    if (tables.size && this._holdemGhosts(tables, Date.now(), true)) await this._holdemSave();
-    const iliac = await this._iliacOf();   // CARDS10: and no Iliac seat either
-    if (iliac.size && this._iliacGhosts(iliac, Date.now(), true)) await this._iliacSave();
-    const gambit = await this._gambitOf();   // KG5: and no King's Gambit seat - a game under way is no contest
-    if (gambit.size && this._gambitGhosts(gambit, Date.now(), true)) await this._gambitSave();
-    // CARDS6: a spent stake remembered past the oldest order a void takes, then forgotten
-    // AUDIT CARDS-4 B6: read a page at a time (AUDIT SOC A4), and an account's owed cash-outs all past their life go too
-    const nowS = Math.floor(Date.now() / 1000), old = nowS - HOLDEM_STAKE_KEEP_S;
-    for (const k of await this._keysOf('cstake:')) if (!((await this.state.storage.get(k)) > old)) dead.push(k);
-    for (const k of await this._keysOf('cashout:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);
-    for (const k of await this._keysOf('iowed:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);   // AUDIT CARDS-6 C1: and its Iliac results
-    for (const k of await this._keysOf('gowed:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);   // KG6: and its King's Gambit results
-    this._parties.clear(); for (const k of await this._keysOf('party:')) dead.push(k);   // SOC1: the parties go with the drain; acct: and asecret: stay (AUDIT SOC A4: listed in pages - an unbounded list of a namespace a client can grow is the isolate's memory)
+    this._secrets.clear();   // the id's secret rides the socket's attachment now - nothing stored to list
+    const chat = isChatRoom(key), social = isSocialRoom(key), cards = typeof key === 'string' && key.startsWith('interior:');
+    if (!chat) { const m = await this.state.storage.list({ prefix: 'look:' }); for (const k of m.keys()) dead.push(k); }   // a channel keeps no look
+    if (cards) {
+      const tables = await this._holdemOf();   // AUDIT CARDS-3 A3: no seat outlives an empty room
+      if (tables.size && this._holdemGhosts(tables, Date.now(), true)) await this._holdemSave();
+      const iliac = await this._iliacOf();   // CARDS10: and no Iliac seat either
+      if (iliac.size && this._iliacGhosts(iliac, Date.now(), true)) await this._iliacSave();
+      const gambit = await this._gambitOf();   // KG5: and no King's Gambit seat - a game under way is no contest
+      if (gambit.size && this._gambitGhosts(gambit, Date.now(), true)) await this._gambitSave();
+      const nowS = Math.floor(Date.now() / 1000), old = nowS - HOLDEM_STAKE_KEEP_S;
+      for (const k of await this._keysOf('cstake:')) if (!((await this.state.storage.get(k)) > old)) dead.push(k);
+      for (const k of await this._keysOf('cashout:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);
+      for (const k of await this._keysOf('iowed:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);
+      for (const k of await this._keysOf('gowed:')) if (!((await this.state.storage.get(k)) ?? []).some((x) => x && x.e > nowS)) dead.push(k);
+    }
+    if (social) { this._parties.clear(); for (const k of await this._keysOf('party:')) dead.push(k); }   // SOC1: the parties live on the hub
     for (let i = 0; i < dead.length; i += 128) await this.state.storage.delete(dead.slice(i, i + 128));
   }
 
   /** SCALE2b: an id's secret in this room (null: none) - the kept copy, else storage's, read once and kept. */
   async _secretOf(id) {
     if (this._secrets.has(id)) return this._secrets.get(id);
-    const v = await this.state.storage.get(secretKey(id));
-    const held = typeof v === 'string' ? v : null;
-    if (!this._secrets.has(id)) this._secrets.set(id, held);   // a write that landed while storage answered stands
+    let held = null;
+    for (const [, b] of this._all()) if (b.id === id && typeof b.sc === 'string') { held = b.sc; break; }   // hibernation keeps the attachment; storage does not hold it
+    if (!this._secrets.has(id)) this._secrets.set(id, held);
     return this._secrets.get(id);
   }
   /** AUDIT SOC A4: every KEY under a prefix, SWEEP_PAGE at a time - the keys alone; a namespace a client can grow (the
@@ -3804,9 +3806,9 @@ export class Room {
       // carried over - a claim that closed the account's other tabs, or a reconnect that replaced its own old socket,
       // moved a seat the room never lost, and the sweep below took every party in the hub with it (a stranger's too)
       const carried = !!replaced || (!!m.cl && seatHeld.length > 0);
-      if (!others.length && !carried && !this._swept) { try { await this._sweep(); } catch (e) { console.warn('[room] sweep failed', e?.message ?? e); } }   // AUDIT-SEATS R3: a battle room's fighter spent no stored bucket   // an empty room forgets every look and secret an unclean close left behind - not its hello gate (AUDIT SOC A2: contained - a failed list here made every first hello into an empty hub throw before its welcome)   // SCALE5b: not when the drain's sweep already ran and nothing has said hello since - a halo's every step into an empty cell paid both
+      if (!others.length && !carried && !this._swept) { try { await this._sweep(a.key); } catch (e) { console.warn('[room] sweep failed', e?.message ?? e); } }   // AUDIT-SEATS R3: a battle room's fighter spent no stored bucket   // an empty room forgets every look an unclean close left behind - not its hello gate (AUDIT SOC A2: contained - a failed list here made every first hello into an empty hub throw before its welcome)   // SCALE5b: not when the drain's sweep already ran and nothing has said hello since - a halo's every step into an empty cell paid both
       this._swept = false;   // SCALE5b: this hello writes
-      if (held !== m.secret || !this._secrets.has(m.id)) { await this.state.storage.put(secretKey(m.id), m.secret); this._secrets.set(m.id, m.secret); }   // SCALE2b: written when it is new, not on every hello (or when an empty room's sweep, just above, took it)
+      if (held !== m.secret || !this._secrets.has(m.id)) this._secrets.set(m.id, m.secret);   // the secret rides the attachment (`sc`), kept across a hibernation; storage is not asked
       if (!chat && (!this._looks.has(m.id) || JSON.stringify(this._looks.get(m.id)) !== JSON.stringify(m.look))) { await this.state.storage.put(lookKey(m.id), m.look); this._looks.set(m.id, m.look); }   // SCALE2b: and a look when it changed   // a channel keeps no look: nobody is drawn from it
       const guild = who.gi ? { gi: who.gi, gt: who.gt, gm: who.gm } : {};   // GUILD1c: the guild the token carried, when it carried one
       const arena = isArenaRoom(a.key) ? { ar: arenaRatingOk(who.ar), lk: who.kind === 'linked' ? 1 : 0, ...(Number.isSafeInteger(who.cl) && who.cl >= ARENA_CL_MIN && who.cl <= ARENA_CL_MAX ? { cl: who.cl } : {}) } : {};   // ARENA4: the hall queues by the signed rating, and a guest is queued for no rated bout   // ARENA4b: and a ladder bout's vitality is the signed character level's (`cl` - absent from a service before it)
@@ -3827,7 +3829,7 @@ export class Room {
         // AUDIT SCALE II R2-4: and kept, so a woken instance whose sockets say nothing still knows it
         if (this._hubKeyKept !== this._hubKey) { this._hubKeyKept = this._hubKey; try { await this.state.storage.put(HUB_KEY_KEY, this._hubKey); } catch { this._hubKeyKept = null; } }
       }
-      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, ...(who.fz ? { fz: who.fz } : {}), ...(m.fv === 1 ? { fv: 1 } : {}), pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"   // STAFF-PANEL5-HIDDEN: `hid`, a hidden staff spectator's socket (staffHidden.js) - and in no census (`lk` 0 over `linked`)
+      if (!this._setAttach(ws, { ...a, ...placed, ...shown, ...(shard ? { vid, hm: { acct: m.acct ?? null, as: m.asecret ?? null, ps: m.ps === 1 ? 1 : 0, sc: m.secret } } : copy ? { vid } : {}), ...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, sc: m.secret, name: who.name, title: who.title, ...(who.ts ? { ts: who.ts } : {}), glyphs: who.glyphs, gx: who.gx, au: who.au, ...(who.pi ? { pi: who.pi } : {}), ...(who.rb ? { rb: who.rb } : {}), lv: who.lv, ...guild, ...(who.hn ? { hn: who.hn, hc: who.hc, hb: who.hb, hg: who.hg } : {}), ...(who.ci && !chat && !isSocialRoom(a.key) ? { ci: who.ci } : {}), ...(armsOk(who.wa) && !chat && !isSocialRoom(a.key) ? { wa: who.wa } : {}), gio: who.gio, ...(Number.isSafeInteger(who.lt) ? { lt: who.lt } : {}), ...(m.ls === 1 && leaseRoom(a.key) ? { ld: 0 } : {}), sub: who.subject, ...(instParty ? { ip: 1 } : {}), ...(siegeSide ? { sd: siegeSide } : {}), mu: who.mu, ...(who.fz ? { fz: who.fz } : {}), ...(m.fv === 1 ? { fv: 1 } : {}), pose: chat ? null : m.pose, since: this._seatKeep(replaced, now), ...arena, ...charLv, ...linked, ...(chat && who.kind === 'guest' ? { gu: 1 } : {}), ...(m.w2 === 1 ? { w2: 1 } : {}), ...(who.fo ? { fo: who.fo } : {}), ...(m.sm === 1 && isSocialRoom(a.key) ? { sm: 1 } : {}), ...(who.hid ? { hid: 1, lk: 0 } : {}) })) { this._refuse(ws, 'hello too large'); return; }   // MOD1: `sub` the verified account (what a mute names), `mu` until when it may not talk   // RENOWN1: `lv` the Renown level the token carried   // AUDIT SAFE RELAY-11: `gu`, a guest's socket in a channel - paced as a sprout's (`_newVoiceWait`)   // STAFF-PANEL5-MESSAGE: `sm`, a hub socket whose game shows a staff message's box (its hello said so) - one without it is "old game, not shown"   // STAFF-PANEL5-HIDDEN: `hid`, a hidden staff spectator's socket (staffHidden.js) - and in no census (`lk` 0 over `linked`)
       if (!chat && m.pose && this._trailing({ key: a.key, sub: who.subject })) this._trailPose(ws, m.pose, now);   // AUDIT INT11: a fighter's socket new to the room stands where its hello put it, from now - on its trail, or none says when
       // SRV-N: `v` rides EVERY welcome, a channel's included. A player in the enhanced skin holds a presence socket
       // and one chat socket per tab; whichever reconnects first after a hand deploy is the one that notices, and the
@@ -3845,8 +3847,8 @@ export class Room {
         // badged as the roster is, cut at TRAV_WELCOME_MAX; no field is no traveller (an old client reads none)
         // AUDIT DEEP T3-6: each with its AGE (`ag`, whole seconds) - a joiner stamps it that old, so a mark four minutes
         // stale here is not five minutes fresh there
-        const tr = isRegionRoom(a.key) ? others.filter((b) => b.tm && now - b.tm.at <= TRAV_STALE_MS).slice(0, TRAV_WELCOME_MAX).map((b) => { const { at, bd, sr, ...p } = b.tm; return badged({ id: b.id, name: b.name, sub: b.sub, p, ...(bd ? { bd } : {}), ...(sr ? { sr } : {}), ag: Math.max(0, Math.floor((now - at) / 1000)) }, b); }) : [];
-        if (!this._send(ws, JSON.stringify({ t: 'welcome', id: m.id, peers: named, n: shard ? this._hubN(others.length + 1) : others.length + 1, v: RELAY_VERSION, now: Date.now(), ...(ev ? { ev } : {}), ...(tr.length ? { tr } : {}) }))) return;   // AUDIT SOC B7: the relay's clock rides the channel's welcome too (WORLD5's `now`), so the hub link reads last-seen and an invite's lapse on the relay's time without waiting on the presence session's welcome
+        const tr = isRegionRoom(a.key) ? (this._busKey ??= a.key, others.filter((b) => b.tm && now - b.tm.at <= TRAV_STALE_MS).slice(0, TRAV_WELCOME_MAX).map((b) => { const { at, bd, sr, ...p } = b.tm; return badged({ id: b.id, name: b.name, sub: b.sub, p, ...(bd ? { bd } : {}), ...(sr ? { sr } : {}), ag: Math.max(0, Math.floor((now - at) / 1000)) }, b); })) : [];   // HIBERNATE-REGION: the bus is this channel, so a world shard's hand-up is refused
+        if (!this._send(ws, JSON.stringify({ t: 'welcome', id: m.id, peers: named, n: shard ? this._hubN(others.length + 1) : others.length + 1, v: RELAY_VERSION, now: Date.now(), ...(ev ? { ev } : {}), ...(tr.length ? { tr } : {}), ...(isSocialRoom(a.key) && !shard ? { ldo: relayCfgValue(await this._relayCfgOf(), this.env, 'leaseDoor') === 'on' ? 1 : 0 } : {}) }))) return;   // AUDIT SOC B7: the relay's clock rides the channel's welcome too (WORLD5's `now`), so the hub link reads last-seen and an invite's lapse on the relay's time without waiting on the presence session's welcome   // LEASE1: a direct hub hello says the door; a shard's joiner hears it from the bus
         if (isSocialRoom(a.key) && !shard) await sayStaffBook(this, ws, now);   // STAFF-EVENT: the staff events live (a shard's joiner hears them from the bus)
         // AUDIT SCALE5a C1-C3: AND THE ROOM'S COUNT, as the welcome says it (`n`). A client whose roster the welcome cut at
         // CHAT_ROSTER_MAX kept the count by arithmetic, a join +1 and a leave -1, and every door that says one without the
@@ -4613,7 +4615,7 @@ export class Room {
       const cfg = { ...(await this._relayCfgOf()) };
       if (m.v === null) delete cfg[m.k]; else cfg[m.k] = m.v;
       await this.state.storage.put('relaycfg', cfg);
-      this._relayCfg = cfg; this._herald = undefined; this._bodyCfg = undefined;
+      this._cfgKept(cfg, m.k);
       console.info('[cfg] set', m.k, m.v === null ? '(the var)' : m.v);
       this._send(ws, JSON.stringify({ t: 'cfg', k: m.k, v: relayCfgValue(cfg, this.env, m.k) ?? '' }));
       return;
@@ -5140,7 +5142,7 @@ export class Room {
     // ONESEAT R4), when it stays, said gone, as the old index re-read it, until the walk finds it unlisted
     if (!listed.includes(ws)) this._forget(ws);   // SCALE5a: still listed, its place in the kept account index stands
     const last = (listed.length === 0 || (listed.length === 1 && listed[0] === ws)) && !this._vsocks.size;   // SCALE5a: nobody but this one - said without a filtered copy of every socket; SCALE5c: and no shard's either
-    if (last) { try { await this._sweep(); this._swept = this.state.getWebSockets().length === 0; if (isWorldRoom(a.key)) await this.state.storage.setAlarm(Date.now() + worldTtlMsFor(a.key)); } catch { /* the next drain, or the next empty hello */ } this._metricsTick(true); }   // SCALE2b: a drained room says its last window
+    if (last) { try { await this._grantFlush(); await staffNetFlush(this); await staffReactFlush(this); staffFeedsStop(this); await this._sweep(a.key); this._swept = this.state.getWebSockets().length === 0; if (isWorldRoom(a.key)) await this.state.storage.setAlarm(Date.now() + worldTtlMsFor(a.key)); } catch { /* the next drain, or the next empty hello */ } this._metricsTick(true); }   // SCALE2b: a drained room says its last window, and posts what it still held so the sample is not dropped for the sleep
     if (!a.id) return;   // never said hello, or replaced - the id lives on in another socket
     followLeft(this, ws, a);   // STAFF-PANEL5-FOLLOW: a spectator gone, or a followed account's last socket here
     // INT9 (AUDIT): a fighter whose last socket here went is out of the zone (a closed tab kept its `zone` for good, and a
@@ -5149,7 +5151,7 @@ export class Room {
     this._looks.delete(a.id);
     if (!last) this._secrets.set(a.id, null);   // SCALE2b: the kept copy goes with the stored one (a drain's sweep clears both)
     this._raidTownsUp.delete(ws);   // SCALE2b: an upload its socket never finished goes with it
-    if (!last) { try { await this.state.storage.delete([lookKey(a.id), secretKey(a.id)]); } catch { /* the room forgets it on the next empty hello */ } }
+    if (!last && !isChatRoom(a.key)) { try { await this.state.storage.delete(lookKey(a.id)); } catch { /* the room forgets it on the next empty hello */ } }
     // ROSTER-G: a channel says its leaves now, as it says its joins - the roster beside the chat is everyone online
     const out = JSON.stringify({ t: 'leave', id: a.id, ...(isChatRoom(a.key) && !(isChannelShard(a.key) && this._hubTotal == null) ? { n: isChannelShard(a.key) ? this._hubN(this._namedCount()) : this._vsocks.size ? this._busCount() : this._namedCount() } : {}) });   // AUDIT SCALE II R2-4 (p4d): and a woken shard's leave none, as its join   // SCALE5c: a shard's, the hub's count   // AUDIT SCALE5a C1-C3: a channel's leave says the room's count, as its join does
     if (a.hid) { /* STAFF-PANEL5-HIDDEN: a hidden socket's leave said to nobody */ } else if (isChatRoom(a.key)) this._fanRoster(ws, out); else this._fanBut(ws, out);   // SCALE5a: in place, as the join's; SCALE5b: a channel's, the second wire's batched
@@ -7096,6 +7098,13 @@ export class Room {
   async _relayCfgOf() {
     if (this._relayCfg === undefined) { const v = await this.state.storage.get('relaycfg'); this._relayCfg = v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
     return this._relayCfg;
+  }
+  /** A saved setting kept, and a lease door told to every socket here so the game asks or stops without a new hello. */
+  _cfgKept(cfg, k) {
+    this._relayCfg = cfg; this._herald = undefined; this._bodyCfg = undefined;
+    if (k !== 'leaseDoor') return;
+    const said = `{"t":"ldo","on":${relayCfgValue(cfg, this.env, 'leaseDoor') === 'on' ? 1 : 0}}`;
+    for (const [other, b] of this._all()) if (b.id) this._send(other, said);
   }
   /** SCALE5b: a boss's room asks the hub for the settings at most every RELAY_CFG_TTL_MS, at its beat - a hub that does
    *  not answer leaves the last answer standing (or none: the Worker's vars). A setting that moved is in force from here.
@@ -11419,7 +11428,7 @@ export class Room {
     const G = this._grantState(a.key, now);
     this._grantFrom(G, now);
     if (foldGrantTally(G.w, GRANT_RELAY_READER, a.sub || a.id, 'stats', n, e)) void this._grantFlush();
-    else if (!G.timer) G.timer = setTimeout(() => { void this._grantFlush(); }, GRANT_MEASURE_MS);
+    else this._grantDue(G, now);
     staffFoesStripped(this, a, n, now);   // STAFF-PANEL5-FEEDS: and on the sender's monster row
   }
   /** GRANT2: the welcome's word of it, a cell's - `,"gm":"<mode>"`; a client asks only while it is not `off`. NEVER THE
@@ -11597,7 +11606,7 @@ export class Room {
       folded = true;
       if (foldGrantTally(G.w, reader, sender, row.r, row.n)) { void this._grantFlush(); folded = false; }   // AUDIT GRANT A4: posted at its whole bound - the rest begin the next window (_grantFlush swaps it before its first await)
     }
-    if (folded && !G.timer) G.timer = setTimeout(() => { void this._grantFlush(); }, GRANT_MEASURE_MS);
+    if (folded) this._grantDue(G, now);
   }
   /** GRANT2: an ask folded into the window (net/grantMeasure.js foldGrantAsk), which posts at its whole bound or once its
    *  first ask has waited GRANT_MEASURE_MS - while GRANT_FEED_URL is set; unset, the window is dropped at its bound. */
@@ -11605,7 +11614,11 @@ export class Room {
     this._grantFrom(G, now);
     const full = foldGrantAsk(G.w, who, ask.kind, ask.n, refusal, G.liveN);
     if (full) void this._grantFlush();
-    else if (!G.timer) G.timer = setTimeout(() => { void this._grantFlush(); }, GRANT_MEASURE_MS);
+    else this._grantDue(G, now);
+  }
+  /** The window posts once its first ask has waited GRANT_MEASURE_MS, asked on the next fold - no timer holding an empty cell. */
+  _grantDue(G, now) {
+    if ((G.w.rows.size || G.w.tallies.size) && now - G.w.from >= GRANT_MEASURE_MS) void this._grantFlush();
   }
   /** AUDIT GRANT A5: a window begins at its first fold, never at the last post - an idle cell's hours are no asking time
    *  (grantsMeasure reads asks an hour over the window's length). */

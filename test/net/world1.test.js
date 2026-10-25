@@ -241,5 +241,5 @@ test('WORLD1: the hosts by source - the dungeon host\'s shared world is the layo
   assert.match(online, /if \(!this\.isHost\(\) \|\| !isWorldRoom\(this\.room\) \|\| !this\._ws \|\| this\.status !== 'open'\) return false;[^\n]*\n\s*const s = JSON\.stringify\(final \? \{ t: 'world', data, final: true \} : \{ t: 'world', data \}\);[^\n]*\n\s*if \(s\.length > worldFrameMaxFor\(this\.room\)\) return false;/, 'the cap kept at the client: the relay\'s refusal is terminal; t first, the prefix the relay reads');
   const room = rd('server/src/index.js');
   assert.doesNotMatch(room, /storage\.deleteAll\(\)/, 'no sweep forgets the world');
-  assert.match(room, /for \(const prefix of \['look:', 'secret:'\]\) \{ const m = await this\.state\.storage\.list\(\{ prefix \}\);/, 'the sweep by prefix');
+  assert.match(room, /if \(!chat\) \{ const m = await this\.state\.storage\.list\(\{ prefix: 'look:' \}\);/, 'the sweep by prefix, a channel aside');
 });

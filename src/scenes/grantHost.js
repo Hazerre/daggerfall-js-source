@@ -152,10 +152,22 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
   // ── the owner's grants ───────────────────────────────────────────────────────────────────────────────────────────
   const live = new Set();   // grants with my members standing
   const queue = new Map();   // kind -> the stands waiting on this turn's ask
+  const owed = [];   // GRANT-SLEEP: kinds stood while nobody else was here - asked when someone arrives, not attached to the foe that already stood
+  /** Asks owed while this cell was empty of everyone but me. One mint a kind, up to its max. */
+  function flushOwed() {
+    if (!owed.length || session()?.othersHere === 0) return;
+    const counts = new Map();
+    for (const k of owed.splice(0)) counts.set(k, (counts.get(k) ?? 0) + 1);
+    for (const [kind, n] of counts) {
+      const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;
+      for (let at = 0; at < n; at += max) void ask({ k: 'mint', kind, n: Math.min(max, n - at) });
+    }
+  }
   /** A MEMBER FOR A STAND of `kind`: a promise of `{ gr, i }`, `{ refused }` (the law enforcing) or null (no grant came) -
    *  or null at once when no law is on. GRANT6: while the socket's welcome is owed, the stand waits on it (`wait` at most). */
   function memberFor(kind) {
     if (!(open() || unsaid()) || !Object.hasOwn(GRANT_KINDS, kind)) return null;
+    if (session()?.othersHere === 0) { owed.push(kind); return null; }   // GRANT-SLEEP: nobody here to read the foe, so the cell is not woken. shortcut: the foe that stood keeps no grant; the ask goes when someone joins.
     return new Promise((resolve) => {
       const q = queue.get(kind);
       if (q) { q.push(resolve); return; }
@@ -246,16 +258,17 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
   /** THE CLOCK, the pool's frame: carry, renew, drop the expired, hand the tally on, the heirs' waits. */
   function tick() {
     const s = open(), t = now();
-    if (s) {
+    if (s && s.othersHere !== 0) {   // GRANT-SLEEP: 0 is alone - unset is a session that has not counted, and it asks as before
       if (s.room !== lastRoom) { const from = lastRoom; lastRoom = s.room; carryTo = from && isCellRoom(s.room) ? s.room : null; carryTries = 0; }   // GRANT4: cell to cell - a world room's grants stay its own (carry: a cell's alone)
       if (carryTo && !carrying) { const to = carryTo; carryTo = null; if (to === s.room) void carry(to); }   // AUDIT GRANT A13: a crossing made while a carry was out is carried when it lands
       if (!renewing && !carrying) {
         const due = [...live].filter((g) => !g._dead && g.q === s.room && g.x - t <= GRANT_RENEW_LEAD_MS).slice(0, GRANT_RENEW_MAX);
         if (due.length) void renew(due);
       }
-    }
+      flushOwed();
+      if (t - tallyAt >= GRANT_TALLY_MS) { tallyAt = t; flushTally(); }
+    } else if (s && s.room !== lastRoom) { const from = lastRoom; lastRoom = s.room; if (from && isCellRoom(s.room)) carryTo = s.room; }   // GRANT-SLEEP: alone, remember the crossing and wake nothing until someone is here
     for (const g of live) if (t > g.x + GRANT_SKEW_MS) { g._dead = true; live.delete(g); }   // GRANT4: an expired grant is no longer mine to renew or free (a room left keeps none)
-    if (t - tallyAt >= GRANT_TALLY_MS) { tallyAt = t; flushTally(); }
     for (const [k, w] of heirWaits) {
       if (t - w.at < GRANT_HEIR_WAIT_MS) continue;
       heirWaits.delete(k);

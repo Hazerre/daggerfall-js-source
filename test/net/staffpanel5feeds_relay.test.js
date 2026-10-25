@@ -368,7 +368,7 @@ test('STAFF-PANEL5-FEEDS-FIX A FAILED REACTION BATCH IS SENT AGAIN BY THE TICK A
   await episode();
   R.status.push(503);
   assert.equal(await staffReactFlush(C.room), false);
-  assert.ok(X().retry && X().timer, 'kept, armed');
+  assert.ok(X().retry && !X().timer, 'kept, and nothing armed: the next tick or a pose sends it');
   await tick();
   assert.equal(R.posts.length, 1, 'a failing service is not asked again a minute on');
   for (let i = 1; i < REACT_FEED_MS / 60_000; i++) await tick();
@@ -399,12 +399,12 @@ test('STAFF-PANEL5-FEEDS-FIX MONSTER WATCH NEVER GOES BLIND: a quiet sender take
   staffFoesSeen(C.room, spawner, { full: 1, f: [...Array(60).keys()].map((i) => rec(i + 1)) }, now);
   staffFoesStripped(C.room, spawner, 5, now);
   const W = C.room._staffNet;
-  assert.deepEqual([[...W.foes.keys()], W.foes.get('acct-spawner').o, W.foes.get('acct-spawner').x, !!W.timer], [['acct-spawner'], 60, 5, true]);
+  assert.deepEqual([[...W.foes.keys()], W.foes.get('acct-spawner').o, W.foes.get('acct-spawner').x, !!W.timer], [['acct-spawner'], 60, 5, false]);
   // a room full of senders over the limit: the next one's frame posts the window early, its own row in the next
   for (let i = 1; W.foes.size < STAFF_FEED_ROWS * 4; i++) staffFoesStripped(C.room, { key: CELL, sub: `acct-h${String(i).padStart(4, '0')}` }, 1, now);
   const late = { key: CELL, sub: 'acct-late-01' };
   staffFoesSeen(C.room, late, { full: 1, f: [...Array(40).keys()].map((i) => rec(i + 1)) }, now);
-  assert.deepEqual([[...W.foes.keys()], !!W.timer], [['acct-late-01'], true], 'never refused');
+  assert.deepEqual([[...W.foes.keys()], !!W.timer], [['acct-late-01'], false], 'never refused');
   for (let i = 0; i < 50 && !R.posts.length; i++) await new Promise((r) => setTimeout(r, 5));
   const b = await R.open(0);
   assert.equal(b.foe.length, STAFF_FEED_ROWS, 'posted early, the most urgent within its bound');

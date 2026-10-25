@@ -706,6 +706,7 @@ export class OnlineSession {
     this.onBanned = null;         // SAFE4: ({until}) => void - the relay says my account is banned until then (epoch seconds), or 0: lifted
     this.onLease = null;          // LEASE1: (l) => void - my hub's lease, to hand to every lease room I hold (net/roomLease.js)
     this.leaseOk = false;         // LEASE1: the relay that welcomed this socket knows the lease frame - an older one CLOSES a socket on it
+    this.leaseDoor = false;       // LEASE1: the hub's welcome (`ldo`) says the lease door is on - off, this link asks no lease
     this._lease = null;           // LEASE1: my hub's newest lease, handed on by each lease room's socket ahead of its next frame (`_leased`)
     this._leaseAt = -Infinity;    // LEASE1: when it came, on my own clock (LEASE_HELD_MS)
     this.onSlowed = null;         // SAFE6: ({ms}) => void - my public line was too soon for a new voice; the next may go in `ms`
@@ -2509,7 +2510,11 @@ export class OnlineSession {
     const now = this._now();
     if (now - this._lastSentAt < 1000 / poseHzFor(this.peers.size)) return false;   // SLAM3: a crowd is spoken to less often
 
-    if (now - this._lastSentAt < HEARTBEAT_MS && !poseChanged(this._lastSent, pose)) return false;
+    let refereed = this.haloWhole;
+    if (!refereed && this._ws && this._rfOn.get(this._ws)) refereed = true;
+    if (!refereed) for (const h of this._halo.values()) if (h.ws && this._rfOn.get(h.ws)) { refereed = true; break; }
+    const aloneQuiet = !refereed && this.othersHere === 0 && (isCellRoom(this.room) || isWorldRoom(this.room));   // HIBERNATE: a cell, a building or an ordinary dungeon with nobody else sends no standing pose; a boss room, a battle and a refereed cell still do
+    if (!poseChanged(this._lastSent, pose) && (now - this._lastSentAt < HEARTBEAT_MS || aloneQuiet)) return false;
     // WORLD6b-iii(b): the halo rooms hear my pose too - their fans range me by it and their rosters place me - each when it
     // is due (HALO-THIN, haloPoseDue); AUDIT WORLD6b-iii(b) A5: through every OPEN socket, my own cell's down or not (the
     // halos rode out nothing while the fan sat behind the primary's send), and then whole
@@ -3398,6 +3403,7 @@ export class OnlineSession {
       if (primary) this.dmOk = relaySupportsDm(relayV);   // TITLE-N
       if (primary) this.banOk = relaySupportsBan(relayV);   // AUDIT SAFE RELAY-3: the ban frame's relay
       if (primary) this.leaseOk = relaySupportsLease(relayV);   // LEASE1
+      if (primary && isSocialRoom(room)) this.leaseDoor = m.ldo === 1;
       if (primary) this.courtWatchOk = relaySupportsCourtWatch(relayV);   // AUDIT PLAN-1000 G3: a full court's watcher, told when it is seated
       if (primary) this._deliver('welcome', () => this.onWelcomed?.());   // AUDIT SAFE CLIENT-8
       if (primary) this.cardOk = relaySupportsCard(relayV);   // INSPECT1
@@ -3728,7 +3734,7 @@ export class OnlineSession {
     } else if (m.t === 'join') {
       // AUDIT SCALE5a C1-C3: THE ROOM'S OWN COUNT, when the join says it (`n`, as the welcome does) - kept by arithmetic it
       // drifted at every door that says a join without a leave or a leave without a join; a relay before it, the old rule
-      if (typeof m.id === 'string' && m.id !== this.id) { if (this.roomCount != null) { if (Number.isSafeInteger(m.n) && m.n >= 1) this.roomCount = m.n; else if (!this.peers.has(m.id)) this.roomCount++; } this._member(room, m.id, m, now); }   // ROSTER-G: a cut count follows the joins
+      if (typeof m.id === 'string' && m.id !== this.id) { if (this.roomCount != null) { if (Number.isSafeInteger(m.n) && m.n >= 1) this.roomCount = m.n; else if (!this.peers.has(m.id)) this.roomCount++; } this._member(room, m.id, m, now); if (primary && room === this.room) this._lastSentAt = 0; }   // ROSTER-G: a cut count follows the joins; HIBERNATE: the newcomer hears a pose at once
       // AUDIT DEEP T3-3: a join is a FRESH socket, which holds no mark - one that replaced its own older socket (a blip's
       // reconnect) said no leave, so the old socket's mark is taken out here; its first mark follows its join
       if (typeof m.id === 'string' && m.id !== this.id && isRegionRoom(room)) this._deliver('travellers', () => this.onTravellerLeft?.(m.id));
@@ -4030,6 +4036,10 @@ export class OnlineSession {
       const box = this._boxAsks.delete(m.q);   // CHAT-FIND-HUB: the search box's ask - its answer is the box's, never a line
       if (m.busy !== 1) this.hubFound = { q: m.q, l, at: this._now() };   // a busy hub answered nothing: the box asks again
       if (!box) this._deliver('found', () => this.onFound?.({ q: m.q, l, busy: m.busy === 1 }));
+    } else if (m.t === 'ldo') {
+      if (!primary || !isSocialRoom(room)) return;
+      this.leaseDoor = m.on === 1;
+      if (this.leaseDoor) this._leaseAskAt = -Infinity;   // the door just opened: the next tick asks
     } else if (m.t === 'cfg') {
       // SCALE5b: the hub's answer to a relay setting - from the hub alone
       if (!primary || !isSocialRoom(room)) return;
@@ -4277,7 +4287,7 @@ export class OnlineSession {
       if (h.ws && h.status === 'connecting' && now - (h.since ?? now) > BACKOFF_MAX_MS) { const ws = h.ws; h.ws = null; h.status = 'closed'; h.retryAt = now + BACKOFF_MIN_MS + this._rand() * Math.max(BACKOFF_MIN_MS, h.backoff - BACKOFF_MIN_MS); h.backoff = Math.min(BACKOFF_MAX_MS, h.backoff * 2); try { ws.close(1000, 'timeout'); } catch { /* already closed */ } }   // SLAM2: a halo's retry is jittered like the primary's - eight rooms a client, all refused together otherwise
     }
     if (!this.presence && this.status === 'open' && now - this._lastSentAt >= HEARTBEAT_MS && this._send({ t: 'ping' })) this._lastSentAt = now;
-    if (this.leaseOk && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS && this._send({ t: 'lease' })) this._leaseAskAt = now;   // LEASE1: my hub's lease, asked every LEASE_MS
+    if (this.leaseOk && this.leaseDoor && this.status === 'open' && isSocialRoom(this.room) && now - this._leaseAskAt >= LEASE_MS && this._send({ t: 'lease' })) this._leaseAskAt = now;   // LEASE1: my hub's lease, asked every LEASE_MS while the door is on - off, the ask would only wake the shard
     if (this.status === 'open' && isSocialRoom(this.room)) this._wave.noteOnline(this.othersHere + 1);   // SCALE2c: the hub's count sizes a wave's spread
     // RELAY-H1: A STANDING PLAYER IS HEARD BY THE RUNTIME, NOT THE ROOM. The presence session's socket used to prove
     // itself alive with a pose every HEARTBEAT_MS, and every pose woke the Durable Object; the runtime answers this
