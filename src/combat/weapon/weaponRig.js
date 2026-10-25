@@ -1364,7 +1364,11 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // for it). AUDIT PISTOL-PORT D3: the SPRITE's alone - the light a Pistolet throws on the room still takes the orb's
     // colour (systems/thunderlock.js thunderlockMuzzleLight, the Pellet's), the owner's call (Audit-Pistol-Port.md).
     const flash = ph ? PAINTED_FLASH : orbColour();
-    const lit = (tint && glow > 0)
+    // PISTOL-PROTO (2026-10-25, the owner: "the pistolets still after all this time dont match the prototype 1;1"): A
+    // PISTOLET IS DRAWN AS PAINTED, as pistol-proto.html draws it - the page lights its room (`lit`) and never the pistols,
+    // so the room's light (MAC-I's fpTint) left them dim in every dungeon and every night where the page's stand in their
+    // own colours. The Thunderlock keeps the room's light and its flash's rise.
+    const lit = ph ? null : (tint && glow > 0)
       ? tint.map((v, i) => v + (flash[i] - v) * Math.min(1, glow * heldFeel().flashLight * heldFeel().flashGain))
       : tint;
     // PISTOLET: THE PICTURE IN THE MIRROR, not only its place. gunFrameRect mirrors the rect (AlignRight to AlignLeft) and
