@@ -510,6 +510,8 @@ function seatHost({ publishThrows = false, duelThrows = false, court = null } = 
     peerRiders: { destroy: () => log.push('riders gone') }, peerWalkers: { destroy: () => log.push('walkers gone') }, peerCandlesFrame: (list) => log.push(`candles ${list.length}`),
     PLAY_HERE_LABEL,
     arenaOnline: { leaveAll: () => log.push('arena rooms left') },   // AUDIT PRE-MERGE 1003 O9: the arena's own rooms
+    // FIELD BUGS 2026-10-25 SEAT-SAVES: out of the seat the frame still asks for the periodic checkpoint (the gate lets a realm character's through)
+    checkpointWhenDue: (now) => log.push(`periodic checkpoint asked at ${now}`), _checkpointAt: -Infinity, realmSession: null, onlineCheckpoint: () => false,
   };
   const body = `let { ${Object.keys(deps).join(', ')} } = deps;
     let _seatOut = false, _seatLeft = false, _seatSaid = false, _foesRoom = 'dungeon:m123';
@@ -556,10 +558,10 @@ test('AUDIT ONESEAT H2/H3/H5/H6/T1, the host run: the seat lost is left ONCE - m
     host.seatLostNow();
     assert.deepEqual(log, [], 'left once, whoever asks again');
     assert.equal(host.seatFrame(1016, 16), undefined, 'the frame returns before anything is sent');
-    assert.deepEqual(log, [`said: ${SEAT_NOTICE}`, `over the screen: ${SEAT_MID_TEXT}`, 'bodies gone', 'players 0', 'riders gone', 'walkers gone', 'candles 0']);
+    assert.deepEqual(log, [`said: ${SEAT_NOTICE}`, `over the screen: ${SEAT_MID_TEXT}`, 'periodic checkpoint asked at 1016', 'bodies gone', 'players 0', 'riders gone', 'walkers gone', 'candles 0']);
     log.length = 0;
     host.seatFrame(1032, 16);
-    assert.deepEqual(log, ['bodies gone', 'players 0', 'riders gone', 'walkers gone', 'candles 0'], 'said once, nobody drawn every frame');
+    assert.deepEqual(log, ['periodic checkpoint asked at 1032', 'bodies gone', 'players 0', 'riders gone', 'walkers gone', 'candles 0'], 'said once, nobody drawn every frame - and the periodic checkpoint asked every frame (SEAT-SAVES)');
     // a Renown rise heard while out waits for Play online here
     log.length = 0;
     assert.equal(host.renownAdopt(14), 14);

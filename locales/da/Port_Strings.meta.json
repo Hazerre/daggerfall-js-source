@@ -29244,6 +29244,21 @@
   "tr": "341460ff0f4b",
   "by": "claude-in-session"
  },
+ "realm.stranded": {
+  "en": "0c41402dad0b",
+  "tr": "316f4623a960",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.reachedAgain": {
+  "en": "353bb0bc3f8c",
+  "tr": "c387e7d7e264",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.warning": {
+  "en": "e500f6e7323b",
+  "tr": "ccc4c9c95520",
+  "by": "claude-in-session"
+ },
  "report.again": {
   "en": "c394e963c144",
   "tr": "8e8d0b63ac56",
