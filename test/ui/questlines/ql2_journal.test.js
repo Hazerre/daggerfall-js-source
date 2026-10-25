@@ -285,6 +285,7 @@ test('AUDIT QUESTLINES UI-19: a claim the service refuses - its switch shut, a c
   const clock = { ms: 0 };
   const runner = createLineRunner({ machine, nowMs: () => clock.ms, service: { account: () => 'acct', guest: () => false, claim: async () => answer }, ctx: { level: () => 30, online: () => true, nowSeconds: () => 1000 } });
   const settle = () => new Promise((r) => setImmediate(r));
+  runner.takeLine('burningDoors');   // PIN MOVED (QL-OFFERED): taken - its opening the take's claim
   runner.look(); await settle();
   const bd = () => runner.rows().find((l) => l.id === 'burningDoors');
   assert.equal(bd().steps[0].refused, 'ql-closed', 'the opening the service shut its door on');
