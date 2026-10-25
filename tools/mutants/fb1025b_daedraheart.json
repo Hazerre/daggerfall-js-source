@@ -1,0 +1,122 @@
+[
+  {
+    "name": "HEART-TAKEN-a-look-strikes-it",
+    "file": "src/systems/questlines/sheets/witches.json",
+    "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "new": "take its heart\",\"done\":{\"any\":[{\"task\":\"_S.01_\"},{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old done: DFU's `clicked item`, which a refused take or a menu closed unused fires"
+  },
+  {
+    "name": "HEART-TAKEN-the-heart-unread",
+    "file": "src/systems/questlines/sheets/witches.json",
+    "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "new": "take its heart\",\"done\":{\"any\":[{\"task\":\"_qlask_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the heart held never strikes it"
+  },
+  {
+    "name": "HEART-TAKEN-the-hand-in-unread",
+    "file": "src/systems/questlines/sheets/witches.json",
+    "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "new": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "a copy whose player never held it (a party's) reads it untaken to the end"
+  },
+  {
+    "name": "HEART-TAKEN-bring-opened-by-a-look",
+    "file": "src/systems/questlines/sheets/witches.json",
+    "old": "while it still beats\",\"open\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "new": "while it still beats\",\"open\":{\"any\":[{\"task\":\"_S.01_\"},{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the old open: a heart to bring that the player never took"
+  },
+  {
+    "name": "QUEST-MARK-no-mark",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
+    "new": "    quest: null,",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the skin as it was: the quest's heart drawn as the plain one"
+  },
+  {
+    "name": "QUEST-MARK-every-item-a-quests",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
+    "new": "    quest: item ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "a plain heart marked as the quest's"
+  },
+  {
+    "name": "QUEST-MARK-the-quest-unnamed",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
+    "new": "    quest: item?.questItem ? '' : null,",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the card says a quest's, never whose"
+  },
+  {
+    "name": "QUEST-MARK-the-row-unsaid",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "line.lit ? 'lit' : null, line.quest != null ? questWord() : null]",
+    "new": "line.lit ? 'lit' : null, null]",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the row says nothing"
+  },
+  {
+    "name": "QUEST-MARK-the-card-unsaid",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "  if (line.quest != null) into.append(el('p', 'boundline', questLine(line.quest)));",
+    "new": "  if (false) into.append(el('p', 'boundline', questLine(line.quest)));",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "the card says nothing"
+  },
+  {
+    "name": "DAEDRAHEART-toting-any-pack",
+    "file": "src/systems/quest/actions.js",
+    "old": "      if (this.parentQuest.hooks?.carriesQuestItem?.(item)) {\n        this.parentQuest.scheduleClickRearm(person);",
+    "new": "      if (true) {\n        this.parentQuest.scheduleClickRearm(person);",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "TotingItemAndClickedNpc without ItemCollection.Contains(Item): a plain heart hands in"
+  },
+  {
+    "name": "DAEDRAHEART-the-heart-never-given",
+    "file": "src/systems/quest/actions.js",
+    "old": "      target.queueItem(item.daggerfallUnityItem);",
+    "new": "      void item;",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "GiveItem's Foe arm: no foe ever carries the quest's heart"
+  },
+  {
+    "name": "DAEDRAHEART-the-body-never-holds-it",
+    "file": "src/systems/quest/resourceBehaviour.js",
+    "old": "    else enemy.addItemsToEntity?.(clonedItems);",
+    "new": "    else void clonedItems;",
+    "tests": [
+      "test/systems/questlines/fb1025b_daedraheart.test.js"
+    ],
+    "note": "AddItemQueue's drain: the queue never reaches the foe's items"
+  }
+]
