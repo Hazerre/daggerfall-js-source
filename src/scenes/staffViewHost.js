@@ -41,6 +41,7 @@ import { projectToScreen } from '../player/tapRay.js';
 import { worldViewportRect } from '../ui/hud/hudLarge.js';
 import { multiply } from '../world/mat4.js';
 import { STAFF_LINE, createStaffTags } from '../ui/staffTags.js';
+import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
 import { createStaffFlatMapHost } from './staffFlatMapHost.js';   // STAFF-FLATMAP: Shift+N
 import { t } from '../systems/textManager.js';
 
@@ -52,6 +53,12 @@ export const STAFF_OW_TAGS_MAX = 256;
 export const STAFF_TAGS_ASK_MS = 60_000;
 /** How long a tag click waits for the hub's search before it says no account was found (ms). */
 export const STAFF_FIND_WAIT_MS = 5000;
+/** STAFF-LINES-SEA (mob, 2026-10-25: "not draw line to player from sea creature", "they arnt a threat"): the sea's
+ *  monsters, the relay's own list (server/src/staffFeeds.js FOE_SEA_TYPES) - no line to their owner and not in a tag's
+ *  count; Monster watch still counts them apart, as sea. */
+export const STAFF_SEA_TYPES = new Set([MOBILE_TYPES.Slaughterfish, MOBILE_TYPES.Dreugh, MOBILE_TYPES.Lamia]);
+/** A live puppet that is not the sea's: the ones a tag counts and an Admin's lines join to their owner. @param {any} f */
+const threatOf = (f) => !!f?.puppet && !f.dead && !STAFF_SEA_TYPES.has(f.mobileType);
 /** An Admin's monster lines at most, a frame. */
 export const STAFF_LINES_MAX = 200;
 /** Tags this near one another on the screen are one box (px). */
@@ -220,7 +227,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
     /** @type {Map<string, number>} */
     const by = new Map();
     // shortcut: every live puppet counts, a companion or a watchman too - a hostile-only count once the server watch flags a spawner
-    for (const f of foes?.foes ?? []) if (f?.puppet && !f.dead) by.set(f.puppet, (by.get(f.puppet) ?? 0) + 1);
+    for (const f of foes?.foes ?? []) if (threatOf(f)) by.set(f.puppet, (by.get(f.puppet) ?? 0) + 1);
     return by;
   }
   /** STAFF-FLATMAP: the flat map, made the first time Shift+N opens it (a page with no map link has none). */
@@ -234,8 +241,9 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
     return flat;
   };
   const flagOf = (/** @type {string|null} */ sub) => (sub ? follow.tags()?.flags?.get(sub) ?? null : null);
-  /** STAFF-FLAG-LINES: a flag's line - a report waiting on review (any level) red, a watch alone gold, else none. @param {any} flag */
-  const lineOf = (flag) => (flag?.level ? STAFF_LINE.review : flag?.watch ? STAFF_LINE.watch : null);
+  /** STAFF-FLAG-LINES: a flag's line - a report waiting on review (any level) red, else none; STAFF-LINES-REVIEW: a watch
+   *  alone draws none (it was gold). @param {any} flag */
+  const lineOf = (flag) => (flag?.level ? STAFF_LINE.review : null);
   /** STAFF-FLAG-LINES (2026-10-24, mob: "need to port over my watch lines and review lines for flags in staff esp",
    *  "helps flag bad players"): a line from the screen's middle to each flagged player in front of the eye, however far
    *  (the tags stop at the nameplate distance; a flag's line does not), STAFF_LINES_MAX at most with the others.
@@ -275,7 +283,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
           for (const d of peers) if (d?.shown) owners.set(d.id, d);
           for (const f of foes?.foes ?? []) {
             if (segs.length >= STAFF_LINES_MAX) break;
-            const o = f?.puppet && !f.dead && f.ai?.feet ? owners.get(f.puppet) : null;
+            const o = threatOf(f) && f.ai?.feet ? owners.get(f.puppet) : null;
             const q = o ? follow.toScene(o.shown) : null;
             if (!q) continue;
             const a = at(f.ai.feet), b = at(q);
