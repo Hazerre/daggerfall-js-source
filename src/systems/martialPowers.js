@@ -252,7 +252,7 @@ export function martialHurt(entity, { before = 0, after = 0, saved = false } = {
  *  courtRules.js - a regeneration, as a career's Regenerate Health is: AUDIT MARTIAL L3 F3). */
 export function martialRound(entity) {
   if (awakeMartialId(entity) !== 'brawler') return;
-  if (entity.health > 0 && entity.health < entity.maxHealth) { const held = regenShare((entity.maxHealth * N.grit.health) / 100, 'grit'); if (held > 0) healMine(entity, held); }
+  if (entity.health > 0 && entity.health < entity.maxHealth) { const held = regenShare((entity.maxHealth * N.grit.health) / 100, 'grit', entity); if (held > 0) healMine(entity, held); }
   fatigueMine(entity, N.grit.fatigue);
 }
 /** MY KILL: War Rhythm, Bloodlust, Tireless - and Felling Strike's heal, for a foe it landed on that a kill of mine

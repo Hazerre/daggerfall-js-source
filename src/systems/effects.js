@@ -753,7 +753,7 @@ function runEffectRound(a, target, sinks, rolls) {
       const k = schoolMult(a.caster, target, a.school, { self: true });
       if (k !== 1) n = Math.max(1, Math.round(n * k));
     }
-    if (n > 0 && sinks.heal) { const held = regenShare(n, target?.isPlayer ? 'spell' : 'spell-foe', !!target?.isPlayer); if (held > 0) sinks.heal(held); }   // WBX6 / EVENT-RULES: a made level holds regeneration - half, and none just after a hurt (systems/courtRules.js)
+    if (n > 0 && sinks.heal) { const held = regenShare(n, 'spell', target); if (held > 0) sinks.heal(held); }   // WBX6 / EVENT-RULES: a made level holds regeneration - half, and none just after a hurt (systems/courtRules.js)
   }
 }
 

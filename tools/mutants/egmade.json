@@ -120,8 +120,8 @@
   {
     "name": "EGMADE-the-court-law-asked-again",
     "file": "src/scenes/world.js",
-    "old": "setCourtRules(madeRuleHere('regen') === 'held', playerEntity.health);",
-    "new": "setCourtRules(modes?.gateArenaDay?.() != null, playerEntity.health);",
+    "old": "setCourtRules(madeRuleHere('regen') === 'held');",
+    "new": "setCourtRules(modes?.gateArenaDay?.() != null);",
     "tests": [
       "test/systems/eliteGates/egmade_law.test.js",
       "test/net/eliteGates/egplay_client.test.js"

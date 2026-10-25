@@ -484,7 +484,7 @@ test('EG-PLAY THE HOSTS WIRED: the world host builds the client online and hears
   // OR'd into the ONE ward (section 10.7), the court's law the frame's one setCourtRules, the companions kept out, Mark and
   // Recall refused in the Spire's words; the law's own rows pinned here and in test/systems/eliteGates/egmade_law.test.js
   assert.match(W, /registerLevitateWard\(\(\) => inSiegeRoom\(\) \|\| madeRuleHere\('levitate'\) === 'banned'\);/);
-  assert.match(W, /setCourtRules\(madeRuleHere\('regen'\) === 'held', playerEntity\.health\);/);   // PIN MOVED (EVENT-RULES): regeneration held, not off
+  assert.match(W, /setCourtRules\(madeRuleHere\('regen'\) === 'held'\);/);   // PIN MOVED (EVENT-RULES): regeneration held, not off; PIN MOVED (AUDIT WORLD-EVENTS L1-10): the pause the hurt door's, not my health's
   assert.match(W, /if \(madeRuleHere\('companions'\) === 'out'\) return null;/);
   assert.match(W, /if \(madeRuleHere\('companions'\) === 'out'\) return \[\];/);
   assert.match(W, /if \(madeRuleHere\('mark'\) === 'refused'\) \{ madeSay\('mark'\); return; \}/);

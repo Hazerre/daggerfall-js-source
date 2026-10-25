@@ -122,7 +122,7 @@ export function passiveSpecialsMagicRound(entity, { nowMinutes = 0, clockMinutes
     else if (career.regeneration === REGENERATION_FLAGS.inDarkness) regenerate = !day || dungeon;
     else if (career.regeneration === REGENERATION_FLAGS.inLight) regenerate = day && !dungeon;
     else if (career.regeneration === REGENERATION_FLAGS.whileImmersed) regenerate = !!(_host?.isSwimming?.() ?? false);
-    const held = regenerate ? regenShare(REGENERATE_AMOUNT, 'career') : 0;   // WBX6 / EVENT-RULES: held in a made level
+    const held = regenerate ? regenShare(REGENERATE_AMOUNT, 'career', entity) : 0;   // WBX6 / EVENT-RULES: held in a made level
     if (held > 0) sinks?.heal?.(held);
   }
 

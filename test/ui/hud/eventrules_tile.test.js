@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { madeRulesLines, madeRulesTile, statusTip, ENTRY_WORDS, MADE_LEVEL_PLACE } from '../../../src/ui/hud/statusTips.js';
 import { statusTiles } from '../../../src/ui/hud/hudStatus.js';
 import { MADE_LEVELS, MADE_LEVEL_RULES } from '../../../src/systems/madeLevel.js';
-import { setCourtRules, regenPausedMs, REGEN_HELD_HURT_MS } from '../../../src/systems/courtRules.js';
+import { setCourtRules, courtRulesHurt, regenPausedMs, REGEN_HELD_HURT_MS } from '../../../src/systems/courtRules.js';
 
 const read = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
 
@@ -71,9 +71,9 @@ test('EVENT-RULES A REGENERATE\'S OWN TIP: "Restores health every round." outsid
   try {
     setCourtRules(false);
     assert.equal(ENTRY_WORDS.regenerate({}), 'Restores health every round.');
-    setCourtRules(true, 50, 0);
+    setCourtRules(true, 0);
     assert.equal(ENTRY_WORDS.regenerate({}), `Restores health every round - held here: half, and none for ${REGEN_HELD_HURT_MS / 1000} seconds after you are hurt.`);
-    setCourtRules(true, 40, 10);
+    setCourtRules(true, 10); courtRulesHurt({ before: 50, after: 40 });
     assert.equal(regenPausedMs(), REGEN_HELD_HURT_MS);
   } finally { setCourtRules(false); }
   assert.equal(regenPausedMs(), 0, 'off: no pause');

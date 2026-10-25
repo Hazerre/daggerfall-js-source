@@ -541,7 +541,7 @@ const REGISTRY = new Map([
       const regen = param === 0
         || (param === 2 && (ctx?.inDarkness?.() ?? false))
         || (param === 1 && (ctx?.inSunlight?.() ?? false));
-      if (regen && entity.health < entity.maxHealth) entity.health = Math.min(entity.maxHealth, entity.health + regenShare(1, 'item', !!entity.isPlayer));   // WBX6 / EVENT-RULES: held in a made level (systems/courtRules.js)
+      if (regen && entity.health < entity.maxHealth) entity.health = Math.min(entity.maxHealth, entity.health + regenShare(1, 'item', entity));   // WBX6 / EVENT-RULES: held in a made level (systems/courtRules.js)
     },
   }],
   /** VampiricEffect.cs - two params. AtRange (0): every 4 rounds drain

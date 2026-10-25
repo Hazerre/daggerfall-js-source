@@ -15,9 +15,10 @@
 //   registerMadeLevelHere the world host's word on where the player stands (and whether on the Spire's traversal
 //                         ground), so a door with no host in reach (an item's use, a technique) asks the same law
 //
-// The Burning Court and the Hour are re-plugged UNCHANGED - every value below for them is what their doors did before
-// this law, pinned by their own tests and by the law's. The Spire's column is section 24's, with THE POTION LAW, THE
-// FORGIVENESS (section 10.8), the flight bans (section 10.7), AvoidDeath refused and DEATH-PENALTY none.
+// The Burning Court and the Hour were re-plugged unchanged (EG7) - every value for them what their doors did before this
+// law, pinned by their own tests and by the law's - and EVENT-RULES moved two rows since (AUDIT WORLD-EVENTS L5-14): their
+// regeneration held, not off, and no level refusing a party member's Resurrect. The Spire's column is section 24's, with
+// THE POTION LAW, THE FORGIVENESS (section 10.8), the flight bans (section 10.7), AvoidDeath refused and DEATH-PENALTY none.
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { isGateArena, COURT_TEXT } from '../world/gate/gateArena.js';
@@ -94,7 +95,7 @@ const row = (o) => Object.freeze(Object.fromEntries(MADE_LEVEL_RULE_KEYS.map((k)
  *  regen not working"): every level HOLDS regeneration now ('held' - half, and none for 5 s after a hurt), where it had
  *  turned it off and said nothing; and none refuses a party member's Resurrect - the Hour's one life is the relay's to
  *  keep until the fallen gives it up (Super-Dungeons.md SD-ONELIFE, EVENT-RULES). The rest stands, said on the HUD's
- *  made-level tile (ui/hud/statusTips.js madeRulesTip). */
+ *  made-level tile (ui/hud/statusTips.js madeRulesTile). */
 export const MADE_LEVEL_RULES = Object.freeze({
   court: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', death: 'castOut', unstuck: 'refused', says: 'mid' }),
   hour: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', levitate: 'banned',

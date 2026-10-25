@@ -2,8 +2,8 @@
   {
     "name": "EVENT-RULES-the-share-whole",
     "file": "src/systems/courtRules.js",
-    "old": "  const c = (_carry.get(source) ?? 0) + n * REGEN_HELD_SHARE;",
-    "new": "  const c = (_carry.get(source) ?? 0) + n;",
+    "old": "  const c = (carry.get(source) ?? 0) + n * REGEN_HELD_SHARE;",
+    "new": "  const c = (carry.get(source) ?? 0) + n;",
     "tests": [
       "test/world/gate/wbx_gate_fixes.test.js"
     ]
@@ -30,8 +30,8 @@
   {
     "name": "EVENT-RULES-the-fraction-dropped",
     "file": "src/systems/courtRules.js",
-    "old": "  _carry.set(source, c - out);",
-    "new": "  _carry.set(source, 0);",
+    "old": "  carry.set(source, c - out);",
+    "new": "  carry.set(source, 0);",
     "tests": [
       "test/world/gate/wbx_gate_fixes.test.js"
     ]
@@ -39,7 +39,7 @@
   {
     "name": "EVENT-RULES-the-hurt-unheard",
     "file": "src/systems/courtRules.js",
-    "old": "  if (_lastHealth != null && /** @type {number} */ (health) < _lastHealth) _hurtAt = nowMs;\n",
+    "old": "  if (_on && hurt && hurt.after < hurt.before) _hurtAt = _now;\n",
     "new": "",
     "tests": [
       "test/world/gate/wbx_gate_fixes.test.js",
@@ -49,8 +49,8 @@
   {
     "name": "EVENT-RULES-a-heal-read-as-a-hurt",
     "file": "src/systems/courtRules.js",
-    "old": "(health) < _lastHealth) _hurtAt = nowMs;",
-    "new": "(health) !== _lastHealth) _hurtAt = nowMs;",
+    "old": "hurt.after < hurt.before) _hurtAt = _now;",
+    "new": "hurt.after !== hurt.before) _hurtAt = _now;",
     "tests": [
       "test/world/gate/wbx_gate_fixes.test.js"
     ]

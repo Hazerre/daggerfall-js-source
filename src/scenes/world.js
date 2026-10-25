@@ -32517,7 +32517,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     sdAirFrame();   // SD14b: and the Hour's, the same way
     if (onlineOn && playerSpawned && (seatOut() || townTalk.overlay instanceof DeathScreen || modes?.deathUp?.())) { siegeHud?.hide(); siegeNpcs?.leave(); }   // AUDIT SEATS-2 C4: the dead and a tab out of the seat draw no battle - the online frame returns before its tick
     arenaFrame(dt);   // ARENA2: the bout on the city's floor or the instance's - before the modal return, so the instance's runs too
-    setCourtRules(madeRuleHere('regen') === 'held', playerEntity.health);   // WBX6: the Deadlands hold regeneration - set before any magic round of this frame, cleared the frame the court is gone; SD5a: and the Shattered Hour; EG-H2: and the Spire - one law, systems/madeLevel.js; EVENT-RULES: held, not off - half, and none for 5 s after a hurt (systems/courtRules.js)
+    setCourtRules(madeRuleHere('regen') === 'held');   // WBX6: the Deadlands hold regeneration - set before any magic round of this frame, cleared the frame the court is gone; SD5a: and the Shattered Hour; EG-H2: and the Spire - one law, systems/madeLevel.js; EVENT-RULES: held, not off - half, and none for 5 s after a hurt (systems/courtRules.js)
     egCourtFrame();   // EG-PLAY: no online frame - the breach's fight and tracker put away; in an Elite Breach, the court's law (Elite-Gates.md section 16)
     // LOAD1: THE LOADING SCREEN STANDS WHILE THE WORLD IS MOVED - AUDIT 68 S22's one question (every mover's latch, the
     // teleport core's window, the abyss) and a door's build in this host's modes. Above the mode's return, so every
