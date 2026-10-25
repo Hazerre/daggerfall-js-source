@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-25b - a horse left at a dungeon door the online page never wakes beside
+# FIELD BUGS 2026-10-25e - a horse left at a dungeon door the online page never wakes beside
 
 One report, handed over with no more detail than its title: "Broken Mounts: Horses in the inventory become unusable
 after logging back in." Read on main's `80eafd01ff`, against Horse Cart and Cargo's own lifecycle

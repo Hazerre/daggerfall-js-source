@@ -1553,7 +1553,7 @@ export function createHorseCartRuntime(deps) {
     if (elsewhere) callTeamToLanding();
   }
   /**
-   * HORSE-WAKE (bible/01-Overview/bugs/Field-Bugs-2026-10-25b.md): a load that lands away from its save - the online
+   * HORSE-WAKE (bible/01-Overview/bugs/Field-Bugs-2026-10-25e.md): a load that lands away from its save - the online
    * page's wake from a dungeon at the nearest temple, town or graveyard, a dungeon that cannot be found or entered, a
    * save taken somewhere else. DFU's load always lands at the save, so the mod never meets this. Without a call, the
    * record's waiting horse stands at the dungeon door it was left at, out of every mount's reach (canUseHorseTransport),
