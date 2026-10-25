@@ -674,6 +674,7 @@ net.staffTp.noteMismatch,"{name} adlı oyuncunun tam konumuna ışınlandınız 
 net.staffTp.noteMissing,"{name} adlı oyuncunun tam konumuna ışınlandınız - konum notu eksik olduğu için oyununa soruldu (oyuncu bunu görebilir)."
 net.staffTp.viaNote,"Konum notuyla {name} adlı oyuncuya ışınlandınız - oyununa hiçbir şey bildirilmedi, ama oyuncu geldiğinizi görebilir."
 net.staffView.close,"Kapat"
+net.staffView.dismissFlag,"İşareti yok say"
 ql.line.skyKetch,"Gök Gemisi"
 ql.line.skyKetch.giver,"Imrah Bel-Tavir, Sentinelli antikacı"
 ql.line.skyKetch.lead,"Her on saatte bir pirinçten bir Rourken gemisi Daggerfall üzerinde sabit durur. Sentinelli bir antikacı onu buraya neyin indirdiğini öğrenmek istiyor."

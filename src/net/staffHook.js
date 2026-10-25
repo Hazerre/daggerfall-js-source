@@ -207,8 +207,11 @@ export function createStaffHook({ main, askToken, Session = OnlineSession, WS = 
  *  one Your settings offers (else NAMEPLATE_DIST), and for each account the most urgent flag the rows give it (the
  *  highest level wins, with its words) and whether a watch names it. A row with an account that is no account id, a
  *  level that is none of TAG_LEVELS, or nothing to show is dropped; past TAGS_MAX rows nothing is read; words that are
- *  not a string of TAG_WHY_MAX at most are no words. Null for an answer with no list.
- *  @param {any} m @returns {{ dist: number, flags: Map<string, { level: string|null, why: string, watch: boolean }> }|null} */
+ *  not a string of TAG_WHY_MAX at most are no words. Null for an answer with no list. STAFF-VIEW-SWITCH (mob, 2026-10-25:
+ *  "need option in setting to turn of monster lines and player esp to play normal"): Your settings' two switches, `esp`
+ *  (the tags and the flag lines) and `lines` (an Admin's monster lines) - each on unless the answer says false, so a panel
+ *  older than them changes nothing.
+ *  @param {any} m @returns {{ dist: number, esp: boolean, lines: boolean, flags: Map<string, { level: string|null, why: string, watch: boolean }> }|null} */
 export function validTags(m) {
   if (!Array.isArray(m?.list)) return null;
   /** @type {Map<string, { level: string|null, why: string, watch: boolean }>} */
@@ -225,7 +228,7 @@ export function validTags(m) {
     if (rank(level) < rank(had.level)) { had.level = level; had.why = why; }
     had.watch = had.watch || watch;
   }
-  return { dist: NAMEPLATE_DISTS.includes(m.dist) ? m.dist : NAMEPLATE_DIST, flags };
+  return { dist: NAMEPLATE_DISTS.includes(m.dist) ? m.dist : NAMEPLATE_DIST, esp: m.esp !== false, lines: m.lines !== false, flags };
 }
 
 /** THE PANEL'S DOOR on a window (above) - `hookOf()` the follow; answers the panel's `hook?`, takes its `follow`,
