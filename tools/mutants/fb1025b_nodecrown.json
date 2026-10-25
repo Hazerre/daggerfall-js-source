@@ -1,0 +1,55 @@
+[
+  {
+    "name": "NODE-CROWN-the-scale-counted-twice",
+    "file": "src/render/nodeGlint.js",
+    "old": "h = t.run.size[1] * row[4];",
+    "new": "h = t.run.size[1] * row[4] * t.run.scale[1];",
+    "tests": [
+      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/nodeglint.test.js"
+    ],
+    "note": "the bug: the prototype's scale, already in its standing size, taken again"
+  },
+  {
+    "name": "NODE-CROWN-the-row-s-scale-unread",
+    "file": "src/render/nodeGlint.js",
+    "old": "h = t.run.size[1] * row[4];",
+    "new": "h = t.run.size[1];",
+    "tests": [
+      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/nodeglint.test.js"
+    ],
+    "note": "the tree's own scale (DFU's 0.6..1.4) left out"
+  },
+  {
+    "name": "NODE-CROWN-the-width-for-the-height",
+    "file": "src/render/nodeGlint.js",
+    "old": "h = t.run.size[1] * row[4];",
+    "new": "h = t.run.size[0] * row[4];",
+    "tests": [
+      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/nodeglint.test.js"
+    ],
+    "note": "the crown's height its standing width"
+  },
+  {
+    "name": "NODE-CROWN-the-anchors-on-the-old-height",
+    "file": "src/render/nodeGlint.js",
+    "old": "_span(s.spans, k, row[0], row[1], row[2], 2 * reach, h, 0)",
+    "new": "_span(s.spans, k, row[0], row[1], row[2], 2 * reach, h * t.run.scale[1], 0)",
+    "tests": [
+      "test/scenes/fb1025b_nodecrown.test.js"
+    ],
+    "note": "the box the tree's, the glints' spots still on the double-counted crown"
+  },
+  {
+    "name": "NODE-CROWN-the-box-on-the-old-height",
+    "file": "src/render/nodeGlint.js",
+    "old": "row[0] + reach, row[1] + h, row[2] + reach);",
+    "new": "row[0] + reach, row[1] + h * t.run.scale[1], row[2] + reach);",
+    "tests": [
+      "test/scenes/fb1025b_nodecrown.test.js"
+    ],
+    "note": "the spots the tree's, the box (the rectangle the mask and the light stand in) still the double-counted one"
+  }
+]

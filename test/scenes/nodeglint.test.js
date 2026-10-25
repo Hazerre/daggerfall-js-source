@@ -556,7 +556,9 @@ test('AUDIT NODE-GLINT the boxes: a node behind the eye draws nothing (it was a 
   const frame = { eye: [0, 1.6, 0], radius: 140, band: 20, gpu: { vb: 'vb', ib: 'ib' }, cut: new Set([handle]), runs: [{ run: { handle }, scale: [1, 1.2, 1], size: [6, 10], sway: 0, subs: [] }] };
   const set = { trees: new Float32Array([0, ...c, 1.5, 0]), centers: [c], handles: [handle], ox: 0, oy: 0, oz: 0 };
   r.draw([{ alpha: 1, seed: 0.5, at: c, rgb: [1, 1, 1], mark: { pictures: [{ batch: { ...forest, size: { w: 30, h: 40 }, lptProto: handle }, first: 0, count: 1, centers: [c], center: c, entry: { lowPolyTrees: set } }] } }], fakeRenderer(gl, [frame]), 0);   // a far picture larger than its crown: had its box stood, it would show
-  const reach = 6 * GLINT_TREE_REACH * 1.5, h = 10 * 1.5 * 1.2;
+  // PIN MOVED (FIELD BUGS 2026-10-25b NODE-CROWN): the run's size is its prototype's standing size, its own scale (1.2
+  // up) in it already (world/lowPolyTrees.js readLowPolyTrees) - its height the size at the row's scale, never the 1.2 again
+  const reach = 6 * GLINT_TREE_REACH * 1.5, h = 10 * 1.5;
   assert.deepEqual(got(r), expect([2 - reach, 0, -20 - reach, 2 + reach, h, -20 + reach]), 'the crown at its row\'s scale, the far flat\'s box none');
   assert.deepEqual([r._nodes[0].anchorN, ...Array.from(r._nodes[0].anchors.slice(0, 5)).map((v) => +v.toFixed(5))], [1, 2, 0, -20, 2 * reach, h].map((v) => +v.toFixed(5)), 'its glints on the crown about its root, the far flat none');
   // a node of two batches (a dungeon vein's washes): the first's flats judged by its own picture, the second's by the silhouette

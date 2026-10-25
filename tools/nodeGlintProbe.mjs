@@ -12,7 +12,8 @@
 // their glint's depth, no glint moves across the clock's wrap, two nodes of one picture glint apart, and on a leafy
 // picture a glint holds its place as the eye moves a pixel at a time. GLINT-LIGHT: and it is as bright as the light where
 // the node stands (the renderer's own flatLightAt) - whole at a clear noon, a quarter at night and still clear, held at the
-// night's by the flats' floor in a black mine, and no sheen crossing the far picture at night. So: the repo's own modules served as they are (no bundler), a floor, the node's own picture
+// night's by the flats' floor in a black mine, and no sheen crossing the far picture at night. NODE-CROWN (FIELD BUGS
+// 2026-10-25b): and the 3D tree, a prefab the mod scales (its run as the door makes it), lit to its top. So: the repo's own modules served as they are (no bundler), a floor, the node's own picture
 // drawn by a stand-in of the billboard placement (depth written, cut at a half), the pass drawn by its own class over
 // them, and the frame read back.
 //
@@ -41,14 +42,15 @@ const flat = prog(\`#version 300 es
 layout(location=0) in vec3 p; uniform mat4 vp; void main(){ gl_Position = vp * vec4(p, 1.0); }\`, \`#version 300 es
 precision highp float; uniform vec3 c; out vec4 o; void main(){ o = vec4(c, 1.0); }\`);
 // THE NODE'S OWN PICTURE, as the world draws it: a flat placed by the billboard law (renderer.js BB_VS - the centre, the
-// basis, the size, its foot at its base) and a 3D tree turned and scaled at its root; cut at a half, depth written
+// basis, the size, its foot at its base) and a 3D tree turned and scaled at its root (NODE-CROWN: by its prefab's own
+// scale, BB_VS's uMeshScale, as the door's trees are); cut at a half, depth written
 const own = prog(\`#version 300 es
 layout(location=0) in vec3 aCenter; layout(location=1) in vec2 aCorner;
-uniform mat4 vp; uniform vec3 uRight; uniform vec2 uSize; uniform vec4 uInst; uniform float uMesh; out vec2 vUV;
+uniform mat4 vp; uniform vec3 uRight; uniform vec2 uSize; uniform vec4 uInst; uniform vec3 uMeshScale; uniform float uMesh; out vec2 vUV;
 void main(){
   vec3 w = aCenter + uRight * (aCorner.x * uSize.x) + vec3(0.0, (aCorner.y + 0.5) * uSize.y, 0.0);
   vUV = aCorner + 0.5;
-  if (uMesh > 0.5) { float c = cos(uInst.w), s = sin(uInst.w); w = vec3(c * aCenter.x + s * aCenter.z, aCenter.y, -s * aCenter.x + c * aCenter.z) + uInst.xyz; vUV = aCorner; }
+  if (uMesh > 0.5) { vec3 p = aCenter * uMeshScale; float c = cos(uInst.w), s = sin(uInst.w); w = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z) + uInst.xyz; vUV = aCorner; }
   gl_Position = vp * vec4(w, 1.0);
 }\`, \`#version 300 es
 precision highp float; in vec2 vUV; uniform sampler2D t; out vec4 o;
@@ -76,15 +78,19 @@ centers.forEach((c, f) => { for (const k of CORNERS) bv.push(...c, ...k); const 
 const batchVao = vao(bv, [[0, 3, 20, 0], [1, 2, 20, 12]], bi);
 const batch = { archive: 500, record: 9, frame: null, vao: batchVao.v, _ibOff: 0, size: { w: 1, h: 1 }, origin: null, sway: 0 };
 // A 3D TREE, the door's own layout (lowPolyTreesRender.js: f32 x 8 - position, normal, uv - and u32 indices): two crossed
-// cards 1.6 across and 2 up about its root, at x +1.4
+// cards 1.6 across and 2 up about its root, at x +1.4. NODE-CROWN: a prefab of the mod's own scale (half - as 504_16's,
+// one of the temperate woods' trees), so its mesh is 3.2 across and 4 up, and its run is as the door makes it
+// (systems/lowPolyTreesAssets.js frame): that scale, and the standing size the prototype carries with it in already
+// (world/lowPolyTrees.js readLowPolyTrees)
 const tv = [], ti = [];
-const card = (ax, az) => { const o = tv.length / 8; for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) tv.push((u - 0.5) * 1.6 * ax, v * 2.0, (u - 0.5) * 1.6 * az, 0, 0, 1, u, v); ti.push(o, o + 1, o + 2, o, o + 2, o + 3); };
+const TREE_SCALE = [0.5, 0.5, 0.5];
+const card = (ax, az) => { const o = tv.length / 8; for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) tv.push((u - 0.5) * 3.2 * ax, v * 4.0, (u - 0.5) * 3.2 * az, 0, 0, 1, u, v); ti.push(o, o + 1, o + 2, o, o + 2, o + 3); };
 card(1, 0); card(0, 1);
 const treeVao = vao(tv, [[0, 3, 32, 0], [2, 3, 32, 12], [1, 2, 32, 24]], ti);
 const gpu = { vb: treeVao.b, ib: treeVao.ib };
 const handle = { proto: 'a tree' }, root = [1.4, 0, 0];
 const tset = { trees: new Float32Array([0, ...root, 1, 0.35]), centers: [root], handles: [handle], ox: 0, oy: 0, oz: 0 };
-const frame = { eye: [0, 0, 0], radius: 140, band: 20, gpu, cut: new Set([handle]), runs: [{ run: { handle }, scale: [1, 1, 1], size: [1.6, 2], sway: 0, subs: [{ offset: 0, count: ti.length, tex, alpha: 1, color: [1, 1, 1], cull: 0 }] }] };
+const frame = { eye: [0, 0, 0], radius: 140, band: 20, gpu, cut: new Set([handle]), runs: [{ run: { handle }, scale: TREE_SCALE, size: [3.2 * TREE_SCALE[0], 4 * TREE_SCALE[1]], sway: 0, subs: [{ offset: 0, count: ti.length, tex, alpha: 1, color: [1, 1, 1], cull: 0 }] }] };
 let pass = null, err = null;
 try { pass = new NodeGlintRenderer(gl); } catch (e) { err = String(e.message ?? e); }
 const persp = (f, a, n, fa) => { const t = 1 / Math.tan(f / 2); return new Float32Array([t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]); };
@@ -109,7 +115,7 @@ window.draw = ({ walled = false, lit = true, alpha = 1, lpt = true, seconds = 0,
   gl.useProgram(own); gl.uniformMatrix4fv(gl.getUniformLocation(own, 'vp'), false, vp); gl.uniform3fv(gl.getUniformLocation(own, 'uRight'), right);
   gl.uniform2f(gl.getUniformLocation(own, 'uSize'), 1, 1); gl.uniform1f(gl.getUniformLocation(own, 'uMesh'), 0); gl.bindTexture(gl.TEXTURE_2D, herbTex);
   gl.bindVertexArray(batchVao.v); gl.drawElements(gl.TRIANGLES, 12, gl.UNSIGNED_INT, 0);
-  gl.uniform1f(gl.getUniformLocation(own, 'uMesh'), 1); gl.uniform4f(gl.getUniformLocation(own, 'uInst'), root[0], root[1], root[2], 0.35); gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.uniform1f(gl.getUniformLocation(own, 'uMesh'), 1); gl.uniform4f(gl.getUniformLocation(own, 'uInst'), root[0], root[1], root[2], 0.35); gl.uniform3fv(gl.getUniformLocation(own, 'uMeshScale'), TREE_SCALE); gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.bindVertexArray(treeVao.v); gl.drawElements(gl.TRIANGLES, ti.length, gl.UNSIGNED_INT, 0);
   if (walled) { gl.useProgram(flat); gl.uniform3f(gl.getUniformLocation(flat, 'c'), 0.12, 0.12, 0.12); gl.bindVertexArray(wall.v); gl.drawArrays(gl.TRIANGLES, 0, wall.n); }
   gl.bindVertexArray(null);
@@ -177,7 +183,11 @@ try {
   check('the GL baseline handed back: depth LESS and written, blend off, faces culled', first.state.depthFunc && first.state.depthMask && !first.state.blend && first.state.cull, JSON.stringify(first.state));
   const reach = Math.ceil(first.reach) + 1;
   check('a glint\'s reach on screen is its law\'s (a few pixels, never past the image\'s most)', first.reach > 1 && first.reach <= p.reachMax, `${first.reach.toFixed(2)} px of ${p.reachMax.toFixed(2)}`);
-  let herb = 0, tree = 0, flat0 = 0, darker = 0, farOff = 0, strongOff = 0, touched = 0, offPic = 0, frames = 0;
+  // NODE-CROWN: the tree's rows on screen (row 0 the bottom), and the top two fifths of them - its crown's upper reach
+  let treeLo = H, treeHi = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (treeCol(x) && onPic(x, y)) { if (y < treeLo) treeLo = y; if (y > treeHi) treeHi = y; }
+  const crownFrom = treeLo + 0.6 * (treeHi - treeLo);
+  let herb = 0, tree = 0, treeTop = 0, flat0 = 0, darker = 0, farOff = 0, strongOff = 0, touched = 0, offPic = 0, frames = 0;
   for (let t = 0; t < 6; t += 0.25) {
     const f = await draw({ seconds: t });
     frames++;
@@ -187,6 +197,7 @@ try {
       if (d < -6) darker++;
       if (d <= 24) continue;
       touched++;
+      if (treeCol(x) && y >= crownFrom) treeTop++;
       if (herbCol(x)) herb++; else if (treeCol(x)) tree++; else if (flat0Col(x)) flat0++;
       if (!nearPic(x, y, reach)) farOff++;
       if (!onPic(x, y)) offPic++;
@@ -194,6 +205,9 @@ try {
     }
   }
   check('over the glints\' lives the herb glints, and the tree', herb > 40 && tree > 40, `herb ${herb} px, tree ${tree} px over ${frames} frames`);
+  // FIELD BUGS 2026-10-25b NODE-CROWN ("Big trees hide resource node particles"): a prefab of the mod's own scale glints to
+  // its top - its scale counted once (it stood the crown at its scale's share of the tree: half of this one, the top bare)
+  check('NODE-CROWN: a scaled prefab\'s 3D tree glints to its top - its crown\'s upper two fifths lit', treeTop > 40 && treeTop < tree, `${treeTop} px of the tree's ${tree} in its rows ${Math.ceil(crownFrom)}-${treeHi} (the tree ${treeLo}-${treeHi})`);
   check('light only added: no pixel darker', darker === 0, `${darker} px`);
   check(`within a glint's reach (${reach} px) of the picture: a glint, not a halo`, farOff === 0, `${farOff} of ${touched} past it`);
   check('every glint\'s heart on the picture (its brightest pixels within 3 px of it)', strongOff === 0, `${strongOff} px`);

@@ -5261,6 +5261,26 @@ hours; `flatLightAt`'s `out`; the draw asking each node's light at its place and
 at the night's by the floor; far, at night, no sheen at any moment it crossed by day - `renderer.flatLightAt` itself
 over the probe's scene); `tools/mutants/nodeglint.json` 107, all dead.
 
+### NODE-CROWN - a 3D tree lit to its top (FIELD BUGS 2026-10-25b)
+
+Discord #bug-reports, kvassdrit, "Big trees hide resource node particles": **"Needs to be size aware or have a completely
+different visual like others have recommended."** FACT: a Logging node near the eye is its 3D tree (Low Poly Trees, on by
+default, draws every wild tree within 140 m in 3D; a node glints within 120 m), and the pass boxed its crown at the run's
+standing size times its row's scale times the prototype's own scale - but the standing size carries that scale already
+(`world/lowPolyTrees.js` readLowPolyTrees, `m.max[1] * sy`; the mesh is drawn at it, `bbVertexShader`'s mesh mode). 88 of
+the 116 Tree records' prototypes are scaled: a temperate wood's (504-511, 0.5 to 0.8) glinted only up to half to four
+fifths of their height - 504_16's 16 m tree to 8 m, the upper crown that shows over a wood never - and a swamp's or a
+desert's (1.5 to 4.2) over a box up to four times their height, most of their glints' tries in the air above them. Not
+the depth: the light is drawn after the trees against the world's depth at the picture's own. FIXED: the crown as tall as
+the tree its run draws (`h = t.run.size[1] * row[4]`); its reach, the far flat's box and the jungle's trees (their
+prototypes unscaled) were right and are unchanged. Not a DFU member (the glint is ours); the scale is the mod's prefab
+scale under DFU's terrain tree scale, as the world draws it. NOT CHANGED, the owner's call: a node's glints are six at
+most, no larger than a near herb's (`GLINT_COUNT`, `GLINT_PX` - this section's own law), so a crown filling the screen
+carries the herb's six. Pinned by `test/scenes/fb1025b_nodecrown.test.js` (the report's 504_16 through the Low Poly Trees
+door, the billboard program's own vertex stage and the pass; every Tree record's prototype), `tools/nodeGlintProbe.mjs`
+(31 checks: a half-scale prefab's top two fifths lit - none before), `tools/mutants/fb1025b_nodecrown.json` (5, all
+dead); PIN MOVED: `test/scenes/nodeglint.test.js`'s boxes (a run's scale counted once).
+
 ## 48. CRAFT-PAYS and POT-THIN - a crafter's bottle worth brewing, the flood of drops turned down, a cooked meal that weighs what it should (BUILT 2026-10-21)
 
 The Discord's #feature-feedback, TheBard, "Crafting seems unrewarding" (2026-10-21): **"It requires a great deal of

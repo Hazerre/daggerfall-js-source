@@ -605,7 +605,11 @@ export class NodeGlintRenderer {
           }
         }
         if (t) {
-          const row = this._row, reach = t.run.size[0] * GLINT_TREE_REACH * row[4], h = t.run.size[1] * row[4] * t.run.scale[1];
+          // FIELD BUGS 2026-10-25b NODE-CROWN ("Big trees hide resource node particles"): its crown as tall as the tree its
+          // run draws - the run's standing size at its row's scale; the prototype's own scale is in that size already
+          // (world/lowPolyTrees.js readLowPolyTrees), and counted again it stood a temperate wood's crown at half to four
+          // fifths of its tree (504_16's 16 m tree lit to 8 m, its top never) and a swamp's at up to four times its height
+          const row = this._row, reach = t.run.size[0] * GLINT_TREE_REACH * row[4], h = t.run.size[1] * row[4];
           NodeGlintRenderer._span(s.spans, k, row[0], row[1], row[2], 2 * reach, h, 0);   // AUDIT NODE-GLINT: its crown, about its root
           NodeGlintRenderer._box(s.boxes, k++, row[0] - reach, row[1], row[2] - reach, row[0] + reach, row[1] + h, row[2] + reach);
         }
