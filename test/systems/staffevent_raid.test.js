@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
+  STAFF_PACK_MIN, STAFF_PACK_MAX, STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, STAFF_PACK_NEAR, MAX_RAID_ENEMIES, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE,
   raidFrame as frame, raidWireWord, raidRelayWord, setRaidingPartiesHost, restoreRaidSaveData, _resetRaidingParties,
   STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine,
 } from '../../src/systems/raidingParties.js';
@@ -45,7 +46,7 @@ function rig() {
     regionIndex: () => 3, regionName: (r) => `Region${r}`,
     townHere: (outdoors) => (outdoors ? at.outdoors : at.town), playerPixel: () => at.pixel,
     peersInTown: () => [], raidPuppets: () => at.puppets, ownRaidFoes: () => at.own, relayRaids: () => true,
-    standRaider: (mt) => { const f = foe(mt); log.raiders.push(f); return Promise.resolve(f); },
+    standRaider: (mt, o) => { const f = foe(mt); f.o = o; if (o?.at) f.ai.feet = [...o.at]; log.raiders.push(f); return Promise.resolve(f); },
     standDefender: () => { const g = foe(146); log.defenders.push(g); return Promise.resolve(g); },
     defenderCount: () => 0, defendersAllowed: () => true, removeFoe: (f) => { f.dead = true; }, outOfSight: () => true,
     reputation: () => ({ player: { legalRep: {} }, store: { dict: new Map() } }), say: (line) => log.said.push(line),
@@ -145,6 +146,50 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, id: 'dd33ee44ff' }] } }, 'social');
   raidRelayWord({ k: 'sev', sev: { k: 'st', id: 'dd33ee44ff', n: 0, bd: 1, bu: 0, bk: 0, fc: 2 } }, w.room);
   assert.equal(staffBossWanted(staffRaids()[0]), 2);
+});
+
+test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of one kind, each led from anywhere around me, its pack around its leader, quickly to the 25 cap', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  let r = 0;
+  const rolls = [0.99, 0.5, 0.1, 0.7, 0.3];
+  h.random = () => rolls[r++ % rolls.length];
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, n: 100, mt: [7, 12, 21] }] } }, 'social');
+  let secs = 0;
+  while (log.raiders.length < MAX_RAID_ENEMIES && secs < 30) { frame(0.15); await tick(); secs += 0.15; }
+  assert.ok(secs < 15, `the 25 stood quickly (${secs.toFixed(1)} s)`);
+  assert.equal(log.raiders.length, MAX_RAID_ENEMIES);
+  await run(5, 0.5);
+  assert.equal(log.raiders.length, MAX_RAID_ENEMIES, 'never past the cap');
+  // the packs: a leader sought far, any bearing; the rest at its feet, near; one kind a pack, 3-5 a pack
+  const packs = [];
+  for (const f of log.raiders) {
+    if (!f.o?.at) packs.push([f]);
+    else packs.at(-1).push(f);
+  }
+  for (const [lead, ...rest] of packs) {
+    assert.deepEqual([lead.o.min, lead.o.max, lead.o.los], [STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, false]);
+    assert.ok(rest.every((f) => f.mobileType === lead.mobileType && f.o.max === STAFF_PACK_NEAR && f.o.los === false && f.o.at[0] === lead.ai.feet[0]));
+  }
+  assert.ok(packs.slice(0, -1).every((p) => p.length >= STAFF_PACK_MIN && p.length <= STAFF_PACK_MAX), packs.map((p) => p.length).join(','));
+  assert.ok(new Set(packs.map((p) => p[0].mobileType)).size > 1, 'the kinds mixed pack by pack');
+  // the host's placement: a town raid's the mod's just out of view
+  assert.deepEqual(raidSpawnRange(undefined), { minDistance: RAID_SPAWN_MIN_DISTANCE, maxDistance: RAID_SPAWN_MAX_DISTANCE, lineOfSightCheck: true });
+  assert.deepEqual(raidSpawnRange({ min: 1.5, max: 6, los: false }), { minDistance: 1.5, maxDistance: 6, lineOfSightCheck: false });
+});
+
+test('STAFF-EVENT PACKS: a leader with no spot far off is tried again nearer, the pack never lost', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  const asked = [];
+  const stand = h.standRaider;
+  h.standRaider = (mt, o) => { asked.push(o); return o?.min === STAFF_PACK_FAR_MIN ? Promise.resolve(null) : stand(mt, o); };
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [EV] } }, 'social');
+  await run(20, 0.2);
+  assert.deepEqual([asked[0].min, asked[1].min], [STAFF_PACK_FAR_MIN, RAID_SPAWN_MIN_DISTANCE], 'far, then nearer');
+  assert.ok(log.raiders.length >= 2 && log.raiders[1].o.at, 'and its pack around it');
 });
 
 test('STAFF-EVENT THE REWARD: my kills on the board - a monster of mine I struck, a puppet of another\'s I struck that fell (once); a death I never struck is no kill of mine', async () => {

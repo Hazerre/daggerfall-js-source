@@ -282,8 +282,8 @@
   {
     "name": "RAID1-a-twenty-sixth-raider",
     "file": "src/systems/raidingParties.js",
-    "old": "staffRaidRoom(raid, standing, MAX_RAID_ENEMIES) : standing < MAX_RAID_ENEMIES) {",
-    "new": "staffRaidRoom(raid, standing, MAX_RAID_ENEMIES) : standing <= MAX_RAID_ENEMIES) {",
+    "old": "    if (standing < MAX_RAID_ENEMIES) {",
+    "new": "    if (standing <= MAX_RAID_ENEMIES) {",
     "tests": ["test/systems/raid1_raidingParties.test.js"]
   },
   {

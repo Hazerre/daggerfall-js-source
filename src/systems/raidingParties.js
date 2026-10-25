@@ -129,6 +129,9 @@ export const ACTOR_SWEEP_S = 3;
 /** CreateFoeSpawner(minDistance: 10, maxDistance: 35) [IL_07f0, IL_07f5]. */
 export const RAID_SPAWN_MIN_DISTANCE = 10;
 export const RAID_SPAWN_MAX_DISTANCE = 35;
+/** The placement standRaider stands a raider by (scenes/hostEnchant.js standLooseFoe's): the mod's just out of view, or
+ *  STAFF-EVENT PACKS' `{ min, max, los }`. @param {{ min?: number, max?: number, los?: boolean } | undefined} at */
+export const raidSpawnRange = (at) => ({ minDistance: at?.min ?? RAID_SPAWN_MIN_DISTANCE, maxDistance: at?.max ?? RAID_SPAWN_MAX_DISTANCE, lineOfSightCheck: at?.los ?? true });
 /** GrantReputation [IL_1240]. */
 export const RAID_LEGAL_REP = 5;
 export const RAID_PEOPLE_REP = 5;
@@ -344,7 +347,8 @@ const allRaids = () => { const s = staffRaids(); return s.length ? [...state.rai
  *   townHere()                {regionIndex, locationIndex} while the player stands OUTDOORS in a location's rect
  *                             (FindCurrentRaid's three tests [IL_0df9-IL_0e09]), else null
  *   playerPixel()             PlayerGPS.CurrentMapPixel
- *   standRaider(mobileType)   a hostile foe placed 10-35 units off, just outside the view (FoeSpawner) - a promise of
+ *   standRaider(mobileType, at) a hostile foe placed 10-35 units off, just outside the view (FoeSpawner), or where a
+ *                             staff event's pack asks (`at`: raidSpawnRange's, and its leader's feet) - a promise of
  *                             the foe record, null when no spot was found
  *   standDefender(threats)    one of the town's watch, the player's ally, sent at the nearest threat - a promise
  *   defenderCount()           the defenders standing and coming (cityGuards.defenderCount)
@@ -490,16 +494,17 @@ function sweep() {
 }
 
 /** SpawnRaidEnemy [IL_0764]: one foe in flight; a spot not found costs nothing but this tick (fix 10). */
-function spawn(raid, kind, mobileType) {
+function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const h = host();
   const p = { key: raidKey(raid), age: 0, cancelled: false };
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
-  const promise = kind === 'defender' ? h.standDefender?.(threats()) : h.standRaider?.(mobileType);
+  const promise = kind === 'defender' ? h.standDefender?.(threats()) : h.standRaider?.(mobileType, o);   // STAFF-EVENT PACKS: where, for a pack's
   const boss = kind === 'boss';   // STAFF-EVENT: a staff event's mini boss - one raider, promoted
   Promise.resolve(promise).then((foe) => {
     if (_pending === p) _pending = null;
-    if (!foe) { if (boss) raid.bossFc = -1; return; }   // STAFF-EVENT: no spot - the call is answered again
+    if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
+    if (pack && !pack.at && Array.isArray(foe.ai?.feet)) pack.at = [...foe.ai.feet];   // STAFF-EVENT PACKS: its pack stands around it
     if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; return; }
     if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh }); raid.bossUp = 1; raid.bossDown = 0; }
     if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: boss ? 'raider' : kind, boss, routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
@@ -612,10 +617,11 @@ export function raidFrame(dt = 0) {
   }
   // I. a raider [IL_0712-IL_0760]
   if (_nextSpawnIn <= 0) {
+    if (raid.staff) return staffPackStep(raid, liveRaiders(raidKey(raid)).length);   // STAFF-EVENT PACKS
     scheduleNextSpawn(raid.type);
     const standing = liveRaiders(raidKey(raid)).length;
-    if (raid.staff ? staffRaidRoom(raid, standing, MAX_RAID_ENEMIES) : standing < MAX_RAID_ENEMIES) {
-      spawn(raid, 'raider', raid.staff ? staffRaider(raid, rnd()) : chooseRaider(raid.type, rnd()));
+    if (standing < MAX_RAID_ENEMIES) {
+      spawn(raid, 'raider', chooseRaider(raid.type, rnd()));
       return 'raider';
     }
   }
@@ -758,6 +764,39 @@ export const STAFF_RAID_TYPE = 9;   // no party of the mod's (0-2), and never th
 /** A staff event stands its monsters faster than a raid's one to ten seconds - it is up to 500 of them, staged now. */
 export const STAFF_SPAWN_INTERVAL_MIN_S = 0.5;
 export const STAFF_SPAWN_INTERVAL_MAX_S = 2;
+/**
+ * STAFF-EVENT PACKS (2026-10-25, mob: "when we do a raid spawn they need to be spread all over not a SINGLE SPAWN POINT
+ * ... SHOULD DO PACK SPAWNING", "3-5 per pack of the monster chosen trhis need to feel like a take over", "and packs
+ * quickly to the 25 cap"): a staff event stands its monsters in PACKS of STAFF_PACK_MIN to STAFF_PACK_MAX of one kind -
+ * a leader anywhere around me (any bearing, STAFF_PACK_FAR_MIN to STAFF_PACK_FAR_MAX off, in front of me too), its pack
+ * within STAFF_PACK_NEAR of it, STAFF_PACK_STEP_S apart - and the next pack STAFF_PACK_GAP_MIN_S to STAFF_PACK_GAP_MAX_S
+ * after, to MAX_RAID_ENEMIES standing. A leader with no spot that far is tried nearer (a narrow street) - never lost. A
+ * town raid keeps the mod's one foe at a time just out of view.
+ */
+export const STAFF_PACK_MIN = 3;
+export const STAFF_PACK_MAX = 5;
+export const STAFF_PACK_FAR_MIN = 20;
+export const STAFF_PACK_FAR_MAX = 60;
+export const STAFF_PACK_NEAR = 6;
+export const STAFF_PACK_STEP_S = 0.15;
+export const STAFF_PACK_GAP_MIN_S = 0.3;
+export const STAFF_PACK_GAP_MAX_S = 0.8;
+/** The pack standing now: `{ key, mt, left, at, far }` - its raid, its kind, how many more, its leader's feet, whether its leader is sought far. */
+let _pack = null;
+/** One step of a staff event's packs (section I's, the clock run out). @param {any} raid @param {number} standing */
+function staffPackStep(raid, standing) {
+  const key = raidKey(raid);
+  if (_pack && (_pack.key !== key || _pack.left <= 0)) _pack = null;
+  if (!staffRaidRoom(raid, standing, MAX_RAID_ENEMIES)) { _pack = null; scheduleNextSpawn(raid.type); return 'idle'; }
+  _pack ??= { key, mt: staffRaider(raid, rnd()), left: rangeInt(STAFF_PACK_MIN, STAFF_PACK_MAX + 1, rnd()), at: null, far: true };
+  const pack = _pack;
+  pack.left--;
+  const o = pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false }
+    : pack.far ? { min: STAFF_PACK_FAR_MIN, max: STAFF_PACK_FAR_MAX, los: false } : { min: RAID_SPAWN_MIN_DISTANCE, max: RAID_SPAWN_MAX_DISTANCE, los: false };
+  _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : rangeFloat(STAFF_PACK_GAP_MIN_S, STAFF_PACK_GAP_MAX_S, rnd());
+  spawn(raid, 'raider', pack.mt, o, pack);
+  return 'raider';
+}
 /** THE REWARD: a staff event's monster another stands that fell after a blow of mine is my kill on the board (its
  *  owner's word counts it on the meter). Each puppet once. @param {any[]} puppets the raids' puppets, the fallen too @param {number} now */
 function staffPuppetKills(puppets, now) {
@@ -917,7 +956,7 @@ export function _resetRaidingParties() {
   state = newRaidSaveData(); _live = []; _pending = null; _nextSpawnIn = 0; _nextDefenderIn = 0; _sweepIn = 0;
   _lastRegion = -1; _regions = null; _host = null; _installed = false; _townsText = null; _townsHash = null;
   _peerWords = new Map(); _myClaims = new Map(); _unclaimedSince = new Map();
-  _relay = new Map(); _receipts = new Map(); _lastWord = null; _ahead = { day: NaN, raids: [] }; _staffBoards.clear(); _pupKilled = new WeakSet();
+  _relay = new Map(); _receipts = new Map(); _lastWord = null; _ahead = { day: NaN, raids: [] }; _staffBoards.clear(); _pupKilled = new WeakSet(); _pack = null;
 }
 /** Test seam: the runtime, read-only. */
 export const _raidRuntime = () => ({ live: _live.slice(), pending: _pending, nextSpawnIn: _nextSpawnIn, nextDefenderIn: _nextDefenderIn });

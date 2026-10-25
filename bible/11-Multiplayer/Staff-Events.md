@@ -62,7 +62,12 @@ it: one player in the place runs it (the raid's election, by its words) and stan
 there stands them as puppets. A town's event runs while the player stands outdoors in its rect (the raid's own test);
 an area's while the player stands outdoors on its pixel (`townHere(true)`). Differences from a day's raid:
 
-- its monsters are staff's kinds, one every 0.5-2 s, never more standing or killed than its total (`staffRaidRoom`);
+- its monsters are staff's kinds, stood in PACKS (`raidingParties.js` `staffPackStep`; mob, 2026-10-25: "they need to be
+  spread all over not a SINGLE SPAWN POINT", "3-5 per pack of the monster chosen trhis need to feel like a take over",
+  "and packs quickly to the 25 cap"): 3-5 of one kind a pack, its leader stood anywhere around the runner (any bearing,
+  20-60 units off, in view too - nearer when no spot is that far), the rest within 6 of the leader 0.15 s apart, the next
+  pack 0.3-0.8 s after, to the raid's cap of 25 standing - never more standing or killed than its total
+  (`staffRaidRoom`). A day's raid keeps the mod's one foe at a time just out of view;
 - no town guards come out to defend it;
 - the boss is stood when the cell calls it and none stands for that call (`staffBossWanted`), before any raider;
 - the boss's death is its own word (`bk`), never a kill on the meter;
