@@ -18,7 +18,7 @@ import {
   RAID_HELD_REP, MAX_RAID_ENEMIES, ACTOR_SWEEP_S, _resetRaidingParties,
 } from '../../src/systems/raidingParties.js';
 import {
-  RAID_KINDS, STAFF_KIND, raidKindOf, raidWavePlan, raidWaveAt, RAID_WAVES_FOR, RAID_WAVE_BREATHER_S, RAID_LEADER_TRAITS,
+  RAID_KIND_ORDER, STAFF_KIND, raidKindOf, raidWavePlan, raidWaveAt, RAID_WAVES_FOR, RAID_WAVE_BREATHER_S, RAID_LEADER_TRAITS,
   raidLeaderOf, raidLeaderName, raidKindAsk, raidKindName, raidWaveLine, raidLeaderLine, raidBearerFellLine,
   raidRefugeeSafeLine, raidRefugeeLostLine, raidHeldLine, raidObjectiveDetail, alongWay, wayLength, RAID_REFUGEES,
   RAID_REFUGEE_PACE, RAID_REFUGEE_WAIT_M, RAID_BEARER_HEALTH_X, RAID_BEARER_LEASH_M, RAID_REFUGEE_HEALTH_X, RAID_AIM_MS,
@@ -106,7 +106,7 @@ test('RAID5 a raid\'s kind is read off its own tuple - its key, start, target an
     assert.equal(raidKindOf(r), raidKindOf({ ...r }), 'the same raid, the same kind');
     const seen = new Set();
     for (let m = 600; m < 640; m++) seen.add(raidKindOf(raidRec({ startMinute: AT(m) })));
-    assert.deepEqual([...seen].sort(), [...RAID_KINDS].sort(), 'all four come');
+    assert.deepEqual([...seen].sort(), [...RAID_KIND_ORDER].sort(), 'all four come');
     const kinds = (o) => Array.from({ length: 24 }, (_, i) => raidKindOf(raidRec({ startMinute: AT(600 + i), ...o }))).join();
     assert.notEqual(kinds({}), kinds({ attackAmount: 21 }), 'the target is read');
     assert.notEqual(kinds({}), kinds({ type: 1 }), 'the party is read');

@@ -107,7 +107,7 @@ import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLa
 import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss, promoteRaidLeader } from './eliteFoes.js';   // STAFF-EVENT: its mini boss; RAID5: a raid's leader
 import { giveBossTraits, rollBossTraits } from './bossTraits.js';   // RAID5: the leader's two traits (BOSS-TRAITS)
-import { RAID_KINDS, raidKindOf, raidKindAsk, raidKindName, raidWavePlan, raidWaveAt, raidWaveLine, raidLeaderLine, raidLeaderName, raidLeaderOf, raidLeaderNameOf,
+import { RAID_KIND_ORDER, raidKindOf, raidKindAsk, raidKindName, raidWavePlan, raidWaveAt, raidWaveLine, raidLeaderLine, raidLeaderName, raidLeaderOf, raidLeaderNameOf,
   raidBearerFellLine, raidRefugeeSafeLine, raidRefugeeLostLine, raidHeldLine, raidObjectiveDetail, alongWay, wayLength,
   RAID_WAVE_BREATHER_S, RAID_WAVE_PACK_MIN, RAID_WAVE_PACK_MAX, RAID_WAVE_PACK_GAP_S, RAID_LEADER_TRAITS, RAID_LEADER_AGAIN_S,
   RAID_DEFEND_PACK_MAX, RAID_DEFEND_PACK_GAP_S, RAID_DEFEND_FROM_M, RAID_AIM_MS, RAID_REFUGEES, RAID_REFUGEES_HOLD, RAID_REFUGEE_PACE,
@@ -705,7 +705,7 @@ export const raidWasHeld = (key) => _held.includes(key);
 /** The raid's objective as a word: [kind's index, a, b] - the assault its wave said, the standard its bearer's health
  *  (per cent) and whether it fell, the exodus its saved and its lost; null for a classic raid. */
 function objWordOf(raid) {
-  const kind = kindOf(raid), k = RAID_KINDS.indexOf(kind), o = objOf(raid);
+  const kind = kindOf(raid), k = RAID_KIND_ORDER.indexOf(kind), o = objOf(raid);
   if (kind === 'waves') return o.said >= 0 ? [k, o.said, o.leaderFell > -Infinity ? 1 : 0] : null;   // none until its first wave is said; its leader's fall the third
   if (kind === 'defend') {
     const b = _live.find((e) => e.key === raidKey(raid) && e.kind === 'bearer' && !e.foe.dead);
@@ -759,9 +759,9 @@ function objNow(raid) {
 /** The objective's lines, said once each on every machine in the town - the runner's own, a reader's off the word. */
 function sayObjective(raid, w) {
   if (!w) return;
-  if (!raid.asked) { raid.asked = true; const ask = raidKindAsk(RAID_KINDS[w[0]], raid.locationName); if (ask) say(ask, raid); }   // what the town asks, once its objective stands (a town with no square or way is the mod's raid)
+  if (!raid.asked) { raid.asked = true; const ask = raidKindAsk(RAID_KIND_ORDER[w[0]], raid.locationName); if (ask) say(ask, raid); }   // what the town asks, once its objective stands (a town with no square or way is the mod's raid)
   const key = raidKey(raid), was = _objSaid.get(key) ?? [-1, -1, -1];
-  const kind = RAID_KINDS[w[0]], town = raid.locationName;
+  const kind = RAID_KIND_ORDER[w[0]], town = raid.locationName;
   if (kind === 'waves' && w[1] !== was[1]) {
     const plan = raid.plan ??= raidWavePlan(raid.attackAmount);
     say(w[1] < plan.sizes.length ? raidWaveLine(w[1] + 1, plan.sizes.length, town) : raidLeaderLine(raidLeaderName(raid.type), town), raid);

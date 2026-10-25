@@ -2,8 +2,8 @@
   {
     "name": "RAID5-the-kind-a-draw",
     "file": "src/systems/raidKinds.js",
-    "old": "return RAID_KINDS[tupleHash(['raid-kind', key, raid.startMinute, raid.attackAmount, raid.type]) % RAID_KINDS.length];",
-    "new": "return RAID_KINDS[Math.floor(Math.random() * RAID_KINDS.length)];",
+    "old": "return RAID_KIND_ORDER[tupleHash(['raid-kind', key, raid.startMinute, raid.attackAmount, raid.type]) % RAID_KIND_ORDER.length];",
+    "new": "return RAID_KIND_ORDER[Math.floor(Math.random() * RAID_KIND_ORDER.length)];",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {

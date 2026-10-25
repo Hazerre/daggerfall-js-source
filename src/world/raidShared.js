@@ -60,7 +60,7 @@ export function validRaidWords(raw) {
 }
 
 /** RAID5 (bible/03-World/Raiding-Parties.md RAID5): the kinds a raid's objective word names (systems/raidKinds.js
- *  RAID_KINDS - classic 0 says none), and the most either of its two numbers says (a standard's per cent; refugees). */
+ *  RAID_KIND_ORDER - classic 0 says none), and the most either of its two numbers says (a standard's per cent; refugees). */
 export const RAID_OBJ_KINDS = 4;
 export const RAID_OBJ_MAX = 100;
 /** RAID5: a frame's word on the objectives of the raids its owner runs - `[[key, kind, a, b], ...]` - projected: the

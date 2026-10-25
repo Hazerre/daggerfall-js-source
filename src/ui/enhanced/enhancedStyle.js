@@ -3522,7 +3522,7 @@ ${paceControlsCss('tview')}
 .hud-foename { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; }
 /* BOSS-TRAITS (bible/05-Combat/Boss-Traits.md): a hard foe's traits under its name, and its ward - a pale blue sheen over
    its health from the left, its share of the whole */
-.hud-foetraits { display: none; margin-top: -3px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #a9c8ff; }
+.hud-foetraits { display: none; margin-top: -3px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #a9c8ff; }
 .hud-foe.traited .hud-foetraits { display: block; }
 .hud-foeward { position: absolute; left: 0; top: 0; bottom: 0; width: 0; pointer-events: none;
   background: linear-gradient(180deg, rgba(214,232,255,0.85) 0 1px, rgba(120,170,255,0.6) 1px calc(100% - 1px), rgba(60,96,170,0.7) calc(100% - 1px)); }

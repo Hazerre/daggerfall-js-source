@@ -25,7 +25,7 @@
 import { t } from './textManager.js';
 
 /** The kinds, by the order `raidKindOf` draws them in (append only). */
-export const RAID_KINDS = Object.freeze(['classic', 'waves', 'defend', 'escort']);
+export const RAID_KIND_ORDER = Object.freeze(['classic', 'waves', 'defend', 'escort']);
 /** A staff event's raid (systems/staffEvents.js) is its own - staff set the fight. */
 export const STAFF_KIND = 'staff';
 
@@ -45,7 +45,7 @@ function tupleHash(parts) {
 export function raidKindOf(raid) {
   if (!raid || raid.staff) return STAFF_KIND;
   const key = raid.key ?? `${raid.regionIndex}:${raid.locationIndex}:${raid.startDay}`;
-  return RAID_KINDS[tupleHash(['raid-kind', key, raid.startMinute, raid.attackAmount, raid.type]) % RAID_KINDS.length];
+  return RAID_KIND_ORDER[tupleHash(['raid-kind', key, raid.startMinute, raid.attackAmount, raid.type]) % RAID_KIND_ORDER.length];
 }
 
 // ── the assault ─────────────────────────────────────────────────────────────────────────────────────────────────────
