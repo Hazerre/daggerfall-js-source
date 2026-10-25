@@ -127,6 +127,12 @@ damage door and heal skip PSCALE1's toughness (`scenes/exteriorFoes.js` `_toughF
 boss divided every blow by 4.5: a Daedric blow of about 20 took 4, and the bar did not move. Its blows at the players
 still weigh by how many fight it (`partyHit`). A departure from PSCALE1 for this one foe alone.
 
+BOSS-BIG-HIT and BOSS-BAR (2026-10-25, mob: "magic hits 10 of thousands", "i hit 500", "the bar never moved"): the
+owner refuses a peer's blow past `PEER_HIT_DMG_MAX` (10,000) whole - a mini boss takes it at 10,000 instead (every other
+foe still refuses it). And a foe's record says its health within the wire's `FOE_HEALTH_MAX` (100,000): a mini boss
+past it is said at the same share of 100,000 (`wireHealth`), so every player's bar falls with the owner's - clamped,
+a 1,000,000-health boss read full until 900,000 were gone. Both in `scenes/exteriorFoes.js`.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the

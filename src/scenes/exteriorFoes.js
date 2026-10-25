@@ -116,6 +116,9 @@ import { grantKindOf, grantElite } from '../net/grantLaw.js';   // GRANT3-GRANT4
 
 // The port's allocation-owner guards (classic self-limits through the
 // 144-minute cadence; these keep a long session bounded).
+/** The most a peer's one blow on my foe can be (applyHit): past it the frame is refused - a staff event's mini boss
+ *  takes it at this (BOSS-BIG-HIT). */
+export const PEER_HIT_DMG_MAX = 10000;
 export const MAX_ACTIVE_ENCOUNTER_FOES = 8;
 /** PVPDUNGEONS (the owner: "4x more enemies per pack that can attack you on the world map"): in the open zone a pack is
  *  four times as many, and the pool makes room for them. */
@@ -2474,6 +2477,13 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
    *  it, t the species, x the gender bit, f the feet in the world frame, y the yaw, h the health, d dead, a the attack
    *  count with the ranged bit low, m moving. CURSE-SYNC: a world quest's foe is no quest's here - it rides as an
    *  encounter's (`_questLike`). */
+  /** BOSS-BAR (mob 2026-10-25: "the bar never moved"): a foe's health as its record says it - past the wire's
+   *  FOE_HEALTH_MAX (a staff event's mini boss, up to 1,000,000) at the same share of FOE_HEALTH_MAX its record's `k`
+   *  holds, so every reader's bar falls with its owner's; clamped at the bound, it read full until 900,000 were gone. */
+  const wireHealth = (e) => {
+    const k = Number.isFinite(e.maxHealth) && e.maxHealth > FOE_HEALTH_MAX ? FOE_HEALTH_MAX / e.maxHealth : 1;
+    return Math.max(0, Math.min(FOE_HEALTH_MAX, k < 1 ? Math.round(e.health * k) : e.health));
+  };
   function foesFrame(full = false, force = false, heirOf = null) {
     if (!_net?.toWire) return null;
     _net.grants?.tick();   // GRANT3: my grants' clock - renewed, carried, the tally handed on (update's too: alone, nothing frames)
@@ -2498,7 +2508,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       const g = wireRecipient(f.ai.target);   // AUDIT WORLD6b-ii A8: no target is '' (none) - '.' was the word for a foe that had not stepped yet, and it latched the puppet hostile
       // AUDIT WORLD6b-ii B2/B3: the attacker's terms - its level and its right-hand weapon - so a puppet's blow is this foe's
       const wpn = f.entity.weapon, wd = wpn && Number.isInteger(wpn.templateIndex) ? [wpn.templateIndex, wpn.material | 0] : null;
-      const r = { i: f.seq, t: f.mobileType, x: f.gender === 'female' ? 1 : 0, f: [q2(w[0]), q2(w[1]), q2(w[2])], y: q3(f.ai.yaw), ...(Number.isFinite(f.entity.health) ? { h: Math.max(0, Math.min(FOE_HEALTH_MAX, f.entity.health)) } : {}), ...(Number.isFinite(f.entity.maxHealth) && f.entity.maxHealth >= 1 ? { k: Math.min(FOE_HEALTH_MAX, f.entity.maxHealth) } : {}), d: f.dead ? 1 : 0, a: f._atkA | 0, b: f._atkB ?? '', m: f.ai.moving ? 1 : 0, g, l: f.entity.level | 0, w: wd, c: f._castN | 0, s: f._castIdx | 0, u: f._castU ?? '', o: onWatch || _questLike(f) ? 0 : (f.corpse ? body.placesLeft(f) : 0), ...(f.entity?.eliteFoe ? { z: 1 } : {}), ...(!onWatch && typeof f.entity?.revenant?.name === 'string' && f.entity.revenant.name ? { nm: f.entity.revenant.name.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, REVENANT_NAME_MAX) } : {}), ...(f.yielded ? { yd: 1 } : {}), ...(f.executing ? { ex: 1 } : {}), ...(f.sparing ? { sp: 1 } : {}) };   // REVENANT-FATE: kneeling, burning   // REVENANT-WIRE: its revenant's name rides to every puppet   // ELITE FOES: `z` an elite, so a puppet stands as one   // AUDIT (pre-merge) Q5: nor a quest foe's body - its take arm answers only the owner's own (A5), so a member's press asked again forever   // AUDIT WATCH1 A3: a watch body advertises NO pile - its take arm is its owner's own door (cityGuards.takeLoot), which the wire does not reach, so a peer offered the body clicked it for ever and heard nothing; WORLD6b-iii: the cast count and its spell; AUDIT WORLD6b-iii(a) A3: b/u whom the last blow/cast was at; WORLD6b-iii(c): o the body's pile
+      const r = { i: f.seq, t: f.mobileType, x: f.gender === 'female' ? 1 : 0, f: [q2(w[0]), q2(w[1]), q2(w[2])], y: q3(f.ai.yaw), ...(Number.isFinite(f.entity.health) ? { h: wireHealth(f.entity) } : {}), ...(Number.isFinite(f.entity.maxHealth) && f.entity.maxHealth >= 1 ? { k: Math.min(FOE_HEALTH_MAX, f.entity.maxHealth) } : {}), d: f.dead ? 1 : 0, a: f._atkA | 0, b: f._atkB ?? '', m: f.ai.moving ? 1 : 0, g, l: f.entity.level | 0, w: wd, c: f._castN | 0, s: f._castIdx | 0, u: f._castU ?? '', o: onWatch || _questLike(f) ? 0 : (f.corpse ? body.placesLeft(f) : 0), ...(f.entity?.eliteFoe ? { z: 1 } : {}), ...(!onWatch && typeof f.entity?.revenant?.name === 'string' && f.entity.revenant.name ? { nm: f.entity.revenant.name.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, REVENANT_NAME_MAX) } : {}), ...(f.yielded ? { yd: 1 } : {}), ...(f.executing ? { ex: 1 } : {}), ...(f.sparing ? { sp: 1 } : {}) };   // REVENANT-FATE: kneeling, burning   // REVENANT-WIRE: its revenant's name rides to every puppet   // ELITE FOES: `z` an elite, so a puppet stands as one   // AUDIT (pre-merge) Q5: nor a quest foe's body - its take arm answers only the owner's own (A5), so a member's press asked again forever   // AUDIT WATCH1 A3: a watch body advertises NO pile - its take arm is its owner's own door (cityGuards.takeLoot), which the wire does not reach, so a peer offered the body clicked it for ever and heard nothing; WORLD6b-iii: the cast count and its spell; AUDIT WORLD6b-iii(a) A3: b/u whom the last blow/cast was at; WORLD6b-iii(c): o the body's pile
       if (!onWatch && Number.isInteger(f.entity?.zoneGiant)) r.gg = f.entity.zoneGiant;   // GREATER-GIANT: which of the zone's Greater Giants it is, to every puppet
       if (!onWatch && f.entity?.champion) r.cp = championIndex(f.entity.champion);   // LOOT7: its trait rides to every puppet, which stands as the same champion
       if (f._grant && !f._grant._dead) r.gr = [f._grant.g, f._grantI];   // GRANT3: its grant and its member - the frame's `gs` carries the grant (GRANT4: a watchman's too)
@@ -3000,7 +3010,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (_questLike(f) && !_peerMayHit(from, f)) return false;
     const dmg = Number(data.dmg);
     if (f?.dead && data.cs === 1 && foes.includes(f)) { const s = hitSpellOf(data); return !!s && !!f.corpsePrefab?.struck(s.spell, s.level, null); }   // DEX5b: a copy's missile on my foe's prefab body (its bundle, the body's own entity)   // QUEST-PARTY: a quest's foe takes a peer's blow only from the party it rides to - any peer's word used to land on one it could not even see
-    if (!f || f.dead || !Number.isFinite(dmg) || dmg < 0 || dmg > 10000) return false;
+    if (!f || f.dead || !Number.isFinite(dmg) || dmg < 0 || (dmg > PEER_HIT_DMG_MAX && !f.entity?.staffBoss)) return false;   // BOSS-BIG-HIT: a staff event's mini boss takes a blow past the bound at the bound (below) - every other foe refuses it whole
+    const blow = Math.min(PEER_HIT_DMG_MAX, dmg);   // BOSS-BIG-HIT (mob 2026-10-25: "magic hits 10 of thousands"): a peer's spell of tens of thousands on the mini boss lands as 10,000 - it was thrown away
     // AUDIT CC-E1: ANOTHER's foe mauled my companion where it stands - the blow lands here, where he is real: the foe's
     // blow, not a player's (the knock-out arm his death), and he turns on the striker's puppet
     if (data.fb === 1) {
@@ -3059,7 +3070,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // kills is no Murder of mine - the crime stays whose it was, Multiplayer.md's lock). The knockback still lands
     // (the gate is knockDir's), the shield still absorbs, the corpse still falls and rides the next frame as `d: 1`.
     if (onWatch) _net.watch.hurt(f, dmg, at, dir, data.wc != null ? hitClassOf(data) : null, kind);   // (the provenance - a peer's, not this player's - is the host's to add: world.js hands `{ fromPlayer: false, peer: true }`); TELL8: and its blow's class; AUDIT TELL P1: and its kind (a shaft weighs as a shaft)
-    else damageFoe(f, dmg, at, dir, { fromPlayer: true, kind, peer: true, peerId: from, whole: data.z === 1, ...(data.wc != null ? { wc: hitClassOf(data) } : {}) });   // AUDIT PSCALE1 DOORS-1: a peer's kill is a kill; TELL8: its blow's class
+    else damageFoe(f, blow, at, dir, { fromPlayer: true, kind, peer: true, peerId: from, whole: data.z === 1, ...(data.wc != null ? { wc: hitClassOf(data) } : {}) });   // AUDIT PSCALE1 DOORS-1: a peer's kill is a kill; TELL8: its blow's class
     if (!onWatch && data.wc != null && hitClassOf(data)?.weak && f.entity?.revenant?.id) feudRevealWeak(f.entity);   // RVN13 (Feud-Arc.md 25): a peer's blow of my revenant's weakness reveals it to me
     // WORLD6b-iii(e): the shaft, where BowDamage puts it (:145-147) - the body's pile says so (o) and the grant carries it.
     // AUDIT WORLD6b-iii(e) A1: BOUNDED - HIT_ARROWS_MAX Arrows a body from peers' shafts, past it the blow lands and no
