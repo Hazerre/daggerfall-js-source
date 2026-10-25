@@ -329,7 +329,7 @@ const YARD_ROWS_SQL = yardRowsSql('?1');
  *  piece all the same - one index probe, asked only for such a town. */
 export const YARD_SNAP_READ = `SELECT v.ver, y.built, y.shape, y.rows, v.map_id IS NULL AND EXISTS (SELECT map_id FROM home_decor WHERE map_id = ?1 AND yard = 1) AS orphan
   FROM (SELECT ?1 AS m) q LEFT JOIN home_yards_ver v ON v.map_id = q.m LEFT JOIN home_yards y ON y.map_id = q.m`;
-/** YARD-SNAP (AUDIT LEAN-READS B1, 2 B5): the build's shape - its read whole and its bound. Migration 0174 built every
+/** YARD-SNAP (AUDIT LEAN-READS B1, 2 B5): the build's shape - its read whole and its bound. Migration 0175 built every
  *  town in today's (YARD-TOWN's bound; its literal is pinned to this), 0136 in the 2,000 bound's before it; a deploy
  *  that changes either reads every town's rows as they stand until the clock builds it again (re-backfill the towns in that change's own migration, as 0136 did, where that is
  *  too slow). */
