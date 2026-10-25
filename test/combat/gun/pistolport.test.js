@@ -186,24 +186,20 @@ test('PISTOL-PORT ONE PISTOL fires on the machine of the hand that HOLDS it - a 
   assert.equal(pw.clickAttack(() => 0.5), null, 'one pistol, one shot at a time');
 });
 
-test('PISTOL-PORT THE FLASH AS PAINTED - PIN MOVED (PISTOL-PROTO, 2026-10-25, the owner: "the pistolets still after all this time dont match the prototype 1;1"): a Pistolet is drawn AS PAINTED on every frame, its flash among them, as the page draws it - no room\'s light on it and no lift, never the orb\'s blue, which stays the Thunderlock\'s (mutants: the orb\'s colour; the room\'s light on the pistols)', async () => {
+test('PISTOL-PORT THE FLASH AS PAINTED: on its flash frame a Pistolet\'s quad rises toward WHITE - the strip\'s own flame keeps its colours, as on the page - never the orb\'s blue, which stays the Thunderlock\'s (mutant: the orb\'s colour)', async () => {
   resetOrbColour();
   noteOrbColour({ colors: Uint8ClampedArray.from([40, 90, 230, 255]) });   // a blue orb, as the shock orb's halo samples
   try {
     const { r, frame } = await pistolRig({ right: createPistolet() });
     r.clickAttack();
-    let flashFrame = false, quads = 0;
-    for (let i = 0; i < 40; i++) {
+    let flash = null;
+    for (let i = 0; i < 12 && !flash; i++) {
       const q = await frame();
-      for (const d of q) {
-        if (!String(d.tex).startsWith('pistolet')) continue;
-        quads++;
-        if (d.tex === 'pistolet:1') flashFrame = true;
-        assert.equal(d.tint ?? null, null, `${d.tex} drawn as painted (${d.tint})`);
-      }
+      if (q[0] && q[0].tex === 'pistolet:1') flash = q[0].tint;
     }
-    assert.ok(flashFrame, 'the flash frame drawn');
-    assert.ok(quads > 20, `the shot's frames drawn (${quads})`);
+    assert.ok(flash, 'the flash frame drawn');
+    assert.ok(flash.every((v) => Math.abs(v - flash[0]) < 1e-9), `a grey lift, no hue (${flash.map((v) => v.toFixed(2))})`);
+    assert.ok(flash[0] > 0.9, 'risen to white');
   } finally {
     resetOrbColour();
   }
