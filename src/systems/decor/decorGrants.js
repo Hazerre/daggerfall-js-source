@@ -5,6 +5,7 @@
 import { t } from '../textManager.js';
 import { ITEM_UID_RE } from '../item/itemLaw.js';
 import { mintItemId } from '../item/itemIds.js';
+import { absorbStack } from '../inventory.js';
 
 let storage = new Set();
 let station = new Set();
@@ -158,7 +159,37 @@ export async function openSharedChest(id) {
       if (coins(item)) { const real = d.items?.() ?? []; const atPile = real.indexOf(item); if (atPile >= 0) real.splice(atPile, 1); }
     } else { take.add(uid); takenOf.set(uid, item); }
   };
+  let pending = 0;
+  let idle = Promise.resolve();
+  let wake = null;
+  const cutOf = (item, landed) => {
+    const leave = item.stackCount ?? 1;
+    const at = cuts.findIndex((c) => c.uid === item.uid);
+    if (at < 0) { cuts.push({ uid: item.uid, leave, give: landed }); return; }
+    const prior = cuts[at];
+    if (landed && prior.give && landed !== prior.give) {
+      absorbStack(prior.give, landed);
+      const from = draft.indexOf(landed);
+      if (from >= 0) draft.splice(from, 1);
+    } else if (landed && !prior.give) prior.give = landed;
+    prior.leave = leave;
+  };
+  const takeWhole = (item) => {
+    const at = cuts.findIndex((c) => c.uid === item.uid);
+    if (at >= 0) {
+      const prior = cuts.splice(at, 1)[0];
+      if (prior.give && prior.give !== item) {
+        absorbStack(item, prior.give);
+        const from = draft.indexOf(prior.give);
+        if (from >= 0) draft.splice(from, 1);
+      }
+    }
+    note('take', item);
+  };
   const commit = async (dir, item, amount, go) => {
+    pending += 1;
+    if (!wake) idle = new Promise((resolve) => { wake = resolve; });
+    try {
     const listed = await ready;
     if (!listed?.ok) { chestShut(d, listed?.error); return false; }
     const stack = item?.stackCount ?? 1;
@@ -170,9 +201,9 @@ export async function openSharedChest(id) {
     const moved = go();
     // A gold click pays the purse and answers nothing (itemTransfer.js). The chest row still has to leave.
     if ((!moved || moved === item) && dir === 'take' && coins(item) && ITEM_UID_RE.test(item?.uid)) {
-      if (!goods.includes(item)) { note('take', item); return true; }
+      if (!goods.includes(item)) { takeWhole(item); return true; }
       const leave = item.stackCount ?? 1;
-      if (leave < before && leave >= 1) { cuts.push({ uid: item.uid, leave, give: null }); return true; }
+      if (leave < before && leave >= 1) { cutOf(item, null); return true; }
       if (!moved) return false;
     }
     if (!moved) return false;
@@ -182,18 +213,23 @@ export async function openSharedChest(id) {
     if (dir === 'put') {
       if (!real.includes(landed)) real.push(landed);
       note('put', landed);
-    } else if (landed !== item && ITEM_UID_RE.test(item?.uid)) cuts.push({ uid: item.uid, leave: item.stackCount ?? 1, give: landed });
-    else note('take', landed);
+    } else if (landed !== item && ITEM_UID_RE.test(item?.uid)) cutOf(item, landed);
+    else takeWhole(landed);
     return true;
+    } finally {
+      pending -= 1;
+      if (pending === 0 && wake) { const done = wake; wake = null; done(); }
+    }
   };
   let sent = false;
   const closed = () => {
     if (sent) return;
     sent = true;
-    const putting = [...put];
-    const taking = [...take];
-    const cutting = cuts.map(({ uid, leave }) => ({ uid, leave }));
     const job = (async () => {
+      if (pending) await idle;
+      const putting = [...put];
+      const taking = [...take];
+      const cutting = cuts.map(({ uid, leave }) => ({ uid, leave }));
       if (!putting.length && !taking.length && !cutting.length) { noteDecorBin(id, goods); await d.use({ ...at, op: 'release' }).catch(() => {}); return; }
       const act = d.realm?.();
       if (typeof act !== 'function') { await d.use({ ...at, op: 'release' }).catch(() => {}); chestShut(d, null); return; }

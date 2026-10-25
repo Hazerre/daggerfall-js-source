@@ -1459,6 +1459,8 @@ export function createDecorTool(deps) {
         d.before = new Map(roomPieces().map((p) => [p.id, snapPiece(p)]));
         d.packOut = [];
         d.packIn = [];
+        d.items = pool.itemsSnapshot?.() ?? null;
+        d.owns = pool.ownSnapshot?.() ?? null;
         if (placing) placing.draftWhy = null;
         publishDraft();
         deps.say?.(t('decor.tool.kept', 'The room is kept.'));
