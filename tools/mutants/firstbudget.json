@@ -1,0 +1,162 @@
+[
+  {
+    "name": "FIRST-BUDGET-budget-moved",
+    "file": "src/net/recipeLaw.js",
+    "old": "export const DISCOVERY_BUDGET = 110_500;",
+    "new": "export const DISCOVERY_BUDGET = 110_000;",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-remainder-dropped",
+    "file": "src/net/recipeLaw.js",
+    "old": "keys.forEach((k, i) => FIRST_XP.set(`${track} ${k}`, each + (i < more ? 1 : 0)));",
+    "new": "keys.forEach((k) => FIRST_XP.set(`${track} ${k}`, each));",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-remainder-to-the-last",
+    "file": "src/net/recipeLaw.js",
+    "old": "each + (i < more ? 1 : 0)));",
+    "new": "each + (i >= keys.length - more ? 1 : 0)));",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-counter-goods-counted",
+    "file": "src/net/recipeLaw.js",
+    "old": "for (const r of RECIPES) if (firstCraftPays(r)) firstMake(",
+    "new": "for (const r of RECIPES) if (r) firstMake(",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-apothecary-brew-counted",
+    "file": "src/net/recipeLaw.js",
+    "old": "for (const p of POTION_RECIPES) if (brewFirstPays(p)) firstMake(",
+    "new": "for (const p of POTION_RECIPES) if (p) firstMake(",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-kin-counted-twice",
+    "file": "src/net/recipeLaw.js",
+    "old": "  if (!keys.includes(key)) keys.push(key);",
+    "new": "  keys.push(key);",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-discipline-unmapped",
+    "file": "src/net/recipeLaw.js",
+    "old": "export const firstMakeXp = (track, key) => FIRST_XP.get(`${trackOf(track)} ${key}`) ?? 0;",
+    "new": "export const firstMakeXp = (track, key) => FIRST_XP.get(`${track} ${key}`) ?? 0;",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-brew-keyed-by-name",
+    "file": "src/net/recipeLaw.js",
+    "old": "firstMakeXp('alchemy', potion.id));",
+    "new": "firstMakeXp('alchemy', potion.name));",
+    "tests": [
+      "test/net/firstbudget_law.test.js",
+      "test/net/prof12_service.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-counter-guard-dropped",
+    "file": "src/net/recipeLaw.js",
+    "old": "(!r || !firstCraftPays(r) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));",
+    "new": "(!r ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ],
+    "equivalent": true,
+    "why": "FACT, pinned (craft2_patterns): no pattern at a tier holds both a recipe that pays and one wholly of the counter's goods, so a recipe its own law refuses never has its key in the pool - the guard is belt-and-braces, kept so the recipe's own law is asked as the service always asked it"
+  },
+  {
+    "name": "FIRST-BUDGET-svc-craft-the-old-500",
+    "file": "server-account/src/professions.js",
+    "old": "nonce, firstCraftXp(r), craft,",
+    "new": "nonce, firstCraftXp(r) && 500, craft,",
+    "tests": [
+      "test/net/firstbudget_law.test.js",
+      "test/net/prof9_service.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-svc-brew-the-old-500",
+    "file": "server-account/src/alchemy.js",
+    "old": "brewFirstXp(potion), nowS, nonce];",
+    "new": "brewFirstXp(potion) && 500, nowS, nonce];",
+    "tests": [
+      "test/net/firstbudget_law.test.js",
+      "test/net/prof12_service.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-svc-work-the-old-500",
+    "file": "server-account/src/professions.js",
+    "old": "workFirstXp(r), act ? 1 : 0];",
+    "new": "workFirstXp(r) && 500, act ? 1 : 0];",
+    "tests": [
+      "test/net/firstbudget_law.test.js",
+      "test/net/prof11_service.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-words-unformatted",
+    "file": "src/ui/craftXpWords.js",
+    "old": "'{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.'",
+    "new": "'{xp} {profession} experience, and {more} more the first time you make this piece at this grade.'",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-words-dish-the-old-500",
+    "file": "src/ui/craftXpWords.js",
+    "old": "{ more: firstCraftXp(r), profession }",
+    "new": "{ more: 500, profession }",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-pages-brew-first-the-old-500",
+    "file": "src/ui/professions/profPages.js",
+    "old": "more = brewFirstXp(potion);",
+    "new": "more = brewFirstXp(potion) && 500;",
+    "tests": [
+      "test/net/fb1018f_craftlimit.test.js",
+      "test/systems/prof12_client.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-pace-unclean-pan",
+    "file": "tools/craftPace.mjs",
+    "old": "cookXp(rank, { clean: true })",
+    "new": "cookXp(rank)",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  },
+  {
+    "name": "FIRST-BUDGET-pace-flat-ignored",
+    "file": "tools/craftPace.mjs",
+    "old": "first: flat == null ? firstCraftXp(r) : firstCraftPays(r) ? flat : 0,",
+    "new": "first: firstCraftXp(r),",
+    "tests": [
+      "test/net/firstbudget_law.test.js"
+    ]
+  }
+]

@@ -104,11 +104,15 @@ test('POTION-DOOR the door: a failed cauldron holding the Stores\' goods is refu
   const { give, stored, book, player, asked, open } = await stand();
   give('p1:16', 1);
   assert.equal((await book.refresh()).ok, true);
+  player.items.push(mintMaterialItem('p1:16'));   // a carried Red Berries beside the Stores' one
   const w = open();
-  w._addToCauldron(w.ingredients()[0]);
+  assert.deepEqual(w.ingredients().map((it) => [it.stores ?? 'carried', it.stackCount]), [['carried', 1], ['p1:16', 1]], 'each its own source');
+  w._addToCauldron(w.ingredients()[1]);
+  assert.deepEqual(w.ingredients().map((it) => [it.stores ?? 'carried', it.stackCount]), [['carried', 1]], 'the Stores\' unit in the pot, the carried one still on the grid');
   w._mix();
   assert.deepEqual(rows(w), [POTION_FAILED], 'no recipe answers it - the window\'s own word');
-  assert.deepEqual([w.cauldron.length, stored('p1:16'), asked.length], [1, 1, 0], 'nothing spent, nothing asked');
+  assert.deepEqual([w.cauldron.length, stored('p1:16'), asked.length, player.items.length], [1, 1, 0, 1], 'nothing spent - not the Stores\', not the pack\'s twin - nothing asked');
+  player.items = [];
   // a carried cauldron at a station: the brew, its keys the units' own
   player.items.push(...carried(['p2:16', 'reagent:troll-blood', 'reagent:elixir-vitae', 'metal:mercury']));
   const h = potionMakerHooks({ player, icons: ICONS });
