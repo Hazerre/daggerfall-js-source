@@ -121,7 +121,7 @@
   {
     "name": "THUNDERLOCK-ART2-the-table-left-at-six",
     "file": "src/combat/fpsWeapon.js",
-    "old": "export const THUNDERLOCK_ANIMS = gunAnims(7);",
+    "old": "export const THUNDERLOCK_ANIMS = gunAnims(THUNDERLOCK_STRIP.frames);",
     "new": "export const THUNDERLOCK_ANIMS = gunAnims(6);",
     "tests": [
       "test/systems/thunderlockart2.test.js"
@@ -140,9 +140,9 @@
   },
   {
     "name": "THUNDERLOCK-ART2-every-hot-texel-averaged",
-    "file": "src/combat/thunderlockArt.js",
-    "old": "if (!best || body.length > best.length) best = body;",
-    "new": "best = best ? best.concat(body) : body;",
+    "file": "src/combat/gun/gunFlash.js",
+    "old": "    if (n > size) { size = n; body = one; }",
+    "new": "    if (n) { size += n; body = body ? body.map((v, k) => v | one[k]) : one; }",
     "tests": [
       "test/systems/thunderlockart2.test.js"
     ],
@@ -161,12 +161,62 @@
   {
     "name": "THUNDERLOCK-ART2-the-flash-gilded",
     "file": "src/combat/thunderlockArt.js",
-    "old": "if (data[o + 3] < 128 || luma(data, o) >= TL_FLASH_LUMA) continue;",
+    "old": "if (data[o + 3] < 128 || flame[i] || luma(data, o) >= FLASH_LUMA) continue;",
     "new": "if (data[o + 3] < 128) continue;",
     "tests": [
       "test/systems/thunderlockart2.test.js"
     ],
     "note": "The muzzle flash would be laid in gold leaf - the flash and the smoke stay the flash and the smoke."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-glow-gilded",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "if (data[o + 3] < 128 || flame[i] || luma(data, o) >= FLASH_LUMA) continue;",
+    "new": "if (data[o + 3] < 128 || luma(data, o) >= FLASH_LUMA) continue;",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The flash's painted orange glow, brass by hue alone, would be laid in gold leaf round a white ball (THUNDERLOCK-ART2's audit)."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-last-body",
+    "file": "src/combat/gun/gunFlash.js",
+    "old": "    if (n > size) { size = n; body = one; }",
+    "new": "    if (n) { size = n; body = one; }",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The muzzle would be whichever hot body the scan met last - a spark down the barrel, not the flash's ball."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-smoke-lit",
+    "file": "src/combat/gun/gunFeel.js",
+    "old": "export const THUNDERLOCK_MUZZLE_CURVE = Object.freeze([0, 1, 0.3, 0.12, 0.04, 0, 0]);",
+    "new": "export const THUNDERLOCK_MUZZLE_CURVE = Object.freeze([0, 1, 0.82, 0.12, 0.04, 0, 0]);",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "The room would stay lit at the sheet's second-flash height on a frame of smoke (THUNDERLOCK-ART2's audit)."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-a-strip-cut-short",
+    "file": "src/combat/thunderlockArt.js",
+    "old": "strip.width !== S.frames * S.cellW || strip.height !== S.cellH) return null;",
+    "new": "strip.width < S.frames * S.cellW || strip.height < S.cellH) return null;",
+    "tests": [
+      "test/systems/thunderlockart2.test.js"
+    ],
+    "note": "A strip with an eighth frame, or padded, would be read as the owner's seven (THUNDERLOCK-ART2's audit)."
+  },
+  {
+    "name": "THUNDERLOCK-ART2-the-lab-a-tick-early",
+    "file": "src/combat/gun/gunMachine.js",
+    "old": "const adv = Math.floor(m._t * m.fps + 1e-9);",
+    "new": "const adv = Math.floor(m._t * m.fps);",
+    "tests": [
+      "test/systems/thunderlock.test.js"
+    ],
+    "note": "Seven frames at 14fps end on a 60Hz tick's edge; the lab's sum of sixtieths would read it a tick early and the game and the lab would part (THUNDERLOCK-ART2's audit)."
   },
   {
     "name": "THUNDERLOCK-ART2-the-whole-frame-shimmered",

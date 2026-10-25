@@ -26,8 +26,8 @@ import {
 import { isBowWeapon, attackSkillOf, weaponSkillUsed as hostWeaponSkillUsed } from '../../src/scenes/hostCombat.js';
 import { spendAmmoFor, ammoCountFor } from '../../src/systems/inventory.js';
 import { playerArchiveFor } from '../../src/characters/paperdoll/paperdollArt.js';
-import { shimmer, NATIVE_WIDTH, THUNDERLOCK_STRIP } from '../../src/combat/thunderlockArt.js';
-import { muzzlePoint, MUZZLE_GAIN } from '../../src/combat/thunderlockArt.js';   // FIELD-GUN17
+import { shimmer, THUNDERLOCK_STRIP } from '../../src/combat/thunderlockArt.js';
+import { flashBodyPoint } from '../../src/combat/gun/gunFlash.js';   // FIELD-GUN17, THUNDERLOCK-ART2: the muzzle the flash's ball
 import { orbColour, orbColourFrom, noteOrbColour, resetOrbColour } from '../../src/characters/thunderlockIds.js';   // FIELD-GUN17
 import { ORB_SCALE } from '../../src/characters/thunderlockIds.js';   // FIELD-GUN18
 import { scaledBillboardSize } from '../../src/world/rmbFlats.js';   // FIELD-GUN18: the shape the pool's scale branch never had
@@ -726,12 +726,9 @@ test('FIELD-GUN7: the game\'s machine and the LAB\'s run the same cycle, frame f
   // the SHOT: the same six frames on the same ticks
   const labShot = labFrames.filter((f) => f >= 0);
   const gameShot = gameFrames.filter((f) => f >= 0);
-  // PIN MOVED (THUNDERLOCK-ART2): seven frames at 14fps are 0.5s - a 60Hz tick's very edge, where the two clocks' sums of
-  // 1/60 part by one tick - so the lengths agree within that tick and the frames agree, frame for frame, on all they share
-  assert.ok(Math.abs(labShot.length - gameShot.length) <= 1,
-    `the shot is ${gameShot.length} frames long in the game and ${labShot.length} in the lab`);
-  const both = Math.min(labShot.length, gameShot.length);
-  assert.deepEqual(gameShot.slice(0, both), labShot.slice(0, both), 'frame for frame');
+  // PIN MOVED (THUNDERLOCK-ART2): seven frames at 14fps are 0.5s, a 60Hz tick's very edge - the lab's machine reads that
+  // edge on its later side as the game's does (gunMachine.js, THUNDERLOCK-ART2's audit), so the two agree exactly
+  assert.deepEqual(gameShot, labShot, `the shot is ${gameShot.length} frames long in the game and ${labShot.length} in the lab, frame for frame`);
   assert.ok(labShot.length >= 28, 'seven frames at 14fps is 30 ticks of a 60Hz frame - a sanity floor');
 
   // the HIT lands on the same tick, which is the muzzle flash
@@ -772,7 +769,6 @@ test('FIELD-GUN7: the game\'s machine and the LAB\'s run the same cycle, frame f
 test('FIELD-GUN7: the POSE is the lab\'s too - size 49, and the raise rides the HUD bar', () => {
   // The other two the lab settled and the game answered for itself.
   assert.equal(GUN_FEEL.widthPct, 0.49, 'Mac\'s last word was "Size: 49"');
-  assert.equal(NATIVE_WIDTH, 0.49 * 320, 'and the art reads it rather than carrying a copy');
   assert.equal(GUN_FEEL.raise, -8);
   // the raise is ADDED to the classic offset rather than replacing
   // it, so the weapon still clears the large HUD's bar
@@ -1202,44 +1198,29 @@ test('FIELD-GUN15: the weapon plays the HEAD of each candidate list, which is wh
 //   the flash's COLOUR came from the muzzle-glow arm's white, which is
 //   right about a powder flash and says nothing about the orb.
 test('FIELD-GUN17a: the shot leaves the BARREL, and the barrel is measured off the drawn frame', () => {
-  // THE ART MEASURES ITS OWN MUZZLE. Not a baked number: the fired
-  // frame is brighter than the idle one exactly where the flash is,
-  // and the difference's own centroid IS the muzzle.
+  // THE ART MEASURES ITS OWN MUZZLE. Not a baked number. PIN MOVED (THUNDERLOCK-ART2): the owner's strip kicks the gun
+  // inside its canvas, so "what got brighter" (the sheet's muzzlePoint, retired) would measure the moved gun - the muzzle
+  // is the flash's own ball, the largest white-hot body of the shot frame (combat/gun/gunFlash.js flashBodyPoint)
   const art = readFileSync('src/combat/thunderlockArt.js', 'utf8');
-  assert.match(art, /export function muzzlePoint\(dark, lit\)/);
-  assert.match(art, /export const MUZZLE_GAIN = \d+;/);
+  assert.match(art, /muzzle: flashBodyPoint\(cells\[1\]\)/, 'off the plain shot frame');
   assert.match(art, /muzzle,?\s*$|muzzle[,}]/m, 'and it rides the art record');
 
   // fractions of the UNION box, y from the TOP - the same axes
   // `gunFrameRect` hands the draw, so the point can be multiplied
   // straight onto the rect with no second convention to keep.
-  assert.ok(typeof muzzlePoint === 'function');
   const W = 8, H = 8;
   const flat = (v) => { const data = new Uint8ClampedArray(W * H * 4); data.fill(v); for (let i = 3; i < data.length; i += 4) data[i] = 255; return { width: W, height: H, data }; };
-  const dark = flat(10);
   const lit = flat(10);
-  // one hot pixel, column 2 of 8, row 6 of 8 (from the top)
+  // one hot pixel, column 2 of 8, row 6 of 8 (from the top) - its centre
   const idx = ((6 * W) + 2) * 4;
   lit.data[idx] = lit.data[idx + 1] = lit.data[idx + 2] = 255;
-  const p = muzzlePoint(dark, lit);
+  const p = flashBodyPoint(lit);
   assert.ok(p, 'a flash gives a point');
-  assert.ok(Math.abs(p.x - 2 / W) < 1e-6, `x is the column in fractions of the width (got ${p.x})`);
-  assert.ok(Math.abs(p.y - 6 / H) < 1e-6, `y counts DOWN from the top - crop answers PNG order (got ${p.y})`);
-  // a rise no bigger than MUZZLE_GAIN is not a flash: the whole point
-  // of the threshold is that the two frames differ a little EVERYWHERE
-  const warm = flat(10);
-  for (let i = 0; i < warm.data.length; i += 4) { warm.data[i] = warm.data[i + 1] = warm.data[i + 2] = 10 + MUZZLE_GAIN; }
-  assert.equal(muzzlePoint(dark, warm), null);
-  // and no rise at all is not a muzzle at (0,0) - it is no muzzle, and
-  // the fire path falls back to the verbatim bow arm
-  assert.equal(muzzlePoint(dark, flat(10)), null);
-  // mismatched frames answer nothing rather than reading off the end
-  // a LARGER second frame is the dangerous shape: every index the loop
-  // builds is in range, so nothing throws and nothing comes back NaN -
-  // it just reads the wrong pixels and answers with confidence.
-  const big = { width: 16, height: 16, data: new Uint8ClampedArray(16 * 16 * 4).fill(255) };
-  assert.equal(muzzlePoint(dark, big), null);
-  assert.equal(muzzlePoint(dark, { width: 4, height: 4, data: new Uint8ClampedArray(64) }), null);
+  assert.ok(Math.abs(p.x - 2.5 / W) < 1e-6, `x is the column in fractions of the width (got ${p.x})`);
+  assert.ok(Math.abs(p.y - 6.5 / H) < 1e-6, `y counts DOWN from the top - PNG order (got ${p.y})`);
+  // and no flash is not a muzzle at (0,0) - it is no muzzle, and the fire path falls back to the verbatim bow arm
+  assert.equal(flashBodyPoint(flat(10)), null);
+  assert.equal(flashBodyPoint(flat(200)), null, 'bright, but never white-hot');
 
   // THE LANE FORKS, it does not replace. Both missile systems prefer a
   // supplied muzzle and keep GetAimPosition for everything else -

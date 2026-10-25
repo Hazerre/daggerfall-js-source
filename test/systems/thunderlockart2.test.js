@@ -15,8 +15,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readPng } from '../../tools/pngIO.mjs';
 import {
-  thunderlockFrames, thunderlockGildKeep, thunderlockMuzzle, loadThunderlockArt, THUNDERLOCK_STRIP, THUNDERLOCK_ART, TL_FLASH_LUMA,
+  thunderlockFrames, thunderlockGildKeep, loadThunderlockArt, THUNDERLOCK_STRIP, THUNDERLOCK_ART,
 } from '../../src/combat/thunderlockArt.js';
+import { FLASH_LUMA as TL_FLASH_LUMA, flashBodyPoint, flashMask } from '../../src/combat/gun/gunFlash.js';
+import { muzzleGlow, MUZZLE_CURVE, THUNDERLOCK_MUZZLE_CURVE } from '../../src/combat/gun/gunFeel.js';
 import { THUNDERLOCK_ANIMS, PISTOLET_ANIMS, getWeaponAnims, WEAPON_TYPES } from '../../src/combat/fpsWeapon.js';
 import { THUNDERLOCK_NUM_FRAMES } from '../../src/characters/weaponStates.js';
 import { PISTOL_STRIP, stripCellRect, cropImage, hardenAlpha } from '../../src/combat/gun/pistolStrip.js';
@@ -26,7 +28,7 @@ const strip = readPng(readFileSync(new URL('../../public/art/thunderlock-frames.
 const px = (img, x, y) => [...img.data.subarray((y * img.width + x) * 4, (y * img.width + x) * 4 + 4)];
 const luma = ([r, g, b]) => r * 0.299 + g * 0.587 + b * 0.114;
 
-test('THUNDERLOCK-ART2 THE STRIP: seven 160x98 frames at a fixed stride, the owner\'s canvas the anchor, cut to 1 bit and drawn as drawn - nothing stretched below the foot (the owner: "Why is it stretched at the bottom. You need to place it correctly") - seated the kick\'s height under the screen\'s foot; the records the canvas\'s size, half the surface wide (mutants: the canvas cropped; the foot seated where the kick shows it)', async () => {
+test('THUNDERLOCK-ART2 THE STRIP: seven 160x98 frames at a fixed stride, the owner\'s canvas the anchor, cut to 1 bit and drawn as drawn - nothing stretched below the foot (the owner: "Why is it stretched at the bottom. You need to place it correctly") - seated the kick\'s height under the screen\'s foot; the records the canvas\'s size, half the surface wide (mutants: the canvas cropped; the foot seated where the kick shows it; a strip cut short)', async () => {
   assert.deepEqual([strip.width, strip.height], [THUNDERLOCK_STRIP.frames * THUNDERLOCK_STRIP.cellW, THUNDERLOCK_STRIP.cellH]);
   assert.deepEqual([THUNDERLOCK_STRIP.frames, THUNDERLOCK_STRIP.cellW, THUNDERLOCK_STRIP.cellH], [7, 160, 98]);
   const set = thunderlockFrames(strip);
@@ -52,6 +54,12 @@ test('THUNDERLOCK-ART2 THE STRIP: seven 160x98 frames at a fixed stride, the own
   assert.deepEqual(art.native, { w: 160, h: 98 });
   assert.deepEqual(art.pose, { widthPct: 0.5, raise: THUNDERLOCK_ART.raise }, '160 of the surface\'s 320 - the old sheet\'s gun took 0.49');
   assert.equal(thunderlockFrames({ width: 160, height: 98, data: new Uint8ClampedArray(160 * 98 * 4) }), null, 'not seven frames wide: nothing');
+  // THUNDERLOCK-ART2's audit: exactly the owner's seven - an eighth frame, or a padded strip, is refused, never cut short
+  for (const [w, h] of [[160 * 8, 98], [160 * 7, 113]]) {
+    const big = { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) };
+    for (let y = 0; y < 98; y++) big.data.set(strip.data.subarray(y * strip.width * 4, (y + 1) * strip.width * 4), y * w * 4);
+    assert.equal(thunderlockFrames(big), null, `${w}x${h} refused`);
+  }
 });
 
 test('THUNDERLOCK-ART2 THE CYCLE IS SEVEN: the strip, the anim table and the machine\'s frame count agree - the rest frame first, the flash on the second; the Pistolet keeps its six (mutants: the table left at six; the Pistolet on the Thunderlock\'s)', () => {
@@ -66,14 +74,20 @@ test('THUNDERLOCK-ART2 THE CYCLE IS SEVEN: the strip, the anim table and the mac
   assert.deepEqual(set.frames.map(hot).map((n) => n > 0), [false, true, false, false, false, false, false], 'the flash on the second frame alone');
 });
 
-test('THUNDERLOCK-ART2 THE MUZZLE IS THE FLASH\'S BALL: the largest white-hot body of the shot frame, at the barrel\'s end - never pulled down the barrel by the bolt\'s sparks; null with no flash (mutants: every hot texel averaged)', () => {
+test('THUNDERLOCK-ART2 THE MUZZLE IS THE FLASH\'S BALL AND ITS LIGHT THE FLASH\'S FRAME: the largest white-hot body of the shot frame, at the barrel\'s end - never pulled down the barrel by the bolt\'s sparks; null with no flash; the room\'s light at its height on the flash frame alone and falling from the smoke, the Pistolet\'s curve its own (mutants: every hot texel averaged; the last body; the smoke lit)', () => {
   const set = thunderlockFrames(strip);
   const m = set.muzzle, x = m.x * set.union.w, y = m.y * set.union.h;
   assert.ok(x > 44 && x < 48.5 && y > 11 && y < 15.5, `the ball at (${x.toFixed(1)}, ${y.toFixed(1)}) - every hot texel's centre is (49.2, 16.7), down the bolt`);
-  assert.equal(thunderlockMuzzle(set.frames[0]), null, 'the rest frame has no flash');
+  assert.equal(flashBodyPoint(set.frames[0]), null, 'the rest frame has no flash');
+  // THUNDERLOCK-ART2's audit: the strip burns its flash on frame 1 alone, so the light is at its height there and falls
+  // from the next frame's smoke - never the sheet's 0.82 on a frame with no flash drawn
+  const lit = set.frames.map((f) => flashBodyPoint(f) !== null);
+  set.frames.forEach((_, i) => assert.ok(lit[i] ? muzzleGlow(true, i, THUNDERLOCK_MUZZLE_CURVE) === 1 : muzzleGlow(true, i, THUNDERLOCK_MUZZLE_CURVE) <= 0.3, `frame ${i}`));
+  assert.equal(THUNDERLOCK_MUZZLE_CURVE.length, THUNDERLOCK_STRIP.frames);
+  assert.equal(muzzleGlow(true, 2), MUZZLE_CURVE[2], 'the Pistolet\'s, the default, unmoved');
 });
 
-test('THUNDERLOCK-ART2 THE GOLD AND THE SHIMMER ARE THE GUN\'S: gilded, the brass leans gold on every frame and the gloves, the grey sleeve and the flash stay as drawn; enchanted, the brass and the flash shimmer and the hands do not (mutants: the gloves gilded; the flash gilded; the whole frame shimmered)', () => {
+test('THUNDERLOCK-ART2 THE GOLD AND THE SHIMMER ARE THE GUN\'S: gilded, the brass leans gold on every frame and the gloves, the grey sleeve and the flash - its core and the painted glow grown out of it - stay as drawn; enchanted, the brass and the flash shimmer and the hands do not (mutants: the gloves gilded; the flash gilded; the glow gilded; the whole frame shimmered)', () => {
   const plain = thunderlockFrames(strip), gold = thunderlockFrames(strip, { gilded: true }), magic = thunderlockFrames(strip, { magic: true });
   const brass = [77, 64], glove = [59, 55], sleeve = [43, 93];   // (141,96,31) the brass's shade, (123,79,44) the glove's, (110,110,110) the sleeve's
   const keep = thunderlockGildKeep(plain.frames[0]);
@@ -94,6 +108,16 @@ test('THUNDERLOCK-ART2 THE GOLD AND THE SHIMMER ARE THE GUN\'S: gilded, the bras
     flash++;
   }
   assert.ok(flash > 100);
+  // ...nor the orange glow round the ball (THUNDERLOCK-ART2's audit: it reads as brass by hue alone) - the Pistolet's flame
+  const flame = flashMask(shot);
+  let glow = 0;
+  for (let i = 0; i < flame.length; i++) {
+    if (!flame[i]) continue;
+    const x = i % shot.width, y = (i / shot.width) | 0;
+    assert.deepEqual(px(gold.frames[1], x, y), px(shot, x, y), `the flame at (${x}, ${y})`);
+    if (luma(px(shot, x, y)) < TL_FLASH_LUMA) glow++;
+  }
+  assert.ok(glow > 30, `the glow's own texels (${glow})`);
   assert.notDeepEqual(px(magic.frames[0], ...brass), p, 'the brass shimmers');
   for (const at of [glove, sleeve]) assert.deepEqual(px(magic.frames[0], ...at), px(plain.frames[0], ...at), `${at} left be`);
   const [fx, fy] = [Math.round(plain.muzzle.x * plain.union.w), Math.round(plain.muzzle.y * plain.union.h)];

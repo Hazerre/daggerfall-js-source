@@ -39,7 +39,7 @@ export function createGunMachine({ fps = 14, cooldownMs = 1700, hitFrame = 1, fr
     let event = null;
     if (m.state === 'Firing') {
       m._t += dt;
-      const adv = Math.floor(m._t * m.fps);
+      const adv = Math.floor(m._t * m.fps + 1e-9);   // THUNDERLOCK-ART2's audit: a frame's edge read on its later side - sixty 1/60s sum a hair short of 1
       m.frame = Math.min(adv, m.frames - 1);
       if (!m._hitThisShot && m.frame >= m.hitFrame) { m._hitThisShot = true; event = 'hit'; }
       if (adv >= m.frames) { m.state = 'Cooling'; m._cool = 0; m.frame = 0; }

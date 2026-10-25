@@ -186,11 +186,15 @@ export const PISTOLET_COOLDOWN_SECONDS = PISTOLET_FEEL.reloadMs / 1000;
  * over this, so `gun-proto.html` is unchanged.
  */
 export const MUZZLE_CURVE = Object.freeze([0, 1, 0.82, 0.3, 0.12, 0.04]);
+/** THUNDERLOCK-ART2: the Thunderlock's own - the owner's strip draws its flash on frame 1 alone (the sheet's burned on two),
+ *  so the light falls away from the next frame's smoke as the sheet's did from its second flash. MUZZLE_CURVE stays the
+ *  Pistolet's. */
+export const THUNDERLOCK_MUZZLE_CURVE = Object.freeze([0, 1, 0.3, 0.12, 0.04, 0, 0]);
 
-/** The curve, read. `firing` is the machine off Idle; answers 0..1. */
-export function muzzleGlow(firing, frame) {
+/** The curve, read. `firing` is the machine off Idle, `curve` the gun's; answers 0..1. */
+export function muzzleGlow(firing, frame, curve = MUZZLE_CURVE) {
   if (!firing) return 0;
-  return MUZZLE_CURVE[frame] ?? 0;
+  return curve[frame] ?? 0;
 }
 
 /** The lab's pitch jitter, as the one line both sides read. */
