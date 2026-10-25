@@ -99,7 +99,10 @@ const PUBLIC_ALLOWLIST = new Map([
   ['public/art/gun-ammo.png', "OURS - Mac's own ammunition art for the gun lab (2026-09-19), baked down by tools/gunPaperdoll.mjs; no ARENA2 pixel in it"],
   // THUNDERLOCK-ART + GILDED1 (2026-10-07): the gun's list picture and the Hourlock's gold pair, each DERIVED from the
   // doll layer above by tools/gunIcons.mjs (test/systems/thunderlockart.test.js re-runs it and holds them pixel for pixel)
-  ['public/art/gun-icon.png', "OURS - gun-paperdoll.png (Mac's own art) with the fist's gap healed from its own pixels and trimmed, by tools/gunIcons.mjs; no ARENA2 pixel in it"],
+  // THUNDERLOCK-ART2 (2026-10-24): the owner's new Thunderlock - seven first-person frames and the list picture
+  ['public/art/thunderlock-frames.png', "OURS - the owner's own seven first-person Thunderlock frames (THUNDERLOCK-ART2, 2026-10-24), 160x98 each, laid side by side with their pixels unchanged; no ARENA2 pixel in it"],
+  ['public/art/thunderlock-icon.png', "OURS - the owner's own Thunderlock list picture (THUNDERLOCK-ART2, 2026-10-24), 88x31, its pixels unchanged (palette to RGBA); no ARENA2 pixel in it"],
+  ['public/art/gun-icon.png', "OURS - thunderlock-icon.png (the owner's own) trimmed to what it draws, by tools/gunIcons.mjs (THUNDERLOCK-ART2; it was gun-paperdoll.png with the fist's gap healed); no ARENA2 pixel in it"],
   ['public/art/gun-icon-gilded.png', 'OURS - gun-icon.png laid on a gold-leaf ramp by tools/gunIcons.mjs (the Hourlock\'s list picture); no ARENA2 pixel in it'],
   ['public/art/gun-paperdoll-gilded.png', 'OURS - gun-paperdoll.png laid on a gold-leaf ramp by tools/gunIcons.mjs (the Hourlock\'s doll layer); no ARENA2 pixel in it'],
   ['public/sfx/SOURCES.md', 'documentation - where every sound in this folder came from, with its license'],
