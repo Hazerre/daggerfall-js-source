@@ -24,17 +24,24 @@
 // own machine's word (co-op's law - the relay has no world to see it in). A forged word can bring a boss early; it can
 // never stage, end or move an event, which only a signed order does.
 //
+// THE REWARD (section 9 of the page; mob: "something like dagons leaderboard", "but not his ghear"): at the first boss's
+// fall the cell pays once - each earner's receipt minted with the relay's key (net/staffEvent/staffEventReceipt.js `e1`,
+// a seed and its rank) and kept WITH the ledger before a word is said (the raid's cleanse's law), the BOARD said to the
+// place (`{t:'sev', k:'bd', id, top}`) and carried to the hub on the tell (staff read it), and each earner's receipt to
+// its account's newest socket here (`k:'rc'`) - and again to any of its sockets that speaks after (a reconnect).
+//
 // OFFLINE ONLY until mob tries it live.
 // ═══════════════════════════════════════════════════════════════════
 
 import {
   validStaffEvent, validStaffEventTell, newStaffLedger, foldStaffWord, staffBossCall, staffEventDone, staffEventLapsed,
-  staffLedgerState, staffEventTell, STAFF_EVENTS_MAX, STAFF_EVENT_TELL_MS, STAFF_EVENT_ID_RE,
+  staffLedgerState, staffEventTell, staffEventEarned, staffEventBoard, validStaffBoard, STAFF_EVENTS_MAX, STAFF_EVENT_TELL_MS, STAFF_EVENT_ID_RE,
 } from '../../src/net/staffEvent/staffEventLaw.js';
+import { mintStaffReceipt } from '../../src/net/staffEvent/staffEventReceipt.js';
 import { SOCIAL_ROOM, worldRoom, mapPixelOfWire } from '../../src/net/wire.js';
 import { verifyOrder } from '../../src/net/identityToken.js';
 
-/** The hub's book in storage: `{ l: StaffEvent[] }`. */
+/** The hub's book in storage: `{ l: StaffEvent[], b: [id, board][] }` - THE REWARD: `b` the boards of the last events whose boss fell. */
 export const STAFF_EVENTS_KEY = 'sevents';
 /** A cell's ledger of one event in storage. */
 export const STAFF_LEDGER_PREFIX = 'sevl:';
@@ -45,6 +52,8 @@ export const SEV_INTERNAL_CALL = '/internal/sev/call';
 /** How long a cell trusts the book it last asked for, ms (an event it has not heard of is asked again sooner). */
 export const SEV_BOOK_FRESH_MS = 30_000;
 export const SEV_BOOK_MISS_MS = 5_000;
+/** THE REWARD: how many fallen bosses' boards the hub keeps for staff's look (the newest). */
+export const SEV_BOARDS_KEPT = 2 * STAFF_EVENTS_MAX;
 /** How long a hub or cell waits on the other, ms. */
 const CALL_MS = 3_000;
 /** The door's ops. */
@@ -60,13 +69,15 @@ async function bookOf(room) {
     let v = null;
     try { v = await room.state.storage.get(STAFF_EVENTS_KEY); } catch (e) { console.warn('[sev] read', /** @type {any} */ (e)?.message ?? e); }
     if (!room._sevBook) room._sevBook = (Array.isArray(v?.l) ? v.l : []).map(validStaffEvent).filter(Boolean).slice(0, STAFF_EVENTS_MAX);
+    room._sevBoards ??= new Map((Array.isArray(v?.b) ? v.b : []).filter((/** @type {any} */ x) => Array.isArray(x) && STAFF_EVENT_ID_RE.test(x[0]) && validStaffBoard(x[1])).slice(-SEV_BOARDS_KEPT));
   }
   room._sevLive ??= new Map();
+  room._sevBoards ??= new Map();
   return room._sevBook;
 }
 /** @param {any} room */
 async function saveBook(room) {
-  try { await room.state.storage.put(STAFF_EVENTS_KEY, { l: room._sevBook }); } catch (e) { console.warn('[sev] write', /** @type {any} */ (e)?.message ?? e); }
+  try { await room.state.storage.put(STAFF_EVENTS_KEY, { l: room._sevBook, b: [...(room._sevBoards ?? [])] }); } catch (e) { console.warn('[sev] write', /** @type {any} */ (e)?.message ?? e); }
 }
 /** The book as the game hears it. @param {any[]} l */
 const bookFrame = (l) => JSON.stringify({ t: 'sev', k: 'ev', l });
@@ -136,7 +147,7 @@ export async function takeStaffEventOrder(room, c, now) {
     await tellCell(room, e, { id: e.id, op: 'boss', fb: e.fb });
     return { ok: true, l: lookOf(room) };
   }
-  return { ok: true, l: lookOf(room) };   // look
+  return { ok: true, l: lookOf(room), bd: [...room._sevBoards] };   // look - THE REWARD: and the boards kept, by event
 }
 
 /**
@@ -173,6 +184,11 @@ export async function staffTellInternal(room, request) {
   const e = t ? book.find((x) => x.id === t.id) : null;
   if (!t || !e) return json({ ok: false });
   room._sevLive.set(t.id, { ...t, at: Date.now() });
+  if (t.top && !room._sevBoards.has(t.id)) {   // THE REWARD: the board kept past the event's end, for staff's look (the panel's row)
+    room._sevBoards.set(t.id, t.top);
+    while (room._sevBoards.size > SEV_BOARDS_KEPT) room._sevBoards.delete(room._sevBoards.keys().next().value);
+    await saveBook(room);
+  }
   if (['boss', 'done'].includes(body?.done)) await endEvent(room, t.id, body.done);
   return json({ ok: true });
 }
@@ -207,11 +223,43 @@ async function ledgerOf(room, e, now) {
   }
   return led;
 }
-/** The ledger kept, said to the place, and told to the hub (at once when its boss moved or it is done). @param {any} room @param {any} led @param {any} e @param {number} now @param {boolean} urgent */
+const rand32 = () => crypto.getRandomValues(new Uint32Array(1))[0];
+/** THE REWARD, paid once at the first boss's fall: the earners' receipts and the board kept on the ledger (said after,
+ *  by `keep`). @param {any} room @param {any} led @param {number} now */
+async function payReward(room, led, now) {
+  led.rw = 1;
+  led.rc = {};
+  const key = await room._receiptKeyOf?.() ?? null;
+  const nowS = Math.floor(now / 1000);
+  for (const { acct, rank } of staffEventEarned(led)) {
+    try { led.rc[acct] = await mintStaffReceipt({ v: led.id, s: acct, c: rand32(), r: rank }, key, { subtle: crypto.subtle, nowS }); }
+    catch (err) { console.warn('[sev] receipt refused', /** @type {any} */ (err)?.message ?? err); }
+  }
+  led.top = staffEventBoard(led);
+}
+/** Each earner's receipt to its account's newest socket here (one tab an account, the raid's AUDIT WBX S4). @param {any} room @param {any} led */
+function handReceipts(room, led) {
+  const newest = new Map();
+  for (const [ws, b] of [...room._all()]) {
+    if (!b.id || typeof b.sub !== 'string' || !led.rc?.[b.sub]) continue;
+    const had = newest.get(b.sub);
+    if (!had || (b.since ?? 0) >= (had.b.since ?? 0)) newest.set(b.sub, { ws, b });
+  }
+  for (const [sub, { ws }] of newest) room._send(ws, JSON.stringify({ t: 'sev', k: 'rc', id: led.id, r: led.rc[sub] }));
+}
+/** The ledger kept, said to the place, and told to the hub (at once when its boss moved or it is done). THE REWARD: at
+ *  the first boss's fall, paid before a word of it is said. @param {any} room @param {any} led @param {any} e @param {number} now @param {boolean} urgent */
 async function keep(room, led, e, now, urgent) {
+  const paying = led.bk === 1 && !led.rw;
+  if (paying) await payReward(room, led, now);
   try { await room.state.storage.put(STAFF_LEDGER_PREFIX + led.id, led); } catch (err) { console.warn('[sev] ledger', /** @type {any} */ (err)?.message ?? err); }
   const s = JSON.stringify({ t: 'sev', ...staffLedgerState(led) });
   for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, s);
+  if (paying) {
+    const bd = JSON.stringify({ t: 'sev', k: 'bd', id: led.id, top: led.top ?? [] });
+    for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, bd);
+    handReceipts(room, led);
+  }
   const done = staffEventDone(led, e);
   if (done) led.ended = 1;
   room._sevToldAt ??= new Map();
@@ -242,6 +290,7 @@ export async function staffEventWord(room, ws, a, m, now) {
   const r = px === m.px && py === m.py ? foldStaffWord(led, e, acct, a.name ?? '', m, now) : { credited: 0, known: false, boss: false };
   if (called || r.credited > 0 || r.boss) { await keep(room, led, e, now, called || r.boss); return; }
   room._send(ws, JSON.stringify({ t: 'sev', ...staffLedgerState(led) }));
+  if (led.rc?.[acct]) room._send(ws, JSON.stringify({ t: 'sev', k: 'rc', id: led.id, r: led.rc[acct] }));   // THE REWARD: mine again (a reconnect)
 }
 
 /** The hub telling this cell: staff called one more boss (`op` boss, `fb` the call), or the event ended. @param {any} room @param {Request} request */

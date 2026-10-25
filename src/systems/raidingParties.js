@@ -94,8 +94,9 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
-import { validStaffEventIn } from '../net/staffEvent/staffEventLaw.js';
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLaw.js';
+import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss } from './eliteFoes.js';   // STAFF-EVENT: its mini boss
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // STAFF-EVENT: its lines name a kind
 import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player's language
@@ -474,6 +475,7 @@ function tallyDeaths(now) {
     if (!e.foe.corpse || !raid || !raidActive(raid, now)) continue;   // removed, not killed; or its raid is over
     if (e.boss) { raid.bossDown = 1; continue; }   // STAFF-EVENT: its mini boss fell - its own word, never a kill on the meter
     raid.killed++;
+    if (raid.staff && renownStruckAt(e.foe) != null) raid.mine++;   // THE REWARD: one of mine I fought - my kill on the board
     if (!raid.staff && !raidRelayOn() && raidKillTotal(raid) >= raid.attackAmount) cleanse(raid);   // RAID3: at a raid relay, its cleanse alone; STAFF-EVENT: an event's end is the relay's
   }
 }
@@ -521,10 +523,13 @@ export function raidFrame(dt = 0) {
   _sweepIn -= dt;
   // RAID2: a raider taken over from a fallen runner is mine to count; a puppet of a raid I struck marks it fought
   for (const f of h.ownRaidFoes?.() ?? []) if (!_live.some((e) => e.foe === f)) _live.push({ foe: f, key: f.raidKey, kind: 'raider', boss: tookStaffBoss(f), routed: false, counted: false });
-  for (const pup of h.raidPuppets?.() ?? []) {
+  const puppets = h.raidPuppets?.() ?? [];   // the fallen with them (THE REWARD)
+  for (const pup of puppets) {
+    if (pup.dead) continue;
     const r = allRaids().find((x) => raidKey(x) === pup._pupRaid);
     if (r && !r.struck && renownStruckAt(pup) != null) r.struck = true;
   }
+  staffPuppetKills(puppets, now);
   tallyDeaths(now);
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
@@ -753,6 +758,19 @@ export const STAFF_RAID_TYPE = 9;   // no party of the mod's (0-2), and never th
 /** A staff event stands its monsters faster than a raid's one to ten seconds - it is up to 500 of them, staged now. */
 export const STAFF_SPAWN_INTERVAL_MIN_S = 0.5;
 export const STAFF_SPAWN_INTERVAL_MAX_S = 2;
+/** THE REWARD: a staff event's monster another stands that fell after a blow of mine is my kill on the board (its
+ *  owner's word counts it on the meter). Each puppet once. @param {any[]} puppets the raids' puppets, the fallen too @param {number} now */
+function staffPuppetKills(puppets, now) {
+  for (const pup of puppets) {
+    if (!pup.dead || !pup.corpse || _pupKilled.has(pup) || renownStruckAt(pup) == null || pup.entity?.staffBoss) continue;
+    const r = staffRaidOfKey(pup._pupRaid);
+    if (!r || !raidActive(r, now)) continue;
+    _pupKilled.add(pup);
+    r.mine++;
+  }
+}
+/** The puppets counted as my kills (THE REWARD). */
+let _pupKilled = new WeakSet();
 /** A foe of mine taken over from a fallen runner: its event's mini boss is still the boss I stand now. */
 function tookStaffBoss(f) {
   if (!f?.entity?.staffBoss) return false;
@@ -787,9 +805,9 @@ export function staffEndLine(r) {
 /** My word on the staff event I stand in, to its place's cell - at once when my deaths, my strike or my boss moved, else
  *  every STAFF_EVENT_WORD_MS (the raid's RAID_WORD_MS); the session sends it where the relay keeps events. */
 function sayToCell(raid, t = localNow()) {
-  const w = validStaffEventIn({ k: 'w', id: raid.staff.id, px: raid.px, py: raid.py, n: Math.min(raid.killed, 9999), s: raid.struck ? 1 : 0, bu: raid.bossUp, bk: raid.bossDown, fb: Math.max(0, raid.bossFc) });
+  const w = validStaffEventIn({ k: 'w', id: raid.staff.id, px: raid.px, py: raid.py, n: Math.min(raid.killed, 9999), s: raid.struck ? 1 : 0, bu: raid.bossUp, bk: raid.bossDown, fb: Math.max(0, raid.bossFc), h: Math.min(raid.mine ?? 0, 9999) });
   if (!w) return false;
-  const sig = `${w.n}.${w.s}.${w.bu}.${w.bk}.${w.fb}`;
+  const sig = `${w.n}.${w.s}.${w.bu}.${w.bk}.${w.fb}.${w.h}`;
   if (_lastStaffWord && _lastStaffWord.id === w.id && _lastStaffWord.sig === sig && t - _lastStaffWord.at < RAID_WORD_MS) return false;
   if (!host().sendRaid?.(w, worldRoom(raid.px, raid.py))) return false;   // the session knows a staff word by its shape (net/online.js sendRaid)
   _lastStaffWord = { id: w.id, sig, at: t };
@@ -802,7 +820,32 @@ function staffRelayWord(sev, room) {
   if (sev.k === 'ev') { staffEventBook(sev.l); return true; }
   if (sev.k === 'end') return staffEventEnd(sev.id, sev.why);
   if (sev.k === 'st') return typeof room === 'string' && isCellRoom(room) && staffEventLedger(sev);
+  if (sev.k === 'bd') {   // THE REWARD: the board, said where the boss fell
+    const r = staffRaidOfKey(staffEventKey(sev.id));   // an ended one is kept (cleansed) - the board may come after its end
+    if (!r || _staffBoards.has(sev.id) || !sev.top.length) return false;
+    _staffBoards.add(sev.id);
+    say(staffBoardLine(sev.top), r);
+    return true;
+  }
+  if (sev.k === 'rc') {   // THE REWARD: my receipt - its spoils rolled off its seed (scenes/world.js onRaidReceipt, systems/staffEventSpoils.js)
+    const c = readStaffReceipt(sev.r);
+    const key = c ? `sev:${c.v}` : null;
+    if (!c || !key || _receipts.get(key) === sev.r) return false;
+    _receipts.delete(key);
+    _receipts.set(key, sev.r);
+    while (_receipts.size > RAID_RECEIPTS_KEPT) _receipts.delete(_receipts.keys().next().value);
+    host().onRaidReceipt?.(sev.r, c);
+    return true;
+  }
   return false;
+}
+/** THE REWARD's boards said, by event (once each). */
+const _staffBoards = new Set();
+/** The board as one line: "The top fighters: 1. Ana (23), 2. Bo (19) ..." - the boss's killer marked. @param {[string, number, number][]} top */
+export function staffBoardLine(top) {
+  const who = t('staffEvent.boardWho', 'A fighter');   // a nameless row (the law's '')
+  const list = top.map(([name, n, k], i) => [name || who, n, k]).map(([nm, n, k], i) => (k ? t('staffEvent.boardRowKiller', '{rank}. {name} ({kills}, the killing blow)', { rank: i + 1, name: nm, kills: n }) : t('staffEvent.boardRow', '{rank}. {name} ({kills})', { rank: i + 1, name: nm, kills: n }))).join(', ');
+  return t('staffEvent.board', 'The top fighters: {list}', { list });
 }
 /**
  * TIMERS1 / EVENTS1: THE DAY'S RAIDS AS THE TIMERS WINDOW AND THE EVENT BOARD READ THEM (systems/eventTimers.js
@@ -874,7 +917,7 @@ export function _resetRaidingParties() {
   state = newRaidSaveData(); _live = []; _pending = null; _nextSpawnIn = 0; _nextDefenderIn = 0; _sweepIn = 0;
   _lastRegion = -1; _regions = null; _host = null; _installed = false; _townsText = null; _townsHash = null;
   _peerWords = new Map(); _myClaims = new Map(); _unclaimedSince = new Map();
-  _relay = new Map(); _receipts = new Map(); _lastWord = null; _ahead = { day: NaN, raids: [] };
+  _relay = new Map(); _receipts = new Map(); _lastWord = null; _ahead = { day: NaN, raids: [] }; _staffBoards.clear(); _pupKilled = new WeakSet();
 }
 /** Test seam: the runtime, read-only. */
 export const _raidRuntime = () => ({ live: _live.slice(), pending: _pending, nextSpawnIn: _nextSpawnIn, nextDefenderIn: _nextDefenderIn });

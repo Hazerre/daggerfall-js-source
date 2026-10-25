@@ -91,7 +91,7 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
 
 ## 7. Versions and what a deploy does
 
-- Relay `world256` (`STAFF_EVENT_RELAY_MIN`): `staffEventLaw.js` and `server/src/staffEvents.js` join the bundle. An
+- Relay `world256` (`STAFF_EVENT_RELAY_MIN`): `staffEventLaw.js`, `staffEventReceipt.js` and `server/src/staffEvents.js` join the bundle. An
   older relay closes a socket on a `sev` frame, so the game sends one only to world256 on. A relay deploy drops every
   player for about 40 s.
 - Account service `acct182`, migration 0167: drops nobody.
@@ -104,3 +104,32 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
 - If the runner changes while a boss is being stood, two bosses may stand for one call.
 - An event past its end lapses at the hub's next touch (a hello, an order, a cell's word or tell).
 - Size, health and the 10x default are first guesses, set per event on the start form.
+- THE REWARD (section 9): the earning is the player's machine's word too (the kills and the stand it says). A receipt the
+  relay hands again after a reconnect needs the place's ledger, which an event that ends at its boss's fall drops at
+  once - so a fighter who drops at that moment misses theirs. The spoils are spent once a receipt on a device, not once
+  an account: no account service claim, as a town raid's has.
+
+## 9. The reward (THE REWARD - 2026-10-24, mob: "what should we do for the mini bosses drop for loot?", "something like dagons leaderboard", "but not his ghear", "build that base", "but we will tweak the drop table")
+
+Dagon's way, without Dagon's gear. At the FIRST fall of an event's mini boss the place's cell
+(`server/src/staffEvents.js` `payReward`) pays before it says a word of the fall:
+
+- **Who earns** (`staffEventLaw.js` `staffEventEarned`): every account (never a guest's socket) with
+  `STAFF_EVENT_EARN_KILLS` (3) kills of its own - a monster that fell after a blow of theirs, whoever stood it (a word's
+  `h`: `raidingParties.js` counts its own struck monsters and a fallen puppet it struck, once; the meter's `n` is the
+  runner's, who stands them all) - or whose stand - a word every `STAFF_EVENT_STAND_TICK_MS` (4 s)
+  from a pose on the pixel - covers half the run from the ledger's first word to the fall. One reward an account an
+  event. The plan offered a hit on the boss too: there is no such word, so the stand covers it.
+- **The board** (`staffEventBoard`): the earners' top `STAFF_EVENT_BOARD_MAX` (10) by kills, the killing blow before
+  an equal count, then the longest stand, as `[name, kills, killer]`. Said to the place (`sev` `bd`), said on screen
+  once (`raidingParties.js` `staffBoardLine`), told to the hub, which keeps the newest `SEV_BOARDS_KEPT` past the
+  event's end for staff's look, and the account service keeps it on the row (`staff_events.top`) for the panel.
+- **The receipt** (`staffEventReceipt.js`, `e1`): one an earner, `{ v, s, c, r, i, e }` - the event, the account, a
+  seed, the rank (0 past the board) - signed with the relay's one key (GATE_SIGNING_KEY), handed to the account's
+  newest socket (`sev` `rc`), and again to that account's next word while the ledger lasts.
+- **The spoils** (`src/systems/staffEventSpoils.js`, `STAFF_SPOILS_TABLE` - THE DROP TABLE, the one place to tweak it):
+  rolled on the device off the receipt's seed, straight into the pack through the town's thanks' spoils pool
+  (`scenes/world.js` `onRaidReceipt`, keyed `sev:<id>`), once a receipt. Every earner: gold at 100 a level (the seed
+  moving it a fifth either way) and one Magic-or-better piece; the board: one more Rare-or-better; first place: one
+  more, Legendary a tenth of the time, else Rare or better. None of Dagon's: no Sigil Stone, no Regalia, no Dragonfire
+  Oath, nothing gilded.

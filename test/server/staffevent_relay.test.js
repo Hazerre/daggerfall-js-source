@@ -12,6 +12,7 @@ import {
 import { SOCIAL_ROOM, worldRoom, PIXEL_UNITS, SAFE_LAW_PATH } from '../../src/net/wire.js';
 import { mintStaffEventOrder } from '../../src/net/identityToken.js';
 import { STAFF_EVENT_KILLS_BURST } from '../../src/net/staffEvent/staffEventLaw.js';
+import { readStaffReceipt } from '../../src/net/staffEvent/staffEventReceipt.js';
 import { standService } from '../accountDb.mjs';
 import { staffWords, STAFF_SESSION_HEADER } from '../../server-account/src/staff.js';
 import { EVENT_ROUTES, STAFF_EVENT_KEEP_S, mintEventId, stagedEvent } from '../../server-account/src/staffEvents.js';
@@ -86,7 +87,7 @@ test('STAFF-EVENT: THE PLACE\'S CELL - a word heard in its own cell from a pose 
   const cell = R.room(worldRoom(EV.px, EV.py));
   const ann = cell.join('ann', { sub: 'acctA', name: 'Ann', pose: poseOn(EV.px, EV.py) });
   const far = cell.join('far', { sub: 'acctF', name: 'Far', pose: poseOn(EV.px + 1, EV.py) });
-  const w = (n, more = {}) => ({ k: 'w', id: EV.id, px: EV.px, py: EV.py, n, s: 1, bu: 0, bk: 0, fb: 0, ...more });
+  const w = (n, more = {}) => ({ k: 'w', id: EV.id, px: EV.px, py: EV.py, n, s: 1, bu: 0, bk: 0, fb: 0, h: n, ...more });
   // the wrong cell: junk
   const other = R.room(worldRoom(EV.px + 64, EV.py));
   const o = other.join('o', { sub: 'acctO', pose: poseOn(EV.px, EV.py) });
@@ -113,12 +114,46 @@ test('STAFF-EVENT: THE PLACE\'S CELL - a word heard in its own cell from a pose 
   assert.equal(hub._sevLive.get(EV.id).bu, 1);
   await staffEventWord(cell, ann.ws, ann.a, w(12, { bu: 1, bk: 1, fb: 1 }), Date.now() + 3000);
   assert.equal(hub._sevBook.length, 0, 'its fall ended it');
+  // THE REWARD: the board said to the place, my receipt to me alone (unsigned: this stand-in relay has no key), the
+  // board kept at the hub past the end for staff's look
+  const top = [['Ann', 12, 1]];
+  assert.deepEqual(ann.ws.got.find((m) => m.k === 'bd'), { t: 'sev', k: 'bd', id: EV.id, top });
+  assert.deepEqual(far.ws.got.find((m) => m.k === 'bd')?.top, top, 'said to everyone in the place');
+  const rc = ann.ws.got.filter((m) => m.k === 'rc');
+  assert.equal(rc.length, 1);
+  assert.deepEqual((({ v, s, r, signed }) => ({ v, s, r, signed }))(readStaffReceipt(rc[0].r)), { v: EV.id, s: 'acctA', r: 1, signed: false });
+  assert.equal(far.ws.got.some((m) => m.k === 'rc'), false, 'no receipt to one who never stood on the pixel');
+  assert.deepEqual(hub._sevBoards.get(EV.id), top);
+  assert.deepEqual((await takeStaffEventOrder(hub, { o: 'sevent', op: 'look' }, Date.now())).bd, [[EV.id, top]]);
+  assert.deepEqual(hub.store.get(STAFF_EVENTS_KEY).b, [[EV.id, top]], 'kept in storage');
   assert.ok(watcher.ws.got.some((m) => m.k === 'end' && m.id === EV.id && m.why === 'boss'));
   assert.equal(cell.store.has(STAFF_LEDGER_PREFIX + EV.id), false, 'the cell told, its ledger gone');
   // a layer's word is the place's ledger's alone; an event the book does not hold is no word
   const ly = cell.join('ly', { sub: 'acctL', ly: 1, pose: poseOn(EV.px, EV.py) });
   await staffEventWord(cell, ly.ws, ly.a, w(3), Date.now());
   assert.deepEqual(ly.ws.got, []);
+});
+
+test('STAFF-EVENT THE REWARD: paid once at the first fall, signed with the relay\'s key; an event that runs on hands my receipt again to my word', async () => {
+  const R = relay();
+  const ev = { ...EV, eb: 0, m: 3 };
+  await takeStaffEventOrder(R.hub, { o: 'sevent', op: 'start', ev }, Date.now());
+  const cell = R.room(worldRoom(ev.px, ev.py));
+  const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
+  cell._receiptKeyOf = async () => kp.privateKey;
+  const ann = cell.join('ann', { sub: 'acctA', name: 'Ann', pose: poseOn(ev.px, ev.py) });
+  const w = (n, more = {}) => ({ k: 'w', id: ev.id, px: ev.px, py: ev.py, n, s: 1, bu: 0, bk: 0, fb: 0, h: n, ...more });
+  const t0 = Date.now();
+  await staffEventWord(cell, ann.ws, ann.a, w(3), t0);
+  await staffEventWord(cell, ann.ws, ann.a, w(3, { bu: 1 }), t0 + 1000);
+  await staffEventWord(cell, ann.ws, ann.a, w(3, { bu: 1, bk: 1 }), t0 + 2000);
+  const got = () => ann.ws.got.filter((m) => m.k === 'rc').map((m) => m.r);
+  assert.equal(got().length, 1);
+  assert.equal(readStaffReceipt(got()[0]).signed, true, 'signed with the relay\'s key');
+  assert.equal(R.hub._sevBook.length, 1, 'it runs on (eb 0)');
+  await staffEventWord(cell, ann.ws, ann.a, w(3, { bu: 1, bk: 1 }), t0 + 3000);
+  assert.deepEqual(got(), [got()[0], got()[0]], 'the same receipt again, never a second');
+  assert.equal(ann.ws.got.filter((m) => m.k === 'bd').length, 1, 'the board said once');
 });
 
 test('STAFF-EVENT: the hub\'s door verifies the order with its own key - a forged or other-kind order is refused', async () => {
@@ -227,8 +262,11 @@ test('STAFF-EVENT: THE ACCOUNT DOORS - Admins alone; a start stored, audited and
     // one the hub ended on its own (its boss fell): the next read marks it ended in the game
     const two = (await s.call('/v1/staff/event', { op: 'start', ev: { ...STAGE, loc: -1, nm: 'Road' } }, s.mob.session)).body.event;
     s.R.hub._sevBook = [];
+    s.R.hub._sevBoards.set(two.id, [['Ann', 12, 1]]);   // THE REWARD: its board, kept at the hub past its end
     r = await s.call('/v1/staff/events', {}, s.mob.session);
     assert.deepEqual(r.body.events.map((e) => [e.id, e.state, e.endedBy]), [[two.id, 'ended', 'game'], [ev.id, 'ended', 'staff']]);
+    assert.deepEqual(r.body.events.map((e) => e.top), [[['Ann', 12, 1]], []], 'the board on its row');
+    assert.equal(s.raw.prepare('SELECT top FROM staff_events WHERE id = ?').get(two.id).top, '[["Ann",12,1]]', 'kept on the row');
     // a full book: the hub's refusal in words, the row failed
     for (const id of ['ff000001', 'ff000002', 'ff000003', 'ff000004']) await takeStaffEventOrder(s.R.hub, { op: 'start', ev: { ...EV, id } }, Date.now());
     r = await s.call('/v1/staff/event', { op: 'start', ev: STAGE }, s.mob.session);

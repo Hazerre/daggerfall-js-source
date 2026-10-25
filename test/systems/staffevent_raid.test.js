@@ -26,6 +26,8 @@ import { setSharedClock } from '../../src/systems/worldTick.js';
 import { MINUTES_PER_DAY } from '../../src/systems/gameDate.js';
 import { _resetModSettings, setModSetting } from '../../src/systems/modSettings.js';
 import { parseClient } from '../../src/net/wire.js';
+import { mintStaffReceipt } from '../../src/net/staffEvent/staffEventReceipt.js';
+import { renownFoeStruck, _resetRenownKillsForTests } from '../../src/net/renownTracker.js';
 
 const rd = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const tick = () => new Promise((r) => setImmediate(r));
@@ -34,22 +36,23 @@ const EV = { id: 'ab12cd34ef', rg: 3, loc: 7, px: 200, py: 100, nm: 'Gothway Gar
 const KEY = staffEventKey(EV.id);
 
 function rig() {
-  const at = { now: DAY * MINUTES_PER_DAY + 600, wall: 100000, me: 'mmm-0002', town: { regionIndex: 3, locationIndex: 7 }, outdoors: true, pixel: { x: 200, y: 100 }, roll: 0, own: [] };
+  const at = { now: DAY * MINUTES_PER_DAY + 600, wall: 100000, me: 'mmm-0002', town: { regionIndex: 3, locationIndex: 7 }, outdoors: true, pixel: { x: 200, y: 100 }, roll: 0, own: [], puppets: [] };
   const log = { said: [], raiders: [], defenders: [], words: [] };
   let seq = 0;
   const foe = (mobileType) => ({ mobileType, dead: false, corpse: false, entity: { health: 40, maxHealth: 40, mobileType }, ai: { feet: [seq, 0, 0] }, uid: ++seq });
-  setRaidingPartiesHost({
+  const h = {
     now: () => at.now, random: () => at.roll, wallNow: () => at.wall, selfId: () => at.me, maps: () => null, picker: () => null,
     regionIndex: () => 3, regionName: (r) => `Region${r}`,
     townHere: (outdoors) => (outdoors ? at.outdoors : at.town), playerPixel: () => at.pixel,
-    peersInTown: () => [], raidPuppets: () => [], ownRaidFoes: () => at.own, relayRaids: () => true,
+    peersInTown: () => [], raidPuppets: () => at.puppets, ownRaidFoes: () => at.own, relayRaids: () => true,
     standRaider: (mt) => { const f = foe(mt); log.raiders.push(f); return Promise.resolve(f); },
     standDefender: () => { const g = foe(146); log.defenders.push(g); return Promise.resolve(g); },
     defenderCount: () => 0, defendersAllowed: () => true, removeFoe: (f) => { f.dead = true; }, outOfSight: () => true,
     reputation: () => ({ player: { legalRep: {} }, store: { dict: new Map() } }), say: (line) => log.said.push(line),
     sendRaid: (w, room) => { log.words.push({ w, room }); return true; },
-  });
-  return { at, log };
+  };
+  setRaidingPartiesHost(h);
+  return { at, log, h };
 }
 const kill = (f) => { f.dead = true; f.corpse = true; f.entity.health = 0; };
 /** Frames until the spawn clock comes round (a staff event's 0.5-2 s), each a tick for a stand to land. */
@@ -79,8 +82,8 @@ test('STAFF-EVENT: the hub\'s book held as raids - a town\'s where I stand outdo
   assert.equal(staffRaids().length, 1, 'and never stood again by a late book');
 });
 
-test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no defenders; my word to the place\'s cell; the boss stood when the cell calls it, yellow and large; its fall ends nothing on the meter', async () => {
-  const { at, log } = rig();
+test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no defenders; my word to the place\'s cell; the boss stood when the cell calls it, yellow and large; its fall ends nothing on the meter; the board and my receipt', async () => {
+  const { at, log, h } = rig();
   restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
   setSharedClock(() => at.now);
   raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [EV] } }, 'social');
@@ -97,7 +100,7 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   for (const f of log.raiders.slice(0, 3)) kill(f);
   await run(1);
   const w = log.words.at(-1);
-  assert.deepEqual(w.w, { k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 0, bu: 0, bk: 0, fb: 0 });
+  assert.deepEqual(w.w, { k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 0, bu: 0, bk: 0, fb: 0, h: 0 }, 'deaths I never struck: none mine on the board');
   assert.equal(w.room, 'world:' + w.room.split(':')[1], 'a cell room');
   // the cell calls the boss (the meter at 3): I run the event, so I stand it, before any raider
   raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 0, bk: 0, fc: 0 } }, w.room);
@@ -120,6 +123,19 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   kill(boss);
   await run(1);
   assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.bk], [3, 1]);
+  // THE REWARD: the board said once where it fell, the killing blow marked, a nameless row the reader's word; my
+  // receipt handed to the host once (its spoils rolled there - scenes/world.js onRaidReceipt), a raid's never confused
+  const top = [['Ana', 3, 1], ['', 2, 0]];
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'bd', id: EV.id, top } }, w.room), true);
+  assert.equal(log.said.at(-1), 'The top fighters: 1. Ana (3, the killing blow), 2. A fighter (2)');
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'bd', id: EV.id, top } }, w.room), false, 'once');
+  const rc = await mintStaffReceipt({ v: EV.id, s: 'acct-0001', c: 77, r: 1 }, null, { subtle: globalThis.crypto.subtle, nowS: 1_700_000_000 });
+  const handed = [];
+  h.onRaidReceipt = (r, c) => handed.push([r, c.v, c.r]);
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'rc', id: EV.id, r: rc } }, w.room), true);
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'rc', id: EV.id, r: rc } }, w.room), false, 'the same receipt again: no second roll');
+  assert.equal(raidRelayWord({ k: 'sev', sev: { k: 'rc', id: EV.id, r: 'w1.x.' } }, w.room), false);
+  assert.deepEqual(handed, [[rc, EV.id, 1]]);
   // the hub ends it: its monsters routed, the end said
   raidRelayWord({ k: 'sev', sev: { k: 'end', id: EV.id, why: 'boss' } }, 'social');
   frame(0.1);
@@ -129,6 +145,31 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, id: 'dd33ee44ff' }] } }, 'social');
   raidRelayWord({ k: 'sev', sev: { k: 'st', id: 'dd33ee44ff', n: 0, bd: 1, bu: 0, bk: 0, fc: 2 } }, w.room);
   assert.equal(staffBossWanted(staffRaids()[0]), 2);
+});
+
+test('STAFF-EVENT THE REWARD: my kills on the board - a monster of mine I struck, a puppet of another\'s I struck that fell (once); a death I never struck is no kill of mine', async () => {
+  _resetRenownKillsForTests();
+  const { at, log } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [EV] } }, 'social');
+  await run(12);
+  const [a, b] = log.raiders;
+  renownFoeStruck(a);
+  kill(a);
+  kill(b);
+  const pup = { puppet: true, _pupRaid: KEY, dead: false, corpse: false, entity: { health: 5 } };
+  const unstruck = { puppet: true, _pupRaid: KEY, dead: true, corpse: true, entity: { health: 0 } };
+  at.puppets = [pup, unstruck];
+  renownFoeStruck(pup);
+  await run(1);
+  assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.h], [2, 1], 'two deaths of mine stood, one of them my kill');
+  Object.assign(pup, { dead: true, corpse: true });
+  at.wall += 6000;
+  await run(1);
+  await run(1);
+  assert.deepEqual([log.words.at(-1).w.n, log.words.at(-1).w.h], [2, 2], 'and the puppet I fought, once');
+  _resetRenownKillsForTests();
 });
 
 test('STAFF-EVENT: an event\'s runner is elected by the raid\'s own words; a claim on a staff key rides the wire', async () => {
@@ -169,12 +210,14 @@ test('STAFF-EVENT: THE MINI BOSS\'S LOOKS - an elite, larger, its glow carried p
 
 test('STAFF-EVENT: the client\'s word and the relay\'s frame - a staff word parsed by the relay\'s own parser; the game reads its frames off the raid door', () => {
   const m = parseClient(JSON.stringify({ t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 1 }), { hasHello: true });
-  assert.deepEqual(m, { t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 1, bu: 0, bk: 0, fb: 0 });
+  assert.deepEqual(m, { t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3, s: 1, bu: 0, bk: 0, fb: 0, h: 0 });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'sev', k: 'w', id: 'X', px: 200, py: 100, n: 3 }), { hasHello: true }), { error: 'bad sev' });
   assert.deepEqual(parseClient(JSON.stringify({ t: 'sev', k: 'w', id: EV.id, px: 200, py: 100, n: 3 })), { error: 'sev before hello' });
   const online = rd('src/net/online.js');
   assert.match(online, /m\.t === 'sev'/);
   assert.match(online, /relaySupportsStaffEvents/);
+  assert.match(online, /r\.k === 'st' \|\| r\.k === 'bd' \|\| r\.k === 'rc' \? isCellRoom\(room\)/, 'THE REWARD: the board and my receipt from the place\'s cell alone');
+  assert.match(rd('src/scenes/world.js'), /onRaidReceipt: \(r, c\) => \{ \(c\?\.v \? grantStaffSpoils\(raidSpoils, spoilsLock, c, /, 'THE REWARD: an event\'s receipt rolls its spoils into the pack');
   assert.ok(validStaffEvent(EV));
   // mob 2026-10-24: a city said as a city, anything else as an area
   assert.equal(staffAttackLine({ locationIndex: -1, locationName: 'Road', regionIndex: 3, staff: { b: 7 } }), 'The area of Road is under attack!');

@@ -19,7 +19,7 @@ import { displayName } from './accounts.js';
 import { pushLaw } from './sanctions.js';
 import { signingKey } from './signing.js';
 import { mintStaffEventOrder } from '../../src/net/identityToken.js';
-import { validStaffEvent, STAFF_EVENT_ID_RE, STAFF_EVENT_LONGEST_MS, STAFF_EVENTS_MAX } from '../../src/net/staffEvent/staffEventLaw.js';
+import { validStaffEvent, validStaffBoard, STAFF_EVENT_ID_RE, STAFF_EVENT_LONGEST_MS, STAFF_EVENTS_MAX } from '../../src/net/staffEvent/staffEventLaw.js';
 
 export const EVENT_ROUTES = Object.freeze(['/v1/staff/event', '/v1/staff/events']);
 /** Rows one read answers. */
@@ -54,6 +54,9 @@ export function stagedEvent(ev, id, nowS, by) {
   return validStaffEvent({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by });
 }
 
+/** A row's kept board. @param {unknown} s */
+const topOf = (s) => { try { return (typeof s === 'string' && validStaffBoard(JSON.parse(s))) || []; } catch { return []; } };
+
 /** A row as the panel reads it, with the hub's live word on it when its book names it. @param {any} r @param {any} live */
 const shown = (r, live) => {
   const ev = JSON.parse(r.ev);
@@ -63,6 +66,7 @@ const shown = (r, live) => {
     state: r.state, endedAt: r.ended_at ?? null, endedBy: r.ended_by ?? null,
     kills: on ? on.n : r.kills, boss: on ? (on.bk ? 'fallen' : on.bu ? 'up' : on.bd ? 'due' : 'none') : (r.boss ?? 'none'),
     fighters: on ? on.f : 0, live: !!live,
+    top: on?.top ?? topOf(r.top),   // THE REWARD: the board at the boss's fall ([name, kills, killer] rows), the hub's or as kept
   };
 };
 
@@ -87,12 +91,17 @@ export async function staffEvents(ctx, env, path, body, who, audit) {
     /** @type {any} */
     let said = null;
     const took = await pushLaw(env, (u, i) => globalThis.fetch(u, i), order, (s) => { said = s; }, (s) => { said = s; });   // a refusal's body too: the hub's why
-    return { took, l: said?.l ?? null, why: said?.why ?? null };
+    return { took, l: said?.l ?? null, why: said?.why ?? null, bd: Array.isArray(said?.bd) ? said.bd : [] };
   };
   /** The rows the book no longer names, ended there; the ones it names, their meter kept. @param {Map<string, any>} book */
-  const settle = async (book) => {
+  const settle = async (book, boards = []) => {
     const open = (await db.prepare("SELECT id, kills, boss FROM staff_events WHERE state = 'live'").all())?.results ?? [];
     const writes = [];
+    const mine = new Set(open.map((/** @type {any} */ r) => r.id));
+    for (const [id, top] of boards) {   // THE REWARD: a fallen boss's board, kept at its row's end (the hub keeps only the newest)
+      const b = mine.has(id) ? validStaffBoard(top) : null;
+      if (b) writes.push(db.prepare('UPDATE staff_events SET top = ?2 WHERE id = ?1 AND top IS NULL').bind(id, JSON.stringify(b)));
+    }
     for (const r of open) {
       const e = book.get(r.id);
       if (!e) writes.push(db.prepare("UPDATE staff_events SET state = 'ended', ended_at = ?2, ended_by = COALESCE(ended_by, 'game') WHERE id = ?1 AND state = 'live'").bind(r.id, nowS));
@@ -109,7 +118,7 @@ export async function staffEvents(ctx, env, path, body, who, audit) {
     // the hub's book first, only for the first page - a page further down is history (infinite scroll)
     const said = before ? null : await ask({ op: 'look' });
     const book = bookOf(said?.l);
-    if (said?.took) await settle(book);
+    if (said?.took) await settle(book, said.bd);
     const rows = (await db.prepare('SELECT rowid AS n, * FROM staff_events WHERE (?1 IS NULL OR rowid < ?1) ORDER BY rowid DESC LIMIT ?2')
       .bind(before, STAFF_EVENTS_PAGE + 1).all())?.results ?? [];
     const page = rows.slice(0, STAFF_EVENTS_PAGE);

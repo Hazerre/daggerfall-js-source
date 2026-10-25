@@ -3607,7 +3607,7 @@ export class OnlineSession {
       // STAFF-EVENT: the hub's book of the staff events live and their ends (to everyone online), or a cell's ledger of one
       // (on any cell socket I hold), projected by the event's own law - delivered where a raid's word goes, which runs it
       const r = validStaffEventOut(m);
-      if (r && (r.k === 'st' ? isCellRoom(room) : isSocialRoom(room))) this._deliver('raid', () => this.onRaid?.({ k: 'sev', sev: r }, room));
+      if (r && (r.k === 'st' || r.k === 'bd' || r.k === 'rc' ? isCellRoom(room) : isSocialRoom(room))) this._deliver('raid', () => this.onRaid?.({ k: 'sev', sev: r }, room));
     } else if (m.t === 'serpent') {
       // SERPENT1: the serpent's cell's word (on any cell socket I hold - my own cell's or a halo's) or the hub's (its kill,
       // to everyone online), projected by the wire's own law; the hub says the kill and an account's receipt (AUDIT

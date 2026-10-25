@@ -11,7 +11,8 @@
 --               `state` 'starting' while the relay's door is asked, 'live' once the hub took it, 'failed' when it did not,
 --               'ended' once staff ended it or the hub's book no longer named it. `ended_by` 'staff', 'game' (its boss fell,
 --               its clock, its last monster) or the hub's refusal. `kills` and `boss` the last meter the service heard from
---               the hub ('none', 'due', 'up', 'fallen'). Kept 30 days (STAFF_EVENT_KEEP_S, the hourly job: cron.js
+--               the hub ('none', 'due', 'up', 'fallen'). `top` the board at its boss's fall (JSON, [name, kills, killer]
+--               rows, the top fighters), once the hub told it. Kept 30 days (STAFF_EVENT_KEEP_S, the hourly job: cron.js
 --               staff-events). No foreign keys: a row outlives the account it names until its sweep.
 CREATE TABLE IF NOT EXISTS staff_events (
   id         TEXT PRIMARY KEY,
@@ -23,7 +24,8 @@ CREATE TABLE IF NOT EXISTS staff_events (
   ended_at   INTEGER,
   ended_by   TEXT,
   kills      INTEGER NOT NULL DEFAULT 0,
-  boss       TEXT NOT NULL DEFAULT 'none'
+  boss       TEXT NOT NULL DEFAULT 'none',
+  top        TEXT
 );
 CREATE INDEX IF NOT EXISTS staff_events_state ON staff_events (state);
 CREATE INDEX IF NOT EXISTS staff_events_at ON staff_events (at);

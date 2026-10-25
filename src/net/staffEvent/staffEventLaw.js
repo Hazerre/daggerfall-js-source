@@ -71,6 +71,14 @@ export const STAFF_EVENT_PRESENT_MS = 15000;
 export const STAFF_EVENT_TELL_MS = 3000;
 /** How long a ledger is kept past its event's end, ms. */
 export const STAFF_EVENT_KEEP_MS = 10 * 60 * 1000;
+/** THE REWARD (mob 2026-10-24: "something like dagons leaderboard", "but not his ghear"): at the mini boss's first fall
+ *  every account that EARNED it is handed a receipt of its own (staffEventReceipt.js) and the place is told the board.
+ *  Earned: this many kills on the meter, or standing in the place for half the event's run (a healer's way, the gate's). */
+export const STAFF_EVENT_EARN_KILLS = 3;
+/** The board's length: the top fighters by kills, said to the place and shown to staff. */
+export const STAFF_EVENT_BOARD_MAX = 10;
+/** A word counts toward the stand once this long after the last that counted, ms (a word comes every 5 s). */
+export const STAFF_EVENT_STAND_TICK_MS = 4000;
 
 const intIn = (/** @type {unknown} */ v, /** @type {number} */ lo, /** @type {number} */ hi) => Number.isSafeInteger(v) && /** @type {number} */ (v) >= lo && /** @type {number} */ (v) <= hi;
 const bit = (/** @type {unknown} */ v) => v === 1 ? 1 : 0;
@@ -113,27 +121,33 @@ export const isAreaEvent = (e) => e.loc < 0;
 // ═══ THE WORDS ═══════════════════════════════════════════════════════════════════════════════════
 
 /**
- * A player's word to the place's cell, projected: `{k:'w', id, px, py, n, s, bu, bk, fb}` - the event, its place's
+ * A player's word to the place's cell, projected: `{k:'w', id, px, py, n, s, bu, bk, fb, h}` - the event, its place's
  * pixel (the cell reads it against its own), the deaths of MY monsters in it so far, 1 once I struck one, 1 once the
- * boss I stand stood (`bu`) and once it fell (`bk`), and the boss call (`fb`) the boss answered - or null.
+ * boss I stand stood (`bu`) and once it fell (`bk`), the boss call (`fb`) the boss answered, and THE REWARD's `h`: the
+ * monsters that fell after a blow of mine, whoever stood them (the board's kills - `n` is the runner's, who stands them
+ * all) - or null.
  * @param {any} m
  */
 export function validStaffEventIn(m) {
   if (!m || typeof m !== 'object' || m.k !== 'w') return null;
   if (typeof m.id !== 'string' || !STAFF_EVENT_ID_RE.test(m.id)) return null;
-  if (!intIn(m.px, 0, 999) || !intIn(m.py, 0, 499) || !intIn(m.n, 0, STAFF_EVENT_WORD_KILLS_MAX) || !intIn(m.fb ?? 0, 0, 99)) return null;
+  if (!intIn(m.px, 0, 999) || !intIn(m.py, 0, 499) || !intIn(m.n, 0, STAFF_EVENT_WORD_KILLS_MAX) || !intIn(m.fb ?? 0, 0, 99) || !intIn(m.h ?? 0, 0, STAFF_EVENT_WORD_KILLS_MAX)) return null;
   for (const k of ['s', 'bu', 'bk']) if (m[k] !== undefined && m[k] !== 0 && m[k] !== 1) return null;
-  return { k: 'w', id: m.id, px: m.px, py: m.py, n: m.n, s: bit(m.s), bu: bit(m.bu), bk: bit(m.bk), fb: m.fb ?? 0 };
+  return { k: 'w', id: m.id, px: m.px, py: m.py, n: m.n, s: bit(m.s), bu: bit(m.bu), bk: bit(m.bk), fb: m.fb ?? 0, h: m.h ?? 0 };
 }
 
+/** The bound on a receipt's length on the wire (staffEventReceipt.js STAFF_RECEIPT_MAX - this file imports nothing). */
+export const STAFF_RECEIPT_WIRE_MAX = 512;
 /** The kinds a relay's staff event frame says. */
-export const STAFF_EVENT_OUT_KINDS = Object.freeze(['ev', 'end', 'st']);
+export const STAFF_EVENT_OUT_KINDS = Object.freeze(['ev', 'end', 'st', 'bd', 'rc']);
 
 /**
  * A relay's staff event frame, projected for the game: the hub's BOOK (`ev`: the events live, each validStaffEvent's
  * shape), an END (`end`: the event and why - 'staff', 'boss', 'time', 'done'), or a cell's LEDGER (`st`: the event's
  * boss state - `bd` the boss is due, `bu` it stood, `bk` it fell, `fc` the boss call the ledger has heard, and `n` the
- * kills so far, which the game uses only to stop standing monsters at the event's total; it never shows it) - or null.
+ * kills so far, which the game uses only to stop standing monsters at the event's total; it never shows it), and THE
+ * REWARD's two at the first boss's fall: the BOARD (`bd`: `top`, staffEventBoard's rows) and MY RECEIPT (`rc`: `r`,
+ * staffEventReceipt.js's `e1` string, read there) - or null.
  * @param {any} m
  */
 export function validStaffEventOut(m) {
@@ -146,6 +160,8 @@ export function validStaffEventOut(m) {
   }
   if (typeof m.id !== 'string' || !STAFF_EVENT_ID_RE.test(m.id)) return null;
   if (m.k === 'end') return { k: 'end', id: m.id, why: ['staff', 'boss', 'time', 'done'].includes(m.why) ? m.why : 'staff' };
+  if (m.k === 'bd') { const top = validStaffBoard(m.top); return top ? { k: 'bd', id: m.id, top } : null; }   // THE REWARD: the board, at the fall
+  if (m.k === 'rc') return typeof m.r === 'string' && m.r.length <= STAFF_RECEIPT_WIRE_MAX ? { k: 'rc', id: m.id, r: m.r } : null;   // and my receipt
   if (!intIn(m.n, 0, STAFF_EVENT_TOTAL_MAX) || !intIn(m.fc ?? 0, 0, 99)) return null;
   return { k: 'st', id: m.id, n: m.n, bd: bit(m.bd), bu: bit(m.bu), bk: bit(m.bk), fc: m.fc ?? 0 };
 }
@@ -153,10 +169,15 @@ export function validStaffEventOut(m) {
 // ═══ THE CELL'S LEDGER ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * @typedef {{ nm: string, n: number, s: 0|1, last: number }} StaffEventAccount
+ * @typedef {{ nm: string, n: number, s: 0|1, last: number, t?: number, tAt?: number, h?: number }} StaffEventAccount
+ *   `h` its kills (a word's `h`, the board's), `t` the words that counted toward its stand (one a STAFF_EVENT_STAND_TICK_MS), `tAt` the last of them.
  * @typedef {{ id: string, first: number, n: number, a: Record<string, StaffEventAccount>, bd: 0|1, bu: 0|1, bk: 0|1,
- *   fc: number, bossN: number, ended: 0|1 }} StaffEventLedger
- *   `fc` the boss calls staff made that the ledger has taken (each one more boss); `bossN` the bosses that fell.
+ *   fc: number, bossN: number, ended: 0|1, kb?: string, fellAt?: number, rw?: 0|1, top?: StaffBoardRow[],
+ *   rc?: Record<string, string> }} StaffEventLedger
+ *   `fc` the boss calls staff made that the ledger has taken (each one more boss); `bossN` the bosses that fell; THE
+ *   REWARD's: `kb` the account whose word felled the first boss and `fellAt` when, `rw` 1 once it was paid, `top` the
+ *   board, `rc` each earner's receipt.
+ * @typedef {[string, number, 0|1]} StaffBoardRow  a fighter's name, kills, and 1 for the boss's killer
  */
 
 /** A ledger, off the event's first word in its cell. @param {StaffEvent} e @param {number} nowMs @returns {StaffEventLedger} */
@@ -181,7 +202,7 @@ export function staffBossCall(led, e) {
  * One word folded in: the account's record and its deaths - the most it has said, credited as far as the cap and the
  * event's total let them - and the boss's moments (stood once called; fell once stood). Answers what moved.
  * @param {StaffEventLedger} led @param {StaffEvent} e @param {string} acct @param {string} name
- * @param {{ n: number, s?: number, bu?: number, bk?: number, fb?: number }} w @param {number} nowMs
+ * @param {{ n: number, s?: number, bu?: number, bk?: number, fb?: number, h?: number }} w @param {number} nowMs
  */
 export function foldStaffWord(led, e, acct, name, w, nowMs) {
   const out = { credited: 0, known: false, boss: false };
@@ -189,12 +210,14 @@ export function foldStaffWord(led, e, acct, name, w, nowMs) {
   let rec = led.a[acct];
   if (!rec) {
     if (Object.keys(led.a).length >= STAFF_EVENT_ACCOUNTS_MAX) return out;
-    rec = led.a[acct] = { nm: '', n: 0, s: 0, last: 0 };
+    rec = led.a[acct] = { nm: '', n: 0, s: 0, last: 0, t: 0, tAt: 0, h: 0 };
   }
   out.known = true;
   rec.nm = typeof name === 'string' ? name.slice(0, 32) : '';
   rec.last = nowMs;
+  if (nowMs - (rec.tAt ?? 0) >= STAFF_EVENT_STAND_TICK_MS) { rec.t = (rec.t ?? 0) + 1; rec.tAt = nowMs; }   // THE STAND: a word a tick
   if (w.s === 1) rec.s = 1;
+  if ((w.h ?? 0) > (rec.h ?? 0)) rec.h = Math.max(rec.h ?? 0, Math.min(w.h ?? 0, e.n, staffEventCap(led, nowMs)));   // THE REWARD: my kills, never past the event's total or its pace
   if (w.n > rec.n) {
     out.credited = Math.max(0, Math.min(w.n - rec.n, staffEventCap(led, nowMs) - led.n, e.n - led.n));
     rec.n += out.credited;
@@ -204,7 +227,7 @@ export function foldStaffWord(led, e, acct, name, w, nowMs) {
   // the boss's moments, said by the player who stands it, for the call it answers (an old call's word moves nothing)
   if ((w.fb ?? 0) === led.fc && led.bd) {
     if (w.bu === 1 && !led.bu) { led.bu = 1; out.boss = true; }
-    if (w.bk === 1 && led.bu && !led.bk) { led.bk = 1; led.bossN++; out.boss = true; }
+    if (w.bk === 1 && led.bu && !led.bk) { led.bk = 1; led.bossN++; out.boss = true; if (!led.kb) { led.kb = acct; led.fellAt = nowMs; } }   // THE REWARD: its first killer and fall
   }
   return out;
 }
@@ -217,17 +240,46 @@ export function staffEventDone(led, e) {
   return null;
 }
 
+/**
+ * THE REWARD's earners at the first boss's fall: every account (never a guest's socket, `id:`) with STAFF_EVENT_EARN_KILLS
+ * kills of its own (`h`), or whose stand covers half the run from the ledger's first word to the fall - most kills first, the
+ * killer before an equal count, then the longest stand. Each with its RANK on the board (1 to STAFF_EVENT_BOARD_MAX, 0 past it).
+ * @param {StaffEventLedger} led @returns {{ acct: string, rec: StaffEventAccount, rank: number }[]}
+ */
+export function staffEventEarned(led) {
+  const fell = led.fellAt ?? led.first;
+  const half = Math.max(0, fell - led.first) / 2;
+  const rows = Object.entries(led.a)
+    .filter(([acct, r]) => !acct.startsWith('id:') && ((r.h ?? 0) >= STAFF_EVENT_EARN_KILLS || (r.t ?? 0) * STAFF_EVENT_WORD_MS >= half))
+    .sort(([a, x], [b, y]) => (y.h ?? 0) - (x.h ?? 0) || Number(b === led.kb) - Number(a === led.kb) || (y.t ?? 0) - (x.t ?? 0) || (a < b ? -1 : 1));
+  return rows.map(([acct, rec], i) => ({ acct, rec, rank: i < STAFF_EVENT_BOARD_MAX ? i + 1 : 0 }));
+}
+/** The board: the earners' top STAFF_EVENT_BOARD_MAX as `[name, kills, killer]`. @param {StaffEventLedger} led @returns {StaffBoardRow[]} */
+export const staffEventBoard = (led) => staffEventEarned(led).filter((x) => x.rank > 0).map((x) => [x.rec.nm || '', Math.min(x.rec.h ?? 0, STAFF_EVENT_WORD_KILLS_MAX), x.acct === led.kb ? 1 : 0]);   // a nameless row the reader's own word (raidingParties.js staffBoardLine)
+/** A board, projected (a frame's, a tell's). @param {unknown} top @returns {StaffBoardRow[] | null} */
+export function validStaffBoard(top) {
+  if (!Array.isArray(top) || top.length > STAFF_EVENT_BOARD_MAX) return null;
+  const out = [];
+  for (const r of top) {
+    if (!Array.isArray(r) || r.length !== 3 || typeof r[0] !== 'string' || !intIn(r[1], 0, STAFF_EVENT_WORD_KILLS_MAX)) return null;
+    out.push(/** @type {StaffBoardRow} */ ([clean(r[0], 32), r[1], bit(r[2])]));
+  }
+  return out;
+}
+
 /** The ledger as a cell says it to the place. @param {StaffEventLedger} led */
 export const staffLedgerState = (led) => ({ k: 'st', id: led.id, n: led.n, bd: led.bd, bu: led.bu, bk: led.bk, fc: led.fc });
 /** The accounts fighting now (a word within STAFF_EVENT_PRESENT_MS). @param {StaffEventLedger} led @param {number} nowMs */
 export const staffEventFighters = (led, nowMs) => Object.values(led.a).filter((r) => nowMs - r.last <= STAFF_EVENT_PRESENT_MS).length;
 /** What a cell tells the hub, and the hub tells staff: the count, the boss, who is fighting. @param {StaffEventLedger} led @param {number} nowMs */
-export const staffEventTell = (led, nowMs) => ({ id: led.id, n: led.n, bd: led.bd, bu: led.bu, bk: led.bk, fc: led.fc, bossN: led.bossN, f: staffEventFighters(led, nowMs) });
+export const staffEventTell = (led, nowMs) => ({ id: led.id, n: led.n, bd: led.bd, bu: led.bu, bk: led.bk, fc: led.fc, bossN: led.bossN, f: staffEventFighters(led, nowMs), ...(led.top ? { top: led.top } : {}) });
 /** A tell, projected (the hub's door reads a cell's). @param {any} t */
 export function validStaffEventTell(t) {
   if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !STAFF_EVENT_ID_RE.test(t.id)) return null;
   if (!intIn(t.n, 0, STAFF_EVENT_TOTAL_MAX) || !intIn(t.fc ?? 0, 0, 99) || !intIn(t.bossN ?? 0, 0, 99) || !intIn(t.f ?? 0, 0, STAFF_EVENT_ACCOUNTS_MAX)) return null;
-  return { id: t.id, n: t.n, bd: bit(t.bd), bu: bit(t.bu), bk: bit(t.bk), fc: t.fc ?? 0, bossN: t.bossN ?? 0, f: t.f ?? 0 };
+  const top = t.top === undefined ? null : validStaffBoard(t.top);
+  if (t.top !== undefined && !top) return null;
+  return { id: t.id, n: t.n, bd: bit(t.bd), bu: bit(t.bu), bk: bit(t.bk), fc: t.fc ?? 0, bossN: t.bossN ?? 0, f: t.f ?? 0, ...(top ? { top } : {}) };
 }
 
 /** The relay that knows staff events (net/wire.js RELAY_VERSION) - an older one closes a socket on the frame. */
