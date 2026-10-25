@@ -35,7 +35,7 @@ Market tab's, which collected only what a read of the road named: the trader's s
 settled nothing.
 
 FIXED.
-- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct189, acct177 on its branch). A record one on from where the tab
+- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct190, acct177 on its branch). A record one on from where the tab
   asked, under its lease, with a sale this id made, is that sale, landed: it is answered as the repeat with the record's
   sequence (`realm.seq`). A DEPARTURE FROM L1-F2, for a buy alone. It is said only to a tab that asks for it (`landed`):
   an older tab reads every repeat as a sale paid before it asked, so its settle would checkpoint its purse unpaid over
@@ -48,7 +48,7 @@ FIXED.
 - **The stall** (`vendorTab.js`, `vendorHost.js` openHomeVendorWindow). A trader's stall opened settles the book's kept acts
   through the window's door, beside its read. HOST-SPLIT: the home traders' block (the stall, the board's Vendors tab,
   the Vendor page's helpers) moved verbatim out of `bootWorld` to `src/scenes/vendorHost.js` createVendorHost by
-  `tools/hostMove.mjs`, so the wiring lives there and `bootWorld` loses 138 logical lines net, its ceiling 36,250
+  `tools/hostMove.mjs`, so the wiring lives there and `bootWorld` loses 138 logical lines net, its ceiling 36,251
   (`hostceiling.test.js`).
 
 NOT CHANGED.

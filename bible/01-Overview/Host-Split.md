@@ -609,7 +609,7 @@ logical lines of wiring in the stall's host object, inside `bootWorld`. The bloc
 thirteen members (the stall `openHomeVendorWindow`, the board's Vendors tab `vendorBoardHost`, `vendorBuy`, `vendorTake`,
 `vendorPut`, `vendorReachable` and the Vendor page's helpers) - wrote nothing of the host's and was used in three places,
 so it moved verbatim instead, by `tools/hostMove.mjs`, to `src/scenes/vendorHost.js` (`createVendorHost(host)`), and the
-wiring lives there. `bootWorld` 36,388 (main's, at the merge) -> 36,250 logical lines, its ceiling down to what stands. No
+wiring lives there. `bootWorld` 36,389 (main's, at the merge) -> 36,251 logical lines, its ceiling down to what stands. No
 pin read the moved code's text; the stall's settle is held by a test that builds the vendor host and opens a stall
 (`fb1025_vendorlost.test.js`). The tool wrote Windows absolute paths into the module's imports on this machine; they were
 set back to the host's relative ones by hand.

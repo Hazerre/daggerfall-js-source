@@ -399,7 +399,7 @@ import { egStartPanelDoors } from '../ui/eliteGates/egStartPanel.js';   // EG-PL
 import { egRecapsKept } from '../ui/eliteGates/egHud.js';   // AUDIT EG V (c, L7-19): the last runs this device kept, on the boards' own tab
 import { registerEgFind, egFindThrow } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find
 import { setSetPowersAllies, setSpireRecovery, spireRedoubtTaken } from '../systems/sigil/sigilSetPowers.js';   // EG15: the Reprieve's allies, the death saves held to a Redoubt in a breach
-import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks
+import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale, emberHands } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks
 import { drawGateBanner } from '../ui/gate/gateBanner.js';
 import { drawGateGround } from '../ui/gate/gateGroundView.js';   // WB9d: his ground's rim and warning - hidden with a held frame (the court draws it); SD15: and the Hour's
 import { drawGateDamageChart } from '../ui/gate/gateDamageChart.js';   // GATE-UX: the kill's damage chart (the court draws it - scenes/gate/gateCourt.js); a held frame hides it with the rest
@@ -2215,6 +2215,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  pack, the home's things, the purse or the Bank's accounts, on the service's answer - asks ONE checkpoint on the next
    *  task, as a trade saves at once; the checkpoint (onlineCheckpoint) is handed in once it is built (REALM P0.5). */
   const saveSoon = createSaveSoon();
+  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): AND THE BOOK'S HANDS ON THE PACK'S DEADLANDS EMBERS - the
+  // pack's half of the Daedric smelt (systems/sigil/sigilBroker.js emberHands, the Broker's own law), each take saved
+  carryHands.embers = emberHands(playerEntity, saveSoon.changed);
   /** BAG1: a deposit whose answer did not come - its goods stay out of the bag until the counting-house answers.
    *  FB1020c ONE-SAVE: the Stores page's own words (profPages.js BAG_PAGE_WORDS.kept), one home. */
   const BAG_DEPOSIT_KEPT_TEXT = BAG_PAGE_WORDS.kept;
