@@ -194,8 +194,10 @@ test('LR2: the affix kinds - six, each banded per tier, each with a word for the
   assert.equal(LR.affixWord({ id: 'stat', param: 'strength' }, 'magic'), '', 'LR4: a record with no value is malformed and names nothing');
 });
 
-test('LR2: rollAffixes - the count per tier, no kind or param repeated, only the group\'s kinds, a Rare with both name parts', () => {
+test('LR2: rollAffixes - the count per tier, no kind or param repeated, only the group\'s kinds; AFFIX-LINES: a Rare named as its lines fall (the old law\'s, both name parts)', () => {
   const rolls = lcg(11);
+  const has = (out, slot) => out.some((a) => LR.AFFIX_KINDS[a.id].slot === slot);
+  let both = 0, suffixOnly = 0;
   for (let i = 0; i < 200; i++) {
     for (const [make, group] of [[sword, 'Weapons'], [cuirass, 'Armor'], [ring, 'Jewellery']]) {
       for (const tier of ['magic', 'rare']) {
@@ -213,11 +215,18 @@ test('LR2: rollAffixes - the count per tier, no kind or param repeated, only the
           else assert.equal(a.param, undefined);
         }
         if (tier === 'rare') {
-          assert.ok(out.some((a) => LR.AFFIX_KINDS[a.id].slot === 'prefix') && out.some((a) => LR.AFFIX_KINDS[a.id].slot === 'suffix'), 'a Rare names both parts');
+          // PIN MOVED (AFFIX-LINES, 2026-10-25: carrying capacity on four Rare pieces in five - the last pick held to the
+          // empty slot, and a jewel's one prefix is it): no slot forced - a suffix always (no group has three prefixes to
+          // give), a prefix as the lines fall
+          assert.ok(has(out, 'suffix'), 'a Rare has a suffix');
+          if (has(out, 'prefix')) both++; else suffixOnly++;
+          const old = LR.rollAffixes(make(), tier, rolls, { byLines: false });   // a product record's old law (MINT_V_LINES)
+          assert.ok(has(old, 'prefix') && has(old, 'suffix'), 'the old law: a Rare names both parts');
         }
       }
     }
   }
+  assert.ok(both > 100 && suffixOnly > 100, `AFFIX-LINES: a Rare with both parts, and one with its suffix alone (${both}, ${suffixOnly})`);
 });
 
 test('LR2: applyRarity - the field, the affixes, the name, the value; a Rare\'s DFU flavour; a Legendary\'s record; Common untouched', () => {
@@ -238,7 +247,8 @@ test('LR2: applyRarity - the field, the affixes, the name, the value; a Rare\'s 
   assert.ok(r.affixes.length >= 3 && r.affixes.length <= 4);
   assert.equal(r.enchantments.length, 1, 'one flavour');
   assert.ok(LR.RARE_FLAVOURS.Armor.some((f) => f.type === r.enchantments[0].type && f.param === r.enchantments[0].param), 'from the armour pool');
-  assert.match(r.name, /^\S+ Cuirass of /, `a two-part name: ${r.name}`);
+  assert.match(r.name, / ?Cuirass of /, `PIN MOVED (AFFIX-LINES): named as its lines fall - a suffix always, a prefix where a line gives one: ${r.name}`);
+  assert.equal(r.name, LR.rarityName(r, 'rare', r.affixes));
   assert.equal(r.value, itemBaseValue(r) + LR.affixesWorth(r.affixes) + LR.RARE_ENCHANT_WORTH);
   const l = LR.applyRarity(sword(), 'legendary', rolls);
   assert.equal(l.rarity, 'legendary');
@@ -511,8 +521,8 @@ test('LR3: the Test Room\'s loot ladder - one door, thirty items (a Magic and a 
   assert.equal(LR.lootRarityOn(), true, 'the door turns the ladder on');
   // LR6: the ladder, plus the unidentified pair - one Rare and one
   // Legendary left on the floor's own reading.
-  assert.equal(added.length, 20 + LR.LEGENDARIES.length + 2 + AETHERIC_RECORDS.length + 1 + 4 + LR.WARDROBE_LEGENDARIES.length + 2 + 2 + 2 + 2 + 1 + 4 + 1 + TECHNIQUE_IDS.length + LR.ARCANE_LEGENDARIES.length + 2);   // PIN MOVED (GILDED2): and the world's two Gilded, last; PIN MOVED (BAL9c): and the arcane three; LOOT2: and one Exalted; LOOT14/LOOT15: the wardrobe's two bases at two tiers and its six; LOOT16: a cursed Rare and a cursed Legendary; LOOT20: a socketed Rare and a Ruby; LOOT21: the two Ayleid stones; GILDED1: the Hourlock and its shot; GEM1/GEM2: a three-socket Rare bow and four graded gems; TRUE-CURSE (PIN MOVED): a damned Legendary weapon   // PIN MOVED (TECH1): and one Rare a weapon technique
-  assert.deepEqual(added.filter((i) => i.rarity === 'gilded').map((i) => i.gilded), ['the-hourlock', 'the-dragonfire-oath', 'the-sunken-sovereign'], 'GILDED1: the top rung\'s first record, whole; PIN MOVED (GILDED2): and the world\'s two');
+  assert.equal(added.length, 20 + LR.LEGENDARIES.length + 2 + AETHERIC_RECORDS.length + 1 + 4 + LR.WARDROBE_LEGENDARIES.length + 2 + 2 + 2 + 2 + 1 + 4 + 1 + TECHNIQUE_IDS.length + LR.ARCANE_LEGENDARIES.length + 2 + 2);   // PIN MOVED (KETCH): and the Ketch's two Gilded, last; PIN MOVED (GILDED2): and the world's two Gilded, last; PIN MOVED (BAL9c): and the arcane three; LOOT2: and one Exalted; LOOT14/LOOT15: the wardrobe's two bases at two tiers and its six; LOOT16: a cursed Rare and a cursed Legendary; LOOT20: a socketed Rare and a Ruby; LOOT21: the two Ayleid stones; GILDED1: the Hourlock and its shot; GEM1/GEM2: a three-socket Rare bow and four graded gems; TRUE-CURSE (PIN MOVED): a damned Legendary weapon   // PIN MOVED (TECH1): and one Rare a weapon technique
+  assert.deepEqual(added.filter((i) => i.rarity === 'gilded').map((i) => i.gilded), ['the-hourlock', 'the-dragonfire-oath', 'the-sunken-sovereign', 'volendrungs-echo', 'the-ketchmasters-word'], 'GILDED1: the top rung\'s first record, whole; PIN MOVED (GILDED2): and the world\'s two; PIN MOVED (KETCH): and the Ketch\'s two');
   assert.deepEqual(added.filter((i) => i.rarity === 'aetheric').map((i) => i.aetheric), AETHERIC_RECORDS.map((r) => r.id), 'SET6: the nine Regalia pieces, once each; RAID4b: then the raids\' twenty-seven');
   assert.equal(added.filter((i) => i.rarity === 'magic').length, 12);   // LOOT14: and the wardrobe's two
   assert.equal(added.filter((i) => i.rarity === 'rare').length, 16 + TECHNIQUE_IDS.length);   // LOOT16: and the cursed one; LOOT20: and the socketed one; GEM1: and the three-socket bow; PIN MOVED (TECH1): and one a weapon technique
@@ -732,7 +742,8 @@ test('AUDIT-LR: OFF is still DFU exactly on both sides of the wire - the fields 
   // A player who rolled online and plays offline with the switch off keeps the item and its name
   // (the feature's own copy says so) - and folds NOTHING from it.
   on();
-  const online = LR.applyRarity(cuirass(), 'rare', lcg(17));
+  const online = LR.applyRarity(cuirass(), 'rare', lcg(293));   // PIN MOVED (AFFIX-LINES): seed 17's piece moved and drew carrying capacity's DFU flavour, which folds off as DFU's own - 293 carries the armour, Strength and carrying-capacity lines that must rest
+  assert.ok(['armor', 'weight'].every((id) => online.affixes.some((a) => a.id === id)) && online.affixes.some((a) => a.id === 'stat' && a.param === 'strength'), 'the lines that must rest');
   const crossed = validLootList(JSON.parse(JSON.stringify([online])))[0];
   off();
   assert.equal(crossed.rarity, 'rare', 'the field is the item\'s, not the switch\'s');

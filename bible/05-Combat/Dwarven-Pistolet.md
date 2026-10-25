@@ -1,8 +1,8 @@
 # The Dwarven Pistolet - the second gun, and the first a pair of can be carried
 
 `src/systems/pistolet.js` + `characters/thunderlockIds.js` (its numbers) + `combat/gun/pistoletArt.js`,
-`combat/gun/pistolStrip.js`, `combat/gun/gunPair.js` + `tools/pistoletArt.mjs`, `tools/bakePistolet.mjs`
-(PISTOLET, 2026-10-21)
+`combat/gun/pistolStrip.js`, `combat/gun/pistolPair.js` + `combat/gun/pistolViewmodel.js` + `combat/gun/pistolLane.js`
+(PISTOL-PORT: the pistol lab's own code) + `tools/pistoletArt.mjs`, `tools/bakePistolet.mjs` (PISTOLET, 2026-10-21)
 
 The owner, in three steps:
 1. *"this spritesheet is to be for our new weapon type, which can also be duel wielded. Its a dwarven flintlock style
@@ -31,13 +31,14 @@ ONE hand, and so a PAIR.
 | Skill | Archery (`weaponSkillUsed`) | |
 | Hands | Either (`characters/equipTable.js`) - one-handed, so a second one in the other hand is a pair | |
 | Ammunition | the **Dwemer Pellet** (`ammoTemplateFor` answers 561 for either gun), flying as the same shock orb | |
-| Found | the Thunderlock's unique find, half its mints, from source tier 4, arriving with 6-18 Pellets; never on a shelf | `systems/thunderlock.js` |
+| Found | never, since GUNS-UNFOUND (2026-10-23) - the find mints its Pellets alone (below); never on a shelf. Until then the Thunderlock's unique find, half its mints, from source tier 4, arriving with 6-18 Pellets | `systems/thunderlock.js` |
 
 **The rarity.** There is ONE gun find, the Thunderlock's own at its old weight (`systems/thunderlock.js`). Its one mint
 draw picks the gun - the Pistolet at or over `GUN_SHARE` 0.5, the Thunderlock under it - and what is left of the draw,
 stretched back to a whole unit, counts the Pellets. So each gun turns up exactly half as often as the Thunderlock did, at
 every source, the find's cap and Luck's nudge included, and every seeded loot list draws what it always drew (Loot-II-Arc
-law 9). `systems/pistolet.js` hands the find its mint (`setSecondGun`).
+law 9). `systems/pistolet.js` hands the find its mint (`setSecondGun`). GUNS-UNFOUND (2026-10-23): no more - the find
+mints its Pellets alone and `GUN_SHARE` and `setSecondGun` are gone (`Dwarven-Thunderlock.md` GUNS-UNFOUND).
 
 AUDIT PISTOLET (A5, A8, C2, C3, D6, D29) found the first cut, two finds at `FIND_WEIGHT` 0.5, neither half nor stable:
 - `uniqueFindChance` caps each find at 6 per mille and adds Luck's nudge per find, neither scaled by the weight, so a
@@ -131,8 +132,8 @@ it drew one body until AUDIT PISTOLET D17. It judges what needs no eye - every b
 ## First person - one gun
 
 Weapon types **Pistolet 19 / Pistolet_Magic 20**, past DFU's enum like the Thunderlock's 17/18. The same table
-(THUNDERLOCK_ANIMS: an idle, six frames on every direction), and the same machine (`combat/playerWeapon.js`: the melee
-one-shot with the ranged cooldown).
+(THUNDERLOCK_ANIMS: an idle, six frames on every direction). Its machine is the pistol lab's own since PISTOL-PORT
+(below): one pistol is the page's single.
 
 Its cadence is the owner's panel (`combat/gun/gunFeel.js` **PISTOLET_FEEL**):
 - 12 fps, a 1400 ms reload, the hit on frame 2.
@@ -159,11 +160,13 @@ were the strip's own:
   and the brown shadows are never gilded. The grey sleeve shares the steel's greys, so it is told apart by WHERE it is:
   the grey reached from the frame's bottom-right corner, where the forearm leaves every frame.
 
-**Weapon Widget's Bob and Inertia, tuned** (the owner's Bob.Length 146, SizeY 0.7, Inertia 2/2/0):
-`gunWidgetSettings(null, PISTOLET_FEEL.widget)` keeps the player's module SWITCHES and takes the weapon's MAGNITUDES.
-It parses them with the mod's own reader (`readWidgetSettings`, which gained a `preset: false` door) and lays them
-AFTER Diverse Weapons' preset, which would otherwise put its own Bob and Inertia over them. **A departure from the mod:
-a weapon's own tuning over a preset's.** The Thunderlock carries no tuning and reads exactly what it read.
+**Weapon Widget's Bob and Inertia, tuned** (the owner's Bob.Length 146, SizeY 0.7, Inertia 2/2/0): the game takes the
+page's own panel (`combat/gun/pistolViewmodel.js` PISTOL_PANEL - these MAGNITUDES, its three modules on) through
+`pistolWidgetSettings`, with the player's own Offset and Bob SWITCHES over it (PISTOL-PORT; until then
+`gunWidgetSettings(null, PISTOLET_FEEL.widget)` - AUDIT PISTOL-PORT D8). It parses them with the mod's own reader
+(`readWidgetSettings`, which gained a `preset: false` door) past Diverse Weapons' preset, which would otherwise put its
+own Bob and Inertia over them. **A departure from the mod: a weapon's own tuning over a preset's.** The Thunderlock carries
+no tuning and reads exactly what it read.
 
 The rig (`combat/weapon/weaponRig.js`) keeps its gun functions' names - `thunderlockHeld`, `drawThunderlock`,
 `thunderlockMuzzle`, the host's door - and they serve either gun now. `heldFeel()` and `heldSfx()` hand each its own
@@ -172,20 +175,18 @@ out-of-Pellets guard asks only whether the weapon is a gun (`isGunType`), which 
 
 ## First person - the pair
 
-**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`, and **a pair is
-two of a kind** - two melee weapons or two Pistolets, never one of each. A swing and a shot are two machines' worth of
-difference, and the sprite lane draws them through two doors. The mixed pair is a later slice's. The Thunderlock is
-two-handed and never in a pair.
+**The law** (`combat/twoHands/handsLaw.js`). `DUAL_GUN_TYPES` [19, 20] beside the melee `DUAL_TYPES`: two Pistolets are a
+pair, and since MIXED-PAIR (2026-10-23) so are a blade and a Pistolet - the hands taking turns on two machines, the gun's
+reload one-handed (`Two-Hands.md`, "A blade and a gun"). The Thunderlock is two-handed and never in a pair.
 
-**The machine** (`combat/playerWeapon.js` `gunPair`). It is ONE machine, as a sword pair's is: one shot at a time, and
-the hands take turns by the law's flurry (the lead opens, the other answers within FLURRY_WINDOW).
-- What a gun adds is its RELOAD, and a pair's point is that each hand has its own. At a shot's end the machine's ranged
-  cooldown moves onto the hand that fired (`_reload`), and the machine's own gate is left at the soonest either hand is
-  loaded again.
+**The machines** (`combat/playerWeapon.js` `pistols`, the pistol lab's pair - PISTOL-PORT, below). TWO machines, one a
+pistol, each its own six frames and its own reload; the hands take turns by the law's flurry (the lead opens, the other
+answers within FLURRY_WINDOW), and a pull while the first pistol is still mid-shot fires the second at once, as on the
+page. Until PISTOL-PORT the pair was ONE machine, a sword pair's: the second pull waited out the first shot's frames.
 - The pistol lab's one departure, carried: **a pull the law gives to a hand still reloading falls to the loaded one.**
   A sword can always swing; a pistol mid-reload cannot fire.
 - A gun's flurry never starts a frame in (DUAL.FLURRY_FROM_FRAME): its six frames are a mechanism's.
-- The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, its weight's held ticks, 0.8 of a blow),
+- The off hand's shot carries DUAL's terms (0.8 damage, Agility's to-hit, 0.8 of a blow),
   untouched. A shot's damage is rolled where it LANDS, after its strike is over, so the impact asks the gun it left
   (`PlayerWeapon.isOffHandItem`, read in `combat/arrowFlight.js playerArrowHitFoe`), and the duel's roll takes `off`
   for a shot as for a swing (`combat/duelCombat.js`). Every host weighs the shot's skill tally by the hand's blow.
@@ -194,18 +195,20 @@ the hands take turns by the law's flurry (the lead opens, the other answers with
   the pistol left waits out its own reload, and a second pistol drawn beside a reloading one is loaded (AUDIT PISTOLET
   A3/B9). A technique is the lead hand's, never thrown by the off hand while the lead reloads (A6).
 
-**The sprite** (`combat/gun/gunPair.js`, the module the rig wires - HOST-SPLIT). Each hand has its own widget rig,
-spring, guard and reload clacks, on one clock:
+**The sprite** (the page's frame, `combat/gun/pistolViewmodel.js`, through `combat/gun/pistolLane.js`, the module the
+rig wires - HOST-SPLIT). Each hand has its own widget rig, spring, guard and reload clacks, on one clock:
 - The left hand's rig steps FLIPPED, which gives Two-Hands' two sway rules for free: Bob outward, Inertia in the
   screen's direction.
-- The resting pistol lowers GUARD.LOWER of its height while the other fires (the guard's rule is the hand that is not
-  striking - the pistol lab's probe found the lab lowering both, and that rule is what the module carries).
-- The draw is the rig's own `drawThunderlock` with a `hand`: the gun's frame, the left one in the mirror, the striking
-  one drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
-- The flash's light is thrown from the side the firing gun is DRAWN on (`systems/thunderlock.js
+- The resting pistol lowers GUARD.LOWER of its height while the other fires and it does not.
+- The draw is the rig's own `drawThunderlock` with a `hand`: the page's rect, the left one in the mirror, the hand that
+  fired last drawn over. Each hand keeps its own muzzle record, and the shot leaves the barrel that fired it.
+- The flash's light is thrown from the side the BRIGHTEST flash is DRAWN on (`systems/thunderlock.js
   thunderlockMuzzleLight`, which reads the side and reach the rig parks) - for a left-handed player, whose pair and
   single gun are drawn in the mirror, too (AUDIT PISTOLET A9/B1/D14: the side was the hand's, so a left-handed
-  player's shots lit the wrong side of the screen).
+  player's shots lit the wrong side of the screen). AUDIT PISTOL-PORT B4: the brightest, not the last pulled - with
+  both pistols mid-shot, a flurry's second pull lit the room from its side while the first's flame was the bright one;
+  and lit the frame the flame is drawn, read off the machines, never a frame late. Its COLOUR is the orb's, as the
+  Thunderlock's is (D3, below).
 - The pair's branch stands ahead of the melee pair's in the draw ladder.
 
 **The balance, measured in the game** (`test/combat/pistolet_law.test.js` A4): the shots through the machine, the off
@@ -223,7 +226,99 @@ than twice its Pellets (64 a minute to 28), and both hands: no shield and no lig
 the pair is its reason. (Until AUDIT PISTOLET A4 the test multiplied by 0.8 itself and touched no damage code, while the
 game landed the off hand's shot whole: 10.1 a second, x1.32, past the ceiling the test held.)
 
+## PISTOL-PORT (2026-10-22): the prototype itself, as the Thunderlock's was
+
+The owner, after playing the merged pair: *"Im pissed because the integrated sprite pistol doesnt match the prototype 1:1
+and i am pissed. Haven't you learned anything from the thunderlock?"*, then *"I want the prototype itself implemented
+just like we did with thunderlock. Fucking get this right"*. The owner was right, and FIELD-GUN12 (`Dwarven-Thunderlock.md`) is
+the argument: **a prototype is not a specification to copy. It is code to move.** The Pistolet had been built the way
+the Thunderlock's first five rounds were - the lab's numbers carried into a frame the game composed itself
+(`combat/gun/gunPair.js` and the rig's one-gun path) - and the two agreed at rest and nowhere else.
+
+**Measured before the change**, the page in Chromium and the real rig in Node on one script (rest, a shot, a second
+pull 40 frames on, both reloads, a walk with a shot in it, a stop), 1280x800, each hand matched to its own by name:
+- up to **51 px** apart (R.x, frame 393): the game kept Bob and Inertia running on a reloading pistol, which the page
+  holds still (its rig steps `idle` only while its machine is Idle);
+- the order: the game put the lead hand back on top after a shot, where the page draws the hand that fired last over;
+- one machine for the pair: the page fires the second pistol mid-shot; the game refused for half a second (measured
+  apart: a pull mid-shot on the pre-port tree waits 0.500 s - that script's second pull came after the first shot's
+  frames, AUDIT PISTOL-PORT D6);
+- one pistol went through the Thunderlock's path, its frames and dip on the classic machine;
+- the flash tinted to the shock orb's colour, where the page draws the strip's flame as painted.
+
+**What moved** - the page's code, its lines in its order, and the page imports every one back:
+
+| was | is |
+| --- | --- |
+| `gunLab.js` `createGunMachine` | `combat/gun/gunMachine.js` |
+| `pistolLab.js` `createPair`, `PAIR_TRIGGER` | `combat/gun/pistolPair.js` (one door added: `fireHand`, a technique's) |
+| `pistol-proto.html`'s frame: `rigs`, `recoils`, `guards`, `reloadSfx`, the draw block | `combat/gun/pistolViewmodel.js` |
+| `combat/gun/gunPair.js`, the rig's one-gun path for a Pistolet | gone: `combat/gun/pistolLane.js` wires the page's frame |
+| `playerWeapon.js` `_reload`, the classic machine's tick, cooldown and hit frame for a Pistolet | `playerWeapon.pistols`, the page's pair |
+
+`combat/playerWeapon.js` fires a Pistolet - one, or a pair - on the page's pair (`_pistolsFor`): Alternate for a pair,
+the page's Single for one, on the machine of the hand that HOLDS it. The classic machine is kept as the pistols' MIRROR
+(`_pistolsMirror`), so every reader it has is unchanged: a strike while any pistol fires, the latest one's frame, the
+soonest a pistol is loaded; each pistol's 'hit' makes that hand's weapon and strike current for the hosts that fire the
+shot - one hit an update, in the order the pistols fired (AUDIT PISTOL-PORT A2). `combat/weapon/weaponRig.js` asks
+`pistolLane.js` for each hand's frame, rect, order, clacks and glow. And what the page's panel FEEDS the frame - its
+opening state, the call it makes each frame, its rect - is `src/tools/pistolLab.js`'s (`pistolPageState`,
+`pistolPageStep`, `pistolPageRect`): the page calls them, and the pins run them (AUDIT PISTOL-PORT D7 - in the page's own
+script they were out of every pin's reach).
+
+**The pin is identity, not agreement** (`test/combat/gun/pistolport.test.js`): the lab's machine, pair and frame ARE the
+game's objects; the page composes nothing (no `guardStep`, `gunFrameRect`, `createRecoil` of its own, and no call into
+the frame's pieces - its wiring is the lab module's); the real rig and the page's own wiring, on one browser's clock and
+one script - a flurry, both reloads, a walk, a strafe, a turn of the head, a jump with a shot in it - draw every hand at
+the same rect, to the float, with the same picture in the same order for 420 frames, a pair and one pistol.
+`tools/pistolPortProbe.mjs` runs the page ITSELF in Chromium against the rig on the same kind of script - its mid-shot
+flurry, its keys and mouse - every hand matched by name: worst 2.27e-13 px, 0 of 490 frames different, and draws them
+side by side. A law INSIDE the frame both sides run moves both alike, so identity cannot see it: those are pinned
+directly - THE PAGE'S FRAME, ITS LAWS, and `test/combat/gun/pistolport_audit.test.js` (AUDIT PISTOL-PORT).
+`tools/mutants/pistolport.json`, 52 records, and `audit_pistolport.json`. `pistolet.json` retired the 33 whose sites the
+port removed: 20 laws re-aimed in `pistolport.json`, 8 held by tests that plainly fail, 2 equivalent as recorded, and 3
+dropped until AUDIT PISTOL-PORT D9 pinned them again (the left rig flipped, a loaded pistol up while the other reloads,
+a pair slid off whole).
+
+**The game's inputs, where the page has a control or a stand-in** - the same frame, fed what the game holds:
+- The character's live Speed (the page's Speed slider, 50): the Offset module's pace - the reload dip and the holster's
+  slide - and the walk's base (AUDIT PISTOL-PORT B3).
+- The motion: the motor's own (the page's W/A/D/S, Shift, C and J, on the same `gunMotion` the labs share - a crouch at
+  the motor's crouch speed, a strafe, a diagonal at .7071, a jump; AUDIT PISTOL-PORT B1 B6). The owner tuned Inertia
+  2/2/0 on a page that could neither strafe nor jump: at walk speed a strafe swings the pistols ~170 px at 1280x800
+  (up to 200), a jump drops them ~165 px - the mod's own response, now on the page to judge.
+- The look: the camera's turn in radians, the player's MouseLookSensitivity (the page turns at the game's own,
+  `lookScale`; a CSS-pixel canvas, as the game's is - AUDIT PISTOL-PORT B2).
+
+**Named departures, each the game's input and never a second composition:**
+- The camera shake stays Better Ambience's `weaponKick` - the port has one camera shaker (the Thunderlock's precedent).
+- The room's light (MAC-I) still tints the sprite - game-wide.
+- The player's own Offset and Bob switches (`pistolWidgetSettings`): every magnitude the page's panel, the switches
+  theirs, as Weapon Widget's are everywhere.
+- The holster: the page has no sheath; the game lowers the pistols to `sheathTarget` on the same rig (`away`).
+- The handedness: the page is right-handed; the game mirrors a left-handed player's (`flipOf`). And one pistol is drawn
+  where DFU draws the weapon in use - the Handedness side, whichever hand holds it - where the page's single mirrors a
+  left lead (AUDIT PISTOL-PORT B7); a pistol that is a hand of a blade-and-gun pair is drawn on ITS hand's side
+  (MIXED-PAIR, `pistols.inPair`, `pistolLane.js` flipFor - AUDIT MIXED-PAIR L5-16).
+- The off hand's held ticks are gone for a Pistolet: the page's machine has no tick to hold. Its damage, to-hit and
+  blow terms stand.
+- The rest the page does not draw at all: the element's glow outline (WEAPON-GLOW1), the gilded art, the light thrown on
+  the room in the orb's colour (the Pellet's, both guns' - D3, the owner's call), the technique's dip (TECH-FX), and
+  the Morrowind arm - under it a pull waits for the arm, the shot leaves at its release and the breech clacks after
+  the bang (AUDIT PISTOL-PORT A1).
+
+**AUDIT PISTOL-PORT (2026-10-22, the owner: "Audit this")**: four cold lanes and the author's - 37 findings, 34 distinct, the worst a
+pair under the Morrowind arm losing half its shots, two hits in one frame both credited to the second pistol, one
+pistol juggled between the hands firing a pair's rate, and one frame with a Pistolet in hand erasing the Thunderlock's
+reload. Every one fixed or recorded: `01-Overview/audits/Audit-Pistol-Port.md`.
+
 ## The Sunken Sovereign is a Pistolet
+
+GUNS-UNFOUND (2026-10-23, the owner: "remove the thunderlock and pistolet from the loot pool and revert the gilded
+weapon from the serpent"): **the Sovereign is the Ebony Saber again, and the Pistolet is found no more** - the
+Thunderlock's find mints its Pellets alone. A gold Pistolet minted below is the record's PISTOLET ERA
+(`SOVEREIGN_PISTOLET_ERA`), lawful and its own, its gold art kept; the saber era below is the record itself again
+(`06-Systems/Gilded.md` section 9, `Dwarven-Thunderlock.md` GUNS-UNFOUND). What follows is PISTOLET's record.
 
 `systems/gilded.js`: the serpent's Gilded record is an Ebony **Dwarven Pistolet**, where it was an Ebony Saber.
 - It keeps its id (every hoard and save that holds one reads it), its make, damage, Agility and leech lines, its power
@@ -343,18 +438,87 @@ and turned in, a pair one each side, the idle lower); the live arm with the ship
 down, a pair's left hand on its own pistol, off when sheathed). `tools/mutants/pistolstance.json`, 15 dead. PIN MOVED:
 `pistolet.test.js` (the row held no stance) and `pistolet_pins.test.js` D16 (the grip's middle at the bone).
 
+## PISTOL-EDGE (2026-10-24): the arm goes on past its canvas
+
+The owner: *"First off the pistolet doesnt match the test prototype 1:1 like you said it does. It still clips where you
+can see where the sprite isnt filled it. The prototype has everything solved"*.
+
+**What it was.** The page and the game DO run one frame - PISTOL-PORT moved the page's code into the game, and the
+port's probe still reads them 2.27e-13 px apart - so the fault was not a second copy. It was in the frame both run. The
+owner's six frames cut the forearm at their canvas's bottom and right edges (the sleeve leaves every frame through that
+corner), and `combat/gun/gunViewmodel.js` `gunFrameRect` seats the gun with that corner on the screen's corner. Weapon
+Widget's Bob and Inertia then carry it - the owner's own tuning (`PISTOLET_FEEL.widget`). Measured on the game's own
+rig (`test/combat/weapon/pistolRigHarness.js`) at 1280x800: a strafe slid the cut side **203 px** into the screen and a
+shot's kick lifted the cut bottom **7 px** off it, so the sleeve ended in a straight line in mid-air. The page shows the
+same thing the moment its Walk or Strafe box is ticked; the owner tuned it standing still, where the corner never moves.
+The real game, before the change (`?world`, a pair drawn, holding A): the left pistol's sleeve stopped on a vertical
+line a quarter of the way across the screen. The mod says of its Inertia that it *"requires double-scaled weapon
+textures"* - art that reaches past the screen. These frames did not.
+
+**What changed - the art reaches past it, in the one place both ends cut it.**
+- `combat/gun/pistolStrip.js` `armLean`: the forearm's direction, read off the rest frame's bottom 28 rows (each row's
+  leftmost opaque texel, a least-squares line through them): about (0.88, 0.47), right and down, the way the sleeve
+  leaves the corner. One lean for all six frames, so the continuation holds still while the frames play.
+- `bleedArm`: each frame on a canvas PISTOL_BLEED larger (96 texels right, 64 below). Every new texel takes the colour of
+  the edge texel reached by walking back along the lean, and stays transparent where that edge texel is. The sleeve,
+  its shading and its outline carry on as an arm going off the corner. The owner's pixels are not touched. A notch of
+  at most EDGE_GAP (4) transparent texels in a cut edge, with arm on both sides, is read as arm (`cutEdge`): the rest
+  frame's right edge has a two-texel notch between the bracer's rim and the sleeve, and carried along the lean it drew a
+  stripe of the world through the sleeve on the first probe of the fix. Every column the bleed adds now holds the arm in
+  one piece, in all six frames.
+- `pistolFrameSet`: the six cells cut, their lean, the bled frames and their union - **one function, called by both
+  ends**: the page (`pistol-proto.html`, through `src/tools/pistolLab.js`) and the game's loader
+  (`combat/gun/pistoletArt.js` `bledFrames`, which gilds or shimmers each frame on the owner's canvas first, so the
+  gold's keep still reads the sleeve from its corner, and then bleeds it). The **anchor** stays the rest frame's own box,
+  so the gun stands exactly where it stood and the frame's motion is the owner's, unmoved. Only the union grows past the
+  corner, and at rest everything it gained is off the screen.
+- `combat/gun/pistolViewmodel.js` `holdToCorner`: Inertia has no ceiling (its target is the mouse's speed), and a hard
+  flick carried the art 187 texels at 1280x800. Past the 96 the bleed covers, the pistol is held so the bled art's far
+  side stays on the screen's edge (the left hand's mirror at 0) and its bottom on the bottom, with the anchor moved too so
+  the muzzle is read where the gun is drawn. Inside the bleed it moves nothing (`pistoledge.test.js` pins both).
+
+**After**, on the same rig: through a shot, a 90-frame walk, both strafes, a jump and flicks of the head both ways,
+neither pistol's far side nor its bottom ever stands inside the screen, and the motion carried the owner's cut **96
+texels** in, where the bleed fills it. The real game after the change, on the same probe: the sleeve runs off the screen's
+edge in every frame of the walk and both strafes.
+
+A departure of kind (Port-Ledger section A, PISTOLET): DFU's weapon frames are drawn to their canvas and no further, and
+nothing here extends a classic record. The Thunderlock is untouched (its painting reaches past its frame already).
+
+**Pins** (`test/combat/gun/pistoledge.test.js`, 5): the lean (a synthetic edge's slope, never back across the cut); a
+frame bled (the owner's pixels untouched, each new texel its edge texel, transparent where that is); the one frame set
+(the anchor unbled, the union past the cut, the game's frames the set's, the page drawing `set.bled`); `holdToCorner`
+(nothing moved inside the bleed, held past it, the anchor with it, the mirror's side); and THE CUT NEVER SHOWS on the
+real rig. The notch: closed at two, left open past EDGE_GAP, and the arm in one piece in every bled column. PIN MOVED, each saying so: `pistolport.test.js` (the page's anchor and union from the frame set),
+`pistolport_audit.test.js` D9 (its synthetic union reaches past the corner, as the strip's does), `pistoletRig.test.js`
+(the drawn quad is the union, 88 and the bleed's 96 wide at native), `pistolet_pins.test.js` D18 B3 (the gold is the
+keep's on the canvas, then bled). `tools/mutants/pistoledge.json`: 19 dead; `pistolet.json`'s two art records re-aimed
+by content (the keep of the rest frame, the muzzle off the wrong frame), both dead.
+
+## PISTOL-RAISE (2026-10-25): the pistols sit 60 lower
+
+Mac, 2026-10-25: *"Placement needs to be -60 ... the raise"*. `PISTOLET_FEEL.raise` (`src/combat/gun/gunFeel.js`) is
+-60, the panel's floor, where it was -1. The lab's raise slider opens there too, since PISTOL_OPENING reads the row.
+The same day the PISTOL-PROTO tint was reverted (*"Pistols should be affected by lighting"*), so a Pistolet takes the
+room's light again, as the Thunderlock does.
+
 ## Departures (Port-Ledger section A, PISTOLET)
 
 - The arms solved onto the pistol while drawn, not the borrowed throw clip's (PISTOL-STANCE, RIFLE-STANCE's departure).
-- The pair of guns: `DUAL_GUN_TYPES` and two of a kind beside Two-Hands' melee law.
-- A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol.
+- The pair of guns: `DUAL_GUN_TYPES` beside Two-Hands' melee law - two of a kind until MIXED-PAIR (2026-10-23), since
+  when a blade and a Pistolet are a pair too (`Two-Hands.md` "A blade and a gun").
+- A gun pair's reload, hand by hand, and the pull that falls to the loaded pistol - on the pistol lab's own two machines
+  (PISTOL-PORT).
+- PISTOL-PORT's: the camera shake, the room's tint, the player's Offset and Bob switches, the holster, the
+  handedness (one pistol on the Handedness side; a mixed pair's on its own hand's), no off-hand held ticks, and what the page does not draw (above).
 - A weapon's own Weapon Widget tuning laid over Diverse Weapons' preset.
 - The doll's two hands for a custom weapon, by slot.
+- PISTOL-EDGE's: the frames' forearm carried past their canvas along the arm's lean, and a flick past the bleed held
+  at the screen's edge (above).
 
 ## What is still open
 
 - **The stance on Morrowind's own bodies**: picked on the vendored retail skeleton (PISTOL-STANCE, above).
-- **The mixed pair**: a Pistolet beside a sword.
 - **A pistol's own sounds**: the owner picked from the gun lab's clips; a flintlock's pan and ramrod were never searched
   for.
 - **The doll's placement**, measured on the classic records; the owner's eye is the gate.

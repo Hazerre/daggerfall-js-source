@@ -268,8 +268,8 @@
   {
     "name": "AUDIT29-A15-the-client-asks-blind",
     "file": "src/net/profBook.js",
-    "old": "door.spec(c, profession, rank, spec, from, m.id)",
-    "new": "door.spec(c, profession, rank, spec, null, m.id)",
+    "old": "door.spec(c, profession, rank, spec, from, m.id, trial)",
+    "new": "door.spec(c, profession, rank, spec, null, m.id, trial)",
     "tests": [
       "test/net/audit29_client.test.js"
     ]
@@ -445,8 +445,8 @@
   {
     "name": "AUDIT29-D2-the-rig-swings-behind-the-tool",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "&& !fpsSpellCasting.isPlayingAnim && !climbing && !actTool();",
-    "new": "&& !fpsSpellCasting.isPlayingAnim && !climbing;",
+    "old": "&& !fpsSpellCasting.isPlayingAnim && !climbing && !actTool() && (!pelletsOwed() || playerWeapon.mixedPair);",
+    "new": "&& !fpsSpellCasting.isPlayingAnim && !climbing && (!pelletsOwed() || playerWeapon.mixedPair);",
     "tests": [
       "test/scenes/audit29_host.test.js"
     ]

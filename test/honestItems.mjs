@@ -51,6 +51,7 @@ const SPOILS_POOL = await load('../src/scenes/spoilsPool.js');
 const RAID = await load('../src/systems/raidSpoils.js');
 const SERPENT = await load('../src/systems/serpent/serpentSpoils.js');
 const SD = await load('../src/systems/superDungeon/sdSpoils.js');
+const SEV = await load('../src/systems/staffEventSpoils.js');   // STAFF-EVENT THE REWARD: a staff event's spoils
 const BROKER = await load('../src/systems/sigil/sigilBroker.js');
 const AETH = await load('../src/systems/aetheric.js');
 const GILD = await load('../src/systems/gilded.js');
@@ -420,7 +421,7 @@ function sweep({ seeds, run, skip }) {
       }
     })));
 
-    // ── 3. the spoils: the gate's, a town's thanks, the serpent's hoard, the Hour's ──
+    // ── 3. the spoils: the gate's, a town's thanks, the serpent's hoard, the Hour's, a staff event's ──
     run('gateSpoils.rollSpoils / spoilsPool.spoilsList', (one, all) => {
       for (const s of seedsOf(S * 2)) for (const level of levels) {
         const list = SPOILS_POOL ? SPOILS_POOL.spoilsList(s, level, s % 5 === 0 ? { x: 'rite' } : s % 3 === 0 ? { r: 1 } : null) : GATE.rollSpoils(s, level).pieces.map((p) => ({ kind: 'item', item: p.item }));
@@ -440,6 +441,11 @@ function sweep({ seeds, run, skip }) {
     run('sdSpoils.sdSpoilsList', (one) => {
       for (const s of seedsOf(S * 2)) for (const level of levels) {
         for (const p of SD.sdSpoilsList(s, level)) if (p.kind === 'item') { one(p.item); keep([p.item]); }
+      }
+    });
+    run('staffEventSpoils.staffSpoilsList', (one) => {
+      for (const s of seedsOf(S * 2)) for (const level of levels) for (const rank of [0, 1, 2]) {
+        for (const p of SEV.staffSpoilsList(s, level, rank)) if (p.kind === 'item') { one(p.item); keep([p.item]); }
       }
     });
 
@@ -473,6 +479,7 @@ function sweep({ seeds, run, skip }) {
     });
     run('gilded.mintGilded / mintHourlock', (one) => {
       for (const r of GILD.GILDED_RECORDS) one(GILD.mintGilded(r));
+      for (const r of GILD.GILDED_ERAS) one(GILD.mintGilded(r));   // GUNS-UNFOUND: the guns minted before, as a save holds them
       one(GILD.mintHourlock());
       for (const s of seedsOf(S * 4)) one(GILD.rollHourlock(seeded(s)));   // one draw in fifty
     });
@@ -550,7 +557,10 @@ function runReforge(run, minted, seedsOf) {
     for (const base of tiered(600)) {
       n++;
       const item = copyItem(base);
-      if (item.rarity === 'legendary' && !item.exalted) { LR.exaltLegendary(item, seeded(n)); one(item); }
+      // GUNS-UNFOUND: never a cursed base - every door exalts before it curses (lootRarity.js rollLootRarity, foeLootCap.js) and
+      // the law holds the two apart (validCurse), as the technique's branch below already asks; a cursed Legendary reached
+      // this spread once the gun find stopped drawing its gun's tier
+      if (item.rarity === 'legendary' && !item.exalted && !LR.isCursed(item)) { LR.exaltLegendary(item, seeded(n)); one(item); }
       if ((item.rarity === 'rare' || item.rarity === 'legendary') && !LR.isCursed(item)) { const c = copyItem(base); if (LR.cursePiece(c, seeded(n ^ 5))) one(c); }
     }
   });

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { chromium, devices } from 'playwright';
 import { createServer } from 'vite';
-import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME } from '../src/ui/intro/introCue.js';
+import { TITLE_IMPACT_TIME, TITLE_ENTER_TIME, TITLE_READY_TIME, introTitleAt } from '../src/ui/intro/introCue.js';
 import { MENU_THEME_GAIN } from '../src/systems/introTheme.js';
 
 const out = process.argv[2] ?? 'test-harness/intro';
@@ -65,9 +65,14 @@ try {
   // useful live invariant is that the last pre-attack presentation is already
   // visibly descending and has not landed; exact opacity is covered by the
   // deterministic cue tests and frame-by-frame review render.
+  // INTRO3: so the frame is held to the cue AT ITS OWN TIME, not to a fixed
+  // opacity - the fade is the approach's first 0.125 s, and CI's frames (~0.4 s
+  // apart) put the last one inside it about a run in six (0.899 at 18.48 s).
+  const cue = before && introTitleAt(before.time);
   check('logo is still out in front of its landing before the musical attack',
-    before?.titleScale < 0.95 && before?.titleY === 0 && before?.titleOpacity > 0.9, {
-      time: before?.time, opacity: before?.titleOpacity, scale: before?.titleScale, y: before?.titleY,
+    cue && before.titleScale < 0.95 && before.titleY === 0 && before.titleOpacity > 0
+      && Math.abs(before.titleOpacity - cue.opacity) < 1e-9 && Math.abs(before.titleScale - cue.scale) < 1e-9, {
+      time: before?.time, opacity: before?.titleOpacity, scale: before?.titleScale, y: before?.titleY, cue,
     });
   check('first frame after the attack lands exactly at rest, sharp and centred',
     landed?.titleScale === 1 && landed?.titleBlur === 0 && landed?.titleY === 0 && landed?.titleOpacity === 1, landed?.time);
@@ -96,7 +101,8 @@ try {
   await page.waitForFunction(() => window.__intro.theme.gain.gain.value < 0.001);
   check('menu music obeys live volume settings', true);
   await closeAccount(page);
-  await page.locator('.px-menu button').filter({ hasText: /New Game/ }).first().click();
+  if (await page.locator('#enhanced-menu .doorbtn.door-offline').count()) await page.locator('#enhanced-menu .doorbtn.door-offline').click();   // UI-CALM: the games stand behind Offline
+  await page.locator('#enhanced-menu .doorbtn.door-new').first().click();
   await page.locator('#enhanced-menu .act.primary', { hasText: 'Begin' }).click();
   await page.waitForSelector('#pick');
   check('starting a game releases audio before the data picker', await page.evaluate(() => window.__intro.theme.disposed && !window.__intro.theme.context && !window.__intro.theme.source && !window.__intro.theme.buffer));

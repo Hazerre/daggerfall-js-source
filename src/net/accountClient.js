@@ -305,7 +305,7 @@ const REFUSAL_WORDS = {
   'home-update': () => t('account.refusal.homeUpdate', 'This game is out of date. Reload it to buy a home.'),   // WD3 (AUDIT WD3 B2): a build from before the town mods
   'home-towns': () => t('account.refusal.homeTowns', 'This town did not load the way other players see it. Reload the game to buy a home.'),   // WD3 (AUDIT WD3 B1): a town mod's pack did not load
   'home-layout': () => t('account.refusal.homeLayout', 'This town is still loading. Try again in a moment.'),   // WD3: the town is built again as the room's (scenes/world.js hearHomeLayouts)
-  'home-cap': () => t('account.refusal.homeCap', 'A character can own at most {max} homes. Sell one to buy another.', { max: HOME_CAP }),
+  'home-cap': () => t('account.refusal.homeCap', 'A character can buy at most {max} homes. Sell one it bought to buy another.', { max: HOME_CAP }),   // ACCOUNT-HOMES: the account owns them all; the cap counts what each character bought
   'home-rate': () => t('account.refusal.homeRate', 'You have bought and sold a lot of homes this hour. Try again later.'),
   'no-home': () => t('account.refusal.noHome', 'That home is not yours any more.'),
   'not-heir': () => t('account.refusal.notHeir', 'Only a living character of the same line as its fallen owner can take up that home.'),   // PERMADEATH-HOUSES: server-account/src/homes.js inheritHome
@@ -347,6 +347,22 @@ const REFUSAL_WORDS = {
   'no-decor': () => t('account.refusal.noDecor', 'That piece is not in your home any more.'),
   'bad-decor': () => t('account.refusal.badDecor', 'The account service could not read that piece.'),
   'decor-figure': () => t('account.refusal.decorFigure', 'That figure has been set back to its normal size. Look at the room again.'),   // AUDIT HOME-VOTE II C2: a stale copy of a figure grown before DECOR-FIGURE
+  'decor-busy': () => t('account.refusal.decorBusy', 'Someone else is using this chest.'),
+  'decor-shut': () => t('account.refusal.decorShut', 'You cannot use that.'),
+  'decor-held': () => t('account.refusal.decorHeld', 'Empty it before it is removed.'),
+  'decor-holds': () => t('account.refusal.decorHolds', 'Empty what a piece holds before you remove it.'),
+  'bad-item': () => t('account.refusal.badItem', 'That cannot be stored.'),
+  'no-item': () => t('account.refusal.noItem', 'That is not in the chest.'),
+  'seat-batch': () => t('account.refusal.seatBatch', 'A charter room is not furnished this way.'),
+  'decor-rev': () => t('account.refusal.decorRev', 'The room changed while you were furnishing it. Look again.'),
+  'decor-ops': () => t('account.refusal.decorOps', 'That is too many changes at once.'),
+  'decor-txn': () => t('account.refusal.decorTxn', 'That furnishing was already sent.'),
+  'home-holds': () => t('account.refusal.homeHolds', 'Take the goods out before the house changes hands.'),
+  'bad-offer': () => t('account.refusal.badOffer', 'That offer could not be read.'),
+  'home-deed': () => t('account.refusal.homeDeed', 'A house given by a knightly order cannot be transferred.'),
+  'offer-open': () => t('account.refusal.offerOpen', 'An offer for this house is already out.'),
+  'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
+  'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
   // GUILD1: the guilds (server-account/src/guilds.js)
   'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Guilds need a username and a password. Give this account one and you can found or join one.'),
   'guild-character': () => t('account.refusal.guildCharacter', 'The account service could not tell which character that is.'),
@@ -384,6 +400,8 @@ const REFUSAL_WORDS = {
   grace: () => t('account.refusal.grace', 'The fallen player still has a moment to settle their own death. This will be tried again shortly.'),
   nonce: () => t('account.refusal.nonce', 'That fall could not be read. Try again.'),
   room: () => t('account.refusal.room', 'That death gave no place for the remains. Try again.'),
+  // FOE-KEEPS: a foe's fall asked by a tab from before the word (no receipt) - a death to a foe drops nothing now
+  foe: () => t('account.refusal.foe', 'A death to a foe in the open zone drops nothing now. The game may need updating.'),
   // PVP-ESCROW (FIELD BUGS 2026-10-14, the two-phase handoff - server-account/src/wild.js wildCollect, wildReclaim,
   // wildEscrows): the world host's collect and reclaim say nothing of these to the player - it keeps what they do not
   // settle and lets go of what they do - but a word the service can say is a word with a sentence (ACC1e)
@@ -481,6 +499,7 @@ const REFUSAL_WORDS = {
   'prof-account-cap': () => t('account.refusal.profAccountCap', 'Your account has gathered all a day allows in this craft, across your characters.'),
   'prof-deep-cap': () => t('account.refusal.profDeepCap', 'Dungeons not yet confirmed by other players give you {max} veins a day.', { max: DEEP_UNCONFIRMED_PER_DAY }),
   'prof-spec-stale': () => t('account.refusal.profSpecStale', 'Your specialization changed elsewhere. Look again before you choose.'),
+  'prof-trial-over': () => t('account.refusal.profTrialOver', 'The free day to change this specialization has ended. Nothing was spent - look again before you choose.'),   // AUDIT PERK-TRIAL P4
   'prof-spec-taken': () => t('account.refusal.profSpecTaken', 'A specialization was chosen there already. Look again.'),
   'stores-full': () => t('account.refusal.storesFull', 'Your Stores hold {max, number} of that already.', { max: STORES_MAX }),
   'stores-short': () => t('account.refusal.storesShort', 'Your Stores do not hold that many.'),
@@ -512,6 +531,10 @@ const REFUSAL_WORDS = {
   'prof-lapidary': () => t('account.refusal.profLapidary', 'Only a Lapidary can set a Siege-cracked Gem in a piece. Choose it at Jewelcrafting 100, under Smithing.'),   // PROF10; CRAFT3
   // PROF12: the alchemy station's and the enchanter's refusals
   'prof-transmuter': () => t('account.refusal.profTransmuter', 'Only a Transmuter can turn one metal into the next. Choose it at Alchemy 100, under Provisioning.'),   // CRAFT3
+  // DAEDRIC-SMELT (Professions-Arc.md section 53): the Daedric smelt's embers - the account's purse short (the service's
+  // half), or the pack's (the client's, net/profBook.js smelt over systems/sigil/sigilBroker.js emberHands)
+  'prof-embers': () => t('account.refusal.profEmbers', 'Each Daedric Ingot takes a Deadlands Ember, won closing Dagon\'s Breaches, slaying Sea Serpents and taking Elite Breach Redoubts. Your account has too few left to spend.'),
+  embers: () => t('account.refusal.embers', 'Each Daedric Ingot takes a Deadlands Ember from your pack, and your pack holds too few.'),
   'bad-brew': () => t('account.refusal.badBrew', 'That cauldron makes no such potion.'),
   'bad-piece': () => t('account.refusal.badPiece', 'That is no crafted piece.'),
   'prof-no-piece': () => t('account.refusal.profNoPiece', 'Only a piece a crafter made online can be disenchanted.'),
@@ -538,7 +561,7 @@ const REFUSAL_WORDS = {
   'craft-pieces': () => t('account.refusal.craftPieces', 'Only pieces you made yourself and never sold can fill this writ, and you need all of them.'),
   'craft-goods-gone': () => t('account.refusal.craftGoodsGone', 'Your pack does not hold enough of what this writ asks.'),
   'prof-spec': () => t('account.refusal.profSpec', 'That specialization is not one this craft offers.'),
-  'prof-respec-pending': () => t('account.refusal.profRespecPending', 'A change of specialization is already on its way ({days} days).', { days: RESPEC.days }),
+  'prof-respec-pending': () => t('account.refusal.profRespecPending', 'This craft\'s specialization was changed less than {days} days ago. The next change opens {days} days after the last.', { days: RESPEC.days }),   // PERK-TRIAL: the lock after a paid change
   'prof-rate': () => t('account.refusal.profRate', 'You have done too much crafting this hour. Try again later.'),
   // PROF5: the market (server-account/src/market.js)
   'market-closed': () => t('account.refusal.marketClosed', 'The market is not open yet.'),
@@ -1533,6 +1556,9 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   let held = null;
   /** @type {Promise<string|null> | null} */
   let minting = null;
+  /** STAFF-HIDE-TOGGLE: how many times `forget` let go - a mint that flew across one is handed to its own asker and held
+   *  for no other room (its token was signed before the word that made the forget). */
+  let forgets = 0;
   /** STORM-SHED: the mints held off after a failure - one sign-in's (its secret), until `until` on now()'s clock, the
    *  failures in a row counted and the last one's word kept to answer with. */
   let cool = { secret: /** @type {string|null} */ (null), fails: 0, until: -Infinity, why: /** @type {string|null} */ (null) };
@@ -1550,9 +1576,10 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   /** One mint on the wire for this sign-in, shared by every room asking while it flies (`minting`), its answer held or
    *  its failure's hold set (STORM-SHED) - the one door the minter and DOOR-TOKEN's `ahead` both mint through. */
   const start = (/** @type {any} */ session, /** @type {string|null} */ named) => {
+    const era = forgets;
     const p = mintFresh(session, named).then((token) => {
       if (token) {
-        held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
+        if (era === forgets) held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
         cool = { secret: null, fails: 0, until: -Infinity, why: null };
       } else if (minter.lastWhy === 'queue') {
         // AUDIT SCALE II L4a: the line's own wait, its failures in a row left where they stood
@@ -1622,8 +1649,12 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
     },
     /** AUDIT SAFE CLIENT-2 (2026-10-17): THE HELD TOKEN LET GO - the relay said this account is banned
      *  (scenes/chatSafetyHost.js), and a token minted a moment before the ban opened every room a rejoin asked within
-     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it. */
-    forget: () => { held = null; },
+     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it.
+     *  STAFF-HIDE-TOGGLE (2026-10-23, mob: "need hide to be a toggle"): and Hide me or Show myself pressed
+     *  (scenes/staffFollowHost.js relinkGame) - a token signed before the press would open a room as the game was, so it
+     *  goes, and so does any mint still on its way (`forgets`): the next room asks the service, which reads the switch as
+     *  it stands now. */
+    forget: () => { held = null; forgets++; },
     /** DOOR-TOKEN: does this minter hold a token `room` would be handed now, nothing on the wire (the reuse law) - a
      *  session whose hello went without one asks again the moment it does (net/online.js). */
     holds: (/** @type {string|null} */ room) => {
@@ -1664,7 +1695,11 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
           // AUDIT SAFE CLIENT-1 (2026-10-17): SAFE7's word - whether this account has agreed to the code of conduct as it
           // stands. Built field by field, `who` dropped it, so the code's card never stood for anyone: every first line
           // went unread-code. Absent from a service before acct150, which says nothing (heard as yes - chatSafetyHost adopt)
-          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}) };
+          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}),
+          // STAFF-CHAT-RED (mob, 2026-10-23: "give me a option next to chat to chat as /red or myself at all times"): the
+          // service's word that this token is a hidden staff member's (server-account/src/staffHidden.js hiddenToken,
+          // `hidden: 1`), so the chat's switch knows Me says nothing to players (net/chatVoice.js) - absent for everyone else
+          ...(answer.data.hidden === 1 ? { hidden: true } : {}) };
         // AUDIT B4: into the session that asked. NAME-AS: the stored session is the ACCOUNT's picture (the profile mark's
         // name), so it keeps the account's name - the room's, which may be my character's, goes to the live sessions
         adoptIdentity(storage, { ...who, name: who.accountName ?? who.name, secret: session.secret });
@@ -1749,7 +1784,7 @@ export function accountStaffChat({ fetch, storage }) {
 
 /** INT9: A DEATH IN THE OPEN ZONE'S DROP, taken off the realm record by the service (server-account/src/wild.js) - `body`
  *  `{ receipt, realm, room }` (the fallen's, its record's `at`), `{ receipt, room }` (the killer's, after the grace) or
- *  `{ n, realm, room }` (a death to a foe: the tab's nonce) - `room` where the remains will lie (AUDIT INT9: the order names
+ *  `{ n, realm, room }` (a death to a foe: the tab's nonce - refused `foe` since FOE-KEEPS, never asked by this game) - `room` where the remains will lie (AUDIT INT9: the order names
  *  it). Answers `{ r, order, items, kept, took, gold, wi, burnt?, realm? }`. */
 export const wildFallAsk = (io, body) => call(io, '/v1/wild/fall', body);
 /** MAC (2026-10-14, the two-phase handoff - server-account/src/wild.js): the killer's collect of its piece in escrow
@@ -1856,6 +1891,24 @@ export function accountSds({ fetch, storage }) {
   return {
     claim: async (receipt) => { const i = io(); return i ? claimSdReceipt(i, receipt) : { ok: false, error: 'no-session' }; },
     /** The signed-in account's id - the receipts this device may offer are its alone (AUDIT WB A9's law). */
+    me: () => storedSession(storage)?.id ?? null,
+  };
+}
+
+/** KETCH (bible/11-Multiplayer/Sky-Ketch.md section 9): a Tonal Warden's receipt the relay signed for this account, carried
+ *  to the service - `{ recorded: true, voyage, share: true, sailed }`, or `{ recorded: false, why, share, sailed }` (`claimed`
+ *  - this ship's kill again; `taken` - another crew's ship this voyage), `guest` beside either for a guest. */
+export const claimKetchReceipt = (io, receipt, cid) => call(io, '/v1/ketch/claim', { receipt, cid });   // AUDIT KETCH L2-1: the device's claim id
+/**
+ * KETCH: THE KETCHMASTER'S HOLD'S ONE CALL, bound to this device's stored session (the Hours' own shape). With no session
+ * there is no account to claim for: `{ ok: false, error: 'no-session' }`, never a knock - and net/ketch/ketchClaims.js keeps
+ * the receipt for when there is one.
+ */
+export function accountKetch({ fetch, storage }) {
+  const io = () => { const s = storedSession(storage); return s ? { fetch, base: serviceBase(storage), secret: s.secret } : null; };
+  return {
+    claim: async (receipt, cid) => { const i = io(); return i ? claimKetchReceipt(i, receipt, cid) : { ok: false, error: 'no-session' }; },
+    /** The signed-in account's id - the receipts this device may offer are its alone. */
     me: () => storedSession(storage)?.id ?? null,
   };
 }
@@ -2001,6 +2054,7 @@ export function accountHomes({ fetch, storage }) {
     claim: ({ mapId, buildingKey, region, character, price, realm = null, layout = null }) => post('/v1/homes/claim', { mapId, buildingKey, region, character, price, ...(realm ? { realm } : {}), layout: layout || null }),   // REALM P2.2b: a realm character's record pays; WD3: the layout the town stands in, always said (null: Daggerfall's - AUDIT WD3 B2)
     layouts: () => post('/v1/homes/layouts', {}),   // WD3: every town holding a home, and the layout it keeps
     release: (mapId, buildingKey, realm = null) => post('/v1/homes/release', { mapId, buildingKey, ...(realm ? { realm } : {}) }),
+    transfer: (body) => post('/v1/homes/transfer', body),
     entry: (mapId, buildingKey, entry) => post('/v1/homes/entry', { mapId, buildingKey, entry }),
     // HOME-RENT: a home's rooms (server-account/src/rent.js) - read at its door, offered and withdrawn by its owner, rented
     // by another player's realm character on its record, and the rent collected by the owner on theirs
@@ -2042,11 +2096,13 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
   const post = sessionPost({ fetch, storage });
   const waited = waitedPost({ fetch, storage }, listWaitMs);
   return {
-    list: (mapId, buildingKey, seat = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}) }),   // SEAT-HALL: a palace's Charter Room
+    list: (mapId, buildingKey, seat = false, yard = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}), ...(yard && !seat ? { yard: true } : {}) }),   // SEAT-HALL: a palace's Charter Room; HOME-YARD: the street's pieces, for its Confirm
     place: ({ mapId, buildingKey, character, piece, realm = null, yard = false, seat = false }) => post('/v1/homes/decor/place', { mapId, buildingKey, character, piece, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}), ...(seat ? { seat: true } : {}) }),   // REALM P2.2b: and its gold on the record; HOME-YARD: outside
     yards: (mapId) => waited('/v1/homes/yards', { mapId }),   // HOME-YARD: every yard of a town
     move: ({ mapId, buildingKey, character, id, place, realm = null, seat = false }) => post('/v1/homes/decor/move', { mapId, buildingKey, character, id, place, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
     remove: ({ mapId, buildingKey, character, id, realm = null, seat = false }) => post('/v1/homes/decor/remove', { mapId, buildingKey, character, id, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
+    batch: ({ mapId, buildingKey, character, rev, txn, put, drop, realm = null, yard = false }) => post('/v1/homes/decor/batch', { mapId, buildingKey, character, rev, txn, put, drop, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}) }),   // DECOR-BATCH: a home's Confirm
+    use: (body) => post('/v1/homes/decor/use', body),   // DECOR-ACCESS
     // BASE-HIDE: the room's own furniture taken out - the whole list, written by the owner
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
   };
@@ -2077,7 +2133,7 @@ export function accountGuilds({ fetch, storage }) {
     // after the first burns Drakes, and a change asked twice is one line)
     // AUDIT PRE-MERGE 1003 WD1: a hall is a home - the layout its town stands in, always said (null: Daggerfall's), as a claim
     hallBuy: ({ character, mapId, buildingKey, region, price, layout = null }) => post('/v1/guilds/hall/buy', { character, mapId, buildingKey, region, price, layout: layout || null }),
-    hallSell: (character) => post('/v1/guilds/hall/sell', { character }),
+    hallSell: (character, at = null) => post('/v1/guilds/hall/sell', { character, ...(at ? { mapId: at.mapId, buildingKey: at.buildingKey } : {}) }),   // GUILD-HALL-SALE: at its door, the door's building
     hallEntry: (character, entry) => post('/v1/guilds/hall/entry', { character, entry }),
     heraldry: (character, heraldry, rid = null) => post('/v1/guilds/heraldry', { character, heraldry, ...(rid ? { rid } : {}) }),
     // GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): a new name for a price; the vault - read, a piece put in and taken
@@ -2256,7 +2312,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     state: (character) => post('/v1/prof/state', { character }),
     pixels: (character, pixels, dungeons = []) => post('/v1/prof/pixels', { character, pixels, dungeons }),   // PROF2: the dungeon stood in
     harvest: (req) => post('/v1/prof/harvest', req),
-    spec: (character, profession, rank, spec, from, rid) => post('/v1/prof/spec', { character, profession, rank, spec, from, rid }),   // AUDIT 29 A15: `from`, the choice the client saw standing
+    spec: (character, profession, rank, spec, from, rid, trial = false) => post('/v1/prof/spec', { character, profession, rank, spec, from, rid, ...(trial ? { trial: true } : {}) }),   // AUDIT 29 A15: `from`, the choice the client saw standing; PERK-TRIAL: `trial`, asked as the choice's free day
     // BAG1: `carry` - the units counted as carried, into the bag or the pack - with what the client holds of it (`held`)
     // AUDIT BAG1 B2: and `seen`, the count as the client last heard it - the service cuts to `held` only against its own
     withdraw: (character, material, qty, rid, carry = null) => post('/v1/stores/withdraw', { character, material, qty, rid, ...(carry ? { carry: true, held: carry.held, ...(carry.seen == null ? {} : { seen: carry.seen }) } : {}) }),
@@ -2266,7 +2322,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     stock: (character, material, qty, rid) => post('/v1/prof/stock', { character, material, qty, rid }),   // PROF3: the smith's stock
     brew: (character, potion, keys, rid, seat = null) => post('/v1/prof/brew', { character, potion, keys, rid, ...(seat == null ? {} : { seat }) }),   // PROF12: the alchemy station's brew - `keys` the cauldron as the Stores hold it, `seat` the held town it stands in
     temper: (character, recipe, quality, provenance, rid) => post('/v1/prof/temper', { character, recipe, quality, rid, ...(provenance ? { provenance } : {}) }),   // CRAFT4: a piece a quality step better
-    reforge: (character, tier, rid) => post('/v1/prof/reforge', { character, tier, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with
+    reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
     writs: (character, region) => post('/v1/writs/list', { character, region }),
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),

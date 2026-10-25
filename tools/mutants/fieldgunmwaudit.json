@@ -29,8 +29,8 @@
   {
     "name": "F1-flash-on-the-machine-frame-under-the-arm",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "(armShoots ? flashFromClock(dt) : muzzleGlow(m.state !== 'Idle', m.frame))",
-    "new": "muzzleGlow(m.state !== 'Idle', m.frame)",
+    "old": "(armShoots ? flashFromClock(dt) : muzzleGlow(m.state !== 'Idle', m.frame, THUNDERLOCK_MUZZLE_CURVE))",
+    "new": "muzzleGlow(m.state !== 'Idle', m.frame, THUNDERLOCK_MUZZLE_CURVE)",
     "tests": [
       "test/combat/fieldgunmwaudit.test.js"
     ]
@@ -47,8 +47,8 @@
   {
     "name": "F2-muzzle-prefers-the-sprite-record-under-the-arm",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle();\n      // PISTOLET: a pair's shot leaves the barrel of the pistol that fired it\n      if (gunPairUp()) return muzzleRay(gunPair.hands[playerWeapon.activeHand]?.drawn ?? null, fovRad, forward);\n      return muzzleRay(_tlDrawn, fovRad, forward);",
-    "new": "      return muzzleRay(_tlDrawn, fovRad, forward) ?? ((fpArm.active() || fpArm.thirdActive()) ? fpArm.weaponMuzzle() : null);",
+    "old": "      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle(pairUp() ? playerWeapon.activeHand : 'R');",
+    "new": "      if (false) return fpArm.weaponMuzzle(pairUp() ? playerWeapon.activeHand : 'R');",
     "tests": [
       "test/combat/fieldgunmwaudit.test.js"
     ]
@@ -56,8 +56,8 @@
   {
     "name": "F2-muzzle-first-person-only",
     "file": "src/combat/weapon/weaponRig.js",
-    "old": "      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle();",
-    "new": "      if (fpArm.active()) return fpArm.weaponMuzzle();",
+    "old": "      if (fpArm.active() || fpArm.thirdActive()) return fpArm.weaponMuzzle(pairUp()",
+    "new": "      if (fpArm.active()) return fpArm.weaponMuzzle(pairUp()",
     "tests": [
       "test/combat/fieldgunmwaudit.test.js"
     ]
