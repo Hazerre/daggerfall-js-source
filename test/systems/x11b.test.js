@@ -29,6 +29,9 @@ import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { createRandomWeapon } from '../../src/systems/loot/loot.js';
 import { tickPlayerMinutes } from '../../src/systems/worldTick.js';
 import { REFUSAL } from '../../src/systems/item/itemTransfer.js';   // U56
+import { potionMakerHooks } from '../../src/scenes/potionMakerHost.js';
+import { mintMaterialItem } from '../../src/systems/professions/profItems.js';
+import { INGREDIENT_KEYS } from '../../src/net/professionLaw.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const src = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -610,13 +613,19 @@ test('X11b: the potion maker really consumes its ingredients now', () => {
   // passed `list[i]` - the ITEM - to removeOne, which takes a TEMPLATE
   // INDEX. Its findIndex compared a number against an object, matched
   // nothing, and returned false, so brewing never spent a reagent.
-  const s = src('src/scenes/worldModes.js');
-  const hook = s.slice(s.indexOf('takeOne: (templateIndex, where'), s.indexOf('takeOne: (templateIndex, where') + 1100);
-  assert.ok(!/removeOne\(list, list\[i\]\)/.test(hook), 'the item is still passed where an index goes');
   // AUDIT 26 F176 grew the call: the group rides along so the walk
   // spends only un-enchanted reagents (GetItem's allowEnchantedItem
   // false, :338/:345). The X11b lesson - index, not item - stands.
-  assert.ok(hook.includes('removeOne(list, templateIndex, { group, allowEnchantedItem: false })'), 'the index is not passed');
+  // POTION-DOOR moved the hook to scenes/potionMakerHost.js, so this
+  // runs it there rather than reading worldModes' text.
+  const plain = mintMaterialItem(INGREDIENT_KEYS[0]);
+  assert.ok(plain, 'the Stores key mints a DFU ingredient');
+  const enchanted = { ...structuredClone(plain), enchantments: [{ type: 1, param: 0 }] };
+  const player = { items: [enchanted, plain] };
+  const hooks = potionMakerHooks({ player, icons: null, onClose: () => {} });
+  assert.equal(hooks.takeOne(plain.templateIndex, 'pack', plain.group), true, 'the reagent is spent by its template index');
+  assert.deepEqual(player.items, [enchanted], 'the plain reagent goes and its enchanted twin stays');
+  assert.equal(hooks.takeOne(plain.templateIndex, 'pack', plain.group), false, 'an enchanted twin is never spent');
 });
 
 // ── the catalog ──────────────────────────────────────────────────
