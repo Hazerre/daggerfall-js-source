@@ -149,6 +149,19 @@ test('AUDIT LOOT II A4: a gem\'s line takes no kind from the piece - a Rare blad
     tried++;
   }
   assert.ok(tried >= 5, `${tried} blades with a damage line`);
+  // REFORGE-REPLACE (2026-10-25): a reforge never gives a line its own kind back, so the damage line above would find
+  // its pool full whatever the gem; the law's other half - the gem's kind is FREE for the piece's own lines - is a blade
+  // with no damage line of its own and a Diamond set: its lines may still become damage, beside the gem's
+  let bare = 0, became = 0;
+  for (let seed = 1; seed < 2000 && bare < 400; seed++) {
+    const it = socketed(seed);
+    if (it.affixes.some((a) => a.id === 'damage')) continue;
+    LR.setGem(it, 'diamond');
+    bare++;
+    const line = LR.reforgeAffix(it, 0, lcg(seed + 300));
+    if (line?.id === 'damage') became++;
+  }
+  assert.ok(bare >= 300 && became > 0, `a blade's own line became damage beside the Diamond's ${became} times in ${bare}`);
 });
 
 test('AUDIT LOOT II A5: the line compare is a row a kind - a gem\'s line summed with the piece\'s own against what it replaces', () => {

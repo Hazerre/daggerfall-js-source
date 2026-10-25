@@ -205,6 +205,10 @@ test('LOOT9: the price and the press - Magic 2 and 100, Rare 4 and 400, Exalted 
   const again = RF.reforgePiece(piece, 0, me, lcg(3));
   assert.deepEqual([again.ok, again.price, RF.shardsHeld(me.items), me.goldPieces, piece.reforges], [true, { shards: 8, gold: 800 }, 0, 0, 2], 'PIN MOVED (REFORGE-REPLACE): another line, at twice the price');
   assert.deepEqual(RF.reforgePrice(piece), { shards: 16, gold: 1600 }, 'and the next twice that');
+  const exalted = graded('legendary', 3);
+  LR.exaltLegendary(exalted, lcg(4));
+  me.items.push(exalted);
+  assert.deepEqual([RF.reforgeRefusal(exalted, 0, me), RF.reforgePiece(exalted, 0, me, lcg(5))], ['line', { ok: false, reason: 'line' }], 'a line the Reforge may not take - a record\'s - refused in its word, nothing taken');
   me.items.push(shards(9));
   me.goldPieces = 1000;
   const worn = graded('magic', 2);

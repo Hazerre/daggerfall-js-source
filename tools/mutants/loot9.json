@@ -347,7 +347,9 @@
     "new": "    return k.params ? freeParams(id).length > 0 : true;",
     "tests": [
       "test/systems/loot9_reforge.test.js"
-    ]
+    ],
+    "equivalent": true,
+    "why": "REFORGE-REPLACE and AFFIX-LINES (2026-10-25): belt-and-braces beside the draw's weights - a kind without params that another line carries weighs no line in the reforge's draw (lootRarity.js kindLines answers 0, so pickByLines never lands on it), and this guard keeps it out of the pool as well, so a line whose every alternative is carried is never offered. No piece a door mints has such a line (one line that does something at most; a number line always has a free attribute or skill), so the mutant survives every reforge pin: loot9_reforge, affixlines_reforge, craft4_temper, tech1_roster, auditloot2, loot20_sockets, fb1013e_craftprocs, judged."
   },
   {
     "name": "LOOT9-exalted-line-any-value",
