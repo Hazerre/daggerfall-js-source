@@ -742,7 +742,7 @@ Reforge takes), or one for an old piece's `reforged` mark - honoured as a reforg
 count at the next reforge. `reforge.js` reforgePrice - the tier's price doubled for every reforge taken, as honePrice
 doubles; one `reforgeAffix` serves the Mages Guild's Reforge and the Reforge with Essence (`Professions-Arc.md` 41.7),
 so both doors are one roll: `temperLaw.js` reforgeEssence(tier, count) doubles the Essence the same way, and the
-service's /v1/prof/reforge takes the piece's `count` (acct182). The card says the price and that it doubles, and a line
+service's /v1/prof/reforge takes the piece's `count` (acct189 - acct182 on its branch, renumbered at the merge). The card says the price and that it doubles, and a line
 no other kind can replace says so when pressed (`reforgeWindow.js` REFORGE_NOTE, `REFORGE_REFUSALS.line`, through t()).
 `test/systems/affixlines_reforge.test.js`; PIN MOVED: `loot9_reforge` (no lock, never the same kind, the count and the
 doubling price, every line's press), `tech1_roster` (a technique's line not offered), `craft4_temper`.

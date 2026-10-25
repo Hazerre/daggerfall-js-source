@@ -463,7 +463,7 @@ const HARDCODED = {
   'src/systems/physicalItems.js': 25,
   'src/systems/portBooks.js': 57,   // KETCH: +39, two books (Rourken Thunder - the guns and the shot; The Ketch That Never Lands) - a port book's pages are written into the BOK format's bytes and read whole, and no language holds a -LOC book for one (ui/bookDoor.js), so they are English as On the Burning Doors is
   'src/systems/portPlaces.js': 8,
-  'src/systems/portalStone.js': 23,
+  'src/systems/portalStone.js': 21,   // PORTAL-BULK: -2, the counter's offer and its sale's line through t() (portal.buy.ask, portal.buy.bought - their plurals the count's)
   'src/systems/potionRecipes.js': 15,
   'src/systems/professions/profItems.js': 36,   // AUDIT FB1021 (merged onto FB1020h's DEX-HIDES): 'Mudcrab Chitin' a mass, as the Scorpion's
   'src/systems/professions/profTemplates.js': 1,
