@@ -161,8 +161,9 @@ All of it the port's own art, made in code (`world/starfall/starArt.js` through 
 pseudo-archives registered in `world/eliteGates/pseudoArchives.js`): no ARENA2 pixel is in it.
 
 - **The omen** (90 s before the fall): a new star burns over the region - a point of pale violet light, high in the
-  sky toward the site, swelling as the fall nears. The map marks the site, the compass points to it, and the chat
-  says where.
+  sky toward the site, swelling as the fall nears. The map marks the site, the compass points to it, and the HUD's event
+  board says where (its news, where the chat had said it before EVENTS1 - section 8) - the board ten minutes before it
+  falls.
 - **The fall** (8 s): the star tears loose and comes down at a slant, a white head and a violet trail kilometres long,
   lighting the land under it. It lands with a flash seen across the region, a ring of shock running out over the
   ground and a thunderclap that reaches each player its distance late (`systems/distantStorms.js` thunderOf). The ground
@@ -224,6 +225,29 @@ them, and fixed each where it lives:
   `STAR_COARSE_EVERY` (600) frames - the world's kernel is one for the gate's pixel, and three stars and a gate asking it
   in turn each frame made it again at every ask; and the pass's three programs are built at idle while the festival
   stands (PERF-COMPILE1's law, `render/warmPrograms.js`), never inside the frame of the first omen (R9).
+
+**As built (STAR-CLEAR, 2026-10-24).** The owner: *"The star fall world event has the tendency to fall into mountains and
+become inaccesable."* Read on the player's own map before anything changed, the land is not what shuts a star in: over
+the festival's 1,366 stars the ground within 40 m of a heart is steeper than 45 degrees under 0.6% of them, and at the
+foes' own walkable slope (35 degrees, `ai/nav/navmesh.js` maxSlope) one star in 1,366 is cut off from its town on a
+25.6 m grid. The mountains are World of Daggerfall's rock fields (`WOD_Rocks_*`, boulders scaled by hundreds; online the
+mod is the room's and its Mountains layouts are off): a star falls on the gate's suitable pixels, which keep off the
+game's own locations and nothing of the mod's, and 381 of the 1,366 had a rock piece's mesh box reach within 28 m of the
+heart (31 a piece's very position) - the star stood in a hill of rock its press, its word and its coven could not reach.
+The star does not move - its spot is the law's alone (`starSpotLocal`, the relay's too) - so the rock yields, the gate's
+own law (GATE-CLEAR, `03-World/World-Of-Daggerfall.md`): each star keeps `STAR_ROCK_M` (28 m - the crater's earth, the
+ring its coven stands on, `STAR_STAND_R` out to 20 m, and room past it) in the clearing set the gate and the Elite arches
+already share (`world/gate/gateClearance.js` gateClearSet's `stars`, keyed `star:<night>.<k>`), from `STAR_WARN_MS`
+before it falls (its town first named, on the Timers row and the event board) until it is gone
+(`scenes/starfall/starfallHost.js` starClears - the same frozen list while the same stars stand, read once a second at
+most). A whole site reaching the clearing is refused at its pick, a piece whose mesh box reaches it is not stood, and
+the streamer's sweep builds a pixel again as a star's clearing comes and goes. The world host's memo of the set moved
+out with it (`gateClearMemo`: nine logical lines out of bootWorld, its ceiling 36,307 -> 36,298 on main's count at the
+merge). THE FOUR HOSTS:
+`scenes/world.js` wires it (the set's read by the pixel build and the sweep); `scenes/exterior.js`, `scenes/worldModes.js`
+and `scenes/dungeonContext.js` stand no World of Daggerfall site, no gate's clearing and no star, by design. Pinned in
+`test/scenes/starfall/starclear.test.js` (7, one over the festival's real stars, ARENA2-gated); `tools/mutants/starclear.json`,
+8 of 8 dead.
 
 ## 4. The defense - waves, the light, the master
 
@@ -645,12 +669,20 @@ name, *Master of the Fallen Star* (the Heart-Star's: *Heart of the Web*), its he
 the ward holds. **The map** marks each star of the night with a card; **the compass** points to the nearest within the
 region; **the timers** row says the night's coven and the next fall.
 
+**EVENTS1 (2026-10-23, `10-UI/Event-Board.md`).** The region's lines and the hold above are said in the HUD's event
+board's news now (`systems/eventNotices.js`, kind `star`, each with its star's id - AUDIT EVENTS1 A1), where they had
+been the chat's, and are filed in the journal; and every star's town is named from `STAR_WARN_MS` (10 minutes) before it
+falls - on the Timers row and the board, with its pixel, the board's news to every screen; two at once where their falls
+are 7.5 minutes apart (AUDIT EVENTS1 A3) - where the next star's alone had been named from its omen (PanickedTofu,
+Discord: "I only ever get a notification about them AFTER they've been claimed by other players").
+
 **As built (STAR6).** Every line goes through the text core (`systems/starfall/starWords.js`, `t('starfall.*')`, its
 names as arguments), held to WB13b's style by a law over all of them (`test/systems/starfall/star6_words.test.js`). The
 Timers window shows each fallen star still undecided counting down to its deadline (*Fallen Star*, *Near Gothway
-Garden*, *The coven takes it when this runs out*) and the next to fall counting down to its landing (*A star falls* - the
-Heart-Star's own words - its town from its omen on, as the region hears it, and *The Daggerfall Witches are at their
-rite*), the next night's first once this night's last is down (`systems/starfall/starfallClient.js` starTimerRows). The
+Garden*, *The coven takes it when this runs out*), each star within `STAR_WARN_MS` of its fall counting down to its
+landing with its town, and the soonest beyond that without it (*A star falls* - the Heart-Star's own words - and *The
+Daggerfall Witches are at their rite*), the next night's first once this night's last is down
+(`systems/starfall/starfallClient.js` starTimerRows; its town from its omen on before EVENTS1). The
 held map's cards ride the raids' reader and a violet four-pointed star of its own (`ui/ink/inkMap.js` paintStarMark).
 **The compass's door, fixed at its root**: the world host had handed `drawHud` the sea serpent's and a found Hollow's
 compass marks since SERPENT1 and SD2c, and `drawHud` dropped both - neither ever showed on the enhanced strip. It

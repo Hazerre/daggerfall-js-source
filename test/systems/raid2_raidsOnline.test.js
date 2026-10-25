@@ -324,7 +324,8 @@ test('RAID2 the world host by source: my word rides my cell frame, a peer\'s rea
   assert.match(body, /wallNow: \(\) => performance\.now\(\),/, 'the clock the pool hands the word on');
   assert.match(w, /now: \(\) => performance\.now\(\),\n\s+staleMs: FOES_STALE_MS,/, 'which is the net\'s own');
   assert.match(body, /peersInTown: \(\) => \(peersNear\(\) \?\? \[\]\)\.filter\(\(p\) => _foeInTownRect\(\{ ai: \{ feet: p\.feet \} \}\)\)\.map\(\(p\) => p\.id\),/);
-  assert.match(body, /raidPuppets: \(\) => exteriorFoes\.foes\.filter\(\(f\) => f\.puppet && f\._pupRaid && !f\.dead\),/);
+  assert.match(body, /raidPuppets: \(\) => exteriorFoes\.foes\.filter\(\(f\) => f\.puppet && f\._pupRaid\),/);   // PIN MOVED (STAFF-EVENT THE REWARD): the fallen too - the raid module skips them for the struck mark and counts a fallen one I fought as my kill
+  assert.match(rd('src/systems/raidingParties.js'), /for \(const pup of puppets\) \{\n    if \(pup\.dead\) continue;/, 'a fallen puppet marks no raid fought');
   assert.match(body, /ownRaidFoes: \(\) => exteriorFoes\.foes\.filter\(\(f\) => !f\.puppet && f\.raidKey && !f\.dead\),/);
   const pool = rd('src/scenes/exteriorFoes.js');
   assert.match(pool, /if \(data\.rk !== undefined\) _onRaids\?\.\(from, data\.rk, _now\(\)\);/);
