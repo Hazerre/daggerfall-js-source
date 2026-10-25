@@ -39,7 +39,7 @@ import {
 } from '../../src/net/staffEvent/staffEventLaw.js';
 import { mintStaffReceipt } from '../../src/net/staffEvent/staffEventReceipt.js';
 import { SOCIAL_ROOM, worldRoom, mapPixelOfWire } from '../../src/net/wire.js';
-import { inCover, cellCall } from './cellNodes.js';   // COST-2 (b): a word in a cell this socket covers; part two: the event's cell reached through the tree
+import { junkOutsideCover, cellCall } from './cellNodes.js';   // COST-2 (b): a word in a cell this socket covers, or junk; part two: the event's cell reached through the tree
 import { verifyOrder } from '../../src/net/identityToken.js';
 
 /** The hub's book in storage: `{ l: StaffEvent[], b: [id, board][] }` - THE REWARD: `b` the boards of the last events whose boss fell. */
@@ -279,7 +279,7 @@ async function keep(room, led, e, now, urgent) {
  * @param {any} room @param {any} ws @param {any} a its attachment @param {any} m validStaffEventIn's shape @param {number} now
  */
 export async function staffEventWord(room, ws, a, m, now) {
-  if (!inCover(a, worldRoom(m.px, m.py))) { room._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+  if (junkOutsideCover(room, ws, a, worldRoom(m.px, m.py))) return;
   if (a.ly) return;   // the place's ledger alone (a raid's law: a layer is another object for the same cell)
   const e = await eventOf(room, m.id, now);
   if (!e || e.px !== m.px || e.py !== m.py) return;

@@ -182,7 +182,7 @@ import { routeStaffTeleport } from './staffTeleport.js';
 import { followNoted, withoutRoom, followHello, followJoined, followLeft, followSayInternal } from './staffFollow.js';   // STAFF-PANEL5-FOLLOW: the where note kept and read, and a player followed
 import { FOLLOW_INTERNAL_SAY } from '../../src/net/staffFollow.js';
 import { takeStaffMessage } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: a staff message's nudge, to one account's own hub sockets
-import { cellDoor, cellCall, nodeHeard, cellLevelOf, coverOf, inCover, atCover, cellsWelcome } from './cellNodes.js';   // COST-2: a cell's node, the directory, the node an object is told; part two: a call that names a cell, through the tree
+import { cellDoor, cellCall, nodeHeard, cellLevelOf, coverOf, inCover, junkOutsideCover, atCover, cellsWelcome } from './cellNodes.js';   // COST-2: a cell's node, the directory, the node an object is told; part two: a call that names a cell, through the tree
 import { cellDoors, cellTell, cellDoorShut, isCellDirectory, cellPlanAlarm } from './cellMoves.js';   // COST-2 part two: the tree moves - the directory's and a node's doors, the counts, the cell door, the directory's alarm
 import { isCoarseNode, cellSeedOf } from '../../src/net/cellTree.js';   // COST-2: a coarse node is the Worker's name for an object, never a page's room; part two: the cellSeed setting read
 import { staffNetFrame, staffNetClosed, staffFoesSeen, staffFoesStripped, staffReactAsk, staffReactPose, staffLeft } from './staffFeeds.js';   // STAFF-PANEL5-FEEDS: the Staff Panel's counts - network bursts, monsters, an encounter's reaction (off until their URLs are set)
@@ -7865,7 +7865,7 @@ export class Room {
     if (!(m.bv >= SERPENT_BRAIN_MIN)) { if (was) was[1].players[a.sub].stale = true; no('reload'); return; }
     if (was?.[1].players[a.sub]?.stale) delete was[1].players[a.sub].stale;
     if (m.d !== t.day || !serpentHolds(t.day, now)) { if (!f?.rc?.[a.sub]) no('the serpent is gone'); return; }
-    if (!inCover(a, cellRoomOfWire(m.sx, m.sz))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+    if (junkOutsideCover(this, ws, a, cellRoomOfWire(m.sx, m.sz))) return;
     if (!a.pose || a.pose.dd) return;
     const site = f ?? { sx: m.sx, sz: m.sz };
     const at = this._serpentFrameOf(site, a.pose), off = Math.hypot(at.x, at.z);
@@ -8522,7 +8522,7 @@ export class Room {
    *  (the frame must be the cell's own pixel's - anywhere else junk), kept until the hub answers - the first finder's,
    *  while it is owed. */
   async _sdFoundWord(ws, a, m, now) {
-    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;
     if (!a.pose || !sdNearSite(m, a.pose) || typeof a.sub !== 'string' || !a.sub) return;   // not at its door: nothing kept, nothing said
     // AUDIT SD II (L7 M4): A WORD THAT MOVES NOTHING TELLS NOTHING (the rite's AUDIT WB12d R4 law) - a slot this cell has
     // told and the hub answered is never told again, and while the hub's last answer is fresh a find for any slot but the
@@ -10052,7 +10052,7 @@ export class Room {
    * the cleanse, its receipt again (a reconnect that missed it).
    */
   async _raidWord(ws, a, m, now) {
-    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;
     if (!raidWordSane(m)) { this._junk(ws); return; }   // AUDIT RAID R6: no honest machine's word
     // AUDIT SCALE II R3-3: NO RAID LEDGER IN A LAYER. A raid's ledger is its town cell's object's, and a layer is another
     // object for the same cell (SCALE5d): it made a ledger of its own for the same raid - its own count, its own cleanse,
@@ -10150,7 +10150,7 @@ export class Room {
    *  - a word at one never stands in another's way, and the hub chooses by the gate's agreed site. Honest limit (bible
    *  section 19 D): a word is its player's own - the cell checks where and when it was said, not each blow. */
   async _riteWord(ws, a, m, now) {
-    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;
     if (!isGateDay(m.d) || !riteHeard(m.d, now)) return;   // outside its window: nothing read, kept or said
     // AUDIT SCALE II R3-3 (c): NO CIRCLE IN A LAYER (the serpent's and the raid's law). A circle's ledger is its cell
     // object's, and a layer is another object for the same cell (SCALE5d): it kept a circle of its own and told the hub
@@ -10502,7 +10502,7 @@ export class Room {
    * that earned it is answered with its receipt again (a reconnect that missed it).
    */
   async _starWord(ws, a, m, now) {
-    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers
+    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;
     // NO STAR IN A LAYER (AUDIT SCALE II R3-3, the raid's and the rite's law): a layer is another object for the same cell,
     // and a ledger of its own would be a second fight for one star - its own waves, its own hold, its own receipts. An
     // honest client says its word there, so nobody is struck
@@ -10788,7 +10788,7 @@ export class Room {
       if (!o.ok || o.claims.wr !== d.r) { this._junk(ws); return; }
       const c = o.claims;
       // INT9 (AUDIT): THE ORDER NAMES ITS ROOM, and no other keeps it - one fall's order was laid in two
-      if (!inCover(a, c.wm)) { this._junk(ws); return; }   // COST-2 (b): a room this socket covers
+      if (junkOutsideCover(this, ws, a, c.wm)) return;
       let rec = map.get(d.r);
       // INT9: vouched for already - a second carrier's deposit (the fallen's tab and its killer's seizure, one fall) is
       // nothing, and so is one on a TOMBSTONE (AUDIT INT9: an emptied remains was let go, and its order laid it again)

@@ -4029,8 +4029,9 @@ socket's COVER is its coarse node, kept on its attachment (`nd`, so a woken obje
 cell is covered by the cover itself or by a coarse node that holds it. Under L0 every cover is a fine cell, which covers
 itself alone - today's law.
 - **The relay reads the cover wherever it read the socket's key as a cell** (cellNodes.js coverOf, inCover, atCover):
-  a raid's, a rite's, a star's, a Super dungeon find's, a staff event's and a serpent's word by its pixel; the wild
-  zone's order by its room; a grant's `q` at its renewal, its hand-over and its foes (`_grantHere`); the City Watch's
+  a raid's, a rite's, a star's, a Super dungeon find's, a staff event's and a serpent's word by its pixel and the wild
+  zone's order by its room, each refused as junk through one guard (cellNodes.js junkOutsideCover, its own record
+  `COST2-cover-guard-open`); a grant's `q` at its renewal, its hand-over and its foes (`_grantHere`); the City Watch's
   tick by its pose; a park word's anchor; the overworld ledger's ids and rows (overworldLaw.js owCellSquare: a coarse
   node's square, widened by OW_CELL_MARGIN_PX like a cell's). The socket's key itself never moves: no reader needs the
   fine cell a player stands in now, so no attachment is rewritten as a player walks.

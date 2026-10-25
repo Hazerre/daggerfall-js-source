@@ -148,7 +148,7 @@
   {
     "name": "SERPENT1-relay-other-cell-site",
     "file": "server/src/index.js",
-    "old": "if (!inCover(a, cellRoomOfWire(m.sx, m.sz))) { this._junk(ws); return; }",
+    "old": "if (junkOutsideCover(this, ws, a, cellRoomOfWire(m.sx, m.sz))) return;",
     "new": "",
     "tests": [
       "test/net/serpent/serpent1_relay.test.js"
