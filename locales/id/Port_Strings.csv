@@ -2013,7 +2013,7 @@ features.enhancedSounds.note,"Suara baru pada UI yang ditingkatkan: angin di lua
 features.enhancedSounds.title,"Suara yang ditingkatkan"
 features.enhancedWater.note,"Laut, sungai, dan kolam yang bisa kamu tembus pandang: ombak yang membesar bersama angin, buih di tempat ombak bertemu pantai, riak di tempat sesuatu bergerak, langit dan bulan di permukaannya. Mati mengembalikan air datar klasik."
 features.enhancedWater.title,"Air yang ditingkatkan"
-features.eventBoard.note,"Papan di sisi kiri layar menampilkan peristiwa dunia yang masih bisa kamu capai, dengan jarak masing-masing dan sisa waktunya. Kabarnya muncul di bagian atas papan dan disimpan di jurnalmu. Jika dimatikan, kabar kembali ke obrolan dan baris pesan di layar."
+features.eventBoard.note,"Papan di sisi kiri layar menampilkan peristiwa dunia yang masih bisa kamu capai, dengan jarak masing-masing dan sisa waktunya. Kabarnya muncul di bagian atas papan dan disimpan di jurnalmu. Matikan sebuah peristiwa dengan tombolnya sendiri, maka peristiwa itu hilang dari papan dan kabarnya hanya disimpan di jurnalmu. Jika dimatikan, kabar kembali ke obrolan dan baris pesan di layar."
 features.eventBoard.title,"Papan Peristiwa"
 features.firstPersonLighting.note,"Apa yang kamu pegang dalam sudut pandang orang pertama mengikuti cahaya di tempatmu berdiri: senjatamu, tangan perapal mantramu, obor di tangan sampingmu, dan lengan Morrowind."
 features.firstPersonLighting.title,"Pencahayaan orang pertama"

@@ -2013,7 +2013,7 @@ features.enhancedSounds.note,"향상된 UI의 새 소리입니다. 야외에서�
 features.enhancedSounds.title,"향상된 소리"
 features.enhancedWater.note,"속이 들여다보이는 바다, 강, 연못입니다. 바람에 따라 커지는 파도, 해안에 부딪히는 거품, 무언가 움직이는 곳의 물결, 수면에 비치는 하늘과 달이 있습니다. 끄면 클래식의 평평한 물로 돌아갑니다."
 features.enhancedWater.title,"향상된 물"
-features.eventBoard.note,"화면 왼쪽의 게시판에 아직 갈 수 있는 월드 이벤트가 각각의 거리와 남은 시간과 함께 표시됩니다. 이벤트 소식은 게시판 위쪽에 표시되고 일지에 기록됩니다. 끄면 소식이 다시 채팅과 화면의 메시지 줄로 전달됩니다."
+features.eventBoard.note,"화면 왼쪽의 게시판에 아직 갈 수 있는 월드 이벤트가 각각의 거리와 남은 시간과 함께 표시됩니다. 이벤트 소식은 게시판 위쪽에 표시되고 일지에 기록됩니다. 이벤트를 해당 버튼으로 끄면 게시판에서 사라지고, 그 소식은 일지에만 기록됩니다. 게시판을 끄면 소식이 다시 채팅과 화면의 메시지 줄로 전달됩니다."
 features.eventBoard.title,"이벤트 게시판"
 features.firstPersonLighting.note,"1인칭에서 들고 있는 것(무기, 주문을 거는 손, 보조 손의 횃불, Morrowind 팔)이 서 있는 곳의 빛을 받습니다."
 features.firstPersonLighting.title,"1인칭 조명"
