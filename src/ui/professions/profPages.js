@@ -15,7 +15,8 @@
 //   Crafting, each a row with its rank, its rank's name and a thin bar;
 //   the chosen one below: the XP to the next rank, today's harvests, the
 //   specialisation cards at 50 and 100 (choose one - a change of mind
-//   costs 1,000 Marks and a week, and is pressed twice), the unlocks by
+//   is free for a day after a choice, then costs 1,000 Marks and locks
+//   the next for a week - PERK-TRIAL - and is pressed twice), the unlocks by
 //   rank, and the crafter's limit.
 //   THE STORES PAGE - the materials with their counts, own and bought;
 //   the families to filter by, a search, the sort; a material's action:
@@ -49,7 +50,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, LOOSE_ORIGIN } from '../../net/bagLaw.js';   // BAG1: what a character carries; CLOTH-GEMS: a station's loose units, spent first
 import {
-  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN,
+  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
   WEAVE_RECIPES, SPIN_RECIPES, LINEN, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,   // CLOTH-GEMS: the loom's Linen and Wool
@@ -67,7 +68,7 @@ import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SA
 import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
 import { firmamentStats } from '../../systems/firmamentLive.js';   // CRAFT-LIMIT-SAID: the stars in force
 import {
-  POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstPays, ingredientKeys, DISTILLER, POTENT,
+  POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstXp, ingredientKeys, DISTILLER, POTENT,   // FIRST-BUDGET: a brew's first, Provisioning's first-make share
   enchantDiscountPct, DISENCHANTER, disenchantXp, essenceOf,
   piecePoints, ESSENCE_POINTS,   // DISENCHANT-SAID: the station's list made here, and a piece under one Essence said
 } from '../../net/alchemyLaw.js';   // PROF12: Alchemy's brew, Enchanting's layer and Disenchanting
@@ -83,6 +84,7 @@ import {
 } from '../../net/recipeLaw.js';
 import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
 import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
+import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
 import { createStitchAct } from '../../systems/stitchAct.js';
 import { createChiselAct } from '../../systems/chiselAct.js';   // PROF11
 import { createPanAct } from '../../systems/panAct.js';   // PROF9
@@ -101,7 +103,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 import { chainPlan, chainNeeded, chainYield, storesRoom } from '../../net/chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { getPref, setPref } from '../../systems/uiPrefs.js';
 import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a material's picture, the host's
-import { t, localizedText, formatMessage, formatNumber } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
+import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
 
 /**
  * @typedef {object} ProfPagesProvider
@@ -159,7 +161,7 @@ import { t, localizedText, formatMessage, formatNumber } from '../../systems/tex
  * @property {() => Array<{ item: any, name: string, tier: string, lines: Array<{ index: number, text: string }> }>} [reforgeable]
  *   CRAFT4: the pack's known Magic and Rare pieces an Enchanter reforges with Essence, each line it may roll
  * @property {(offer: { item: any, name: string, tier: string }, index: number) => Promise<{ ok: boolean, text: string }>} [essenceReforge]
- *   CRAFT4: a line rolled again for Arcane Essence
+ *   CRAFT4: a line replaced for Arcane Essence (REFORGE-REPLACE: by another kind)
  * @property {(plan: { material: string, qty: number, order: string }[]) => Promise<{ ok: boolean, text: string, kept?: boolean }[]>} [deposit]   BAG1:
  *   carried units of a material - out of the bag and the pack - into the Stores; FB1020c ONE-SAVE: a plan of put-ins as
  *   one batch (profBook.js depositMany - one save for them all), one answer a put-in, in order
@@ -239,6 +241,16 @@ export const PROF_PAGE_SECTIONS = Object.freeze([wordRow('professions', () => t(
 /** What the Professions page has chosen, and a change of specialisation pressed once (the second press buys it). */
 let _sel = 'herbalism';
 let _armed = null;
+/** AUDIT PERK-TRIAL P1: whether the armed card said its change was free (its choice's day of trial) - the second press
+ *  buys what the card said, never what the clock says by then. */
+
+/** AUDIT PERK-TRIAL P6: a moment as the player's language writes a day and a time - the day of the month, the month's
+ *  short name, the hour and minute on a 24-hour clock - in UTC, the professions' clock, and said to be UTC. Here and not
+ *  in textManager.js, which the relay bundles (test/net/relayversion.test.js): a page's words are no deploy. */
+function utcMoment(ms) {
+  try { return new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC', timeZoneName: 'short' }).format(new Date(ms)); } catch { return ''; }
+}
+let _armedFree = false;
 /** The Professions page's last refusal, said under the cards. */
 let _profWord = null;
 /** The Stores page's filter, search, sort, the material chosen and the quantity to withdraw. */
@@ -557,8 +569,9 @@ export const STORES_EMPTY_LINE = 'Your Stores are empty. What you gather online 
 const storesEmptyLine = () => t('prof.page.stores.empty', STORES_EMPTY_LINE);
 const storesEmptyCarryLine = () => t('prof.page.stores.emptyCarry', STORES_EMPTY_CARRY_LINE);
 /** PROF12: how Alchemy is practised, as the Professions page says it. FB1018D CRAFT-HOWTO: with what the bag and the pack
- *  hold too - "with what your Stores hold" stood from before BAG-CRAFT, and the brew reads the station's own (workOf). */
-export const ALCHEMY_HOW = 'Brew at an alchemy station (an Alchemist\'s or your own home) from the Stores page, with what you carry or keep in your Stores. There are 20 recipes, the same as the classic potion maker\'s. Herbs, metals and gems are gathered; the rest are bought from the Apothecaries\' counter. The classic potion maker still works, but it earns no Provisioning experience.';
+ *  hold too - "with what your Stores hold" stood from before BAG-CRAFT, and the brew reads the station's own (workOf).
+ *  POTION-DOOR (Professions-Arc 52): a Mages Guild hall a station, and its potion maker the brew's door there. */
+export const ALCHEMY_HOW = 'Brew at an alchemy station (an Alchemist\'s, a Mages Guild hall or your own home) from the Stores page, with what you carry or keep in your Stores. The potion maker brews at a station too, for the same experience. There are 20 recipes, the same as the classic potion maker\'s. Herbs, metals and gems are gathered; the rest are bought from the Apothecaries\' counter. A potion maker anywhere else, such as a temple\'s, still works, but what it mixes earns no Provisioning experience.';
 const fishingHow = () => t('prof.page.how.fishing', FISHING_HOW);
 const alchemyHow = () => t('prof.page.how.alchemy', ALCHEMY_HOW);
 /**
@@ -590,6 +603,26 @@ export const CRAFT_HOW = Object.freeze({
   outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but only cloth you make yourself earns a first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
   provisioning: () => t('prof.page.how.cooking', 'Cook at any lit fire, such as a campfire, a hearth or a brazier: stand close to its flame and open the Stores page (Holdings > Stores). Dishes are made from the meat you skin, the fish you net, herbs and the food a Basket finds, and go to your pack. Brewing and cooking both earn Provisioning experience.'),   // beside ALCHEMY_HOW: Provisioning's cooking (CRAFT3)
 });
+/**
+ * POTION-DOOR (bible/06-Systems/Professions-Arc.md 52; SaberGGaming's report, 2026-10-25): THE POTION MAKER'S DOOR TO THE
+ * BREW (scenes/potionMakerHost.js) - online, the pages standing: `station` whether the player stands at an alchemy station
+ * (the provider's - an Alchemist's, a Mages Guild hall, a home's), `held` what the Stores alone hold of a material (the
+ * station's read of them; what is carried the maker lists as DFU's own items), the brewer's rank and the station's fee,
+ * and the brew itself - the Stores page's own (its fee, its potions minted on the answer, its words). Null offline or
+ * with the pages shut: DFU's maker as it is.
+ */
+export function potionMakerDoor() {
+  const p = _provider;
+  if (!profPagesShown() || !p) return null;
+  const book = p.book;
+  return Object.freeze({
+    station: typeof p.brew === 'function' && !!p.alchemy?.(),
+    held: (/** @type {string} */ k) => Number(typeof book?.storesWorkable === 'function' ? book.storesWorkable(k) : book?.held?.(k)) || 0,
+    rank: () => book?.track?.('alchemy')?.rank ?? 0,
+    fee: () => p.alchemy?.()?.fee ?? 0,
+    brew: (/** @type {string} */ id, /** @type {string[]} */ keys) => /** @type {NonNullable<typeof p.brew>} */ (p.brew)(id, keys),
+  });
+}
 /** PROF12: how Enchanting is practised, and what its rank takes off the item maker's gold. */
 export const ENCHANTING_HOW = (pct) => t('prof.page.how.enchanting', 'Enchanting improves as you break crafted pieces down into Arcane Essence at an enchanting station, in a Mages Guild hall or your own home, from the Stores page. The item maker works as it always has{off, select, yes {, and your rank takes {pct}% off its prices} other {. From Journeyman on, your rank lowers its prices}}.',
   { off: pct > 0 ? 'yes' : 'no', pct });   // L10N4: one sentence, its rank's share a select
@@ -704,12 +737,17 @@ export function drawProfessionsPage(detail, rerender, kit) {
     if (_sel === 'mining' && tr.specs?.[100] === SURVEYOR) pane.append(el('p', 'px-note', miningSurveyorLine()));   // MINE-PERKS
   }
   // THE SPECIALISATIONS: two cards a rank (CRAFT3: a merged craft's four, each its discipline's), the chosen one lit; a
-  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`)
+  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`); PERK-TRIAL: free and at
+  // once on the choice's day of trial (`trial`), else 1,000 silver and at once, and the week after a paid change locked
   const two = disciplinesOf(_sel).length > 1;
+  const nowS = Date.now() / 1000;
+  const when = (at) => utcMoment(at * 1000);   // AUDIT PERK-TRIAL P6: in the player's language
   for (const r of SPEC_RANKS) {
     pane.append(divider(t('prof.page.specs.at', 'At {rank}', { rank: r })));
     const cards = el('div', 'prof-specs');
     const chosen = tr.specs?.[r] ?? null;
+    const trial = !!chosen && specTrialShown(tr, r, nowS);   // PERK-TRIAL: the choice's day of trial
+    const lock = Number(tr.lock ?? 0) > nowS ? Number(tr.lock) : null;   // PERK-TRIAL: the week after a paid change
     for (const s of SPECIALISATIONS[_sel][r]) {
       const card = el('button', `prof-spec${chosen === s.id ? ' on' : ''}${tr.respec?.to === s.id && tr.respec?.rank === r ? ' coming' : ''}`);
       card.type = 'button';
@@ -717,22 +755,25 @@ export function drawProfessionsPage(detail, rerender, kit) {
       if (two) card.append(el('i', 'prof-of', disciplineName(specDiscipline(s.id))));   // CRAFT3: whose choice it is
       const locked = tr.rank < r || !practised || !!s.later;   // AUDIT 29 A17: a choice whose slice is to come is named, never chosen
       const free = tr.free?.includes(r) === true;   // CRAFT3: the merge's free change
-      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way gates a paid CHANGE, as the service's chooseSpec refuses
-      // one (prof-respec-pending) - never a rank's first choice, nor the merge's free change, which it answers first
-      const waits = !!chosen && !!tr.respec && !free;
+      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way - PERK-TRIAL: or the week's lock after one - gates a paid
+      // CHANGE, as the service's chooseSpec refuses one (prof-respec-pending); never a rank's first choice, the merge's
+      // free change, nor a choice on its day of trial, which it answers first
+      const waits = !!chosen && (!!tr.respec || lock !== null) && !free && !trial;
       card.disabled = locked || chosen === s.id || waits;
       if (s.later) card.append(el('i', 'prof-cost', LATER_WORDS[s.later] ?? t('prof.page.later.any', 'Comes in a later update')));
-      const armedHere = _armed === `${r}|${s.id}`;
+      const armedHere = _armed === `${r}|${s.id}` && _armedFree === trial;   // AUDIT PERK-TRIAL P1: a card armed free whose day ran out on the screen is armed no more - pressed again, it arms at the price it says now
       if (!locked && chosen && chosen !== s.id && !waits) {
         card.append(el('i', 'prof-cost', free ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecFree', 'Change: free, once'))
-          : armedHere ? t('prof.page.specs.respecArmed', 'Press again: {cost, number} silver, in effect in {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })
-            : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
+          : trial ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecTrial', 'Change: free until {date}', { date: when(tr.trial[r]) }))
+            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once. The next change waits {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })   // AUDIT PERK-TRIAL P5: the lock said before it is paid for
+              : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
       }
+      if (chosen === s.id && waits && lock !== null) card.append(el('i', 'prof-cost', t('prof.page.specs.lockedUntil', 'Next change from {date}', { date: when(lock) })));   // PERK-TRIAL
       if (tr.respec?.to === s.id && tr.respec?.rank === r) card.append(el('i', 'prof-cost', t('prof.page.specs.inEffect', 'In effect from {date}', { date: new Date(tr.respec.at * 1000).toUTCString().slice(0, 16) })));
       card.onclick = async () => {
-        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; rerender(); return; }
+        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; _armedFree = trial; rerender(); return; }
         _armed = null;
-        const res = await book.choose(_sel, r, s.id);
+        const res = await book.choose(_sel, r, s.id, chosen ? { trial: _armedFree } : {});   // AUDIT PERK-TRIAL P1: as the card said it
         _profWord = res?.ok ? null : accountRefusalText(res?.error);
         rerender();
       };
@@ -2380,7 +2421,7 @@ function drawCookFire(detail, rerender, { el, divider }) {
   if (!p?.fire || !p.craft) return;
   const book = p.book;
   const fire = p.fire();
-  detail.append(divider(t('prof.page.fire', 'The Fire')));
+  detail.append(stationHead(divider, t('prof.page.fire', 'The Fire'), 'fire'));   // AUDIT DECOR-USE D2: a cooking station's press lands here
   if (!fire) {
     endPan();
     detail.append(el('p', 'px-note', fireAwayLine()));
@@ -2756,7 +2797,7 @@ function drawJewellerBench(detail, rerender, { el, divider }) {
 // ─── PROF12: THE ALCHEMY STATION (bible/06-Systems/Professions-Arc.md 9.3, 37) ─────
 
 /** What the station says a potion's cauldron wants, and its word for the Apothecaries'. */
-const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist\'s ({fee} gold a brew), or your own home\'s. Your potions go to your pack.';
+const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist\'s or a Mages Guild hall ({fee} gold a brew), or your own home\'s. Your potions go to your pack.';   // POTION-DOOR: the Mages Guild's hall a station
 export const ALCHEMY_AWAY_LINE = formatMessage(ALCHEMY_AWAY, { fee: ALCHEMY_FEE });   // the English, as the tests compare it
 const alchemyAwayLine = () => t('prof.page.alchemy.away', ALCHEMY_AWAY, { fee: ALCHEMY_FEE });
 /** Tests: the station's state. */
@@ -2831,15 +2872,16 @@ function drawAlchemyStation(detail, rerender, { el, divider }) {
     const gathered = potentAble(potion) ? potion.ingredients.filter((t) => ingredientKeys(t).some((k) => k.startsWith('p'))).length : 0;   // AUDIT PROF-541 B3: a cure's herbs add nothing
     const made = brewCount(rank, specs[50], potion);   // AUDIT PROF-541 R2-S1: the counter's goods alone brew one
     // CRAFT-LIMIT-SAID: the brew's XP as the service pays it (its ?10 the Firmament's percent on brewXp, its ?11 the first's
-    // whole), and the limit's line in its place where the track cannot take it
+    // whole - FIRST-BUDGET: Provisioning's first-make share, brewFirstXp), and the limit's line in its
+    // place where the track cannot take it
     const pay = craftPayOf(book, 'alchemy'), profession = professionName('alchemy');   // CRAFT3: the craft's own name
-    const xp = paidXp(brewXp(potion, rank, false), { pct: pay.pct }), more = brewXp(potion, rank, true) - brewXp(potion, rank, false);
+    const xp = paidXp(brewXp(potion, rank), { pct: pay.pct }), more = brewFirstXp(potion);
     box.append(el('p', 'px-note', [
       t('prof.page.alchemy.made', '{n, plural, one {A potion} other {# potions}} a brew.', { n: made }),
       t('prof.page.alchemy.potentLine', '{potent}{gathered, select, yes { - and +{unbruised}% for each of its herbs you picked unbruised} other {}}.', { potent: potentLine(rank, specs, 0, potion, steps), gathered: gathered ? 'yes' : 'no', unbruised: POTENT.unbruised }),
-      // CRAFT-FIRST-SHOWN: a potion wholly of the Apothecaries' goods says why its first lays on nothing (AUDIT 32 S1's law, brewFirstPays)
-      capLine(profession, pay, xp + (brewFirstPays(potion) ? more : 0))
-        || (brewFirstPays(potion) ? t('prof.page.alchemy.xpFirst', '{xp} {profession} experience, and {more} the first time.', { xp, profession, more }) : t('prof.page.alchemy.xpShop', '{xp} {profession} experience. It is made only from the Apothecaries\' goods, so it earns no first-time bonus.', { xp, profession })),
+      // CRAFT-FIRST-SHOWN: a potion wholly of the Apothecaries' goods says why its first lays on nothing (AUDIT 32 S1's law, brewFirstPays - brewFirstXp 0)
+      capLine(profession, pay, xp + more)
+        || (more > 0 ? t('prof.page.alchemy.xpFirst', '{xp} {profession} experience, and {more, number} the first time.', { xp, profession, more }) : t('prof.page.alchemy.xpShop', '{xp} {profession} experience. It is made only from the Apothecaries\' goods, so it earns no first-time bonus.', { xp, profession })),
     ].join(' ')));
     const ready = rank >= potion.rank && spends.length > 0 && spends.every((i) => held(i.key) >= i.n) && !_alchemy.crafting && !short;
     const go = el('button', 'act primary', _alchemy.crafting ? t('prof.page.alchemy.brewing', 'Brewing...') : t('prof.page.alchemy.go', 'Brew'));
@@ -3042,13 +3084,14 @@ function drawTemper(detail, rerender, { el, divider }, where) {
 }
 
 /** What the Reforge with Essence says it is, and below its rank. */
-export const ESSENCE_REFORGE_HOW = `An Enchanter rolls one line of a Magic piece again for ${REFORGE_ESSENCE.magic} Arcane Essence, or of a Rare piece for ${REFORGE_ESSENCE.rare}. Once a piece is reforged, only that line can be rolled again.`;
-export const ESSENCE_REFORGE_RANK_LINE = `From Enchanting ${REFORGE_RANK}, you can roll one line of a Magic or Rare piece again here for Arcane Essence.`;
+/** REFORGE-REPLACE (the owner: "Replace, price rises"): a line is replaced by another kind, any line, the price doubling. */
+export const ESSENCE_REFORGE_HOW = () => t('prof.page.reforge.how', 'An Enchanter replaces one line of a Magic piece with a line of another kind for {magic} Arcane Essence, or of a Rare piece for {rare}. Any line can be reforged, and each reforge doubles the price of the next on that piece.', { magic: REFORGE_ESSENCE.magic, rare: REFORGE_ESSENCE.rare });
+export const ESSENCE_REFORGE_RANK_LINE = () => t('prof.page.reforge.rank', 'From Enchanting {rank}, you can replace one line of a Magic or Rare piece with a line of another kind here, for Arcane Essence.', { rank: REFORGE_RANK });   // REFORGE-REPLACE: a line replaced, never rolled again
 export const ESSENCE_REFORGE_NONE = 'Nothing in your pack can be reforged. It takes an identified Magic or Rare piece you are not wearing.';
 /**
  * CRAFT4: THE REFORGE WITH ESSENCE - at the enchanting station, an Enchanter of rank 50's: each known Magic and Rare piece
- * of the pack, each line it may roll again (the Loot arc's own Reforge, lootRarity.js reforgeAffix), for 2 or 5 Arcane
- * Essence from the Stores - never gold's units.
+ * of the pack, each line it may replace (the Loot arc's own Reforge, lootRarity.js reforgeAffix), for 2 or 5 Arcane
+ * Essence from the Stores - never gold's units - doubled for every reforge the piece has taken (REFORGE-REPLACE).
  * @param {HTMLElement} detail @param {() => void} rerender @param {{ el: Function, divider: (w: string) => HTMLElement }} kit
  * @param {number} rank @param {string|null} short
  */
@@ -3056,14 +3099,14 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
   const p = _provider;
   if (!p?.reforgeable || !p.essenceReforge) return;
   detail.append(divider('Reforge with Essence'));
-  if (rank < REFORGE_RANK) { detail.append(el('p', 'px-note', ESSENCE_REFORGE_RANK_LINE)); return; }
-  detail.append(el('p', 'px-note', ESSENCE_REFORGE_HOW));
+  if (rank < REFORGE_RANK) { detail.append(el('p', 'px-note', ESSENCE_REFORGE_RANK_LINE())); return; }
+  detail.append(el('p', 'px-note', ESSENCE_REFORGE_HOW()));
   const ess = p.book.store?.(ARCANE_ESSENCE.key) ?? { own: workOf(p.book, ARCANE_ESSENCE.key) };
   const have = (ess.own | 0) + (ess.bought | 0) + (ess.loose | 0);   // never gold's units, as the service spends - FB1020h ESSENCE-LOOSE: a station's, its loose too
   const pieces = p.reforgeable();
   if (!pieces.length) detail.append(el('p', 'px-note', ESSENCE_REFORGE_NONE));
   for (const pc of pieces) {
-    const n = reforgeEssence(pc.tier);
+    const n = reforgeEssence(pc.tier, reforgeCount(pc.item));   // REFORGE-REPLACE: its next reforge's, doubled for each it has taken
     if (!n) continue;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${n} Arcane Essence a line`));
