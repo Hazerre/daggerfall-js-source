@@ -2097,6 +2097,7 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
   const waited = waitedPost({ fetch, storage }, listWaitMs);
   return {
     list: (mapId, buildingKey, seat = false, yard = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}), ...(yard && !seat ? { yard: true } : {}) }),   // SEAT-HALL: a palace's Charter Room; HOME-YARD: the street's pieces, for its Confirm
+    rev: (mapId, buildingKey, seat = false, yard = false) => waited('/v1/homes/decor', { mapId, buildingKey, revOnly: true, ...(seat ? { seat: true } : {}), ...(yard && !seat ? { yard: true } : {}) }),   // the standing poll: one row, the pieces only once the revision moves
     place: ({ mapId, buildingKey, character, piece, realm = null, yard = false, seat = false }) => post('/v1/homes/decor/place', { mapId, buildingKey, character, piece, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}), ...(seat ? { seat: true } : {}) }),   // REALM P2.2b: and its gold on the record; HOME-YARD: outside
     yards: (mapId) => waited('/v1/homes/yards', { mapId }),   // HOME-YARD: every yard of a town
     move: ({ mapId, buildingKey, character, id, place, realm = null, seat = false }) => post('/v1/homes/decor/move', { mapId, buildingKey, character, id, place, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),

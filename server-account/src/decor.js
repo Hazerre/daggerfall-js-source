@@ -245,8 +245,13 @@ async function shopOf(db, mapId, pieces) {
  * trips in a row - three waits in the primary's queue for a read every visitor at a door makes (HOMES-SHED's law for
  * homes/town, Scale-Arc). A shunned home's traders, its shop, go as one more (they had been a trip apiece).
  */
-export async function decorOf({ db }, player, { mapId, buildingKey, seat = false, yard = false } = {}) {
+export async function decorOf({ db }, player, { mapId, buildingKey, seat = false, yard = false, revOnly = false } = {}) {
   if (!homeMapIdOk(mapId) || !homeBuildingKeyOk(buildingKey)) return { error: 'bad-home' };
+  // A room someone is only standing in asks this, not the pieces. The full list is for a revision that moved.
+  if (revOnly === true) {
+    const row = await db.prepare('SELECT rev FROM decor_rev WHERE map_id = ? AND building_key = ?').bind(mapId, buildingKey).first();
+    return { mapId, buildingKey, rev: Number(row?.rev) || 0 };
+  }
   // HOME-YARD: the street's Confirm reads the yard's pieces and the home's revision. The room's list stays the room's.
   if (yard === true) {
     const yardRead = db.prepare(`SELECT * FROM home_decor WHERE map_id = ? AND building_key = ? AND yard = 1
