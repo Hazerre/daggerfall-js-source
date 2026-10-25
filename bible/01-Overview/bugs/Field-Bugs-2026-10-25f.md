@@ -1,4 +1,4 @@
-# FIELD BUGS 2026-10-25b - falling through the floor inside homes
+# FIELD BUGS 2026-10-25f - falling through the floor inside homes
 
 One report: "House Collision: Players can fall through the floor inside homes (specifically observed in
 player-purchased properties)." Read on `df1a2f8d8c` against the player's ARENA2 and both town packs (Beautiful
