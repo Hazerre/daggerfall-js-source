@@ -119,8 +119,11 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  minted as again, and as the Pistolet minted between (SOVEREIGN_PISTOLET_ERA) - so a finding a law of 11 made against
  *  a bow Hourlock is a finding to ask again. KETCH moved it to 13: the Gilded rung's Ketch pair (systems/gilded.js -
  *  Volendrung's Echo, a gilded Dwarven Thunderlock, and the Ketchmaster's Word, a gilded Dwarven Pistolet) are lawful from
- *  it on, so a finding a law of 12 made against either is a finding to ask again. */
-export const ITEM_LAW_VERSION = 13;
+ *  it on, so a finding a law of 12 made against either is a finding to ask again. AFFIX-LINES and REFORGE-REPLACE moved it
+ *  to 14 (2026-10-25): the Reforge's count (`reforges`, systems/loot/lootRarity.js reforgeCount) is a mark of the tiers
+ *  the Reforge takes alone - on a Legendary no Exalted, or a piece of no tier, a finding from it on (a law of 13 knew no
+ *  such field). Nothing a law of 13 found is lawful now. */
+export const ITEM_LAW_VERSION = 14;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));
