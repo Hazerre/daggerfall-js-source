@@ -2013,7 +2013,7 @@ features.enhancedSounds.note,"Nye lyde i den forbedrede brugerflade: vind udend�
 features.enhancedSounds.title,"Forbedrede lyde"
 features.enhancedWater.note,"Have, floder og damme, du kan se ned i: bølger, der vokser med vinden, skum, hvor de møder kysten, ringe i vandet, hvor noget bevæger sig, himlen og månen på overfladen. Fra bringer det klassiske flade vand tilbage."
 features.enhancedWater.title,"Forbedret vand"
-features.eventBoard.note,"En tavle i venstre side af skærmen viser de verdensbegivenheder, du stadig kan nå, med hvor langt væk hver er og den tid, der er tilbage. Deres nyheder vises øverst på tavlen og gemmes i din dagbog. Slået fra går nyhederne tilbage til chatten og skærmens beskedlinje."
+features.eventBoard.note,"En tavle i venstre side af skærmen viser de verdensbegivenheder, du stadig kan nå, med hvor langt væk hver er og den tid, der er tilbage. Deres nyheder vises øverst på tavlen og gemmes i din dagbog. Slår du en begivenhed fra med dens egen knap, forsvinder den fra tavlen, og dens nyheder gemmes kun i din dagbog. Slået fra går nyhederne tilbage til chatten og skærmens beskedlinje."
 features.eventBoard.title,"Begivenhedstavle"
 features.firstPersonLighting.note,"Det, du holder i førsteperson, får lyset fra der, hvor du står: dit våben, dine tryllende hænder, faklen i din anden hånd og Morrowind-armene."
 features.firstPersonLighting.title,"Belysning i førsteperson"
