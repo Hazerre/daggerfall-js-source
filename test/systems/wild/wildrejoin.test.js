@@ -12,7 +12,7 @@ import { mintWildReceipt, readWildReceipt, verifyWildReceipt, wildReceiptValid, 
 import { validWildRefOut, WILD_DOWN_MS_MAX, worldRoom, PIXEL_UNITS } from '../../../src/net/wire.js';
 import { SIEGE_UNITS_PER_M } from '../../../src/net/siege/siegeRef.js';
 import { createWildRejoin, WILD_REJOIN_KNOWN_MS } from '../../../src/systems/wild/wildRejoin.js';
-import { setWildDeath, wildDeath, wildDeathKill, WILD_DEATH_HOLD_S } from '../../../src/systems/wild/wildZone.js';
+import { setWildDeath, wildDeath, wildDeathKill, wildDeathLines, WILD_DEATH_HOLD_S } from '../../../src/systems/wild/wildZone.js';
 import { DeathScreen } from '../../../src/ui/deathScreen.js';
 import { presentHeardDeath, forcePlayerDeath, setDeathListener, setDeathPresenter } from '../../../src/characters/playerEntity.js';
 import { createWildSeizeHost } from '../../../src/scenes/wildSeizeHost.js';
@@ -178,6 +178,7 @@ test('WILD-REJOIN THE PAGE: a living page told it is down - and that saw no deat
     assert.deepEqual(death, { servedS: 30, p: [1, 2, 3] });
     assert.deepEqual(presented, [t], 'put down');
     assert.deepEqual([wildDeath().served, wildDeath().killer, wildDeath().dropped, wildDeathKill()], [30, null, 0, true]);
+    assert.equal(wildDeathLines()[0], 'Another player may claim one piece of your worn gear.', 'a kill by a killer this page never heard named');
     setWildDeath({ killer: null, kill: true, dropped: 4 });   // the drop's answer, later
     assert.equal(wildDeath().served, 30, 'kept through the death\'s later words');
     const screen = new DeathScreen({ online: true });
