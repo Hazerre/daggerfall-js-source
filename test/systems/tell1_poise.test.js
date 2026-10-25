@@ -426,7 +426,7 @@ test('TELL1: every door asks the poise door where it writes DFU\'s knock, passes
   const ex = rd('src/scenes/exteriorFoes.js');
   // PIN MOVED (TELL4, bible/12-Enhanced-AI/Feud-Arc.md 6.1): an overreached foe asks the door too (the first blow staggers it)
   assert.match(ex, /const _tell = \(f\.ai\?\._tac\?\.state !== 'windup' && f\.ai\?\._tac\?\.state !== 'overreach'\) \? null : windupDoor\(f, damage, \{[^\n]*\n\s*kind, weapon, round, peer, striker, from: striker\?\.ai\?\.feet \?\? playerFeet,/);
-  assert.match(ex, /if \(_tell === 'hold'\) return;\n\s*if \(knockDir && weaponKnockbackApplies\(f\.ai\.knockbackSpeed, isClass, mobileWeight\)\) \{/);
+  assert.match(ex, /if \(_tell === 'hold'\) return;\n\s*if \(knockDir && !f\.entity\?\.staffBoss && weaponKnockbackApplies\(f\.ai\.knockbackSpeed, isClass, mobileWeight\)\) \{/);   // BOSS-UNSHAKEN: a staff event's mini boss takes no shove
   assert.match(ex, /f\.ai\.knockbackSpeed = weaponKnockbackSpeed\(damage, w\) \* \(_tell === 'stagger' \? TELL\.STAGGER_KNOCK : 1\);/);
   assert.match(ex, /damageFoe\(foe, damage, playerFeet, lookDir, \{ weapon: playerWeapon\.strikingWeapon \}\);/);
   assert.match(ex, /hurting: f\.ai\.hurtKnock \|\| f\.ai\.staggered,/);
