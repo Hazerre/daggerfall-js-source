@@ -2766,6 +2766,67 @@ nobody at 2,048; what it carries is every hub hello, leave and handed-up act of 
   steps alone, no `set -x`, the input as environment and held to 1-168 whole hours; relayload 38 and d1load 12 records,
   all dead.
 
+## COST-0 - the bill, read: the objects awake and D1's rows (2026-10-24, no version, no drop)
+
+The owner's Cloudflare bill (Billable usage, 2026-10-23): about $90 a day, $2,700 a month at that rate. Durable Objects
+compute duration was $50 of it, D1 rows written $11 (some 11 million rows), D1 rows read $7.42 (some 7.4 billion rows,
+about three times the peak LEAN-READS measured), DO storage rows written $6, DO requests $5, R2 Class A $4.50.
+
+**Duration is rooms held in memory, not work.** Cloudflare bills an object's duration while it runs or sits in memory
+unable to hibernate - 128 MB whatever it uses, at $12.50 per million GB-s: $0.135 an object-day
+(developers.cloudflare.com/durable-objects/platform/pricing). An object hibernates after some seconds with no event (a
+socket's frame, an alarm firing) and nothing pending (a timer, a call out). So $50 a day is some 370 objects awake around
+the clock, and storage is not the problem. Read in the code, the likely holders: HUB-PULL's poll (above) - every chat
+shard holding a socket keeps a call open at its bus, held up to HUB_POLL_MS - so the world hub (1 bus and 16 shards) and
+every populated region (its bus and up to four shards, SCALE5c part two) never sleep; the 10-minute windows a cell
+arms (the spawn grant's tally, the staff traffic feed), which keep an emptied cell billed; and the floor, every occupied
+cell, halo, instance and fight. The split between them was never measured, and only the owner's token can measure it.
+
+**Built.**
+- **`tools/doActive.mjs`, run by `.github/workflows/do-active.yml`** ("Durable Objects awake", by hand, 1 to 7 whole UTC
+  days, the deploy's token: Account Analytics: Read). Cloudflare's GraphQL `durableObjectsPeriodicGroups` carries each
+  object's active time, and its fields are not in Cloudflare's docs - so the tool walks the schema first, from the root's
+  query type through `viewer` and `accounts` to the dataset (its dimensions, its sums, its filter's fields, its orders,
+  and the account's `settings` for it), draws that, and builds every question from the names the schema gives. A schema
+  without `objectId` or `sum.activeTime` or a filter by day stops there, red, its schema drawn. Then, day by day: the
+  objects by namespace (`Room`, `AdmitGate`, named through the account's namespaces where the token may read them), how
+  many were awake past 22 hours, the day's object-days (its own total, by namespace - never the sum of a page that may be
+  cut) and their cost; over the window the object-days a day beside the bill, a histogram of hours awake a day, and the
+  forty objects awake longest. A day touches more objects than a page holds (`maxPageSize`): the per-object rows are the
+  busiest first, and a cut page says so.
+- **The unit is read, not assumed.** Nothing documents `activeTime`'s unit. The busiest object-day is drawn under
+  microseconds and milliseconds, and the reading used is the one that puts it nearest a whole day without passing it -
+  HUB-PULL measured the hub's shards awake 21-23 hours a day, so the busiest object is a day's worth. The reconciliation
+  is the bill: the window's object-days a day times $0.135 is the duration line.
+- **`tools/d1Load.mjs`'s `written` question**: D1's rows written by route and by the tables its requests wrote (`blob5`,
+  `server-account/src/metrics.js` tablesBlob, which nothing read; the SQL API cannot split it, so a route's rows are
+  grouped by the set of tables it wrote), beside the four hot tables' exact sums (double8-11, `HOT_TABLES`), the most rows
+  first. **`d1-load.yml`'s `sort_by` input** ranks D1's query insights by `time` (as before), `reads` or `writes`, with
+  each statement's total rows read and written: 7.4 billion rows a day are found by totals.
+
+**To read:** run "Durable Objects awake" (7 days) and "Account database load" twice (`sort_by` reads, then writes; 24
+hours) from the Actions tab. The first answers how many objects are always on - those awake past 22 hours are the chat
+layer and the hub if the reading above is right - and the second which statement reads the most rows.
+
+**Measured:** not yet - every question here needs the owner's token. The numbers go here when they are read: the
+objects awake past 22 hours a day, the object-days a day against the bill's ~370, and the statement that reads most.
+
+**Left, each with its reason.**
+- **The objects' names.** The data names an object by its id (`idFromName`'s hash), never its room. A relay route that
+  answers the ids of a list of room names would match them, but it is a relay change - a version, a drop - and the count
+  past 22 hours decides the plan without it. It can ride the next relay slice.
+- **Every other line of the bill** - the rows written and read, R2's puts, the fight rooms' storage - is read by the
+  questions above first, and fixed in slices of their own.
+
+**Pins.** `test/server/doactive.test.js` (4), over a fake endpoint in the real one's shape
+(`test/fixtures/doActiveGraphql.mjs`): the window and the law (the days, the account, the price, the unit's rule, the
+histogram); the schema walked through its wrappers, the plan built from it and every missing field named, the questions
+exact; the reading (each day by namespace, its total never the page's, the cut said, the always-on count, the histogram,
+the longest awake first, the unit said, a stop after the schema, the token named on a refusal); the workflow by hand,
+its input once as environment, its own queue, the token the two steps' alone, its reading step run as written over the
+fake endpoint. `test/server/d1load.test.js`: the `written` question, the ranking input and its guard, the insights step
+run over a fake wrangler. `tools/mutants/doactive.json` 28 and `tools/mutants/d1load.json` 6 more, all dead.
+
 ## THE PLAN PAST 2,000 (2026-10-10)
 
 Mac, after #755's merge: "Alright lets now tackle the bigger work. I want to go deep and really future proof our
