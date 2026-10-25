@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { standService } from '../accountDb.mjs';
 import { realmAt, recordOf, layRecord } from '../realmSeat.mjs';
-import { homeSceneName } from '../../src/net/homeLaw.js';
+import { homeSceneName } from '../../src/net/homeScene.js';
 import { createSceneCache, restoreSceneCache, clearSceneCache, restoreCachedScene, interiorSceneName } from '../../src/systems/sceneCache.js';
 
 const HOME = { mapId: 1291010263, buildingKey: 0x10203, region: 17, price: 42000 };

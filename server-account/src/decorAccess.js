@@ -5,7 +5,8 @@
 // A shared container's goods live in decor_bin, not in two saves at once.
 import { accountKind, displayName } from './accounts.js';
 import { CHAR_ID_RE } from './service.js';
-import { homeMapIdOk, homeBuildingKeyOk, homeSceneName } from '../../src/net/homeLaw.js';
+import { homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
+import { homeSceneName } from '../../src/net/homeScene.js';
 import { DECOR_ID_RE } from '../../src/net/decorLaw.js';
 import { OWNS } from './decor.js';
 import { dropIfUnnamed, dropObjects, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmSaveTextOf, realmSideOf, recordMovedOf, REALM_ID_RE } from './realm.js';

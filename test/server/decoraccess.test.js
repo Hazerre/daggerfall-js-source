@@ -11,7 +11,7 @@ import { r2, seatRealm, recordOf, layRecord, realmAt } from '../realmSeat.mjs';
 import { validLootList } from '../../src/systems/loot/loot.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { seededRng } from '../../src/systems/wind/wind.js';
-import { homeSceneName } from '../../src/net/homeLaw.js';
+import { homeSceneName } from '../../src/net/homeScene.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const { subtle } = globalThis.crypto;

@@ -76,6 +76,7 @@ on:
       - "src/systems/gems.js"
       - "src/systems/guild/guildFactions.js"
       - "src/net/homeLaw.js"
+      - "src/net/homeScene.js"
       - "src/net/decorLaw.js"
       - "src/world/npcFlatArchives.js"
       - "src/net/homeVoteLaw.js"

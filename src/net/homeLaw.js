@@ -80,10 +80,6 @@ export const HOME_KEY_MAX = 1 << 24;
 /** A town's map id, unsigned (the room keys' spelling: MAPS.BSA reads it signed). */
 export const homeMapIdOk = (v) => Number.isSafeInteger(v) && v > 0 && v <= 0xffffffff;
 export const homeBuildingKeyOk = (v) => Number.isSafeInteger(v) && v > 0 && v <= HOME_KEY_MAX;
-/** The scene an online home's things are kept under in its owner's save - its own, never the building's
- *  (systems/online/onlineHomes.js, "AN ONLINE HOME KEEPS ITS OWN SCENE"). HOME-POUR: here so that the service, which
- *  writes a chest's goods back into that save (server-account/src/decorAccess.js moveChest), names the same scene. */
-export const homeSceneName = (mapId, buildingKey) => `OnlineHome [MapID=${Number(mapId) >>> 0}, BuildingKey=${buildingKey}]`;
 export const homeRegionOk = (v) => Number.isSafeInteger(v) && v >= 0 && v <= HOME_REGION_MAX;
 /** HOME-PRICE: a price inside the range a home costs online, in whole hundreds - the service's one check of a claim's
  *  price. AUDIT HOME-PRICE L2: the hundreds are the law's (homeOnlinePrice rounds to HOME_PRICE_STEP), and a build from
