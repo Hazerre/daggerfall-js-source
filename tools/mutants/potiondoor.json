@@ -108,6 +108,15 @@
     ]
   },
   {
+    "name": "POTION-DOOR-window-pot-touched-while-brewing",
+    "file": "src/ui/potionMakerWindow.js",
+    "old": "if (slot >= this.cauldron.length || this._brewing) return;",
+    "new": "if (slot >= this.cauldron.length) return;",
+    "tests": [
+      "test/systems/potiondoor.test.js"
+    ]
+  },
+  {
     "name": "POTION-DOOR-window-classic-word-unsaid",
     "file": "src/ui/potionMakerWindow.js",
     "old": "this.box = this._mixedBox(door?.word);",

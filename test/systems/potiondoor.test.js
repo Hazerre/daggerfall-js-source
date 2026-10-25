@@ -87,6 +87,9 @@ test('POTION-DOOR DONE WHEN: at an alchemy station, online, the potion maker lis
   assert.deepEqual(rows(w), ['Brewing...']);
   w._mix();
   assert.equal(asked.length, 1, 'a press while it is asked is that one');
+  w._removeFromCauldron(0);
+  w._fillFrom(recipe('healing'));
+  assert.equal(w.cauldron.length, 4, 'the pot it brews is not touched while it is asked');
   await settled(w);
   assert.deepEqual(asked, [['healing', ['p1:16', 'reagent:troll-blood', 'reagent:elixir-vitae', 'metal:mercury']]], 'the cauldron as the Stores hold it');
   assert.equal(book.track('alchemy').xp, 20 + 5022, 'the brew\'s XP and its first\'s share of Provisioning\'s budget, the service\'s');

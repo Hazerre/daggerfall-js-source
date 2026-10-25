@@ -5545,7 +5545,7 @@ band aids".
   M2's pack, cart and bag, the carried recipes, the one minter, the walk's spend and MakePotionService's scan, beside the
   door) - 11,039 to 11,017 logical lines, its ceiling lowered. The window (`ui/potionMakerWindow.js`) asks the door
   before it mixes (`hooks.brew`), lists `hooks.storeItems`, keeps each unit's source in the pot, holds one brew at a
-  time and empties its cauldron only when the service brewed.
+  time - its pot untouched while it is asked - and empties its cauldron only when the service brewed.
 - **THE FOUR HOSTS**: `scenes/worldModes.js` - wired (the window on the module's hooks; `alchemyHere`);
   `scenes/world.js` - the Stores page's provider (`brew`, `alchemy`) read as it stands, through profPages;
   `scenes/exterior.js` and `scenes/dungeonContext.js` - FLAGGED, none to wire: neither opens a guild's service or the
@@ -5574,7 +5574,7 @@ band aids".
   `audit_uicalm_firm1`, `fb1018d_crafthowto`, `fb1011f_stationdoor`, `brand` (A-2), `audit26_potionmaker`,
   `audit63_windows`, `potionmakerwindow`, `bag1_client`, `hostceiling`, and the account version's pins (acct182).
 - **Mutants**: `tools/mutants/firstbudget.json` (17: 16 dead; `counter-guard-dropped` equivalent - no pattern at a tier
-  both pays and is wholly the counter's goods, FACT, pinned), `tools/mutants/potiondoor.json` (21, all dead); 41 records
+  both pays and is wholly the counter's goods, FACT, pinned), `tools/mutants/potiondoor.json` (22, all dead); 41 records
   re-aimed by content - in `prof12`, `prof11`, `prof9`, `prof3`, `audit30`, `audit32`, `audit_uicalm_firm1`, `craft4`,
   `fb1015f_firstcraft` and `fb1018f_craftlimit` where the first's law moved, in `bag1`, `auditbr5` and `l10n3dwindows` where
   the maker's hooks and words moved - all dead; and ten version records moved to acct182, all dead (three judged by

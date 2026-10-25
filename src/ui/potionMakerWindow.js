@@ -235,7 +235,7 @@ export class PotionMakerWindow {
   /** AddToCauldron (:251-264) - a full pot simply refuses, with no
    *  message, and the name label clears on every change. */
   _addToCauldron(item) {
-    if (!cauldronAccepts(this.cauldron)) return;
+    if (!cauldronAccepts(this.cauldron) || this._brewing) return;   // POTION-DOOR: the pot the service is brewing is not touched
     this.nameLabel = '';
     // SplitStack(item, 1) (:257-258): the pot holds ONE unit; the
     // remainder stays in the grid through ingredients()'s subtraction.
@@ -253,7 +253,7 @@ export class PotionMakerWindow {
 
   /** RemoveFromCauldron (:266-274). */
   _removeFromCauldron(slot) {
-    if (slot >= this.cauldron.length) return;
+    if (slot >= this.cauldron.length || this._brewing) return;   // POTION-DOOR: nor taken from
     this.nameLabel = '';
     this.cauldron.splice(slot, 1);
   }
@@ -338,6 +338,7 @@ export class PotionMakerWindow {
    *  ingredient goes in, and the name label takes the recipe's name
    *  (:302-308). */
   _fillFrom(recipe) {
+    if (this._brewing) return;   // POTION-DOOR: nor refilled while it brews
     const avail = this.ingredients();
     const { found, missing } = gatherRecipe(recipe, avail.map((it) => it.templateIndex));
     if (missing.length > 0) {
