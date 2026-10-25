@@ -3784,6 +3784,11 @@
   "tr": "e8bba6a1e117",
   "by": "claude-in-session"
  },
+ "bossTraits.say.learn": {
+  "en": "60cac2158a48",
+  "tr": "60cac2158a48",
+  "by": "claude-in-session"
+ },
  "bossTraits.say.met": {
   "en": "bf6e56354aa8",
   "tr": "bf6e56354aa8",
@@ -3797,6 +3802,16 @@
  "bossTraits.say.wrath": {
   "en": "cffcce6cadd4",
   "tr": "8f036f37139c",
+  "by": "claude-in-session"
+ },
+ "bossTraits.tag.resisted": {
+  "en": "242fe4a0a59f",
+  "tr": "d355d827ab49",
+  "by": "claude-in-session"
+ },
+ "bossTraits.title": {
+  "en": "0be83ad76143",
+  "tr": "0be83ad76143",
   "by": "claude-in-session"
  },
  "bossTraits.word.bladeturning": {
@@ -9774,6 +9789,16 @@
   "tr": "bab0ad638d5f",
   "by": "claude-in-session"
  },
+ "eg.down": {
+  "en": "d1cecd5e014d",
+  "tr": "dca3eb77d844",
+  "by": "claude-in-session"
+ },
+ "eg.downOther": {
+  "en": "272c7cec1c97",
+  "tr": "8ffff23a3332",
+  "by": "claude-in-session"
+ },
  "eg.fair.air": {
   "en": "10ea2591e676",
   "tr": "4173458c7902",
@@ -9792,6 +9817,16 @@
  "eg.fair.void": {
   "en": "e16eec86fe14",
   "tr": "cfdfa3e914a3",
+  "by": "claude-in-session"
+ },
+ "eg.fall.down": {
+  "en": "bf93e5ce8bc1",
+  "tr": "cf1ce36940e4",
+  "by": "claude-in-session"
+ },
+ "eg.fall.raise": {
+  "en": "8cd7948f3599",
+  "tr": "8281641b1410",
   "by": "claude-in-session"
  },
  "eg.gather.here": {
@@ -9887,6 +9922,11 @@
  "eg.progress.gauntlet": {
   "en": "83d2b8b37cf7",
   "tr": "c65dbb97b7e0",
+  "by": "claude-in-session"
+ },
+ "eg.raised": {
+  "en": "c9ee951de528",
+  "tr": "ee25cdde8781",
   "by": "claude-in-session"
  },
  "eg.recap.close": {
@@ -10182,6 +10222,11 @@
  "events.raid.title": {
   "en": "c218d0da4252",
   "tr": "dbb2d08669bd",
+  "by": "claude-in-session"
+ },
+ "events.raid.titleKind": {
+  "en": "27b639345e6f",
+  "tr": "27b639345e6f",
   "by": "claude-in-session"
  },
  "events.serpent.hunts": {
@@ -14779,6 +14824,21 @@
   "tr": "faf5069dec41",
   "by": "claude-in-session"
  },
+ "kt.down": {
+  "en": "2cc05d16e342",
+  "tr": "c5ebdc0dd452",
+  "by": "claude-in-session"
+ },
+ "kt.raised": {
+  "en": "c9ee951de528",
+  "tr": "ee25cdde8781",
+  "by": "claude-in-session"
+ },
+ "kt.raisedOther": {
+  "en": "e770ef2c3083",
+  "tr": "25f2a8db5d53",
+  "by": "claude-in-session"
+ },
  "lamp.granted": {
   "en": "801073835a6b",
   "tr": "92fb313665d4",
@@ -15309,14 +15369,14 @@
   "tr": "1e9c062bcf34",
   "by": "claude-in-session"
  },
- "madeRules.fall": {
-  "en": "9688228b20c8",
-  "tr": "65d01c4e0c50",
+ "madeRules.fallDown": {
+  "en": "0d30009006b2",
+  "tr": "4b6edde26a59",
   "by": "claude-in-session"
  },
- "madeRules.final": {
-  "en": "f06ceaf35030",
-  "tr": "84c920a68d8b",
+ "madeRules.finalIn": {
+  "en": "c936cc2c2ca9",
+  "tr": "2ba7386d3f04",
   "by": "claude-in-session"
  },
  "madeRules.foot": {
@@ -15369,6 +15429,11 @@
   "tr": "6bb58bccb3a0",
   "by": "claude-in-session"
  },
+ "madeRules.noUnstuck": {
+  "en": "ba9929be251a",
+  "tr": "f16b2b713ef0",
+  "by": "claude-in-session"
+ },
  "madeRules.place.court": {
   "en": "e43a2f7a34e3",
   "tr": "0fe509afbf58",
@@ -15412,6 +15477,11 @@
  "madeRules.techFlight": {
   "en": "f8232772baa6",
   "tr": "833c6ab53f80",
+  "by": "claude-in-session"
+ },
+ "madeRules.unstuckHome": {
+  "en": "2fe2d2f75081",
+  "tr": "ca1335f85bb2",
   "by": "claude-in-session"
  },
  "market.page.label": {
@@ -29624,9 +29694,9 @@
   "tr": "c79e47f6cad7",
   "by": "claude-in-session"
  },
- "raid.detail.refugees": {
-  "en": "1b3c01bca571",
-  "tr": "b26cb079d834",
+ "raid.detail.refugeesSafe": {
+  "en": "d36775bc8bbc",
+  "tr": "19fa08049ce3",
   "by": "claude-in-session"
  },
  "raid.detail.sacked": {
@@ -29649,11 +29719,6 @@
   "tr": "e9b48e9ea83b",
   "by": "claude-in-session"
  },
- "raid.kind.classic": {
-  "en": "be66989af6df",
-  "tr": "7aac7033f94d",
-  "by": "claude-in-session"
- },
  "raid.kind.defend": {
   "en": "77f69e11b43b",
   "tr": "d64b95a6b4ee",
@@ -29664,18 +29729,13 @@
   "tr": "3feedd47e5e8",
   "by": "claude-in-session"
  },
- "raid.kind.staff": {
-  "en": "1b81f28b5afb",
-  "tr": "73820a3be769",
-  "by": "claude-in-session"
- },
  "raid.kind.waves": {
   "en": "d8875269ea78",
   "tr": "1ec7881254ce",
   "by": "claude-in-session"
  },
- "raid.leader": {
-  "en": "148b10bc9dc1",
+ "raid.leaderCharge": {
+  "en": "7ca61a2fee76",
   "tr": "db3789ed0dcc",
   "by": "claude-in-session"
  },
@@ -29692,11 +29752,6 @@
  "raid.leaderName.orcs": {
   "en": "0c19d7bdc849",
   "tr": "401b074edb94",
-  "by": "claude-in-session"
- },
- "raid.leaderThe": {
-  "en": "38712ec0715e",
-  "tr": "18f628e84dd2",
   "by": "claude-in-session"
  },
  "raid.refugeeLost": {

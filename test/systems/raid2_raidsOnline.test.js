@@ -336,6 +336,6 @@ test('RAID2 the world host by source: my word rides my cell frame, a peer\'s rea
   // question - and is handed the frame's kind and the clock
   const relay = rd('server/src/index.js');
   assert.match(relay, /if \(relayCfgValue\(this\._relayCfg, this\.env, 'grantStrip'\) === 'on' [^\n]*\) data = this\._grantStripped\(a, data, kind, now\);/);
-  assert.doesNotMatch(relay.replace(/\n {2}_grantStripped\(a, data, kind = 'foes', now = Date\.now\(\)\) \{[\s\S]*?\n {2}\}\n/, '\n'), /\brz\b|\brk\b|\bal\b/, 'the relay reads nothing inside a foes frame - no relay change');
+  assert.doesNotMatch(relay.replace(/\n {2}_grantStripped\(a, data, kind = 'foes', now = Date\.now\(\)\) \{[\s\S]*?\n {2}\}\n/, '\n'), /\.(?:rz|rk|al)\b|[{,]\s*(?:rz|rk|al)\s*[,}:=]/, 'the relay reads nothing inside a foes frame - no relay change');   // PIN MOVED (AUDIT WORLD-EVENTS L1-1, L1-4): no FIELD of those names read - the Hour's and the Spire's raise words are kinds named `rz` (`m.k === 'rz'`), never a foes frame's
   assert.doesNotMatch(rd('src/net/wire.js'), /RAID2|raidKey/, 'nor does the record\'s law change');
 });

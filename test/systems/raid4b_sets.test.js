@@ -531,5 +531,5 @@ test('RAID4b the host: world.js rolls a town\'s thanks off each raid receipt - A
   assert.match(w, /onSlotSaved\(\(characterId\) => \{ try \{ raidSpoils\.saved\(characterId\); \}/);
   assert.match(w, /recoverSpoils\(_spoilsStore, takeSpoil, \{ who, saves: enumerateSaves\(\)\.info\.values\(\), onHanded: \(rec\) => raidSpoils\.adopt\(rec\), key: RAID_SPOILS_KEYS\.store, inSave: _spoilsInSave \}\)\) setMidScreenText\(RAID_SPOILS_TEXT\.recovered\);/);   // AUDIT RESCUE-SAVE A1: and the kept save's records adopted, never handed twice
   assert.match(w, /else if \(name === 'mark'\) audio\.playOneShot\(SOUND\.DrawWeapon, 1\);\s*else if \(name === 'ward'\) audio\.playOneShot\(SOUND\.EquipMaceOrHammer, 1\);/);
-  assert.match(strip(read('src/systems/raidingParties.js')), /host\(\)\.onRaidReceipt\?\.\(f\.r, c\);/, 'the raid module hands the host each receipt');
+  assert.match(strip(read('src/systems/raidingParties.js')), /host\(\)\.onRaidReceipt\?\.\(f\.r, c, raidHeldFor\(c\.w\)\);/, 'the raid module hands the host each receipt');   // PIN MOVED (AUDIT WORLD-EVENTS L3-14): with whether its town was held, for the character that fought
 });

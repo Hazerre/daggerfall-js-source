@@ -248,7 +248,7 @@ export function stepVoyage(V, now, bodies, rng) {
   const out = [];
   const dt = Math.min(STEP_MAX_MS, Math.max(0, now - V.lastTickAt));
   V.lastTickAt = now;
-  for (const b of bodies) { const p = V.players[b.sub]; if (p) { p.seenAt = now; if (!b.dead) p.stoodMs += dt; } }
+  for (const b of bodies) { const p = V.players[b.sub]; if (p) { p.seenAt = now; if (!b.dead) p.stoodMs += dt; p.lay = b.dead ? (p.lay?.at ? { ...p.lay, x: b.x, y: b.y, z: b.z } : { x: b.x, y: b.y, z: b.z, at: now }) : null; } }   // AUDIT WORLD-EVENTS L1-4: where a member lies down, and since when (a raise's mark)
   const live = livingCrew(V, bodies);
   // a carrier fallen, or out of the floor its cell is of, lets it go
   for (const b of bodies) {
@@ -454,7 +454,30 @@ export function voyageWord(V, sub, m, pose, now, rng) {
     return out;
   }
   if (m.k === 'drop' || m.k === 'hurt') { dropCell(V, sub, at, now, m.k === 'hurt' ? 'struck' : 'let', out); return out; }
+  if (m.k === 'rz') {   // AUDIT WORLD-EVENTS L1-4: a crewmate's Resurrect at a member lying down (ketchRaise)
+    const r = ketchRaise(V, sub, m.to, at, now);
+    if (r) out.push(r);
+    return out;
+  }
   return out;
+}
+/**
+ * AUDIT WORLD-EVENTS L1-4 - RAISE BEFORE THE FALL (the owner, asked what Resurrect means on the Sky-Ketch: "Raise before the
+ * fall"; bible/11-Multiplayer/Sky-Ketch.md): a member whose death the ship catches lies DOWN on the deck where it fell for
+ * KT_DOWN_MS (its page holds its body there, dying - scenes/ketch/ketchClient.js), for a crewmate's Resurrect at it: the
+ * caster alive aboard, within KT_REZ_REACH_M of the body, the body down inside the window. Answers the word that raises it
+ * (`rez`, to it and named for all) or null. Past the window the fall is the page's own, as ever (out of the sky).
+ */
+export const KT_DOWN_MS = 60_000;
+export const KT_REZ_REACH_M = 10;
+/** The health the raised stands at (systems/resurrect.js RESURRECT_HEALTH_PCT - pinned equal). */
+export const KT_REZ_PCT = 0.3;
+export function ketchRaise(V, sub, to, at, now) {
+  const c = V.players[sub], p = V.players[to];
+  if (!c || !p || sub === to || !at || !p.lay || now - p.lay.at > KT_DOWN_MS) return null;
+  if (Math.hypot(at.x - p.lay.x, at.z - p.lay.z) > KT_REZ_REACH_M || Math.abs((at.y ?? 0) - (p.lay.y ?? 0)) > 3) return null;
+  p.lay = null;
+  return { k: 'rez', s: to, n: p.name, by: c.name, at: now };
 }
 
 /** THE WHOLE SHIP as the wire says it (`st`): its voyage, its stage, its crew (account, name), its bodies and their walks,

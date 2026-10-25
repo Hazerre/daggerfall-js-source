@@ -63,6 +63,7 @@ test('SD-ONELIFE / SD-REZ THE REALM REMEMBERS A DEATH: the dying pose (PCORPSE1\
     assert.deepEqual(kept.down.map(([x]) => x), ['acct-peer-ann'], 'down, kept with the realm');
     // inside the window: a friend raised her - her hello is her rise
     step(SD_REZ_MS - 1000);
+    await realm.raw(bo, JSON.stringify({ t: 'sd', k: 'rz', to: 'acct-peer-ann' }));   // PIN MOVED (AUDIT WORLD-EVENTS L1-1): the raise is the realm's to record - Bo, beside her body
     realm.room._sdRealm = undefined;   // a fresh instance reads it from storage
     const raised = await hello('peer-ann', inArena(0, -12));
     assert.equal(raised.closed, null, 'raised: back in the Hour');
@@ -93,9 +94,9 @@ test('SD-ONELIFE / SD-REZ THE REALM REMEMBERS A DEATH: the dying pose (PCORPSE1\
 });
 
 test('SD-REZ THE WINDOW\'S LAW, pure: dead for good is fallen; down inside SD_REZ_MS is a rise, past it fallen; neither is null (mutants: the edge moved; the dead read as down; the count blind to a rise)', () => {
-  const realm = { dead: ['a'], down: [['b', 1000]] };
+  const realm = { dead: ['a'], down: [['b', 1000]], raised: [['b', 1200]] };   // PIN MOVED (AUDIT WORLD-EVENTS L1-1): a rise is a raise the realm recorded
   assert.deepEqual([sdDownWord(realm, 'a', 0), sdDownWord(realm, 'b', 1000 + SD_REZ_MS), sdDownWord(realm, 'b', 1001 + SD_REZ_MS), sdDownWord(realm, 'c', 5)], ['fallen', 'rise', 'fallen', null]);
-  assert.equal(SD_REZ_MS, 120_000, 'two minutes for a friend to reach the body');
+  assert.equal(SD_REZ_MS, 70_000, 'the body\'s minute for a friend to reach it, and the page\'s ten seconds for its hello');   // PIN MOVED (AUDIT WORLD-EVENTS L1-5): it said two minutes; the body was gone at one
   assert.equal(sdDownWord({ dead: [] }, 'b', 0), null, 'a realm kept before SD-REZ has no `down`');
   // the relay's count asks the realm whether a body was raised (net/bossBody.js bodyCensus's `lives`, test/net/int11_body.test.js)
   const relay = read('server/src/index.js');

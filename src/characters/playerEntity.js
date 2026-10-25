@@ -298,6 +298,12 @@ const namedRegistry = (map) => (name, fn) => { if (typeof fn === 'function') map
 export const registerPlayerDamageMod = namedRegistry(_damageMods);
 export const registerPlayerDeathSave = namedRegistry(_deathSaves);
 export const registerPlayerHurtListener = namedRegistry(_hurtListeners);
+/** AUDIT WORLD-EVENTS L1-4 (RAISE BEFORE THE FALL): a HOLD on the player's body - `fn() -> boolean`, true while it lies down
+ *  where it fell for a made level's raise (scenes/ketch/ketchClient.js): the motor held as paralysis holds it (the hosts'
+ *  paralysis gate ORs `playerHeld()`, as it does `staffFrozen()`). */
+const _holds = new Map();
+export const registerPlayerHold = namedRegistry(_holds);
+export const playerHeld = () => { for (const fn of _holds.values()) { try { if (fn()) return true; } catch { /* a hold that throws holds nothing */ } } return false; };
 /** EG-ZR: a Shield pool's soak modifier (damageShieldPool, above - `fn(entity, entry) -> multiplier`). */
 export const registerShieldSoakMod = namedRegistry(_shieldSoaks);
 // AUDIT FINAL F10: THE DOOR OPENS - a DOOR-OPEN LISTENER, `fn(entity)`, told FIRST on every call, before the veto (a

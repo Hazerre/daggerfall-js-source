@@ -78,8 +78,9 @@ const LEADER_NAMES = Object.freeze({
 });
 /** A leader's word by its kind (a puppet's, off its record), '' for a kind no party leads with. */
 export const raidLeaderNameOf = (mobileType) => LEADER_NAMES[mobileType]?.() ?? '';
-/** A party's leader's word ("the Knight-Captain"), for the raid's line. */
-export const raidLeaderName = (type) => t('raid.leaderThe', 'the {name}', { name: raidLeaderNameOf(raidLeaderOf(type)) });
+/** A party's leader's word ("Knight-Captain"), for the raid's line - AUDIT WORLD-EVENTS L5-8: the line's own article,
+ *  never a "the" composed in front of it (it stood lowercase at the line's head). */
+export const raidLeaderName = (type) => raidLeaderNameOf(raidLeaderOf(type));
 
 /**
  * THE ASSAULT'S PLAN for a target of `tg` deaths: the waves' sizes (the target less the leader's one, shared as evenly
@@ -151,15 +152,14 @@ export function alongWay(pts, s) {
 export const wayLength = (pts) => (Array.isArray(pts) ? pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - pts[i - 1][0], p[2] - pts[i - 1][2]) : 0), 0) : 0);
 
 // ── the words ───────────────────────────────────────────────────────────────────────────────────────────────────────
-/** A kind's name on the board and the map. */
+/** A kind's name on the event board's row (AUDIT WORLD-EVENTS L5-14: the board's alone - the map names no kind; L5-15: a
+ *  classic raid and a staff event name none, '' - their words were never shown). */
 export const RAID_KIND_NAMES = Object.freeze({
-  classic: () => t('raid.kind.classic', 'Raid'),
   waves: () => t('raid.kind.waves', 'Assault'),
   defend: () => t('raid.kind.defend', 'Siege of the Standard'),
   escort: () => t('raid.kind.escort', 'Exodus'),
-  staff: () => t('raid.kind.staff', 'Attack'),
 });
-export const raidKindName = (kind) => (RAID_KIND_NAMES[kind] ?? RAID_KIND_NAMES.classic)();
+export const raidKindName = (kind) => RAID_KIND_NAMES[kind]?.() ?? '';
 /** What a kind asks, said once with the raid's own line. */
 export const raidKindAsk = (kind, town) => ({
   waves: () => t('raid.ask.waves', 'They come in waves. Hold until their leader falls.'),
@@ -167,7 +167,7 @@ export const raidKindAsk = (kind, town) => ({
   escort: () => t('raid.ask.escort', 'Refugees flee to the square of {town}. See them there safely.', { town }),
 }[kind]?.() ?? '');
 export const raidWaveLine = (n, of, town) => t('raid.wave', 'Wave {n} of {of} falls on {town}!', { n, of, town });
-export const raidLeaderLine = (name, town) => t('raid.leader', '{name} leads the last charge on {town}!', { name, town });
+export const raidLeaderLine = (name, town) => t('raid.leaderCharge', 'The {name} leads the last charge on {town}!', { name, town });   // AUDIT WORLD-EVENTS L5-8: its article its own
 export const raidBearerFellLine = (town) => t('raid.bearerFell', 'The standard of {town} has fallen! The raiders sack the town.', { town });
 export const raidRefugeeSafeLine = (n, of) => t('raid.refugeeSafe', 'A refugee reaches the square ({n} of {of} safe).', { n, of });
 export const raidRefugeeLostLine = () => t('raid.refugeeLost', 'A refugee has fallen.');
@@ -177,6 +177,6 @@ export function raidObjectiveDetail(kind, o) {
   if (!o) return '';
   if (kind === 'waves') return o.wave >= o.of ? t('raid.detail.leader', 'Their leader') : t('raid.detail.wave', 'Wave {n} of {of}', { n: o.wave + 1, of: o.of });
   if (kind === 'defend') return o.fallen ? t('raid.detail.sacked', 'Sacked') : t('raid.detail.standard', 'Standard {pct}%', { pct: Math.max(0, Math.round(o.pct ?? 100)) });
-  if (kind === 'escort') return t('raid.detail.refugees', 'Refugees: {safe} safe, {lost} lost of {of}', { safe: o.safe | 0, lost: o.lost | 0, of: o.of | 0 });
+  if (kind === 'escort') return t('raid.detail.refugeesSafe', 'Refugees: {safe} of {of} safe, {lost} lost', { safe: o.safe | 0, lost: o.lost | 0, of: o.of | 0 });   // AUDIT WORLD-EVENTS L5-13
   return '';
 }

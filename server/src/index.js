@@ -362,7 +362,7 @@ import { newRemains, foldFall, takeFrom, remainsNamedFor, collectAsk, remainsWor
 import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, seaRoomCell, DUNGEON_ROOM_TAGS, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
 import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants, wdunFleetSunk, wdunFleets } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
 import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_INTERNAL_IN, validSdInTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
-import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN, sdDownWord, SD_REZ_MS } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
+import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN, sdDownWord, sdMayRaise, SD_REZ_MS } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
 // SD-HERALD (2026-10-09, the owner: "We need to add discord integration to abyss dungeons"): TWO FILES JOIN THE BUNDLE -
 // net/superDungeon/sdHerald.js (the Abyss Dungeon's Discord posts and when they are owed, pure law - it imports sdLaw.js and
 // gateHerald.js, both here) and formats/mapsTables.js (MapsFile's verbatim tables, which import nothing - the region a
@@ -3535,7 +3535,7 @@ export class Room {
     if (step === 'eye') return;
     // ARENA4: a bout's room - a fighter's pose is the referee's (its speed checked, its place the reach's); HOTFIX 1003f: a
     // spectator's is fanned as anyone's - the stands are bodies (a private session's stranger's reaches nobody, below)
-    if (posed && m.p?.dd && typeof a.sub === 'string' && a.sub && isSdRoom(a.key)) await this._sdMarkFallen(a.key, a.sub);   // SD-ONELIFE: a death in the Hour, kept
+    if (posed && m.p?.dd && typeof a.sub === 'string' && a.sub && isSdRoom(a.key)) await this._sdMarkFallen(a.key, a.sub, m.p);   // SD-ONELIFE: a death in the Hour, kept - AUDIT WORLD-EVENTS L1-1: where it fell
     if (isArenaFloorRoom(a.key) && m.t === 'pose') {   // ARENA4b: in an exhibition's room no socket is ever on the sand
       const cur = this._attach(ws);
       if (cur.af) { try { const st = await this._boutOf(); if (st && cur.afid) poseOf(st, cur.afid, m.p.x, m.p.z, now); } catch (e) { console.warn('[arena] pose', e?.message ?? e); } }
@@ -4481,6 +4481,7 @@ export class Room {
         return;
       }
       if (!this._spend(ws, now, sdRelayGate, 'sdBucket', 'sdDrops', 'too many sd frames')) return;
+      if (m.k === 'rz') { try { if (isSdRoom(a.key)) await this._sdRaise(ws, a, m, now); else this._junk(ws); } catch (e) { console.warn('[sd] raise failed', e?.message ?? e); } return; }   // AUDIT WORLD-EVENTS L1-1: a friend's Resurrect, the realm's to record (_sdRaise)
       // SD9a: A SLOT'S SPOILS TAKEN - the hub's alone (anywhere else junk, the gate's `spent` law): its kept copy spent
       if (m.k === 'spent') {
         if (!isSocialRoom(a.key) || typeof a.sub !== 'string' || !a.sub) { this._junk(ws); return; }
@@ -8599,8 +8600,9 @@ export class Room {
     if (this._sdRealm === undefined) {
       const v = await this.state.storage.get(SD_REALM_KEY);
       const strs = (xs) => (Array.isArray(xs) ? xs.filter((x) => typeof x === 'string').slice(0, SD_FIGHTERS_MAX) : []);
-      const downs = (xs) => (Array.isArray(xs) ? xs.filter((d) => Array.isArray(d) && typeof d[0] === 'string' && Number.isSafeInteger(d[1])).map(([x, at]) => [x, at]).slice(0, SD_FIGHTERS_MAX) : []);   // SD-REZ: `down` the accounts lying dead in it, each with its moment
-      if (this._sdRealm === undefined) this._sdRealm = v && v.s === s && Array.isArray(v.in) ? { s, in: strs(v.in), gu: strs(v.gu), dead: strs(v.dead), down: downs(v.down) } : { s, in: [], gu: [], dead: [], down: [] };   // SD-ONELIFE: `dead` the accounts that died in it   // AUDIT SD II (L7 M3): `gu` the guests among them
+      const downs = (xs) => (Array.isArray(xs) ? xs.filter((d) => Array.isArray(d) && typeof d[0] === 'string' && Number.isSafeInteger(d[1])).map((d) => (Number.isFinite(d[2]) && Number.isFinite(d[3]) ? [d[0], d[1], d[2], d[3]] : [d[0], d[1]])).slice(0, SD_FIGHTERS_MAX) : []);   // SD-REZ: `down` the accounts lying dead in it, each with its moment - AUDIT WORLD-EVENTS L1-1: and where it fell
+      const raised = (xs) => downs(xs).map(([x, at]) => [x, at]);   // AUDIT WORLD-EVENTS L1-1: the raises the realm recorded (sdMayRaise), each with its moment
+      if (this._sdRealm === undefined) this._sdRealm = v && v.s === s && Array.isArray(v.in) ? { s, in: strs(v.in), gu: strs(v.gu), dead: strs(v.dead), down: downs(v.down), raised: raised(v.raised) } : { s, in: [], gu: [], dead: [], down: [], raised: [] };   // SD-ONELIFE: `dead` the accounts that died in it   // AUDIT SD II (L7 M3): `gu` the guests among them
     }
     return this._sdRealm;
   }
@@ -8613,11 +8615,11 @@ export class Room {
     if (rec === undefined) return SD_NO_BUSY;   // AUDIT SD: no answer - try again
     if (!rec || rec.s !== s || !sdHolds(rec, now)) return SD_NO_CLOSED;
     const realm = await this._sdRealmOf(s);
-    const lies = sub ? sdDownWord(realm, sub, now) : null;   // SD-REZ: down inside its window is a rise; past it, the Hollow's for good
+    const lies = sub ? sdDownWord(realm, sub, now) : null;   // SD-REZ: down inside its window and raised is a rise; past it, the Hollow's for good
+    if (lies === 'down') return SD_NO_BUSY;   // AUDIT WORLD-EVENTS L1-1: lying, and no friend's Resurrect recorded - not yet (its page asks again: the raise's word may be a moment behind it); past the window, for good
     if (lies === 'fallen' && !realm.dead.includes(sub)) await this._sdBury(realm, sub);
     if (sub && (lies === 'fallen' || (realm.dead.length >= SD_FIGHTERS_MAX && (await this.state.storage.get(sdDeadKey(sub))) != null))) return SD_NO_FALLEN;   // SD-ONELIFE: one life a Hollow; AUDIT SD III (R2): past the list, its own key
-    if (lies === 'rise') { realm.down = realm.down.filter(([x]) => x !== sub); await this.state.storage.put(SD_REALM_KEY, realm); }   // SD-REZ: raised where it lay - alive in the realm again
-    if (sub && realm.in.includes(sub)) { this._sdTellIn(s, rec, now); return null; }   // SD-THROUGH
+    if (sub && realm.in.includes(sub)) { if (lies === 'rise') await this._sdRose(realm, sub, now); this._sdTellIn(s, rec, now); return null; }   // SD-THROUGH; AUDIT WORLD-EVENTS L1-8: a rise off the lying once it is let in, never before a refusal
     if (!sdAdmits(rec, now)) return SD_NO_CLOSED;
     const f = await this._sdFightOf();
     if (f?.fell) return SD_NO_CLOSED;   // SD8b: the realm knows its own kill before the hub's word comes round
@@ -8640,8 +8642,29 @@ export class Room {
     if (sub && guest && realm.in.filter((x) => guests.has(x)).length >= SD_GUEST_SEATS && !free((x) => guests.has(x))) return SD_NO_FULL;
     if (realm.in.length >= SD_FIGHTERS_MAX && !free(() => true)) return SD_NO_FULL;
     if (sub && !realm.in.includes(sub)) { realm.in.push(sub); if (guest) realm.gu.push(sub); await this.state.storage.put(SD_REALM_KEY, realm); }
+    if (lies === 'rise') await this._sdRose(realm, sub, now);   // AUDIT WORLD-EVENTS L1-8: let in - the rise is kept
     this._sdTellIn(s, rec, now);   // SD-THROUGH: one went through - the hub hears it, and every Hollow's Way Through stands
     return null;
+  }
+  /** SD-REZ: A BODY RAISED, LET BACK IN - off the lying and the raised; AUDIT WORLD-EVENTS L1-2: and a NEW LIFE on the count
+   *  (net/bossBody.js bodyLife): its dying pose left with its socket, so the count never stamped the death (`dd`), and
+   *  under enforcement it fell the raised again and told it so every BODY_TELL_MS. */
+  async _sdRose(realm, sub, now) {
+    realm.down = realm.down.filter(([x]) => x !== sub);
+    realm.raised = (realm.raised ?? []).filter(([x]) => x !== sub);
+    await this.state.storage.put(SD_REALM_KEY, realm);
+    const f = await this._sdFightOf();
+    if (f?.players?.[sub]) { bodyLife(f.players[sub], now, this._bodyLine().body); await this._sdFightSave(f, now, true); }
+  }
+  /** AUDIT WORLD-EVENTS L1-1 (SD-REZ): A FRIEND'S RESURRECT, RECORDED BY THE REALM - from a living fighter of this realm at a
+   *  body lying down inside its window, within reach of where it fell (net/superDungeon/sdLaw.js sdMayRaise): kept, so the
+   *  body's next hello is its rise. Anything else is nothing. */
+  async _sdRaise(ws, a, m, now) {
+    if (typeof a.sub !== 'string' || !a.sub || typeof m.to !== 'string' || !m.to || m.to.length > 128 || !a.pose || a.pose.dd) return;
+    const realm = await this._sdRealmOf(sdSlotOfRoom(a.key));
+    if (!sdMayRaise(realm, a.sub, m.to, now, dungeonToRealm(a.pose.x, a.pose.y ?? 0, a.pose.z))) return;
+    realm.raised = [...(realm.raised ?? []).filter(([x]) => x !== m.to), [m.to, now]].slice(-SD_FIGHTERS_MAX);
+    await this.state.storage.put(SD_REALM_KEY, realm);
   }
   /** SD-THROUGH (Super-Dungeons.md section 6): THE HUB TOLD THAT ONE WENT THROUGH - at an admission while the hub's record
    *  is found and has no `inAt`, one tell in flight, UNAWAITED (a hello never waits on it), until the hub has answered for
@@ -8688,13 +8711,16 @@ export class Room {
    *  its after is refused (SD_NO_FALLEN), whatever its page says. SD-REZ (EVENT-RULES, the owner: "Resurrect allowed"):
    *  kept DOWN first - a hello inside SD_REZ_MS is the body a friend raised (net/superDungeon/sdLaw.js sdDownWord), and
    *  past it the death is the Hollow's for good. */
-  async _sdMarkFallen(key, sub) { return this._sdMarkFallenAt(sdSlotOfRoom(key), sub); }
+  async _sdMarkFallen(key, sub, p = null) { return this._sdMarkFallenAt(sdSlotOfRoom(key), sub, Date.now(), p && Number.isFinite(p.x) && Number.isFinite(p.z) ? dungeonToRealm(p.x, p.y ?? 0, p.z) : null); }   // AUDIT WORLD-EVENTS L1-1: and where it fell, for its raiser's reach
   /** INT12: the same, by the realm's slot - a fall by the relay's count (enforced) is the one life's, as a `dd` is. */
-  async _sdMarkFallenAt(s, sub, now = Date.now()) {
+  async _sdMarkFallenAt(s, sub, now = Date.now(), at = null) {
     const realm = await this._sdRealmOf(s);
     if (realm.dead.includes(sub) || realm.down.some(([x]) => x === sub)) return;
-    for (const [x] of realm.down.filter(([, at]) => now - at > SD_REZ_MS)) await this._sdBury(realm, x, false);   // SD-REZ: the windows passed, buried - the list stays the lying
-    realm.down = [...realm.down.filter(([, at]) => now - at <= SD_REZ_MS), [sub, now]].slice(-SD_FIGHTERS_MAX);
+    for (const [x] of realm.down.filter(([, t]) => now - t > SD_REZ_MS)) await this._sdBury(realm, x, false);   // SD-REZ: the windows passed, buried - the list stays the lying
+    const lying = [...realm.down.filter(([, t]) => now - t <= SD_REZ_MS), at ? [sub, now, Math.round(at[0] * 100) / 100, Math.round(at[2] * 100) / 100] : [sub, now]];
+    for (const [x] of lying.slice(0, Math.max(0, lying.length - SD_FIGHTERS_MAX))) await this._sdBury(realm, x, false);   // AUDIT WORLD-EVENTS L1-7: one the list cannot hold is buried, never forgotten (its next hello was a fresh admission)
+    realm.down = lying.slice(-SD_FIGHTERS_MAX);
+    realm.raised = (realm.raised ?? []).filter(([x]) => x !== sub);   // a raise of an earlier death is not this one's
     await this.state.storage.put(SD_REALM_KEY, realm);
   }
   /** SD-REZ: a death the Hollow's for good - off the lying, into its dead (past the list, one key an account: AUDIT SD III
@@ -9165,7 +9191,7 @@ export class Room {
       // forsaking, an Athenaeum's turn (net/eliteGates/egBrain.js egWord)
       const out = egWord(B, a.sub, m, pose, now, rand01);
       this._egFan(out);
-      if (m.k === 'forsake' || m.k === 'pick' || m.k === 'fell') { await this._egMint(B, now); await this._egSave(B, now, true); }
+      if (m.k === 'forsake' || m.k === 'pick' || m.k === 'fell' || m.k === 'yield' || m.k === 'rz') { await this._egMint(B, now); await this._egSave(B, now, true); }   // AUDIT WORLD-EVENTS L1-4: a fall given in to owes its end as a fall does; a raise is kept
     }
     if (!(this._egBeatArmedTo > now)) { this._egBeatArmedTo = now + BRAIN_TICK_MS; await this._egArm(now + BRAIN_TICK_MS); }
   }
@@ -9574,6 +9600,7 @@ export class Room {
     const pose = a.pose ? this._ktPoseOf(a.pose) : null;
     if (pose && bodyOut(p, line.enforce)) pose.dead = true;
     const out = voyageWord(V, a.sub, w, pose, now, rand01);
+    for (const r of out) if (r.k === 'rez' && V.players[r.s]) bodyLife(V.players[r.s], now, line.body);   // AUDIT WORLD-EVENTS L1-4: the raised, a new life on the count
     if (w.k === 'in') this._trailSeed(ws, a, now);
     this._ktFan(out);
     if (V.fell && !V.said) await this._ktFall(V, now);

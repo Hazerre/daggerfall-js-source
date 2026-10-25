@@ -18,6 +18,8 @@ import { madeLevelRule } from '../../systems/madeLevel.js';   // EVENT-RULES: wh
 import { REGEN_HELD_HURT_MS, regenHeldNow } from '../../systems/courtRules.js';
 import { EG_POTIONS_PER_HALL } from '../eliteGates/egHud.js';
 import { SD_REZ_MS } from '../../net/superDungeon/sdLaw.js';   // SD-REZ: the Hour's window for a friend's Resurrect
+import { SD_REZ_PAGE_SLACK_MS } from '../../systems/superDungeon/sdSlots.js';   // AUDIT WORLD-EVENTS L1-5: the page's own part of it
+import { EG_DOWN_MS } from '../../net/eliteGates/egBrain.js';   // AUDIT WORLD-EVENTS L1-4: a fall's window to be raised in (the Ketch's KT_DOWN_MS pinned equal)
 
 /** The attributes as the sheet names them. */
 export const STAT_WORDS = Object.freeze({
@@ -229,10 +231,12 @@ export function madeRulesLines(level) {
   if (r('techFlight') === 'refused') out.push(t('madeRules.techFlight', 'A weapon technique cannot carry you over a gap.'));
   if (r('runLeap') === 'refused') out.push(t('madeRules.runLeap', 'No running leap: every gap is a plain jump.'));
   if (r('avoidDeath') === 'refused') out.push(t('madeRules.avoidDeath', 'Stendarr\'s mercy does not reach here.'));
+  if (r('unstuck') === 'refused') out.push(t('madeRules.noUnstuck', 'No /unstuck.'));   // AUDIT WORLD-EVENTS L5-14: every rule the place holds - this one was never said
+  if (r('unstuck') === 'wayHome') out.push(t('madeRules.unstuckHome', '/unstuck takes you out by the way home.'));
   const death = r('death');
   if (death === 'castOut') out.push(t('madeRules.castOut', 'A death casts you out before the gate.'));
-  if (death === 'final') out.push(t('madeRules.final', 'A death is final for this Abyss Dungeon - unless a party member raises you within {m} minutes.', { m: SD_REZ_MS / 60000 }));
-  if (death === 'fall') out.push(t('madeRules.fall', 'A death is a fall: you wake where you came from, unless a party member raises you first.'));
+  if (death === 'final') out.push(t('madeRules.finalIn', 'A death is final for this Abyss Dungeon - unless a party member raises you within {s} seconds.', { s: (SD_REZ_MS - SD_REZ_PAGE_SLACK_MS) / 1000 }));   // AUDIT WORLD-EVENTS L1-5: the page's minute, the body's (it said two minutes; the body was gone at one)
+  if (death === 'fall') out.push(t('madeRules.fallDown', 'A death lays you down for {s} seconds: a party member can raise you there. Past it, you fall.', { s: EG_DOWN_MS / 1000 }));   // AUDIT WORLD-EVENTS L1-4: raise before the fall (the Spire's and the Ketch's window, one minute each)
   if (r('deathPenalty') === 'none') out.push(t('madeRules.noPenalty', 'A death costs you no gold.'));
   return out;
 }

@@ -3575,7 +3575,7 @@ The Burning Court and the Hour are re-plugged with their behaviour unchanged.
 | Slowfall | as today | as today | banned |
 | a technique's flight on traversal ground | as today | as today | refused |
 | the jump buffer and the late press | none | none | 0.12 s each |
-| Resurrect | as today | as today (EVENT-RULES) | as today (EVENT-RULES) |
+| Resurrect | as today | raise before the fall (EVENT-RULES, AUDIT WORLD-EVENTS L1-4) | raise before the fall (EVENT-RULES, AUDIT WORLD-EVENTS L1-4) |
 | Stendarr's AvoidDeath | as today | as today | refused |
 | a death | cast out | final for the Hollow | a fall (section 16.5) |
 | DEATH-PENALTY | as today | as today | none |
@@ -3583,13 +3583,30 @@ The Burning Court and the Hour are re-plugged with their behaviour unchanged.
 **EVENT-RULES (2026-10-25, the owner: "A lot of people are unhappy with the world event restrictions including the regen
 not working"; asked, "Back, held in a fight" and "Resurrect allowed").** Two rows changed for every made level, the
 Sky-Ketch's among them. REGENERATION IS HELD, not off (`systems/courtRules.js`): every natural source - the class's and
-the race's, a ring's, a technique's, Grit's, the Firmament's - regrows at half (`REGEN_HELD_SHARE`, each source's
-fraction carried round to round) and not at all for 5 s after the player loses health (`REGEN_HELD_HURT_MS`), so a boss's
-blows still cost but a breather between them pays; WBX6's "off" had no word on the screen, and players read it as a
-broken regeneration. RESURRECT IS ALLOWED: no level refuses a party member's Resurrect; the Hour's one life is kept by the
-relay (`Super-Dungeons.md` SD-REZ), so a fallen member may be raised within its window there and nowhere is the spell's
-door the law. THE RULES ARE SAID: a made level's tile on the HUD's status row (`ui/hud/statusTips.js madeRulesTile`, the
-enhanced HUD's too) names the place and lists what it holds and refuses, the regeneration's pause counting down on it.
+the race's, a ring's, a technique's, Grit's, the Firmament's, Hist-Sap's, the Warden's Steadfast (AUDIT WORLD-EVENTS L1-3:
+the last three had never asked) - regrows at half (`REGEN_HELD_SHARE`, each source's fraction carried round to round, each
+body its own carry - L1-9) and not at all for 5 s after the player is hurt (`REGEN_HELD_HURT_MS`, started at the player's
+hurt door, `systems/courtRulesDoor.js` - L1-10: a frame-to-frame health diff started it on a maximum's fall and missed a hit
+healed in the same frame), so a boss's blows still cost but a breather between them pays; WBX6's "off" had no word on the
+screen, and players read it as a broken regeneration. RESURRECT IS ALLOWED: no level refuses a party member's Resurrect;
+the Hour's one life is kept by the relay (`Super-Dungeons.md` SD-REZ), so a fallen member may be raised within the body's
+minute there. THE RULES ARE SAID: a made level's tile on the HUD's status row (`ui/hud/statusTips.js madeRulesTile`)
+names the place and lists what it holds and refuses, the regeneration's pause counting down on it. The tile is the
+enhanced HUD's alone (AUDIT WORLD-EVENTS L1-11, kept): the classic skin is Daggerfall's own status row, which has no
+tile for any rule; its player hears each rule where it bites - a refusal's own words, the death's card.
+
+**RAISE BEFORE THE FALL (AUDIT WORLD-EVENTS L1-4, 2026-10-25; the owner, asked what "Resurrect allowed" means where a
+death is a fall: "Raise before the fall").** Removing the refusal did nothing here: a lethal blow in the Spire is caught by
+the fall's death save (the witness's view, section 16.5), so no body ever lay for a spell. Now a death in a hall's fight,
+with another member living, lays the member DOWN where it fell for `EG_DOWN_MS` (60 s, the Hour's minute -
+`net/eliteGates/egBrain.js egLayDown`): out of the fight (`alive` 0), its Reliquaries still its own, its company told
+(`down`); its page holds the witness's eye, its body dying on every screen (`net/online.js poseDown`). A party member's
+Resurrect at it (`rz`, `net/raiseWord.js` from the world host's Resurrect door; `egRezMember`: the caster living in the
+breach, within `EG_REZ_REACH_M` of where the body lies, inside the window) stands it there at `EG_REZ_PCT` (Resurrect's
+own 30%, pinned equal), a new life on the count (`rise`, said by name to the hall). Past the window, given up (the card's
+key - `yield`), with nobody living left to raise it, or the hall cleared (the Redoubt's recall falls the downs first), it
+is THE FALL as ever. A death with no hall's fight about it (a rest, the stair) falls at once. Pins:
+`test/net/eliteGates/auditwe_down.test.js`.
 
 **The world's clock does not stop.** The shared clock turns during a three-hour breach (36 game hours, a game day and
 a half). A quest's deadline can lapse inside, which is why the start window warns of it (section 5).

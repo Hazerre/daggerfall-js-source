@@ -460,6 +460,7 @@ import { bossPlace } from '../world/gate/gateBoss.js';   // AUDIT WBX F3: where 
 import { itemIconColor32 } from '../ui/item/itemIconColor32.js';   // WBX3: a spoil's own picture on the court's floor
 import { setCourtRules } from '../systems/courtRules.js';   // WBX6: the court's laws, switched by the frame
 import '../systems/courtRulesDoor.js';   // AUDIT WORLD-EVENTS L1-10: and their pause, at the player's hurt door
+import { sendRaiseWord } from '../net/raiseWord.js';   // AUDIT WORLD-EVENTS L1-1, L1-4: a Resurrect said to the room that keeps the death
 import { gateRoomKey, isGateRoom, gateBossOf, gateTimes, gateAdmits, gateAt, gatePortentsOf, GATE_COLLAPSE_MS } from '../net/gate/gateLaw.js';   // WB3b: the court's room, and its day's end
 import { createGateCrowd, gateCrowdMax, crowdKept } from '../net/gate/gateCrowd.js';   // GATE-CROWD: the card's count draws the nearest of a crowd (CROWD-WIDE: everywhere a stranger cannot fight me)
 import { createPeerRange, peerRangeOf } from '../net/peer/peerRange.js';   // PEER-RANGE: the others drawn out to the distance on the Other players card
@@ -28392,6 +28393,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!social?.party || !f?.acct) return false;
     _rezOut = { to: f.acct, at: Date.now(), until: performance.now() + RESURRECT_HOLD_MS };
     _partyComposedAt = -Infinity;
+    sendRaiseWord(online, f.acct);   // AUDIT WORLD-EVENTS L1-1, L1-4: and to the room that keeps the death, which records the raise (net/raiseWord.js)
     return true;
   };
   // SPELL-GIFT (2026-09-27, Tabitha: "Allow casting of buffs on players outside party"): a spell whose every effect is

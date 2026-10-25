@@ -49,7 +49,8 @@ import { lootPileName } from '../../systems/worldTooltips.js';
 import { characterIdOf } from '../../systems/characterId.js';
 import { onSlotSaved, onSlotLoaded, enumerateSaves } from '../../systems/save/saveSlots.js';
 import { noteAct } from '../../systems/questlines/qlActs.js';
-import { registerPlayerDeathSave, hurtPlayer } from '../../characters/playerEntity.js';
+import { registerPlayerDeathSave, hurtPlayer, registerPlayerDamageMod, registerPlayerHold } from '../../characters/playerEntity.js';   // AUDIT WORLD-EVENTS L1-4: a body lying down takes no blow and holds still
+import { KT_DOWN_MS, KT_REZ_PCT } from '../../net/ketch/ketchBrain.js';   // AUDIT WORLD-EVENTS L1-4: the ship's window for a raise, and the health it stands the raised at
 import { flashPlayerDamage } from '../../ui/damageFlash.js';
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 import { spawnedLocationCentreLocal } from '../../world/spawnedDungeons.js';
@@ -278,6 +279,27 @@ export function createKetchClient(deps) {
     sky.hold();
     return true;
   }
+  /** AUDIT WORLD-EVENTS L1-4 - RAISE BEFORE THE FALL (net/ketch/ketchBrain.js ketchRaise): a death aboard with a crewmate on
+   *  the ship lies DOWN where it fell for KT_DOWN_MS - the body held there, dying on every screen (net/online.js `poseDown`),
+   *  no blow reaching it - for a crewmate's Resurrect (the room's `rez`); past it, THE FALL as ever. Answers whether it lay. */
+  let down = null;
+  function lieDown(why) {
+    if (down) return true;
+    const lp = online()?._pose ?? null, f = player.feetAt?.() ?? null;   // my pose's frame (the world host's `_deadMark`'s), and my feet to hold
+    if (!onShip() || falling || !lp || !Number.isFinite(lp.x) || !Array.isArray(f) || !((online()?.peers?.size ?? 0) > 0)) return false;
+    down = { why, until: Date.now() + KT_DOWN_MS, spot: [lp.x, lp.y ?? 0, lp.z], hold: [...f] };
+    if (link.carrying()) online()?.sendKetch?.('drop');
+    entity.health = Math.max(1, Math.min(entity.health, 1));
+    mid(t('kt.down', 'You are down. A crewmate can raise you within {s} seconds.', { s: KT_DOWN_MS / 1000 }));
+    return true;
+  }
+  function downFrame() {
+    if (!down) return;
+    if (Date.now() >= down.until) { const why = down.why; down = null; fall(why); return; }
+    modes()?.ktPlace?.(down.hold, null);
+  }
+  registerPlayerDamageMod('kt-down', (_e, d) => (down ? 0 : d));
+  registerPlayerHold('kt-down', () => !!down);
   /** A FALL: the death save's, the relay's count's - out of the sky to the fields, woken at KT_FALL_WAKE of my health. */
   function fall(why) {
     if (!onShip() || falling) return;
@@ -406,14 +428,16 @@ export function createKetchClient(deps) {
     try { spoils.gather(); deps.changed?.(); } catch (e) { console.warn('[kt] spoils', e?.message ?? e); }   // AUDIT KETCH L3-13: a save asked for
   }
 
-  registerPlayerDeathSave('kt-fall', () => { if (!onShip()) return false; fall('death'); return true; });
+  registerPlayerDeathSave('kt-fall', () => { if (!onShip()) return false; if (!lieDown('death')) fall('death'); return true; });   // AUDIT WORLD-EVENTS L1-4: down first
 
   return {
     /** A word from my ship's room (net/online.js onKetch): a receipt kept and carried, the count's fall of me, else folded. */
     word(w) {
       if (!w) return;
       if (w.k === 'rcpt') { claims.add(w.r); return; }
-      if (w.k === 'bd') { fall('count'); return; }
+      if (w.k === 'bd') { if (!lieDown('count')) fall('count'); return; }   // AUDIT WORLD-EVENTS L1-4: down first
+      if (w.k === 'rez' && w.s === me() && down) { down = null; entity.health = Math.max(1, Math.round((entity.maxHealth ?? 1) * KT_REZ_PCT)); mid(t('kt.raised', '{name} raises you.', { name: w.by || t('resurrect.companion', 'Your companion') })); return; }   // AUDIT WORLD-EVENTS L1-4
+      if (w.k === 'rez' && w.s !== me()) say(t('kt.raisedOther', '{by} raises {name}.', { by: w.by, name: w.n }));
       if (!onShip()) return;
       const kept = ketchShipKept(w, me(), ship(), social()?.party?.id ?? null);
       if (kept) keepShip(kept);
@@ -428,7 +452,10 @@ export function createKetchClient(deps) {
       if (aboard && !wasOnShip) { link.leave(); fight.leave(); }
       if (!aboard && wasOnShip) offShip();
       wasOnShip = aboard;
-      if (aboard) aboardFrame(t);
+      if (aboard) { downFrame(); aboardFrame(t); }   // AUDIT WORLD-EVENTS L1-4: a body lying down held where it fell
+      const o = online();
+      if (o) o.poseDown = aboard && down ? () => down?.spot ?? null : null;
+      if (!aboard) down = null;
       else if ((modes()?.mode ?? 'exterior') === 'exterior') {
         try { sky.frame(); } catch (e) { console.warn('[kt] sky', e?.message ?? e); }
         if (falling) {

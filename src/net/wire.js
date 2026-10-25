@@ -6129,7 +6129,7 @@ export function validSdRecord(v) {
 
 /** What a client may say: `found`, to the cell its Hollow stands in; `pz` (SD6b), a turn in the realm's Orrery; SD8b: the
  *  Last Moment's fight - `in`, and a blow on the Remnant (`hit`), an Echo (`ehit`), a Heart (`xhit`). */
-export const SD_KINDS = Object.freeze(['found', 'pz', 'in', 'hit', 'ehit', 'xhit', 'spent', 'vt']);   // INT12: `vt` - my body, in my own word
+export const SD_KINDS = Object.freeze(['found', 'pz', 'in', 'hit', 'ehit', 'xhit', 'spent', 'vt', 'rz']);   // INT12: `vt` - my body, in my own word; AUDIT WORLD-EVENTS L1-1: `rz` - my Resurrect at a fallen fighter's body, for the realm to record
 /** What the relay says: `ev`, the hub's record; `pz` (SD6b), the realm's Orrery; SD8b: the fight's words (a client drops
  *  any other kind). */
 export const SD_OUT_KINDS = Object.freeze(['ev', 'pz', 'st', 'mv', 'atk', 'hp', 'ph', 'ec', 'cx', 'cxh', 'cxb', 'stun', 'fell', 'lost', 'no', 'rcpt', 'bd']);   // INT12: `bd` - the relay's count has fallen me (enforced)
@@ -6184,6 +6184,7 @@ export function validSdIn(m) {
   if (m.k === 'found') return intIn(m.s, 1, SD_SLOT_MAX) && intIn(m.px, 0, 999) && intIn(m.py, 0, 499) ? { k: 'found', s: m.s, px: m.px, py: m.py } : null;
   if (m.k === 'spent') return intIn(m.s, 1, SD_SLOT_MAX) ? { k: 'spent', s: m.s } : null;   // SD9a: a slot's spoils taken
   if (m.k === 'vt') return intIn(m.v, 0, BODY_WORD_MAX) ? { k: 'vt', v: m.v } : null;   // INT12: my body's share, thousandths
+  if (m.k === 'rz') return typeof m.to === 'string' && ID_RE.test(m.to) ? { k: 'rz', to: m.to } : null;   // AUDIT WORLD-EVENTS L1-1: the account I raise
   // SD8b: the fight - an `in` (my level; my game's brain), else a blow (its number, its damage, its kind - the gate's bounds)
   if (m.k === 'in') return intIn(m.lv, 1, GATE_LV_WIRE_MAX) ? { k: 'in', lv: m.lv, ...(intIn(m.bv, 0, 999) ? { bv: m.bv } : {}) } : null;
   if (!intIn(m.q, 0, GATE_SEQ_MAX) || !finite(m.d) || m.d <= 0 || m.d > GATE_DMG_WIRE_MAX || (m.r !== 0 && m.r !== 1 && m.r !== 2)) return null;
@@ -6413,7 +6414,7 @@ export function validSdFoundTell(b) {
 // lumen each; and a run's row carries its Reliquaries' circles (`r[8]`, at most EG_RUN_REL_MAX) for the rest's stake line.
 
 /** What a client may say: `open` to the hub (EG-ZA: and `void` and `claimed`); the rest to a breach's room (EG-ZF: `heal`). */
-export const EG_KINDS = Object.freeze(['open', 'in', 'down', 'home', 'hit', 'pick', 'surplus', 'vote', 'cant', 'buy', 'lping', 'ping', 'bequest', 'forsake', 'pz', 'fell', 'use', 'vt', 'clk', 'spec', 'void', 'claimed', 'heal', 'tonic', 'mast', 'wkpaid']);   // AUDIT EG III (lane1 #5): `tonic` a Spire Tonic drunk; AUDIT EG III: `wkpaid` a Redoubt the service paid already this week (section 16.3); AUDIT EG III (section 15): `mast` - Spirebridge asked; EG-H2: `spec` - a hall of the breach's own law asked; EG-H1: `vt` my body, `clk` the shared clock's ping; EG-ZA: `void` a stake no call answered, `claimed` a held receipt the service counted - both to the hub alone
+export const EG_KINDS = Object.freeze(['open', 'in', 'down', 'home', 'hit', 'pick', 'surplus', 'vote', 'cant', 'buy', 'lping', 'ping', 'bequest', 'forsake', 'pz', 'fell', 'use', 'vt', 'clk', 'spec', 'void', 'claimed', 'heal', 'tonic', 'mast', 'wkpaid', 'yield', 'rz']);   // AUDIT WORLD-EVENTS L1-4: `yield` the fall given in to, lying down; `rz` my Resurrect at a member lying down   // AUDIT EG III (lane1 #5): `tonic` a Spire Tonic drunk; AUDIT EG III: `wkpaid` a Redoubt the service paid already this week (section 16.3); AUDIT EG III (section 15): `mast` - Spirebridge asked; EG-H2: `spec` - a hall of the breach's own law asked; EG-H1: `vt` my body, `clk` the shared clock's ping; EG-ZA: `void` a stake no call answered, `claimed` a held receipt the service counted - both to the hub alone
 /** What the hub and a breach's room say back. */
 export const EG_FIGHT_KINDS = Object.freeze(['efs', 'ead', 'emv', 'ehp', 'edie', 'efl', 'eb', 'ecut', 'etx', 'emk', 'eph', 'efell', 'eob', 'ez', 'esay', 'egust', 'edark', 'erail', 'tell', 'untell', 'ebridge']);   // EG-H1: Watchfire's `tell`, the union floor's `untell`; AUDIT EG III: Spirebridge's `ebridge`
 /** AUDIT EG III (Elite-Gates.md section 15): the longest a Spirebridge stands on the wire (ms - net/eliteGates/egSpanLaw.js EG_SB_MS, 6 s,
@@ -6427,7 +6428,7 @@ export const EG_FAIR_WIRE_WORDS = Object.freeze(['blind', 'speed', 'air', 'void'
 /** EG-ZI (Elite-Gates.md section 10.6): the most quarters a pull's toll says (net/eliteGates/egLaw.js EG_TOLL_QUARTERS - pinned equal:
  *  wire.js imports no law of the Spire's). */
 export const EG_TOLL_WIRE_MAX = 4;
-export const EG_OUT_KINDS = Object.freeze(['call', 'st', 'sg', 'co', 'fall', 'rd', 'rcpt', 'end', 'no', 'bd', 'clk', 'spec', ...EG_FIGHT_KINDS, ...EG_RUN_KINDS]);   // EG-H1: `bd` the count's fall of me, `clk` the clock's answer
+export const EG_OUT_KINDS = Object.freeze(['call', 'st', 'sg', 'co', 'fall', 'down', 'rd', 'rcpt', 'end', 'no', 'bd', 'clk', 'spec', ...EG_FIGHT_KINDS, ...EG_RUN_KINDS]);   // AUDIT WORLD-EVENTS L1-4: `down` a member lying down   // EG-H1: `bd` the count's fall of me, `clk` the clock's answer
 /** A hall's stages as the wire says them (section 7): before the first hall (`wait` - the arch rising, sealed, open),
  *  the arrival and gather, the trial, the closing (its door open), a Redoubt's rest, the end. */
 export const EG_STAGES = Object.freeze(['wait', 'arrive', 'trial', 'closing', 'rest', 'end']);
@@ -6441,7 +6442,7 @@ export const EG_NO_WORDS = Object.freeze(['the breach is closed', 'the breach an
 export const EG_SAY_KEYS = Object.freeze(['wake', 'fury', 'covenant', 'covenantrest', 'stunned', 'scent', 'scorched', 'phase', 'images', 'examination', 'cage', 'passed', 'failed', 'challenge', 'challengewon',
   'challengeend', 'conquest', 'muster', 'tithe', 'bare', 'twinfell', 'twinraised', 'crossing', 'chaining', 'grounded', 'anchors', 'vanish', 'tether', 'tetherbroken', 'eclipse', 'mirrors', 'relit', 'landed',
   'broken', 'stirs', 'raised', 'raisebroken', 'door', 'recalled', 'home', 'goldrun', 'mimic', 'memento', 'relicbroken', 'silenced', 'orrerytrue', 'chamberdone', 'freed', 'desertertook', 'sapperfed',
-  'reopened', 'cantrip', 'bargain', 'respite', 'ready',
+  'reopened', 'cantrip', 'bargain', 'respite', 'ready', 'rezzed',   // AUDIT WORLD-EVENTS L1-4: `rezzed` a member raised where it lay
   // EG-FULL LAYER THREE: a false wall falls, an engine worked, the Clan Pit's horn (blown, won, fouled), the Low Road's
   // niche, the High Road's cache, the Low Road taken
   'seam', 'engine', 'horn', 'hornwon', 'hornfoul', 'niche', 'hcache', 'lowroad',
@@ -6655,6 +6656,8 @@ export function validEgIn(m) {
     case 'home': return { k: 'home' };
     case 'forsake': return { k: 'forsake' };
     case 'fell': return { k: 'fell' };
+    case 'yield': return { k: 'yield' };   // AUDIT WORLD-EVENTS L1-4
+    case 'rz': return egId(m.to) ? { k: 'rz', to: m.to } : null;   // AUDIT WORLD-EVENTS L1-4: the member raised, by account
     case 'tonic': return { k: 'tonic' };   // AUDIT EG III (lane1 #5): a Spire Tonic of my run drunk (section 17.1 - the room heals it)
     case 'hit': return intIn(m.i, 1, 1e9) && intIn(m.q, 0, 0x7fffffff) && finite(m.d) && m.d >= 1 && m.d <= 1e6 && intIn(m.r, 0, 2) ? { k: 'hit', i: m.i, q: m.q, d: m.d, r: m.r } : null;
     case 'pick': return intIn(m.v, 0, 199) ? { k: 'pick', v: m.v } : null;
@@ -6726,6 +6729,7 @@ export function validEgOut(m) {
     case 'sg': { const st = egStage(m); return st ? { k: 'sg', ...st } : null; }
     case 'co': { const co = egCompany(m.co, true); return co ? { k: 'co', co } : null; }
     case 'fall': return egId(m.s) && typeof m.n === 'string' && gateMs(m.at) ? { k: 'fall', s: m.s, n: sanitizeName(m.n), at: m.at, fin: m.fin === 1 ? 1 : 0 } : null;
+    case 'down': return egId(m.s) && typeof m.n === 'string' && gateMs(m.until) ? { k: 'down', s: m.s, n: sanitizeName(m.n), until: m.until } : null;   // AUDIT WORLD-EVENTS L1-4: a member lying down, for a raise until then
     case 'rd': {
       const dm = m.dm === undefined ? null : egChartW(m.dm);   // EG-ZF: the Court's chart at its lord's fall - a bad one is no chart, never no Redoubt
       return intIn(m.w, 1, EG_HALL_WIRE_MAX) && intIn(m.h, 1, EG_HALL_WIRE_MAX) && gateMs(m.at) && intIn(m.cl, 0, EG_COUNT_WIRE_MAX) && intIn(m.g ?? 0, -EG_COUNT_WIRE_MAX, EG_COUNT_WIRE_MAX)
@@ -6779,7 +6783,7 @@ export function validEgOut(m) {
     case 'tally': return typeof m.q === 'string' && /^[a-z:]{1,24}$/.test(m.q) && Array.isArray(m.v) && m.v.length <= 8 && m.v.every((x) => intIn(x, 0, 9)) ? { k: 'tally', q: m.q, v: [...m.v] } : null;
     case 'egot': return EG_GOT_WORDS.includes(m.w) ? (m.w === 'page' ? (intIn(m.p, 0, 29) ? { k: 'egot', w: 'page', p: m.p } : null) : { k: 'egot', w: m.w }) : null;
     case 'run': { const r = egRunW(m.r); return r ? { k: 'run', r } : null; }
-    case 'rise': return egId(m.s) && finite(m.p) && m.p > 0 && m.p <= 1 && egXZ(m.x) && egXZ(m.z) && intIn(m.h, 1, EG_HALL_WIRE_MAX) ? { k: 'rise', s: m.s, p: m.p, x: m.x, z: m.z, h: m.h } : null;
+    case 'rise': return egId(m.s) && finite(m.p) && m.p > 0 && m.p <= 1 && egXZ(m.x) && egXZ(m.z) && intIn(m.h, 1, EG_HALL_WIRE_MAX) ? { k: 'rise', s: m.s, p: m.p, x: m.x, z: m.z, h: m.h, ...(typeof m.by === 'string' && m.by ? { by: egText(m.by, 48) ?? '' } : {}) } : null;   // AUDIT WORLD-EVENTS L1-4: `by` the raiser's name
     case 'eping': return egId(m.s) && egXZ(m.x) && egXZ(m.z) && intIn(m.w, 0, 2) ? { k: 'eping', s: m.s, x: m.x, z: m.z, w: m.w, wit: m.wit === 1 ? 1 : 0 } : null;
     case 'pz': return Array.isArray(m.st) && m.st.length === 6 && m.st.every((h) => intIn(h, 0, 11)) && intIn(m.f, 0, 99) && intIn(m.lit, 0, 6) ? { k: 'pz', st: [...m.st], f: m.f, lit: m.lit, ok: m.ok === 1 ? 1 : 0, x: m.x === 1 ? 1 : 0, by: egText(m.by ?? '', 48) ?? '' } : null;
     case 'eheal': return finite(m.p) && m.p >= -1 && m.p <= 1 ? { k: 'eheal', p: m.p, why: typeof m.why === 'string' && /^[a-z]{0,12}$/.test(m.why) ? m.why : '' } : null;
@@ -6812,9 +6816,9 @@ export const KT_RELAY_MIN = 255;
 export const relaySupportsKetch = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= KT_RELAY_MIN; };
 /** What a member may say: its `in` to the bridge's fight, a blow (`hit`), a cell taken, set, let go or knocked from its
  *  hands, and its body's word (`vt`). */
-export const KT_IN_KINDS = Object.freeze(['in', 'hit', 'pick', 'bank', 'drop', 'hurt', 'vt', 'spent']);   // AUDIT KETCH L1-2: `spent`, a voyage's share given - to the hub alone
+export const KT_IN_KINDS = Object.freeze(['in', 'hit', 'pick', 'bank', 'drop', 'hurt', 'vt', 'spent', 'rz']);   // AUDIT WORLD-EVENTS L1-4: `rz` my Resurrect at a crewmate lying down   // AUDIT KETCH L1-2: `spent`, a voyage's share given - to the hub alone
 /** What the room says (a page drops any other kind). */
-export const KT_OUT_KINDS = Object.freeze(['st', 'nb', 'mv', 'bl', 'hp', 'dn', 'sg', 'cl', 'wave', 'wk', 'drop', 'pick', 'bank', 'wf', 'ws', 'whp', 'ph', 'ward', 'rs', 'fk', 'fkh', 'fkb', 'stun', 'sec', 'lost', 'wl', 'fell', 'rcpt', 'no', 'bd']);
+export const KT_OUT_KINDS = Object.freeze(['st', 'nb', 'mv', 'bl', 'hp', 'dn', 'sg', 'cl', 'wave', 'wk', 'drop', 'pick', 'bank', 'wf', 'ws', 'whp', 'ph', 'ward', 'rs', 'fk', 'fkh', 'fkb', 'stun', 'sec', 'lost', 'wl', 'fell', 'rcpt', 'no', 'bd', 'rez']);   // AUDIT WORLD-EVENTS L1-4: `rez` a member raised where it lay
 /** The fight's brain, by number (the Hour's SD_BRAIN_V law): said on every `in`, refused below KT_BRAIN_MIN. */
 export const KT_BRAIN_V = 1;
 export const KT_BRAIN_MIN = 1;
@@ -6846,6 +6850,7 @@ export function validKetchIn(m) {
   if (m.k === 'pick') return intIn(m.c, 0, KT_CELL_SPOT_MAX) ? { k: 'pick', c: m.c } : intIn(m.l, 1, 1e9) ? { k: 'pick', l: m.l } : null;
   if (m.k === 'bank') return intIn(m.s, 0, KT_CELL_SPOT_MAX) ? { k: 'bank', s: m.s } : null;
   if (m.k === 'spent') return intIn(m.n, 0, KT_VOYAGE_N_MAX) ? { k: 'spent', n: m.n } : null;
+  if (m.k === 'rz') return typeof m.to === 'string' && ID_RE.test(m.to) ? { k: 'rz', to: m.to } : null;   // AUDIT WORLD-EVENTS L1-4: the crewmate raised, by account
   if (!intIn(m.o, 1, KT_BODY_ID_MAX) || !intIn(m.q, 0, GATE_SEQ_MAX) || !finite(m.d) || m.d <= 0 || m.d > GATE_DMG_WIRE_MAX || (m.r !== 0 && m.r !== 1 && m.r !== 2)) return null;
   return { k: 'hit', o: m.o, q: m.q, d: m.d, r: m.r };
 }
@@ -6888,6 +6893,7 @@ export function validKetchOut(m) {
   const name = (v) => (typeof v === 'string' && v.length <= 48 ? sanitizeName(v) : '');
   switch (m.k) {
     case 'bd': return { k: 'bd' };
+    case 'rez': return typeof m.s === 'string' && ID_RE.test(m.s) && ktMs(m.at) ? { k: 'rez', s: m.s, n: name(m.n), by: name(m.by), at: m.at } : null;   // AUDIT WORLD-EVENTS L1-4
     case 'no': return intIn(m.m, 0, KT_NO_WORDS.length - 1) ? { k: 'no', m: m.m } : null;
     case 'rcpt': return typeof m.r === 'string' && m.r.length <= KT_RECEIPT_WIRE_MAX && KT_RECEIPT_RE.test(m.r) ? { k: 'rcpt', r: m.r } : null;
     case 'nb': { const b = ktBody(m.b); return b && ktMs(m.up) ? { k: 'nb', b, up: m.up, wk: m.wk === 0 ? 0 : 1 } : null; }

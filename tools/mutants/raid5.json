@@ -219,7 +219,7 @@
   {
     "name": "RAID5-the-board-detail-dropped",
     "file": "src/systems/eventBoard.js",
-    "old": "const count = live && r.obj ? [r.kind ? `${r.kind}: ${r.obj}` : r.obj, counted].filter(Boolean).join(' - ') : counted;",
+    "old": "const count = live && r.obj ? [r.obj, counted].filter(Boolean).join(' - ') : counted;",
     "new": "const count = counted;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },

@@ -65,7 +65,7 @@ test('SD3 the wire: the frame\'s one kind each way, projected; the record\'s law
   assert.equal(relaySupportsSd(RELAY_VERSION), true);
   assert.equal(relaySupportsSd('world174'), false, 'LEGACY7\'s relay closes the socket on `sd`');
   for (const v of [undefined, null, '', 'world', 'world17x', 'acct172', 172]) assert.equal(relaySupportsSd(v), false, String(v));
-  assert.deepEqual([...SD_KINDS], ['found', 'pz', 'in', 'hit', 'ehit', 'xhit', 'spent', 'vt']);   // INT12: and a body's word (PIN MOVED)   // SD9a: and a slot's spoils taken (PIN MOVED)   // SD6b: and `pz`, the Orrery's turn (PIN MOVED); SD8b: and the fight's words (PIN MOVED)
+  assert.deepEqual([...SD_KINDS], ['found', 'pz', 'in', 'hit', 'ehit', 'xhit', 'spent', 'vt', 'rz']);   // AUDIT WORLD-EVENTS L1-1 (PIN MOVED): and `rz`, a friend's Resurrect for the realm to record   // INT12: and a body's word (PIN MOVED)   // SD9a: and a slot's spoils taken (PIN MOVED)   // SD6b: and `pz`, the Orrery's turn (PIN MOVED); SD8b: and the fight's words (PIN MOVED)
   assert.deepEqual([...SD_OUT_KINDS], ['ev', 'pz', 'st', 'mv', 'atk', 'hp', 'ph', 'ec', 'cx', 'cxh', 'cxb', 'stun', 'fell', 'lost', 'no', 'rcpt', 'bd']);   // INT12: and the count's fall (PIN MOVED)   // SD9a: and the fall's receipt (PIN MOVED)   // SD6b: and `pz`, the Orrery's hall (PIN MOVED); SD8b: and the fight's (PIN MOVED)
   assert.deepEqual(validSdIn({ k: 'found', s: 3, px: PX, py: PY, junk: 1 }), { k: 'found', s: 3, px: PX, py: PY }, 'projected');
   for (const bad of [{ k: 'found', s: 0, px: 1, py: 1 }, { k: 'found', s: 1e9, px: 1, py: 1 }, { k: 'found', s: 1.5, px: 1, py: 1 }, { k: 'found', s: 1, px: 1000, py: 1 }, { k: 'found', s: 1, px: 1, py: 500 }, { k: 'found', s: 1, px: -1, py: 1 }, { k: 'ev', s: 1, px: 1, py: 1 }, null, 'found']) assert.equal(validSdIn(bad), null, JSON.stringify(bad));
@@ -252,7 +252,7 @@ test('SD3 the realm: the Worker mints `sd:<s>` only for the slot the hub\'s reco
     const realm = W.world.room(sdRoomKey(rec.s));
     const a = realm.connect(); await realm.hello(a, 'peer-a', null, { name: 'Ann' });
     assert.equal(a.closed, null, 'a newcomer while found');
-    assert.deepEqual(realm.store.get(SD_REALM_KEY), { s: rec.s, in: ['acct-peer-a'], gu: ['acct-peer-a'], dead: [], down: [] });   // AUDIT SD II (PIN MOVED, L7 M3): and the guests among them; SD-ONELIFE (PIN MOVED): and its dead; SD-REZ (PIN MOVED): and those lying dead, for a friend's Resurrect
+    assert.deepEqual(realm.store.get(SD_REALM_KEY), { s: rec.s, in: ['acct-peer-a'], gu: ['acct-peer-a'], dead: [], down: [], raised: [] });   // AUDIT WORLD-EVENTS L1-1 (PIN MOVED): and the raises it recorded   // AUDIT SD II (PIN MOVED, L7 M3): and the guests among them; SD-ONELIFE (PIN MOVED): and its dead; SD-REZ (PIN MOVED): and those lying dead, for a friend's Resurrect
     const a2 = realm.connect(); await realm.hello(a2, 'peer-a2', null, { name: 'Ann', tokenSub: 'acct-peer-a' });
     assert.equal(a.closed?.reason, 'replaced', 'one seat an account');
     // the boss falls: the record says fell (the realm's own slice says it in SD8 - here, the hub's record moved)

@@ -333,7 +333,7 @@ test('AUDIT WORLD-EVENTS L3-11/L3-13: what was said is saved and said once - a l
   setSharedClock(() => r2.at.now);
   for (const ro of [[[KEY, 3, 1, 0]], [[KEY, 3, 0, 0]], [[KEY, 3, 1, 0]]]) { raidPeerWord('aaa-0001', [[KEY, 0, 60000]], r2.at.wall, ro); frame(1); }
   assert.equal(r2.log.said.filter((l) => l === raidRefugeeSafeLine(1, RAID_REFUGEES)).length, 1, 'said once');
-  assert.equal(raidTimerList(() => 0)[0].obj, 'Refugees: 1 safe, 0 lost of 3');
+  assert.equal(raidTimerList(() => 0)[0].obj, 'Refugees: 1 of 3 safe, 0 lost');
   r2.at.wall += RAID_WORD_STALE_MS + 1;
   assert.equal(raidTimerList(() => 0)[0].obj ?? '', '', 'a word from a runner gone leaves the board');
 });

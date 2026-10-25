@@ -135,7 +135,7 @@ test('RAID5 THE ASSAULT\'S PLAN: three waves (four past twenty), the target less
   assert.equal(raidLeaderOf(0), 145);
   assert.equal(raidLeaderOf(1), 139);
   assert.equal(raidLeaderOf(2), 24);
-  assert.equal(raidLeaderName(2), 'the Orc Warlord');
+  assert.equal(raidLeaderName(2), 'Orc Warlord');   // PIN MOVED (AUDIT WORLD-EVENTS L5-8): the line's article its own
 });
 
 test('RAID5 the ways and the words: a point along a way and its length; what each kind asks; the board\'s detail of each objective; the kinds\' names (mutants: the way\'s end not kept; a detail\'s count off by one)', () => {
@@ -152,9 +152,9 @@ test('RAID5 the ways and the words: a point along a way and its length; what eac
   assert.equal(raidObjectiveDetail('waves', { wave: 3, of: 3 }), 'Their leader');
   assert.equal(raidObjectiveDetail('defend', { pct: 42.4 }), 'Standard 42%');
   assert.equal(raidObjectiveDetail('defend', { pct: 0, fallen: true }), 'Sacked');
-  assert.equal(raidObjectiveDetail('escort', { safe: 1, lost: 1, of: 3 }), 'Refugees: 1 safe, 1 lost of 3');
+  assert.equal(raidObjectiveDetail('escort', { safe: 1, lost: 1, of: 3 }), 'Refugees: 1 of 3 safe, 1 lost');   // PIN MOVED (AUDIT WORLD-EVENTS L5-13)
   assert.equal(raidObjectiveDetail('classic', { wave: 0 }), '');
-  assert.deepEqual(['classic', 'waves', 'defend', 'escort', 'staff'].map(raidKindName), ['Raid', 'Assault', 'Siege of the Standard', 'Exodus', 'Attack']);
+  assert.deepEqual(['classic', 'waves', 'defend', 'escort', 'staff'].map(raidKindName), ['', 'Assault', 'Siege of the Standard', 'Exodus', '']);   // PIN MOVED (AUDIT WORLD-EVENTS L5-15): a classic raid and a staff event name no kind (their words were never shown)
 });
 
 test('RAID5 the objective\'s word (`ro`): [key, kind, a, b] - a kind of a raid with one (never the classic), counts 0..100, each raid once, at most four; junk dropped, never guessed at (mutants: the classic let through; a bound off by one; a duplicate kept)', () => {
@@ -196,7 +196,8 @@ test('RAID5 THE ASSAULT, run: the first wave its size and no more, said with wha
   assert.equal(leader[0].entity.eliteFoe, true);
   assert.equal(leader[0].entity.raidLeader?.name, 'Orc Warlord');
   assert.equal(leader[0].entity.bossTraits.length, RAID_LEADER_TRAITS, 'two traits');
-  assert.ok(log.said.includes(raidLeaderLine('the Orc Warlord', TOWN)));
+  assert.ok(log.said.includes(raidLeaderLine('Orc Warlord', TOWN)));
+  assert.equal(raidLeaderLine('Orc Warlord', TOWN), `The Orc Warlord leads the last charge on ${TOWN}!`);   // PIN MOVED (AUDIT WORLD-EVENTS L5-8)
   kill(leader[0]);
   await run(1);
   const raid = raidState().raids[0];
@@ -270,7 +271,7 @@ test('RAID5 THE EXODUS, run: three refugees stood at the way\'s start; their gui
   c.ai.feet = [30, 0, 0];
   await run(1);
   assert.equal(raidHeld(raid), true, 'two: held');
-  assert.equal(raidTimerList(() => 0)[0].obj, 'Refugees: 2 safe, 1 lost of 3');
+  assert.equal(raidTimerList(() => 0)[0].obj, 'Refugees: 2 of 3 safe, 1 lost');   // PIN MOVED (AUDIT WORLD-EVENTS L5-13)
   await run(ACTOR_SWEEP_S + 1);
   assert.ok(log.removed.includes(a) && log.removed.includes(c), 'the saved go, out of sight');
   const n = log.raiders.length;
@@ -340,8 +341,10 @@ test('RAID5 a town held, its thanks: the gold half again and one more Magic-or-b
 test('RAID5 the board: a live raid of a kind names it and its objective before the count; a classic raid its count alone (mutants: the detail dropped)', () => {
   const base = { name: TOWN, region: 'Region3', type: 'orcs', startMs: 0, endMs: 9e9, key: KEY, n: 3, tg: 20 };
   const row = (r) => eventBoardModel({ now: 1000, raids: [r] }).rows.find((x) => x.kind === 'raid');
-  assert.equal(row({ ...base, kind: 'Siege of the Standard', obj: 'Standard 40%' }).detail, 'Siege of the Standard: Standard 40% - Raiders down: 3 of 20');
-  assert.equal(row({ ...base, kind: 'Raid', obj: '' }).detail, 'Raiders down: 3 of 20');
+  assert.equal(row({ ...base, kind: 'Siege of the Standard', obj: 'Standard 40%' }).detail, 'Standard 40% - Raiders down: 3 of 20');   // PIN MOVED (AUDIT WORLD-EVENTS L5-13): the kind in the title
+  assert.equal(row({ ...base, kind: 'Siege of the Standard', obj: 'Standard 40%' }).title, `Siege of the Standard: ${TOWN}`);
+  assert.equal(row({ ...base, kind: '', obj: '' }).detail, 'Raiders down: 3 of 20');
+  assert.equal(row({ ...base, kind: '', obj: '' }).title, `Raid on ${TOWN}`);
 });
 
 test('RAID5 the sites host on a grid of its own: the square the walkable cell nearest the middle; a way from the side named to it along the streets; a bearer the watch\'s, eight times as hardy and leashed to his post; a refugee the street pool\'s ally, loose and transient, four times as hardy, walking behind its guide (mutants: the bearer unleashed; the refugee hostile; the way from the wrong side)', async () => {

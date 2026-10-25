@@ -2,8 +2,8 @@
   {
     "name": "SD12-ONELIFE-the-death-unkept",
     "file": "server/src/index.js",
-    "old": "if (posed && m.p?.dd && typeof a.sub === 'string' && a.sub && isSdRoom(a.key)) await this._sdMarkFallen(a.key, a.sub);",
-    "new": "if (false) await this._sdMarkFallen(a.key, a.sub);",
+    "old": "if (posed && m.p?.dd && typeof a.sub === 'string' && a.sub && isSdRoom(a.key)) await this._sdMarkFallen(a.key, a.sub, m.p);",
+    "new": "if (false) await this._sdMarkFallen(a.key, a.sub, m.p);",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
     ]
@@ -29,8 +29,8 @@
   {
     "name": "SD12-ONELIFE-memory-alone",
     "file": "server/src/index.js",
-    "old": "gu: strs(v.gu), dead: strs(v.dead), down: downs(v.down) }",
-    "new": "gu: strs(v.gu), dead: [], down: [] }",
+    "old": "gu: strs(v.gu), dead: strs(v.dead), down: downs(v.down), raised: raised(v.raised) }",
+    "new": "gu: strs(v.gu), dead: [], down: [], raised: [] }",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
     ]

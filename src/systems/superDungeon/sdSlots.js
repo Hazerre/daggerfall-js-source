@@ -44,7 +44,7 @@ export function sdSlotsKept(key, me, storage = appStorage, clock = () => Date.no
     has: (s) => { const k = keyNow(); return stored(k).has(s) || !!own.get(k)?.has(s); },
     add: (s) => {
       const k = keyNow();
-      last = { s, at: clock() };
+      if (last?.s !== s) last = { s, at: clock() };   // AUDIT WORLD-EVENTS L1-6: the death's own moment - the world host adds the slot every frame of the death screen, and the window it stamped never shut (a rise clears it, so a second death stamps its own)
       if (!own.has(k)) own.set(k, new Set());
       own.get(k).add(s);
       const now = stored(k);

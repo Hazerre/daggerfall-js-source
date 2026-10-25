@@ -132,8 +132,8 @@
   {
     "name": "SD-REZ-the-window-ignored",
     "file": "src/net/superDungeon/sdLaw.js",
-    "old": "  return now - d[1] <= SD_REZ_MS ? 'rise' : 'fallen';",
-    "new": "  return 'rise';",
+    "old": "  if (now - d[1] > SD_REZ_MS) return 'fallen';\n  return (realm.raised",
+    "new": "  return (realm.raised",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
     ]
@@ -141,7 +141,7 @@
   {
     "name": "SD-REZ-the-window-never-opens",
     "file": "src/net/superDungeon/sdLaw.js",
-    "old": "  return now - d[1] <= SD_REZ_MS ? 'rise' : 'fallen';",
+    "old": "  return (realm.raised ?? []).some(([x, at]) => x === sub && at >= d[1]) ? 'rise' : 'down';",
     "new": "  return 'fallen';",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
@@ -150,8 +150,8 @@
   {
     "name": "SD-REZ-the-rise-kept-down",
     "file": "server/src/index.js",
-    "old": "    if (lies === 'rise') { realm.down = realm.down.filter(([x]) => x !== sub); await",
-    "new": "    if (lies === 'rise') { await",
+    "old": "    realm.down = realm.down.filter(([x]) => x !== sub);\n    realm.raised = (realm.raised ?? []).filter(([x]) => x !== sub);\n    await this.state.storage.put(SD_REALM_KEY, realm);\n    const f = await this._sdFightOf();",
+    "new": "    realm.raised = (realm.raised ?? []).filter(([x]) => x !== sub);\n    await this.state.storage.put(SD_REALM_KEY, realm);\n    const f = await this._sdFightOf();",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
     ]
@@ -159,7 +159,7 @@
   {
     "name": "SD-REZ-dead-at-once",
     "file": "server/src/index.js",
-    "old": "    realm.down = [...realm.down.filter(([, at]) => now - at <= SD_REZ_MS), [sub, now]].slice(-SD_FIGHTERS_MAX);",
+    "old": "    realm.down = lying.slice(-SD_FIGHTERS_MAX);",
     "new": "    realm.dead.push(sub);",
     "tests": [
       "test/net/superDungeon/sd12_onelife.test.js"
