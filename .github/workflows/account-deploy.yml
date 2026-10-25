@@ -319,6 +319,7 @@ on:
       - "src/systems/loot/loot.js"
       - "src/systems/loot/lootDataTables.js"
       - "src/systems/loot/lootRarity.js"
+      - "src/systems/loot/gemGrades.js"
       - "src/combat/technique/techniqueRoster.js"
       - "src/systems/masterSkills.js"
       - "src/systems/mentorMode.js"

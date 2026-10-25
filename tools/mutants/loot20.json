@@ -37,12 +37,13 @@
   },
   {
     "name": "LOOT20-the-gems-out-of-order",
-    "file": "src/systems/loot/lootRarity.js",
+    "file": "src/systems/loot/gemGrades.js",
     "old": "export const GEM_IDS = Object.freeze(['ruby', 'emerald', 'sapphire', 'diamond', 'jade', 'turquoise', 'malachite', 'amber']);",
     "new": "export const GEM_IDS = Object.freeze(['ruby', 'sapphire', 'emerald', 'diamond', 'jade', 'turquoise', 'malachite', 'amber']);",
     "tests": [
       "test/systems/loot20_sockets.test.js"
-    ]
+    ],
+    "note": "PIN MOVED (CLOTH-GEMS GEM-GRADES): re-aimed by content - a gem's kind, grade and price ladder moved to their one home, systems/loot/gemGrades.js (a leaf the jeweller's law reads too); lootRarity.js and gems.js re-export them."
   },
   {
     "name": "LOOT20-a-weapon-reads-as-a-jewel",
