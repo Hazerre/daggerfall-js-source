@@ -108,6 +108,19 @@ puppets of it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min) for one nobody can reach. S
 at once (`staffBossByHand`: the book's `fb` past the last I stood). Its line is said once it stands (`bu`), not at its
 call.
 
+BOSS-UNSHAKEN (2026-10-25, mob: "he got stun locked lets stop him from getting stunned", "make the boss not able to be
+stun locked", "just the mini bosses we spawn in event"): a mini boss takes no shove and no Hurt from a player's blow
+(`scenes/exteriorFoes.js`) or a foe's (`scenes/hostCombat.js`), a struck wind-up never staggers it (`ai/tactics.js`
+`windupStruck` - the held blow only), a puppet of it plays no Hurt on its health's fall, and Paralysis never holds it
+(`systems/effects.js` `isImmuneToParalysis`). A departure: DFU has no such foe. Only a staff event's mini boss - every
+other foe and boss is unchanged.
+
+BOSS-HARD (2026-10-25, mob: "apply this logic to all mini bosses we spawn we want them to be very hard for the
+players"): every mini boss is held to the Enemy Expansion Troll's rules (`MonsterBase.mdb.csv` row 272) on top of its
+health - `STAFF_BOSS_MIN_METAL` Silver (a blade below Silver does nothing, `combat/formulas.js`
+`dropWeaponIfTargetImmune`; hand-to-hand lands, as DFU's does) and `STAFF_BOSS_ARMOR` 10 (the Troll's ArmorValue 2 x 5,
+EnemyEntity.cs:264-267) as its worst armour on any part. Owner and puppet alike, so a peer's blow is held to it too.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the

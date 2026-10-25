@@ -454,7 +454,7 @@ test('TELL1: every door asks the poise door where it writes DFU\'s knock, passes
     ['src/scenes/exterior.js', /cityGuards\.hurtGuard\(g, n, player\.pos, null, \{ fromPlayer: fp, kind: 'spell', round: !!o\?\.round \}\)/],
     ['src/scenes/worldModes.js', /interiorGuards\?\.hurtGuard\(foe, n, player\.pos, null, \{ fromPlayer: fp, kind: 'spell', round: !!o\?\.round \}\)/],
   ]) assert.match(rd(file), re, file);
-  assert.match(rd('src/scenes/hostCombat.js'), /if \(target\.ai && !windupHolds\(target\.ai\) && enemyKnockbackApplies\(/);
+  assert.match(rd('src/scenes/hostCombat.js'), /if \(target\.ai && !tEnt\?\.staffBoss && !windupHolds\(target\.ai\) && enemyKnockbackApplies\(/);
   const mo = rd('src/characters/enemy/enemyMotor.js');
   // PIN MOVED (TELL4, Feud-Arc.md 6.1): the stagger's lock is `locked` - a stagger or an overreach
   assert.match(mo, /const locked = staggered \|\| overreached \|\| \(this\.roarUntil > 0 && tacticsNow\(\) < this\.roarUntil\);/);   // PIN MOVED (RVN4: a last stand's roar holds it too)

@@ -19,9 +19,11 @@ import {
 import { staffEventBook, staffRaids, staffRaidHere, staffRaidRoom, staffBossWanted, staffLedgerOf, _resetStaffEvents } from '../../src/systems/staffEvents.js';
 import { validStaffEvent, staffEventKey } from '../../src/net/staffEvent/staffEventLaw.js';
 import {
-  promoteStaffBoss, isStaffBoss, eliteGlow, eliteSize, STAFF_BOSS_GLOW, STAFF_BOSS_HEALTH_MULT, ELITE_FOE_SIZE,
+  promoteStaffBoss, STAFF_BOSS_MIN_METAL, STAFF_BOSS_ARMOR, isStaffBoss, eliteGlow, eliteSize, STAFF_BOSS_GLOW, STAFF_BOSS_HEALTH_MULT, ELITE_FOE_SIZE,
 } from '../../src/systems/eliteFoes.js';
 import { foeTitle } from '../../src/systems/foeTitle.js';
+import { dropWeaponIfTargetImmune } from '../../src/combat/formulas.js';
+import { isImmuneToParalysis } from '../../src/systems/effects.js';
 import { validRaidWords, validRaidTags, validStaffBossTags } from '../../src/world/raidShared.js';
 import { setSharedClock } from '../../src/systems/worldTick.js';
 import { MINUTES_PER_DAY } from '../../src/systems/gameDate.js';
@@ -389,6 +391,25 @@ test('STAFF-EVENT: THE MINI BOSS\'S LOOKS - an elite, larger, its glow carried p
   const glsl = rd('src/systems/hitFlash.js');
   assert.match(glsl, /STAFF_BOSS_RIM = vec3\(1\.0, 0\.82, 0\.18\)/, 'yellow');
   assert.match(glsl, /boss \? STAFF_BOSS_RIM : ELITE_RIM/);
+});
+
+test('STAFF-EVENT BOSS-HARD: every mini boss - owner and puppet - asks Silver and wears a Troll\'s armour; BOSS-UNSHAKEN: never paralysed', () => {
+  for (const own of [true, false]) {
+    const e = { health: 50, maxHealth: 50, minMetalToHit: undefined, armor: 30, armorValues: [30, 5, 30, 30, 30, 30, 30] };
+    assert.ok(!isImmuneToParalysis(e), 'a plain foe can be held');
+    promoteStaffBoss(e, { own });
+    assert.equal(e.minMetalToHit, STAFF_BOSS_MIN_METAL);
+    assert.deepEqual(e.armorValues, [10, 5, 10, 10, 10, 10, 10], 'the Troll\'s 10, a better part kept');
+    assert.equal(e.armor, STAFF_BOSS_ARMOR);
+    assert.equal(dropWeaponIfTargetImmune({ material: 1 }, e), null, 'steel does nothing');
+    assert.ok(dropWeaponIfTargetImmune({ material: 2 }, e), 'silver bites');
+    assert.ok(isImmuneToParalysis(e), 'never held');
+  }
+  const daedra = { health: 50, maxHealth: 50, minMetalToHit: 5 };
+  promoteStaffBoss(daedra);
+  assert.equal(daedra.minMetalToHit, 5, 'a higher floor stays');
+  assert.match(rd('src/scenes/hostCombat.js'), /target\.ai && !tEnt\?\.staffBoss && !windupHolds/, 'no foe shoves it');
+  assert.match(rd('src/scenes/exteriorFoes.js'), /r\.h < p\.h && !f\.entity\.staffBoss\) p\.hurt = true/, 'its puppet plays no Hurt');
 });
 
 test('STAFF-EVENT: the client\'s word and the relay\'s frame - a staff word parsed by the relay\'s own parser; the game reads its frames off the raid door', () => {

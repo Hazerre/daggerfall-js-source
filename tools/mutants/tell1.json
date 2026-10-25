@@ -218,8 +218,8 @@
   {
     "name": "TELL1-payload-shoves",
     "file": "src/scenes/hostCombat.js",
-    "old": "    if (target.ai && !windupHolds(target.ai) && enemyKnockbackApplies(",
-    "new": "    if (target.ai && enemyKnockbackApplies(",
+    "old": "    if (target.ai && !tEnt?.staffBoss && !windupHolds(target.ai) && enemyKnockbackApplies(",
+    "new": "    if (target.ai && !tEnt?.staffBoss && enemyKnockbackApplies(",
     "tests": [
       "test/systems/tell1_poise.test.js"
     ]
