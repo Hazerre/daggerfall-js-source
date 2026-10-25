@@ -1,10 +1,10 @@
-// FIELD BUGS 2026-10-25 HORSE-WAKE ("Broken Mounts: Horses in the inventory become unusable after logging back in"). A
+// FIELD BUGS 2026-10-25b HORSE-WAKE ("Broken Mounts: Horses in the inventory become unusable after logging back in"). A
 // dungeon door leaves the horse standing outside it (Horse Cart and Cargo's HandlePreTransition), the save taken inside
 // keeps it there, and the online page wakes the character at the nearest temple, town or graveyard instead of inside
 // (world.js ONLINE-UNDERGROUND-LOAD1). The horse stayed at the door, beyond every mount's reach, with the horse still in
 // the pack. A load that lands away from its save now calls the pair to the player (horseCart.js callTeamToLanding).
 // All through the real runtime over test/hccWorld.mjs, the save round-tripped as JSON.
-// bible/01-Overview/bugs/Field-Bugs-2026-10-25.md.
+// bible/01-Overview/bugs/Field-Bugs-2026-10-25b.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeWorld } from '../../hccWorld.mjs';

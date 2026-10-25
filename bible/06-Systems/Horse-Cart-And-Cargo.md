@@ -263,7 +263,7 @@ killed by a mutant in `tools/mutants/hcc.json`.
   record is DFU's per-mod save data (`modData`, every save), `OnStartLoad`
   runs at the head of every load and `RestoreSaveData` once the place
   stands; the same-dungeon load does both.
-- HORSE-WAKE (2026-10-25, `01-Overview/bugs/Field-Bugs-2026-10-25.md`): a
+- HORSE-WAKE (2026-10-25, `01-Overview/bugs/Field-Bugs-2026-10-25b.md`): a
   load that lands away from its save (the online wake from a dungeon, among
   others) hands the restore `elsewhere`, and the runtime calls the waiting
   horse and a hitched team to the player by the online respawn's forced
