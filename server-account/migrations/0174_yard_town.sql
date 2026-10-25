@@ -5,7 +5,7 @@
 --   npx wrangler d1 migrations apply daggerfall-accounts --remote
 --
 -- Applied exactly once through the `d1_migrations` ledger, which the deploy runs (ACC1-CI). Deploy this service
--- (acct177) with the site; no relay change.
+-- (acct190) with the site; no relay change.
 --
 -- A town's yards answered 2,000 pieces (DECOR_YARDS_TOWN_MAX), cut in building-key order, and placing never asked it:
 -- Daggerfall's city held 3,357 on 2026-10-19 (0136's own count), so the pieces of its eastern blocks were written and

@@ -81,27 +81,27 @@
   },
   {
     "name": "YARDTOWN-backfill-shape",
-    "file": "server-account/migrations/0163_yard_town.sql",
+    "file": "server-account/migrations/0174_yard_town.sql",
     "old": "  SELECT v.map_id, v.ver, '05361a66', (SELECT CASE",
     "new": "  SELECT v.map_id, v.ver, 'none', (SELECT CASE",
     "tests": [
       "test/server/yard_snap.test.js"
     ],
-    "note": "0163's towns built in no shape - every town read as its rows stand until the clock reaches it"
+    "note": "0174's towns built in no shape - every town read as its rows stand until the clock reaches it"
   },
   {
     "name": "YARDTOWN-backfill-bound",
-    "file": "server-account/migrations/0163_yard_town.sql",
+    "file": "server-account/migrations/0174_yard_town.sql",
     "old": "ORDER BY building_key, placed_at, id LIMIT 6500)))",
     "new": "ORDER BY building_key, placed_at, id LIMIT 2000)))",
     "tests": [
       "test/server/yard_snap.test.js"
     ],
-    "note": "0163's towns built at the old bound"
+    "note": "0174's towns built at the old bound"
   },
   {
     "name": "YARDTOWN-backfill-kept",
-    "file": "server-account/migrations/0163_yard_town.sql",
+    "file": "server-account/migrations/0174_yard_town.sql",
     "old": "  ON CONFLICT (map_id) DO UPDATE SET built = excluded.built, shape = excluded.shape, rows = excluded.rows;",
     "new": "  ON CONFLICT (map_id) DO NOTHING;",
     "tests": [

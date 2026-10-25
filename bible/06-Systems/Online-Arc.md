@@ -10827,7 +10827,7 @@ than half of Daggerfall city cannot place outdoor decorations due to bug with ya
   about 0.9 MB (170 KB).
 - **Every town built again.** The bound is part of the build's shape (YARD_SNAP_SHAPE), so every row 0136 and the clock
   built became another shape: each read as its rows stand until the minute's clock, fifty towns a firing, reached it.
-  Migration `0163_yard_town.sql` builds them all at the deploy, in the shape the code reads (`05361a66`), as 0136 did.
+  Migration `0174_yard_town.sql` builds them all at the deploy, in the shape the code reads (`05361a66`), as 0136 did.
 - **A few a frame.** Measured in Daggerfall's city on a local build (Edge, 1280 by 720, an RTX 5080; the account service's
   answers given by the probe: the live 2,000 pieces, and a city of 4,000 with columns 4 to 6 filled like 1 to 3; two runs
   a case): the steady frame follows the Yard decorations range, not the yards standing - at 75 m every yard stands and the
@@ -10846,12 +10846,13 @@ than half of Daggerfall city cannot place outdoor decorations due to bug with ya
   most 32 buildings in BLOCKS.BSA, so 1,920 pieces) bounds the answer by the blocks within reach instead of the town.
   Not built: the bound and the spread are what the measurements asked for.
 - **The four hosts.** Yards stand in `scenes/world.js` alone (unchanged); `scenes/exterior.js`, `scenes/worldModes.js`
-  (interiors) and `scenes/dungeonContext.js` stand none. No relay change. acct177.
+  (interiors) and `scenes/dungeonContext.js` stand none. No relay change. acct190 (acct177 and migration 0163 on its branch, renumbered past main's acct177-acct189
+  and 0163-0173 at its merge).
 - **Pinned**: `test/server/yard_town.test.js` (2) - over the real Worker, the town's last piece placed and the next refused
   as `yard-town-full`, paid or free, another town never counted, a room's piece never refused, one taken away making room,
   the client's sentence naming the bound; a town at the bound, every row as wide as the law allows, kept in its built row.
   `test/scenes/yardtown.test.js` (1) - over the real yards and pools, four strangers' yards a frame, frame after frame, the
-  owner's own in the first. `test/server/yard_snap.test.js` - 0136's backfill in its own shape at its 2,000 bound, 0163's
+  owner's own in the first. `test/server/yard_snap.test.js` - 0136's backfill in its own shape at its 2,000 bound, 0174's
   in the code's at DECOR_YARDS_TOWN_MAX. `tools/mutants/yard_town.json` (15, all killed).
 
 ### STALL-SHAPE's re-seat - a yard's saved stalls and boulders, put back where their owners put them (2026-10-16)
