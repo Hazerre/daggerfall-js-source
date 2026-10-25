@@ -500,7 +500,7 @@ its lines give (`nameAround`), a suffix always (no group has three numeric prefi
 gives one.
 
 THE RECORDS (`net/productRecord.js` MINT_V_LINES, the CRAFT-PROCS precedent): a craft stamps mint version 2 on its
-record (acct189 - acct182 on its branch, renumbered at the merge); a record of 1 or none mints the piece it always did - each pick even over the kinds, a Rare held to
+record (acct187 - acct182 on its branch, renumbered at the merge); a record of 1 or none mints the piece it always did - each pick even over the kinds, a Rare held to
 both parts (`rollAffixes` `byLines` false). 18,048 pieces of every rolled recipe at versions 0 and 1 mint byte for byte
 as main's mint did. Every loot door draws the new law; a seeded door's pieces (a gate's spoils, a hoard) move with it,
 their draw count kept.

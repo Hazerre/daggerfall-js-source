@@ -4290,7 +4290,7 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   the temper's own batch ("so the market sees what it is"); refused `prof-no-piece`, `prof-not-yours`, `prof-temper`,
   `prof-temper-stale`, `prof-piece-busy`. `server-account/src/alchemy.js` `reforgeWithEssence` (`/v1/prof/reforge`):
   `{ character, tier, count?, rid }`, Enchanting 50, the Essence from the Stores (REFORGE-REPLACE: doubled for the
-  piece's `count` - the save's word, as its tier is; absent, none, a page from before it; acct189, acct182 on its branch renumbered at the merge), answered the SEED
+  piece's `count` - the save's word, as its tier is; absent, none, a page from before it; acct187, acct182 on its branch renumbered at the merge), answered the SEED
   the line is replaced with (the service's CSPRNG, a `prof_reforges` row). DECIDED: no XP - the Essence's XP was its disenchanting's. Migration
   `0089_temper_reforge.sql` (the two tables); `src/net/temperLaw.js` joins the Worker's deploy filter.
 - **The piece** - `src/systems/smithItems.js` `temperItem`: a made piece still as its record mints (`asMinted`) is what
@@ -4330,7 +4330,7 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   its own, any line however often (the one-line lock gone; an old piece's mark one reforge counted), a line nothing
   else can take the place of not offered - and its price rose with it: `reforgeEssence(tier, count)`, the station's page
   pricing each piece at its next reforge (`profPages.js` drawEssenceReforge), the host asking with the piece's count
-  (`world.js:"const r = await profBook.reforge(offer.tier, reforgeCount(it));"`), the service spending it (acct189). Its
+  (`world.js:"const r = await profBook.reforge(offer.tier, reforgeCount(it));"`), the service spending it (acct187). Its
   words through t() (`prof.page.reforge.how`, `prof.page.reforge.rank`). AFFIX-LINES moved the craft's own roll the same
   day (`Loot-Rarity.md`): a record of mint version 2 draws its lines over the lines; one made before mints as it was.
   Pinned: `craft4_temper` (the count through the real Worker - 2, then 4; a count no piece holds refused with nothing
