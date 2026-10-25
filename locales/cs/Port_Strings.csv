@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"Nové zvuky ve vylepšeném rozhraní: vítr venku
 features.enhancedSounds.title,"Vylepšené zvuky"
 features.enhancedWater.note,"Moře, řeky a rybníky, do kterých je vidět: vlny rostoucí s větrem, pěna tam, kde se setkávají s břehem, vlnky tam, kde se něco hýbe, obloha a měsíc na hladině. Vypnuto vrátí klasickou plochou vodu."
 features.enhancedWater.title,"Vylepšená voda"
-features.eventBoard.note,"Tabule v levé části obrazovky ukazuje události světa, ke kterým se ještě můžeš dostat, s jejich vzdáleností a zbývajícím časem. Jejich zprávy se objevují nahoře na tabuli a ukládají se do tvého deníku. Vypnuto, zprávy jdou znovu do chatu a do řádku zpráv na obrazovce."
+features.eventBoard.note,"Tabule v levé části obrazovky ukazuje události světa, ke kterým se ještě můžeš dostat, s jejich vzdáleností a zbývajícím časem. Jejich zprávy se objevují nahoře na tabuli a ukládají se do tvého deníku. Vypneš-li událost jejím vlastním tlačítkem, zmizí z tabule a její zprávy zůstanou jen v tvém deníku. Vypnuto, zprávy jdou znovu do chatu a do řádku zpráv na obrazovce."
 features.eventBoard.title,"Tabule událostí"
 features.firstPersonLighting.note,"Co držíš v pohledu první osoby, přebírá světlo místa, kde stojíš: tvá zbraň, tvé kouzlící ruce, pochodeň ve druhé ruce i paže Morrowindu."
 features.firstPersonLighting.title,"Osvětlení první osoby"

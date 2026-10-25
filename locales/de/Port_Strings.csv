@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"Neue Klänge in der verbesserten Oberfläche: Wind
 features.enhancedSounds.title,"Verbesserte Klänge"
 features.enhancedWater.note,"Meere, Flüsse und Teiche, in die du hineinsehen kannst: Wellen, die mit dem Wind wachsen, Schaum, wo sie das Ufer treffen, Kräuselungen, wo sich etwas bewegt, Himmel und Mond auf der Oberfläche. Aus bringt das klassische flache Wasser zurück."
 features.enhancedWater.title,"Verbessertes Wasser"
-features.eventBoard.note,"Eine Tafel links am Bildschirm listet die Weltereignisse, die du noch erreichen kannst, mit ihrer Entfernung und der verbleibenden Zeit. Ihre Neuigkeiten erscheinen oben auf der Tafel und werden in deinem Tagebuch festgehalten. Aus gehen die Neuigkeiten wieder in den Chat und in die Meldungszeile des Bildschirms."
+features.eventBoard.note,"Eine Tafel links am Bildschirm listet die Weltereignisse, die du noch erreichen kannst, mit ihrer Entfernung und der verbleibenden Zeit. Ihre Neuigkeiten erscheinen oben auf der Tafel und werden in deinem Tagebuch festgehalten. Schaltest du ein Ereignis mit seiner eigenen Schaltfläche aus, verschwindet es von der Tafel, und seine Neuigkeiten stehen nur noch in deinem Tagebuch. Aus gehen die Neuigkeiten wieder in den Chat und in die Meldungszeile des Bildschirms."
 features.eventBoard.title,"Ereignistafel"
 features.firstPersonLighting.note,"Was du in der Ego-Ansicht hältst, nimmt das Licht deines Standorts an: deine Waffe, deine zaubernden Hände, die Fackel in deiner Nebenhand und die Morrowind-Arme."
 features.firstPersonLighting.title,"Ego-Beleuchtung"

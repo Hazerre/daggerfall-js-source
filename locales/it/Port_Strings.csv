@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"Nuovi suoni con l’interfaccia migliorata: il ven
 features.enhancedSounds.title,"Suoni migliorati"
 features.enhancedWater.note,"Mari, fiumi e stagni in cui puoi vedere dentro: onde che crescono con il vento, schiuma dove incontrano la riva, increspature dove qualcosa si muove, il cielo e la luna sulla superficie. Disattivato riporta l’acqua piatta classica."
 features.enhancedWater.title,"Acqua migliorata"
-features.eventBoard.note,"Una bacheca a sinistra dello schermo elenca gli eventi del mondo che puoi ancora raggiungere, con la distanza di ciascuno e il tempo rimasto. Le loro notizie compaiono in cima alla bacheca e restano nel tuo diario. Disattivata, le notizie tornano nella chat e nella riga dei messaggi dello schermo."
+features.eventBoard.note,"Una bacheca a sinistra dello schermo elenca gli eventi del mondo che puoi ancora raggiungere, con la distanza di ciascuno e il tempo rimasto. Le loro notizie compaiono in cima alla bacheca e restano nel tuo diario. Disattiva un evento con il suo pulsante e lascia la bacheca, con le sue notizie conservate solo nel tuo diario. Disattivata, le notizie tornano nella chat e nella riga dei messaggi dello schermo."
 features.eventBoard.title,"Bacheca degli eventi"
 features.firstPersonLighting.note,"Ciò che tieni in prima persona prende la luce del punto in cui ti trovi: la tua arma, le mani che lanciano incantesimi, la torcia nell’altra mano e le braccia di Morrowind."
 features.firstPersonLighting.title,"Illuminazione in prima persona"

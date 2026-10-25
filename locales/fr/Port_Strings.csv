@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"De nouveaux sons sur l’interface améliorée : l
 features.enhancedSounds.title,"Sons améliorés"
 features.enhancedWater.note,"Des mers, rivières et étangs dans lesquels on voit : des vagues qui grossissent avec le vent, de l’écume où elles rencontrent le rivage, des ondulations là où les choses bougent, le ciel et la lune à la surface. Désactivé rétablit l’eau plate classique."
 features.enhancedWater.title,"Eau améliorée"
-features.eventBoard.note,"Un tableau à gauche de l’écran liste les événements du monde que vous pouvez encore rejoindre, avec la distance de chacun et le temps restant. Leurs nouvelles s’affichent en haut du tableau et sont conservées dans votre journal. Désactivé, les nouvelles reviennent dans le chat et sur la ligne de messages de l’écran."
+features.eventBoard.note,"Un tableau à gauche de l’écran liste les événements du monde que vous pouvez encore rejoindre, avec la distance de chacun et le temps restant. Leurs nouvelles s’affichent en haut du tableau et sont conservées dans votre journal. Désactivez un événement avec son propre bouton et il quitte le tableau, ses nouvelles n’étant plus conservées que dans votre journal. Désactivé, les nouvelles reviennent dans le chat et sur la ligne de messages de l’écran."
 features.eventBoard.title,"Tableau des événements"
 features.firstPersonLighting.note,"Ce que vous tenez à la première personne prend la lumière de l’endroit où vous êtes : votre arme, vos mains qui lancent des sorts, la torche dans votre main libre et les bras de Morrowind."
 features.firstPersonLighting.title,"Éclairage à la première personne"

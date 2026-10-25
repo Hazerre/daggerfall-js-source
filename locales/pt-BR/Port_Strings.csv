@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"Novos sons na interface aprimorada: vento ao ar li
 features.enhancedSounds.title,"Sons aprimorados"
 features.enhancedWater.note,"Mares, rios e lagoas onde você enxerga o fundo: ondas que crescem com o vento, espuma onde encontram a margem, ondulações onde algo se move, o céu e a lua na superfície. Desligado traz de volta a água plana clássica."
 features.enhancedWater.title,"Água aprimorada"
-features.eventBoard.note,"Um quadro à esquerda da tela lista os eventos do mundo que você ainda pode alcançar, com a distância de cada um e o tempo restante. As notícias deles aparecem no topo do quadro e ficam guardadas no seu diário. Desligado, as notícias voltam para o chat e para a linha de mensagens da tela."
+features.eventBoard.note,"Um quadro à esquerda da tela lista os eventos do mundo que você ainda pode alcançar, com a distância de cada um e o tempo restante. As notícias deles aparecem no topo do quadro e ficam guardadas no seu diário. Desligue um evento com o próprio botão dele e ele sai do quadro, com as notícias guardadas só no seu diário. Desligado, as notícias voltam para o chat e para a linha de mensagens da tela."
 features.eventBoard.title,"Quadro de eventos"
 features.firstPersonLighting.note,"O que você segura em primeira pessoa recebe a luz de onde você está: sua arma, suas mãos ao lançar feitiços, a tocha na mão secundária e os braços de Morrowind."
 features.firstPersonLighting.title,"Iluminação em primeira pessoa"

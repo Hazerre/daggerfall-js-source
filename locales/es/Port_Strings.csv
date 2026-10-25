@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"Sonidos nuevos en la interfaz mejorada: viento en 
 features.enhancedSounds.title,"Sonidos mejorados"
 features.enhancedWater.note,"Mares, ríos y estanques en los que se puede ver el interior: olas que crecen con el viento, espuma donde rompen en la orilla, ondas donde algo se mueve, y el cielo y la luna en la superficie. Desactivado recupera el agua plana clásica."
 features.enhancedWater.title,"Agua mejorada"
-features.eventBoard.note,"Un tablón a la izquierda de la pantalla muestra los eventos del mundo que aún puedes alcanzar, con la distancia a cada uno y el tiempo que queda. Sus noticias aparecen en la parte superior del tablón y se guardan en tu diario. Desactivado, las noticias vuelven al chat y a la línea de mensajes de la pantalla."
+features.eventBoard.note,"Un tablón a la izquierda de la pantalla muestra los eventos del mundo que aún puedes alcanzar, con la distancia a cada uno y el tiempo que queda. Sus noticias aparecen en la parte superior del tablón y se guardan en tu diario. Si desactivas un evento con su propio botón, sale del tablón y sus noticias solo se guardan en tu diario. Desactivado, las noticias vuelven al chat y a la línea de mensajes de la pantalla."
 features.eventBoard.title,"Tablón de eventos"
 features.firstPersonLighting.note,"Lo que sostienes en primera persona recibe la luz del lugar donde estás: tu arma, tus manos al lanzar hechizos, la antorcha de tu mano libre y los brazos de Morrowind."
 features.firstPersonLighting.title,"Iluminación en primera persona"

@@ -2025,7 +2025,7 @@ features.enhancedSounds.note,"New sounds on the enhanced UI: wind outdoors that 
 features.enhancedSounds.title,"Enhanced sounds"
 features.enhancedWater.note,"Seas, rivers and ponds you can see into: waves that grow with the wind, foam where they meet the shore, ripples where things move, the sky and the moon on the surface. Off brings back the classic flat water."
 features.enhancedWater.title,"Enhanced water"
-features.eventBoard.note,"A board at the left of the screen lists the world events you can still reach, with how far away each one is and the time left. Their news opens at the top of the board and is kept in your journal. Off, the news goes back to the chat and the screen's message line."
+features.eventBoard.note,"A board at the left of the screen lists the world events you can still reach, with how far away each one is and the time left. Their news opens at the top of the board and is kept in your journal. Turn an event off with its own button and it leaves the board, its news kept in your journal alone. Off, the news goes back to the chat and the screen's message line."
 features.eventBoard.title,"Event board"
 features.firstPersonLighting.note,"What you hold in first person takes the light of where you stand: your weapon, your spellcasting hands, the torch in your off hand and the Morrowind arms."
 features.firstPersonLighting.title,"First-person lighting"
