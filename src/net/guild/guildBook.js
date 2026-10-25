@@ -69,10 +69,12 @@ export const GUILD_FRESH_MS = 30_000;
  *  (server-account/src/guilds.js viewOf), knocked every PLAY_BEAT_S while a tab is in the world - and a member is online
  *  while that sitting is open by the service's own law: no wider gap since the beat than PLAY_GRACE_S, the gap
  *  accounts.js creditPlay counts as one sitting. The reader's own row is online - they are playing it. Null where the
- *  service said no stamp (a Worker before acct113): the row then says nothing of presence. */
+ *  service said no stamp (a Worker before acct113): the row then says nothing of presence.
+ *  AUDIT HIDDEN-UNCOUNTED C1 (the owner, asked: "Last seen when hid"): but not a hidden staff member's own (`hidden`, said
+ *  of the reader's row alone, server-account/src/guilds.js viewOf) - at play to nobody, their own "N online" included. */
 export function guildMemberOnline(m, nowMs) {
   if (!Number.isSafeInteger(m?.seenAt)) return null;
-  return m.you === true || nowMs - m.seenAt * 1000 <= PLAY_GRACE_S * 1000;
+  return (m.you === true && m.hidden !== true) || nowMs - m.seenAt * 1000 <= PLAY_GRACE_S * 1000;
 }
 
 /** GUILD-SEEN: a roster row's presence in the friends list's words (net/social.js lastOnlineText) - "Online", "Last
@@ -445,10 +447,13 @@ export class GuildBook {
   async buyHall({ mapId, buildingKey, region, price, layout = null }) {
     return this._hallTold(mapId, await this._act((c) => this.door.hallBuy({ character: c, mapId, buildingKey, region, price, layout })));
   }
-  /** SELL THE HALL - the deed share and its pieces' half into the treasury. */
-  async sellHall() {
-    const mapId = this.guild?.hall?.mapId ?? null;
-    return this._hallTold(mapId, await this._act((c) => this.door.hallSell(c)));
+  /** SELL THE HALL - the deed share and its pieces' half into the treasury. GUILD-HALL-SALE: at its door (`mapId`,
+   *  `buildingKey` - the building the door names, which the service holds the sale to); from the Guild tab, the guild's
+   *  one hall. */
+  async sellHall({ mapId = null, buildingKey = null } = {}) {
+    const at = Number.isSafeInteger(mapId) && Number.isSafeInteger(buildingKey) ? { mapId, buildingKey } : null;
+    const town = at ? at.mapId : this.guild?.hall?.mapId ?? null;
+    return this._hallTold(town, await this._act((c) => (at ? this.door.hallSell(c, at) : this.door.hallSell(c))));
   }
   /** WHO MAY WALK INTO THE HALL - its members or anyone. */
   async setHallEntry(entry) {
