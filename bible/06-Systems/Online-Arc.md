@@ -10959,7 +10959,9 @@ and `test/systems/decor/decor2b.test.js` (the sale's line, the tap under a fligh
   keeps only the traders `homeMayEnter` lets the character in on. A guild's hall stands no trader.
 - **The client.** A trader pressed in its home (`scenes/worldModes.js` openHomeVendor -> `scenes/world.js`
   openHomeVendorWindow) opens its stall in the Notice Board's window (`ui/noticeWindow.js` `traderOnly`,
-  `ui/vendor/vendorTab.js`): a visitor buys off the purse; the owner takes a piece back or puts one up from the pack. The
+  `ui/vendor/vendorTab.js`): a visitor buys off the purse; the owner takes a piece back or puts one up from the pack.
+  VENDOR-LOST (FIELD BUGS 2026-10-25): the stall opened settles the market book's kept acts, so a buy whose answer was
+  lost has its piece collected where its buyer comes back (only the Market tab settled before). The
   board's Vendors tab lists the region's reachable traders, searched, a row setting the WAYPOINT
   (`systems/vendorWaypoint.js`) - a gold coin on both world maps (`ui/vendor/vendorMapMark.js`, apart from the map's one yellow
   mark, which stays the player's), the house named on the town map, the compass on the town from the street, a mark in
@@ -10967,6 +10969,7 @@ and `test/systems/decor/decor2b.test.js` (the sale's line, the tap under a fligh
   window's Character rail under the Professions (Mac: "add a Vendor tab under professions (not in)") holds my traders,
   their stock, what they sold and the takings, collected into the account of the region I stand in.
 - **Pinned** in `test/net/homevendor_service.test.js` and `test/ui/homevendor_ui.test.js`; `tools/mutants/homevendor.json`.
+  VENDOR-LOST: `test/net/fb1025_vendorlost.test.js`, `tools/mutants/fb1025_vendorlost.json`.
 
 ## GUILD1 (2026-09-25, Mac: "future ownership for online guilds"; asked, founding takes "Gold and Renown", a guild is joined "Per character", its ranks are "Four, renamed by the guildmaster", and the treasury is the "Guildmaster only" to take from) - a guild the players found, and the service keeps
 
@@ -15126,7 +15129,10 @@ gold can now change hands the way a guild deposit or a house's price does - in t
 - **A gold buy moves the buyer's record** (`server-account/src/market.js` buyWithGold): where the record stands asked
   first (realmActFirst, AUDIT REALM L1-F2), the exact cost - the price and the courier, a Drake's worth of gold a Drake -
   paid off it (purse, letters, then the board region's account: realmGoldLaw payFromSave) in the batch that decides the
-  sale, GUARDED (mustChange): a sale that does not land rolls the record back. The seller's share is held on the service
+  sale, GUARDED (mustChange): a sale that does not land rolls the record back. VENDOR-LOST (FIELD BUGS 2026-10-25,
+  `01-Overview/bugs/Field-Bugs-2026-10-25.md`), a departure from L1-F2 for a buy alone: a record one on from where the
+  tab asked, with a sale this id made, is that sale, landed - answered as the repeat with the record's sequence, to a
+  tab that asks for it (`landed`), never `seq`, which ended the buyer's session. The seller's share is held on the service
   for its character (`market_gold`, at most 100,000,000) until its own record collects it into the bank account of the
   board it stands at (`/v1/market/gold`, creditSave's `bank`; the purse where the record keeps no account there). A
   realm character with gold held is not deleted (REALM_MARKET_OPEN_SQL).
@@ -15141,8 +15147,10 @@ gold can now change hands the way a guild deposit or a house's price does - in t
 - **The client** (`src/net/marketBook.js`, `src/ui/marketTab.js`): for a realm character a currency switch beside the
   filters, gold rows priced in gold, a gold Buy through the host's realm act (`realmGoldAct`: the purse checkpointed,
   the exact cost out of it as the service is asked, given back on the service's refusal); KEPT as a Drakes buy is, and
-  asked again by a settle when its answer is lost (a repeat pays nothing; a sale made on the settle is paid on its
-  answer); the List form's "Priced in gold"; under My listings the gold held and its Collect. The Stores page counts
+  asked again by a settle when its answer is lost (a repeat of a sale made before it pays nothing; a sale made on the
+  settle is paid on its answer, and VENDOR-LOST, a repeat naming the record's sequence is the settle's own sale; a piece
+  from a pack bought here is collected on the answer); the List form's "Priced in gold"; under My listings the gold held
+  and its Collect. The Stores page counts
   gold's units, splits them ("bought with gold") and says where they may go. Any other character sees the Drakes'
   market alone.
 - **The service**: **acct40** (past HOUSING's acct37, WB9g's acct38 and PINE-SHARE's acct39), migration `0041_gold_market.sql` (the Stores rebuilt for the third origin; a listing's

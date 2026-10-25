@@ -27580,6 +27580,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         picture: (it, wake) => itemPicture(it, { onReady: wake }),   // MENU-ORDER
         buy: (row) => vendorBuy(vendor, row), take: (row) => vendorTake(row),
         goods: () => marketGoods.goods(), put: (item, price) => vendorPut(vendor, item, price),
+        settle: () => marketBook.settle(marketMint, marketPutBack, marketDrop),   // VENDOR-LOST: a kept buy's piece collected as the stall opens
       },
     });
   };
