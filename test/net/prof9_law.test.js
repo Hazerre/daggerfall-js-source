@@ -128,11 +128,11 @@ test('PROF9 law: a dish\'s effect is DFU\'s own Fortify Attribute (type 9, the a
 
 // ─── THE XP (3.2) ────────────────────────────────────────────────────
 
-test('PROF9 law: Cooking\'s XP follows the rank - 20 x the rank\'s own tier a cook (never a quarter), half again for a clean pan (a dish takes no quality); the first time\'s XP the service\'s to lay on (FIRST-BUDGET: its share of Provisioning\'s discovery budget)', () => {
+test('PROF9 law: Cooking\'s XP follows the rank - 20 x the rank\'s own tier a cook (never a quarter), half again for a clean pan (a dish takes no quality); the first time\'s XP the service\'s to lay on (FIRST-BUDGET: Provisioning\'s first-make share)', () => {
   assert.deepEqual([0, 10, 25, 40, 55, 70, 90, 100].map((r) => cookXp(r)), [20, 40, 60, 80, 100, 120, 140, 140]);
   assert.deepEqual([0, 55, 100].map((r) => cookXp(r, { clean: true })), [30, 150, 210]);
   for (const r of [0, 33, 77, 100]) assert.equal(cookXp(r), 20 * topTierOf(r));
-  assert.deepEqual(COOKING_RECIPES.map((r) => firstCraftXp(r)), [5023, 5023, 5023, 5023, 5023, 5023, 5023]);   // PIN MOVED (FIRST-BUDGET): the first's XP its pattern's share of the track's discovery budget (recipeLaw firstCraftXp), no longer a flat 500 - the four dishes first in Provisioning's pool, each a 5,023 (110,500 over its 22, the remainder's one each to the first)
+  assert.deepEqual(COOKING_RECIPES.map((r) => firstCraftXp(r)), [3155, 3155, 3155, 3155, 3155, 3155, 3155]);   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp), no longer a flat 500 - every dish Provisioning's 3,155
 });
 
 // ─── THE PAN (9.4) ───────────────────────────────────────────────────

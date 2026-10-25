@@ -57,7 +57,7 @@ const BY_ID = new Map(POTIONS.map((p) => [p.id, p]));
 export const potionById = (id) => (typeof id === 'string' ? BY_ID.get(id) ?? null : null);
 
 /** The Stores' keys a DFU ingredient is held under, and the template a key holds - professionLaw's since FIRST-BUDGET
- *  (Professions-Arc 51), re-exported here where every reader imports them. */
+ *  (Professions-Arc 52), re-exported here where every reader imports them. */
 export { ingredientKeys, keyTemplate };
 /**
  * WHAT A BREW SPENDS - DFU'S OWN LAW: `keys` the cauldron's contents as the Stores hold them, one key an ingredient (an
@@ -90,7 +90,7 @@ export function brewKeys(potion, held = (/** @type {string} */ k) => 0) {
   });
 }
 /** Whether a brew's first time pays (AUDIT 32 S1's law for a brew), and what it pays - the first-make law's, recipeLaw.js's
- *  since FIRST-BUDGET (Professions-Arc 51): the discovery budget counts a brew among Provisioning's first-makes. */
+ *  since FIRST-BUDGET (Professions-Arc 52): a brew is among Provisioning's first-makes. */
 export { brewFirstPays, brewFirstXp };
 
 /** The Brewer (3.3: "3 potions a brew at Journeyman"), the Distiller ("Potent chance +10%") - Alchemy's choices at 50; the
@@ -186,7 +186,7 @@ export function potentAble(potion) {
 }
 /** A brew's XP (3.2: "a craft 20 x tier x units"): a brew is one unit, whatever it makes (a Brewer's third potion earns
  *  nothing more, as a Cook's second serving does not, PROF9), at its potion's tier, quartered more than two tiers below the
- *  rank's top. FIRST-BUDGET (Professions-Arc 51): its first time's XP is the discovery budget's (brewFirstXp), laid on by
+ *  rank's top. FIRST-BUDGET (Professions-Arc 52): its first time's XP is Provisioning's first-make share (brewFirstXp), laid on by
  *  the service's decision beside it, never this law's. */
 export const brewXp = (potion, rank) => craftXp(potion.tier, rank);
 

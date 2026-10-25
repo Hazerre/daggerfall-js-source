@@ -49,6 +49,7 @@ import { MARKS_MAX, utcDay, gatherFindOf } from '../../src/net/marksLaw.js';
 import { renownForXp, RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import {
   PROFESSIONS, isProfession, rankOfXp, tierOpen, harvestXp, writXp, specOk, specsAt, SPEC_RANKS, RESPEC, trackOf,   // CRAFT3: a discipline's track its craft's
+  SPEC_TRIAL_S, specTrialUntil, respecLockUntil,   // PERK-TRIAL: a choice's day of trial, and the lock after a paid change
   STORES_MAX, WITHDRAW_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, HARVEST_LATE_S, HARVEST_EARLY_S,
   PROF_RID_RE, PROF_XP_MAX, profSwitchOf, basketStep, herbKey, professionOfFamily, courtWritCount, COURT_WRITS_PER_DAY,
   glintsMax, smeltRecipe, SMELT_MAX, smeltXp, DEEP_UNCONFIRMED_PER_DAY,   // CAP-OFF: no day's cap to import
@@ -62,7 +63,7 @@ import {
 import {
   recipeById, recipeOpen, qualityOdds, rollQuality, qualitySteps, craftQuality, rollsQuality, craftXp, craftCount,
   makerMark, firstCraftPays, counterMade, firstCraftKin, recipeInputs, takesHeartwood, carriesMark, dyeOk,   // CLOTH-GEMS: S1 judged by the units
-  firstCraftXp, workFirstXp,   // FIRST-BUDGET: a first-make's share of its track's discovery budget (Professions-Arc 51)
+  firstCraftXp, workFirstXp,   // FIRST-BUDGET: its track's first-make share (Professions-Arc 52)
   masonXp,   // PROF11: the mason's bench's XP
   cookXp, dishHand,   // PROF9: a dish's XP and its cook's hand
   jewelHand, takesCracked, masterworkSpec, LAPIDARY,   // PROF10: the jeweller's hand, a Lapidary's cracked gem, the Master Jeweller's points
@@ -128,13 +129,17 @@ export const shut = (player, env) => (profOpenFor(player, env) ? null : { error:
 /** A track as the tabs read it: its XP and rank, the specialisations it stands under now, a change on its way. CRAFT3: a
  *  discipline's is its craft's track (`profession` the craft's - 'jewelcrafting' answers 'smithing'), and `free` the
  *  ranks a change is free at, once - the merge's (0088's `free_respec`: 1 the choice at 50, 2 at 100), said only where
- *  there is one. */
+ *  there is one. PERK-TRIAL: `trial` each rank whose choice is still on trial and until when (`{ 50: at }`), and `lock`
+ *  the second the track's next paid change opens - each said only where there is one. `respec`, a change on its way, is
+ *  never one now (AUDIT PERK-TRIAL P8: a change written as waiting stands at once - specsAt) and is said empty for the
+ *  clients that read it. */
 export function trackView(row, profession, nowS) {
   const xp = Number(row?.xp ?? 0);
   const specs = specsAt(row, nowS);
-  const pending = row?.respec_to && Number(row.respec_at) > nowS ? { rank: Number(row.respec_rank), to: row.respec_to, at: Number(row.respec_at) } : null;
   const free = SPEC_RANKS.filter((r) => (Number(row?.free_respec ?? 0) & freeBit(r)) !== 0);
-  return { profession: trackOf(profession), xp, rank: rankOfXp(xp), specs, respec: pending, ...(free.length ? { free } : {}) };
+  const trial = Object.fromEntries(SPEC_RANKS.map((r) => [r, specTrialUntil(row, r, nowS)]).filter(([, at]) => at !== null));
+  const lock = respecLockUntil(row, nowS);
+  return { profession: trackOf(profession), xp, rank: rankOfXp(xp), specs, respec: null, ...(free.length ? { free } : {}), ...(Object.keys(trial).length ? { trial } : {}), ...(lock ? { lock } : {}) };
 }
 /** CRAFT3: a rank's bit in a track's `free_respec` (0088) - 1 the choice at 50, 2 at 100. */
 export const freeBit = (rank) => (rank === 50 ? 1 : rank === 100 ? 2 : 0);
@@ -777,13 +782,16 @@ export async function harvestNode(ctx, player, env, body = {}) {
 
 /**
  * A SPECIALISATION CHOSEN: `{ character, profession, rank, spec, from, rid }` - at 50 or 100, one of the two the
- * profession offers there, once the track holds the rank. The first choice at a rank is free; a change costs
- * RESPEC.marks (burnt - a line, `respec`) and takes effect RESPEC.days later, the old choice standing until then; one
- * change at a time. `from` is the choice the client saw standing (null for none): AUDIT 29 A15 - a choice the client
+ * profession offers there, once the track holds the rank. The first choice at a rank is free. PERK-TRIAL: for
+ * SPEC_TRIAL_S after a rank's choice is made, changing it is free and at once (a row, as a first choice is); past it a
+ * change costs RESPEC.marks (burnt - a line, `respec`), takes effect at once, starts its own trial, and locks the
+ * track's next paid change for RESPEC.days (`respec_at`; `prof-respec-pending` refuses one inside it). Before it, a
+ * change took effect RESPEC.days later, the old choice standing until then. A change the client asks as a trial's
+ * (`trial: true`) is never a paid one: its day out meanwhile, it is refused `prof-trial-over` and nothing is burnt. `from` is the choice the client saw standing (null for none): AUDIT 29 A15 - a choice the client
  * thought free, made meanwhile (another device, a lost answer), would have been a paid change the player never
  * confirmed; it is refused, `prof-spec-stale`, and nothing is burnt.
  */
-export async function chooseSpec(ctx, player, env, { character, profession: asked, rank, spec, from = null, rid } = {}) {
+export async function chooseSpec(ctx, player, env, { character, profession: asked, rank, spec, from = null, rid, trial: askedTrial = false } = {}) {
   const { db, nowS, rand } = ctx;
   const profession = trackOf(asked);   // CRAFT3: a discipline named is its craft's track (an older client's 'jewelcrafting')
   const refused = asks(player, { character, rid });
@@ -811,7 +819,7 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
         WHERE EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?3 AND profession = ?4 AND ${col} IS NULL)`)
         .bind(player.id, rid, character, profession, rank, spec, nowS, nonce),
-      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5 WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col} IS NULL
+      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, ${col}_at = ?5, updated_at = ?5 WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col} IS NULL
         AND EXISTS (SELECT 1 FROM prof_choices WHERE player = ?1 AND rid = ?6 AND n = ?7)`)
         .bind(player.id, character, profession, spec, nowS, rid, nonce),
     ]);
@@ -835,9 +843,9 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
         WHERE EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?3 AND profession = ?4 AND (free_respec & ?9) != 0)`)
         .bind(player.id, rid, character, profession, rank, spec, nowS, nonce, bit),
       db.prepare(`UPDATE prof_tracks SET ${col} = ?4, free_respec = free_respec & ~?8,
-          respec_rank = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_rank END,
+          respec_rank = CASE WHEN respec_rank = ?9 AND respec_to IS NOT NULL THEN NULL ELSE respec_rank END,
           respec_to = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_to END,
-          respec_at = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_at END, updated_at = ?5
+          respec_at = CASE WHEN respec_rank = ?9 AND respec_to IS NOT NULL THEN NULL ELSE respec_at END, updated_at = ?5
         WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND (free_respec & ?8) != 0
           AND EXISTS (SELECT 1 FROM prof_choices WHERE player = ?1 AND rid = ?6 AND n = ?7)`)
         .bind(player.id, character, profession, spec, nowS, rid, nonce, bit, rank),
@@ -847,7 +855,33 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
     if (made) return answer({ repeat: true });
     return { error: 'prof-spec-stale' };   // spent meanwhile - the client reads the track again
   }
-  if (row.respec_to && Number(row.respec_at) > nowS) return { error: 'prof-respec-pending' };
+  if (specTrialUntil(row, rank, nowS) !== null) {
+    // PERK-TRIAL: THE CHOICE ON TRIAL - changed free and at once, neither its trial nor the lock moved. Its row decides,
+    // only while the trial runs; the track takes it by the row's nonce
+    if (current === spec) return answer();   // already so
+    // AUDIT PERK-TRIAL P2: a free change is still a write, and a row kept for good - the professions' own hour holds it
+    if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
+    const nonce = mintId(rand);
+    await db.batch([
+      db.prepare(`INSERT OR IGNORE INTO prof_choices (player, rid, char_id, profession, rank, spec, at, n)
+        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+        WHERE EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?3 AND profession = ?4 AND ${col}_at > ?9)`)
+        .bind(player.id, rid, character, profession, rank, spec, nowS, nonce, nowS - SPEC_TRIAL_S),
+      // AUDIT PERK-TRIAL P8: a change still written as waiting at this rank (an older service's, across the deploy) is
+      // this one's to replace - specsAt reads a waiting change as landed, and it would stand over the trial's
+      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5,
+          respec_to = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_to END
+        WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col}_at > ?8
+          AND EXISTS (SELECT 1 FROM prof_choices WHERE player = ?1 AND rid = ?6 AND n = ?7)`)
+        .bind(player.id, character, profession, spec, nowS, rid, nonce, nowS - SPEC_TRIAL_S, rank),
+    ]);
+    const made = await db.prepare('SELECT n FROM prof_choices WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
+    if (made?.n === nonce) return answer({ trial: true });
+    if (made) return answer({ repeat: true });
+    return { error: 'prof-trial-over' };   // its trial ran out meanwhile - the client reads the track again
+  }
+  if (askedTrial === true) return { error: 'prof-trial-over' };   // PERK-TRIAL: asked as a trial's free change, its day out - never charged for it (AUDIT PERK-TRIAL P4: and said so)
+  if (respecLockUntil(row, nowS) !== null) return { error: 'prof-respec-pending' };   // PERK-TRIAL: the week after a paid change
   if (current === spec) return answer();   // already so
   if (!marksOpenFor(player, env)) return { error: 'marks-closed' };
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
@@ -861,15 +895,16 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
       SELECT 'account', ?1, 'burn', NULL, 'respec', ?4, ?5, ?6, ?1, ?8, ?7
       WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?4
         AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?7)
-        AND NOT EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND respec_to IS NOT NULL AND respec_at > ?6)`)
+        AND NOT EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND respec_at > ?6)`)
       .bind(player.id, character, profession, RESPEC.marks, day, nowS, rid, track),
-    // a change that has taken effect is folded into its rank's choice first; then the new one waits its week
+    // PERK-TRIAL: the change is its rank's at once, its trial from now, and the track's next paid change locked a week
+    // (`respec_at`; `respec_to` empty - nothing waits). A change made before it is folded into its rank first, as ever
     db.prepare(`UPDATE prof_tracks SET
-        spec50 = CASE WHEN respec_rank = 50 AND respec_at <= ?4 THEN respec_to ELSE spec50 END,
-        spec100 = CASE WHEN respec_rank = 100 AND respec_at <= ?4 THEN respec_to ELSE spec100 END,
-        respec_rank = ?5, respec_to = ?6, respec_at = ?7, updated_at = ?4
+        spec50 = CASE WHEN ?5 = 50 THEN ?6 WHEN respec_rank = 50 AND respec_to IS NOT NULL THEN respec_to ELSE spec50 END,
+        spec100 = CASE WHEN ?5 = 100 THEN ?6 WHEN respec_rank = 100 AND respec_to IS NOT NULL THEN respec_to ELSE spec100 END,
+        ${col}_at = ?4, respec_rank = ?5, respec_to = NULL, respec_at = ?7, updated_at = ?4
       WHERE player = ?1 AND char_id = ?2 AND profession = ?3
-        AND NOT (respec_to IS NOT NULL AND respec_at > ?4)
+        AND NOT (respec_at IS NOT NULL AND respec_at > ?4)
         AND EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?8 AND kind = 'respec' AND who = ?9)`)
       .bind(player.id, character, profession, nowS, rank, spec, nowS + RESPEC.days * DAY_S, rid, track),
   ]);
@@ -1098,7 +1133,7 @@ export async function depositStores(ctx, player, env, { character, material: key
  * choice at 50) and Mortar mixed ten at a time (professionLaw MASON_RECIPES): a work with a CRAFT's law. Its rank is
  * asked (`prof-rank` - workOpen); `clean` the chisel's report, read only for a work that has the act; its XP Masonry's,
  * 20 x the rank's tier a unit (recipeLaw masonXp - XP follows the rank), half again for a clean chisel, and the first
- * time the character does it its share of Building's discovery budget (FIRST-BUDGET, recipeLaw workFirstXp) - read in the
+ * time the character does it Building's first-make share (FIRST-BUDGET, recipeLaw workFirstXp) - read in the
  * decision, as a craft's is, and kept with the row (`first`, `clean`: 0060).
  */
 export async function smeltAtForge(ctx, player, env, { character, recipe: id, count, clean = false, rid } = {}) {
@@ -1141,7 +1176,7 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   if (!workSpecOk(r, r.spec ? specsAt(tracks.find((t) => t.profession === trackOf(r.spec.profession)), nowS) : null)) return { error: 'prof-transmuter' };
   if (!workOpen(r, rank)) return { error: 'prof-rank' };   // PROF11: a mason's work asks its tier's rank (Mortar's 10)
   // PROF11: a mason's work's XP is a craft's (recipeLaw masonXp: the rank's tier a unit, a clean chisel's half again) and
-  // its first time's share of Building's budget (?11, recipeLaw workFirstXp) laid on in the decision; every other work's the smelt's
+  // its first time's - Building's first-make share (?11, recipeLaw workFirstXp) laid on in the decision; every other work's the smelt's
   const act = r.act ? clean === true : false;
   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself (craftCapSql); a work that pays none, none
   const cap = r.xp ? craftCapSql('?1', '?2', r.xp) : '0';
@@ -1150,7 +1185,7 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   const nonce = mintId(rand);
   // ?1 player ?2 character ?3 rid ?4 recipe ?5 count ?6 out ?7 STORES_MAX ?8 xp ?9 now ?10 nonce ?11 the first time's XP
   // (PROF11: a mason's work's; 0 for every other) ?12 the chisel clean; the inputs ?13 on, two a one
-  const binds = [player.id, character, rid, r.id, count, r.out, STORES_MAX, xp, nowS, nonce, workFirstXp(r), act ? 1 : 0];   // FIRST-BUDGET: a work's first its share of Building's budget (recipeLaw workFirstXp - none for a smelt's)
+  const binds = [player.id, character, rid, r.id, count, r.out, STORES_MAX, xp, nowS, nonce, workFirstXp(r), act ? 1 : 0];   // FIRST-BUDGET: a work's first Building's first-make share (recipeLaw workFirstXp - none for a smelt's)
   const held = [], boughtOf = [], looseOf = [];
   r.inputs.forEach((inp, i) => {
     const k = `?${13 + 2 * i}`, need = `?${14 + 2 * i}`;
@@ -1167,7 +1202,7 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   await db.batch([
     // THE DECISION: every input held, the product's room - and its origin, read before a unit moves; the XP what the
     // track can take under the crafter's limit (AUDIT 29 A14: the answer says what was credited); PROF11: a mason's
-    // first of a work its share of Building's discovery budget laid on (FIRST-BUDGET, ?11; `f`, kept), and its chisel kept
+    // first of a work Building's first-make share laid on (FIRST-BUDGET, ?11; `f`, kept), and its chisel kept
     db.prepare(`INSERT OR IGNORE INTO prof_smelts (player, rid, char_id, recipe, count, own, bought, loose, xp, at, n, first, clean)
       SELECT ?1, ?3, ?2, ?4, ?5, ${per} * (?5 - MIN(?5, ${bought})), ${per} * (MIN(?5, ${bought}) - MIN(?5, ${loose})), ${per} * MIN(?5, ${loose}),
         MAX(0, MIN(?8 + f * ?11, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf(r.xp ?? 'smithing')}'), 0))), ?9, ?10, f, ?12
@@ -1248,8 +1283,8 @@ async function craftAnswer(db, player, row, nowS, extra = {}) {
  * is two. A Heartwood asked stands in for one plank (PROF0 25); a Joiner's furniture takes half the planks. Decided by
  * the craft's own INSERT: every input held. Then the inputs out, bought first; the pieces written, each its provenance
  * id, its signed record (net/productRecord.js) and whether its name carries the maker's mark (a Masterwork's, a Master
- * Joiner's furniture); and the XP - 20 x the recipe's tier, and the character's first of its pattern at its tier its share
- * of the track's discovery budget (FIRST-BUDGET, recipeLaw firstCraftXp - none for a recipe made wholly of goods only a
+ * Joiner's furniture); and the XP - 20 x the recipe's tier, and the character's first of its pattern at its tier its
+ * track's first-make share (FIRST-BUDGET, recipeLaw firstCraftXp - none for a recipe made wholly of goods only a
  * counter sells, AUDIT 32 S1), under the crafter's limit (3.2), answered as credited.
  * PROF11: or the mason's bench's carvings - the Sculptor's stone decor (recipeLaw MASONRY_RECIPES), the chisel its act,
  * furniture among the home's things; a character not standing as a Sculptor at 100 is refused (`prof-sculptor`).
@@ -1330,7 +1365,7 @@ export async function craftAtAnvil(ctx, player, env, { character, recipe: id, cl
   // PROF9: a dish's XP follows the rank, a clean pan's half again (cookXp); every other craft's its tier's (craftXp)
   const xp = scaleXp(r.kind === 'dish' ? cookXp(rank, { clean: clean === true, steps: halls }) : craftXp(r.tier, rank),   // PROF12: the Apothecary's steps
     xpPct(await firmStatsOf(db, player, env, character), craft));   // FIRM1: the Firmament's hand on the craft's XP
-  const binds = [player.id, character, rid, r.id, quality, count, provs[0], provs[1] ?? null, seed, xp, nowS, nonce, firstCraftXp(r, true), craft, wood ? 1 : 0, u];   // FIRST-BUDGET: ?13 the pattern's share of its track's budget (recipeLaw firstCraftXp, asked as own) - CLOTH-GEMS' `p` says whether the units pay it
+  const binds = [player.id, character, rid, r.id, quality, count, provs[0], provs[1] ?? null, seed, xp, nowS, nonce, firstCraftXp(r, true), craft, wood ? 1 : 0, u];   // FIRST-BUDGET: ?13 its track's first-make share (recipeLaw firstCraftXp, asked as own) - CLOTH-GEMS' `p` says whether the units pay it
   const held = [];
   inputs.forEach((inp, i) => {
     binds.push(inp.key, inp.n);

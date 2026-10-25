@@ -136,8 +136,8 @@ test('PROF12 law: THE BREW - its potions (CRAFT-PAYS: two below Journeyman, two 
   assert.deepEqual(potentEffect(e, 40), { ...e, magnitudeBaseLow: 7, magnitudeBaseHigh: 7, magnitudeLevelBase: 13, magnitudeLevelHigh: 13 });
   assert.equal(potentEffect(e, 30), e, 'a share no brew makes moves nothing');
   const h = potionById('healing'), inv = potionById('invisibility');
-  assert.deepEqual([brewXp(h, 0), brewXp(h, 0, true), brewXp(inv, 70), brewXp(h, 55)], [20, 20, 120, 5], 'a tier-1 brew past rank 55 quartered');   // PIN MOVED (FIRST-BUDGET): the first's XP its share of the track's discovery budget (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - the brew's law no longer takes a first (brewFirstXp, beside it)
-  assert.deepEqual([brewFirstXp(h), brewFirstXp(inv), brewFirstXp(potionById('levitation'))], [5022, 5023, 0], 'Provisioning\'s shares - none for the Apothecaries\' goods alone');
+  assert.deepEqual([brewXp(h, 0), brewXp(h, 0, true), brewXp(inv, 70), brewXp(h, 55)], [20, 20, 120, 5], 'a tier-1 brew past rank 55 quartered');   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - the brew's law no longer takes a first (brewFirstXp, beside it)
+  assert.deepEqual([brewFirstXp(h), brewFirstXp(inv), brewFirstXp(potionById('levitation'))], [3155, 3155, 0], 'Provisioning\'s share - none for the Apothecaries\' goods alone');
 });
 
 test('PROF12 law: THE TRANSMUTER (3.3; 4.1: "Mercury (Alchemy\'s Transmuter)"; AUDIT PROF12 E3, Mac: "2 + Mercury -> 1") - two of a metal and a Mercury make one of the next up the ladder (Tin, Copper, Silver, Gold, Platinum) at the alchemy station, no XP, its door the choice at 100; the Transmuter\'s card chosen', () => {

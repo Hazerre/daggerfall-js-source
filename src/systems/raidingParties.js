@@ -94,7 +94,7 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossBusy, staffBossByHand, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossByHand, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
 import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLaw.js';
 import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss } from './eliteFoes.js';   // STAFF-EVENT: its mini boss
@@ -606,11 +606,10 @@ export function raidFrame(dt = 0) {
   // STAFF-EVENT: its mini boss, once the cell calls it - before any raider, and no defenders (staff set the fight)
   if (raid.staff) {
     const fc = staffBossWanted(raid);
-    if (fc >= 0 && !staffBossByHand(raid) && !staffFieldClear(raid, h) && !staffClearLong(raid, localNow())) return 'clearing';   // BOSS-CLEAR: the meter's boss once every monster standing is dead
-    if (fc >= 0) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    const waits = fc >= 0 && !staffBossByHand(raid) && !staffFieldClear(raid, h) && !staffClearLong(raid, localNow());   // BOSS-CLEAR: the meter's boss once every monster standing at its call is dead - the packs come on meanwhile
+    if (fc >= 0 && !waits) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; raid.clearWait = undefined; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
     const lost = staffBossLost(raid, staffBossStanding(raid, h), localNow());   // BOSS-LOST: stood, then gone without falling
-    if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
-    if (staffBossBusy(raid)) return 'idle';   // BOSS-CLEAR: no monster stood while a boss is due or stands
+    if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
   }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
   if (!raid.staff && _nextDefenderIn <= 0) {
@@ -801,17 +800,32 @@ let _pack = null;
 function staffPackStep(raid, standing) {
   const key = raidKey(raid);
   if (_pack && (_pack.key !== key || _pack.left <= 0)) _pack = null;
-  if (!staffRaidRoom(raid, standing, MAX_RAID_ENEMIES)) { _pack = null; scheduleNextSpawn(raid.type); return 'idle'; }
+  const sc = staffPackScale(host().peerFeetInTown?.()?.length ?? 1);   // PACK-SCALE: the players here
+  if (!staffRaidRoom(raid, standing, sc.cap)) { _pack = null; scheduleNextSpawn(raid.type); return 'idle'; }
   raid.fillS ??= staffPackPaceS(rnd());   // the event's pace, once
   if (!_pack) { const size = rangeInt(STAFF_PACK_MIN, STAFF_PACK_MAX + 1, rnd()); _pack = { key, left: size, size, at: null, far: true, near: staffPackPlayer() }; }
   const pack = _pack;
   pack.left--;
   const o = pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false }
     : pack.far ? { min: STAFF_PACK_FAR_MIN, max: STAFF_PACK_FAR_MAX, los: false, near: pack.near } : { min: RAID_SPAWN_MIN_DISTANCE, max: RAID_SPAWN_MAX_DISTANCE, los: false, near: pack.near };
-  _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : packWaitS(raid.fillS, pack.size);
+  _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : packWaitS(raid.fillS / sc.speed, pack.size);
   spawn(raid, 'raider', staffRaider(raid, rnd()), o, pack);   // any of staff's kinds, each one
   return 'raider';
 }
+/**
+ * PACK-SCALE (2026-10-25, mob: "they arnt spawn ing quick enough", card "Scale with players in town"): an event's packs
+ * by the players in its place (me counted) - one alone as ever (MAX_RAID_ENEMIES standing, the event's pace); each more
+ * player STAFF_PACK_CAP_PER more standing, to STAFF_PACK_CAP_MAX, and the pace a quarter quicker, to twice. Pure.
+ * @param {number} players @returns {{ cap: number, speed: number }}
+ */
+export function staffPackScale(players) {
+  const more = Math.max(0, (Number.isFinite(players) ? Math.floor(players) : 1) - 1);
+  return { cap: Math.min(STAFF_PACK_CAP_MAX, MAX_RAID_ENEMIES + STAFF_PACK_CAP_PER * more), speed: Math.min(2, 1 + 0.25 * more) };
+}
+/** PACK-SCALE: the most an event stands at once however many play (a reader stands as many: world/raidShared.js RAID_PUPPETS_MAX). */
+export const STAFF_PACK_CAP_MAX = 40;
+/** PACK-SCALE: the more standing each player past the first brings. */
+export const STAFF_PACK_CAP_PER = 5;
 /**
  * PACK-SPREAD (mob 2026-10-25: "make sure we spread spawn all over the citys player not just the bottom left", "evenly
  * swap them between all player in a city"): each pack goes to the next player in the town in turn - me, then each peer
@@ -821,6 +835,30 @@ function staffPackPlayer() {
   const me = host().selfId?.() ?? '';
   const all = [[me, null], ...(host().peerFeetInTown?.() ?? []).filter(([id, f]) => id !== me && Array.isArray(f))].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return all[_packTurn++ % all.length][1];
+}
+/**
+ * BOSS-SPOT (2026-10-25, mob: "spawn it on the highest lvl player in the town or area", "or largewst groupoing"; card:
+ * "Biggest group, ties by level"): the player a mini boss stands beside - the one with the most players within
+ * STAFF_BOSS_GROUP_M of them (themselves counted), a tie to the group whose highest level is higher, then the lower id.
+ * Pure. @param {[string, number[], number][]} players `[id, feet, level]` @returns {[string, number[], number]|null}
+ */
+export function staffBossSpot(players) {
+  let best = null, bestN = -1, bestLv = -1;
+  for (const p of players) {
+    if (!Array.isArray(p?.[1])) continue;
+    const near = players.filter((q) => Array.isArray(q?.[1]) && Math.hypot(q[1][0] - p[1][0], q[1][2] - p[1][2]) <= STAFF_BOSS_GROUP_M);
+    const lv = Math.max(...near.map((q) => (Number.isFinite(q[2]) ? q[2] : 0)));
+    if (near.length > bestN || (near.length === bestN && (lv > bestLv || (lv === bestLv && p[0] < best[0])))) { best = p; bestN = near.length; bestLv = lv; }
+  }
+  return best;
+}
+/** BOSS-SPOT: how near another player stands to count in a player's group (metres). */
+export const STAFF_BOSS_GROUP_M = 30;
+/** BOSS-SPOT: where my mini boss stands - beside the biggest group's player; mine (undefined: about me) when it is me. */
+function staffBossPlace() {
+  const me = host().selfId?.() ?? '';
+  const at = staffBossSpot(host().peerFeetInTown?.() ?? []);
+  return at && at[0] !== me ? { near: at[1] } : undefined;
 }
 /** PACK-SPREAD's turn: the packs stood so far. */
 let _packTurn = 0;
@@ -843,11 +881,15 @@ function staffClearLong(raid, t) {
   return t - raid.clearSince >= STAFF_BOSS_CLEAR_MAX_MS;
 }
 export const STAFF_BOSS_CLEAR_MAX_MS = 120000;
-/** BOSS-CLEAR: does no monster of it stand - none of mine, no puppet of another's (its boss aside)? @param {any} raid @param {any} h */
+/** BOSS-CLEAR: is every monster of it that stood at the boss's call dead or gone - mine and the puppets of another's (a
+ *  boss aside)? The field is taken once, at the first ask (`clearWait`); a pack stood since never holds the boss
+ *  (BOSS-CLEAR-CALL, mob 2026-10-25: "no only the mini boss need to wait for everything to be dead"). @param {any} raid @param {any} h */
 function staffFieldClear(raid, h) {
   const key = raidKey(raid);
-  if (liveRaiders(key).length) return false;
-  return !(h.raidPuppets?.() ?? []).some((pup) => pup._pupRaid === key && !pup.dead && !pup.entity?.staffBoss);
+  const pups = h.raidPuppets?.() ?? [];
+  raid.clearWait ??= new Set([...liveRaiders(key).map((e) => e.foe), ...pups.filter((pup) => pup._pupRaid === key && !pup.dead && !pup.entity?.staffBoss)]);
+  for (const f of raid.clearWait) if (!f.dead && (_live.some((e) => e.foe === f) || pups.includes(f))) return false;
+  return true;
 }
 /** BOSS-LOST: does its boss stand anywhere I can see - mine, or a puppet of another's? @param {any} raid @param {any} h */
 function staffBossStanding(raid, h) {

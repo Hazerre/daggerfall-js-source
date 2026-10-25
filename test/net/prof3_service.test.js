@@ -55,7 +55,7 @@ test('PROF3 service: a Mithril Longsword made - the inputs spent, the piece writ
   assert.equal(r.body.pieces.length, 1);
   const [{ provenance, record }] = r.body.pieces;
   assert.match(provenance, PROVENANCE_RE);
-  assert.deepEqual([r.body.xp, r.body.first, r.body.maker], [20 * 5 + 500, true, 'Silverthorn']);   // PIN MOVED (FIRST-BUDGET): Smithing's share of its discovery budget, the 500 it always paid (recipeLaw firstCraftXp)
+  assert.deepEqual([r.body.xp, r.body.first, r.body.maker], [20 * 5 + 500, true, 'Silverthorn']);   // PIN MOVED (FIRST-BUDGET): Smithing's first-make share, the 500 it always paid (recipeLaw firstCraftXp)
   assert.equal(s.xpOf(mac), xpForRank(55) + 600);
   for (const m of ['ingot:mithril', 'metal:copper', 'leather:cured']) assert.deepEqual(s.stores(mac, m), [], `${m} spent`);
   const v = await verifyProductRecord(record, s.identityPublic, { subtle: webcrypto.subtle });

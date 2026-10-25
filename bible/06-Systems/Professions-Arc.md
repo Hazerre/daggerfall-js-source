@@ -84,7 +84,7 @@ src/net/nodeLaw.js (the nodes). Appendix B lists them in one place.
 |---|---|---|
 | DFU's makers | `potions.js` (+ `potionMakerWindow.js`), `spellMaker.js`, `enchanting.js` (+ `itemMakerWindow.js`) | Alchemy and Enchanting are layers over them |
 | DFU's items | `src/characters/itemTemplates.json`; `GROUP_TEMPLATE_INDICES` (`src/systems/item/itemTemplatesData.js`) | Every material and product named in section 4 |
-| Home stations | `DECOR_STATIONS`, `DECOR_STATION_FEES` (`src/net/decorLaw.js`); the account service's decor | Alchemy/spells/enchant stations placed for a licence; new station kinds join the list |
+| Home stations | `DECOR_STATIONS`, `DECOR_STATION_FEES` (`src/net/decorLaw.js`); the account service's decor | Alchemy/spells/enchant stations placed for a licence; new station kinds join the list (DECOR-USE: the cooking station, the room's fire) |
 | Repair | `src/systems/repairService.js` | Repair kits (Smithing) |
 | Climates & Calories | `src/systems/survival/` - camps, the Skillet, cooking at fires and hearths, foraging, corpse meat; templates 530-541 (Camping Equipment, Rations, Apple, Orange, Bread, Raw Fish, Cooked Fish, Meat, Raw Meat, Waterskin, Skillet, Campfire Kit) | Cooking's ground; Hunting's butchery |
 | Deep Waters fish | templates 9001-9007 (Longnose Butterflyfish, Largemouth Bass, Canary Rockfish, Crucian Carp, Mackerel, White Zebra Angelfish, Juvenile Finulon), each with its waters (`PASSIVE_FISH_SPECIES`, `src/world/passiveFish.js`: Tropical, Temperate, Swamp, Desert, OpenOcean, Cold) | Fishing's haul (the species named; the Stores keep Raw Fish, 5.2) |
@@ -156,7 +156,8 @@ Enchanting - ten professions a character holds, with the five that gather.
 
 At 50 and again at 100 each profession offers two; the choice is made on the Professions tab. CRAFT3 (41.6): a merged
 craft offers its two disciplines' - four a rank, one chosen - each acting on its own discipline's work. A change costs **1,000
-Marks** and a week's wait.
+Marks** and a week's wait. PERK-TRIAL (section 51, 2026-10-24, the owner's pick): a choice is free to change for a day
+after it is made, and a paid change (1,000 Marks) takes effect at once - the week is the lock after it.
 
 | Profession | At 50 | At 100 |
 |---|---|---|
@@ -1621,7 +1622,9 @@ of Makers; commissions; regional prices to haul between; and every seat on the m
 ## 14. The server's shape
 
 - `prof_tracks` (player, char_id, profession, xp, spec50, spec100) - BUILT, `0027_professions.sql`, with the
-  pending change of specialisation (respec_rank, respec_to, respec_at)
+  pending change of specialisation (respec_rank, respec_to, respec_at) - PERK-TRIAL (`0173_perk_trial.sql`): a change
+  is written at once and `respec_at` is the lock's end, `respec_to` left empty; `spec50_at`/`spec100_at` when each
+  rank's choice was made, its day of trial from it
 - `prof_stores` (player, char_id, material, origin, qty) - BUILT, `0027_professions.sql` - `origin` own or bought
   (section 7); `guild_prof_stores` (guild_id, material, origin, qty) with its ledger - BUILT, `0034_writs.sql` (PROF6,
   section 28: a row a material and a depositor - a member's own deposit kept under the character, the guild's own under
@@ -3472,7 +3475,8 @@ three). What sections 3.2, 3.3, 4.8, 9.3 and 9.4 left open for PROF9, DECIDED he
 - **The fire** (9.3: "any campfire, hearth or brazier"). DECIDED: any LIT fire within C&C's own reach of its flame
   (`survival/camp.js` BY_FIRE_REACH, 4 m) - anyone's campfire, a peer's included, and the world's braziers and fire bowls
   (`survival/hearth.js`, HEARTH1's records) - in the street and the wilderness (`scenes/world.js` cookFireHere), a building
-  (`worldModes.js` cookFireHere, the interior's own fires) and a dungeon (`dungeonContext.js` cookFire), **in every tier
+  (`worldModes.js` cookFireHere, the interior's own fires - DECOR-USE, 2026-10-24: and the fires placed in a home, a ship's
+  cabin or a caravan, and any piece made its cooking station, `06-Systems/Online-Arc.md` DECOR-USE) and a dungeon (`dungeonContext.js` cookFire), **in every tier
   of the arc** (`scenes/camps.js` fireNear - the world's fire, as a rest's place reads it: Cooking is a profession, never
   C&C's switch). **No fee** - a fire is nobody's (`professionLaw.js` COOK_FIRE). The Stores page's **The Fire**, live
   where one burns; away, it says where Cooking is done. The service cannot see the fire, as it cannot see the forge (23).
@@ -3710,7 +3714,7 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   1:1") and earn nothing online; the profession's doors are the ones 9.3 names: the **brewing act** at an alchemy station
   (Alchemy), **Disenchanting** at an enchanting station (Enchanting's XP), and **a discount on DFU's item maker's gold**
   (Enchanting's layer). The Alchemy and Enchanting tracks are practised on the Professions page, their eight cards chosen.
-  **NARROWED by POTION-DOOR (2026-10-25, section 51)**: online at an alchemy station DFU's potion maker is the brew's
+  **NARROWED by POTION-DOOR (2026-10-25, section 52)**: online at an alchemy station DFU's potion maker is the brew's
   door - a mix DFU's recipe law accepts is the station's brew, asked of the service and paid its XP; the maker earns
   nothing only away from a station (a temple's), past the brewer's rank, where the fee is unmet, or offline (the
   departure from DaggerfallPotionMakerWindow's MixCauldron, `01-Overview/Port-Ledger.md` section A).
@@ -3726,7 +3730,7 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   **Alchemist's**, open for trade (DFU's own potion seller; its `insideOpenShop` latch), **50 gold a brew** or a
   transmutation as every station's fee (**25** since CRAFT-PAYS, 2026-10-21, section 48 - AUDIT CRAFT-WRITS T7), paid as
   the potions are bottled - or a home's **`alchemy` station** (HOME-STATIONS'
-  first, its 50,000 licence; a hall member's) - and since POTION-DOOR (section 51) a **Mages Guild hall**, at the
+  first, its 50,000 licence; a hall member's) - and since POTION-DOOR (section 52) a **Mages Guild hall**, at the
   Alchemist's fee. `scenes/worldModes.js` alchemyHere. The station's own press opens DFU's
   potion maker, 1:1 - online it asks first, the maker or the brew on the Stores page (STATION-DOOR,
   `01-Overview/bugs/Field-Bugs-2026-10-11f.md`). The Stores page's **The Alchemy Station**.
@@ -3742,8 +3746,8 @@ Seats-Arc 7.5). What sections 1, 2, 3.3, 4.1, 4.3, 4.5, 9.3 and 9.4 left open fo
   100 tier 3, 125 tier 4, 200 tier 5, Invisibility's 250 tier 6, Purification's 500 tier 7 - every tier holding one, so
   3.2's XP needs no "follows the rank": **20 x the tier a brew** (never a potion: a Brewer's third earns nothing more, the
   Cook's law), quartered more than two tiers below, **+500 the first** - not for a cauldron wholly of the counter's goods
-  (Water Breathing, Levitation: AUDIT 32 S1's law). FIRST-BUDGET (section 51): the first is its share of Provisioning's
-  discovery budget now, 5,022 or 5,023 (`recipeLaw.js` `brewFirstXp`).
+  (Water Breathing, Levitation: AUDIT 32 S1's law). FIRST-BUDGET (section 52): the first is Provisioning's first-make
+  share now, 3,155 (`recipeLaw.js` `brewFirstXp`).
 - **The potions a brew makes** (9.3: "2 potions at Journeyman and 3 at Master (Brewer 3 at Journeyman)"): DECIDED **one
   below Journeyman** - DFU's own maker's one a mix; **two** since CRAFT-PAYS (2026-10-21, section 48 - AUDIT CRAFT-WRITS
   T7). AUDIT PROF-541 R2-S1: **one at any rank** for a potion wholly of the
@@ -4163,8 +4167,8 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   Root Bulb"; "" where a pattern is made one way). `recipePattern` is the recipe's `product` (`longsword`, `garment-163`,
   `stew`) - FACT, pinned: no product id is two professions'. `patternsOf(list)` groups a list into its patterns, each
   once in the list's order, its materials in theirs.
-- **The first-make 500** (FIRST-BUDGET, section 51: since 2026-10-25 its pattern's share of its track's discovery budget -
-  Smithing's 500 as it was) - `firstCraftKey` is the pattern AT ITS TIER (`longsword@6`), `firstCraftKin` every recipe of it
+- **The first-make 500** (FIRST-BUDGET, section 52: since 2026-10-25 its track's first-make share - Smithing's 500 as it
+  was) - `firstCraftKey` is the pattern AT ITS TIER (`longsword@6`), `firstCraftKin` every recipe of it
   (at most 18 - the Wand at tier 6, two woods and nine gems). It holds both the exceptions the old key carried: AUDIT
   PROF-541 J7's piece and base (a jewel's base is its tier: `ring@3` is `ring:gold`, whichever gem) and R2-S7's dish (its
   two herbs' ways one tier). Two firsts became one where a pattern shares a tier: the Wand's two woods, and the Arrows'
@@ -4366,8 +4370,8 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
 
 ### 41.9 CRAFT-FIRST-SHOWN - the first-make 500 said where it is earned (BUILT 2026-10-15, FIELD BUGS 2026-10-15f)
 
-FIRST-BUDGET (2026-10-25, section 51): the lines below say each first's share of its track's discovery budget since -
-Smithing's 500, Outfitting's 500 (the floor's), Building's 2,569 or 2,570, Provisioning's 5,022 or 5,023 - their thousands grouped.
+FIRST-BUDGET (2026-10-25, section 52): the lines below say each first's share, its track's, since -
+Smithing's 500, Outfitting's 511, Building's 1,823, Provisioning's 3,155 - their thousands grouped.
 
 The Discord, 2026-10-13: "Outfitting xp (first-time craft bonus): The first time craft bonus is not applying to the
 outfitting. I got somehow it once from...Fishing net? Then never after."
@@ -5604,12 +5608,87 @@ order behind the jeweller's 504), `audit31_law` (the commissions no one could fi
 `test/server/founder5.test.js` was time-bombed - its "later" guest stood at 2026-09-25 + 30 days, which the real clock
 passed at 00:00Z on 2026-10-25; its row now stands a day past the real clock, as the pin means it.
 
-## 51. FIRST-BUDGET and POTION-DOOR - a track's discoveries share one budget, and the potion maker is the brew's door (BUILT 2026-10-25)
+## 51. PERK-TRIAL - a specialisation tried before it is kept, and a change that lands at once (BUILT 2026-10-24)
+
+The Discord's feature-feedback, "The time limit of a profession's perks changing" - marbletoff: *"1k silver + week wait is
+too punishing. I understand that it's to prevent players from changing it back and forth and getting the best of two
+worlds. But the effects of some of the perks can be properly understood only after trying. It's frustrating that I'm stuck
+with the useless "Deep Diver" for a week after paying 1k silver."* (Mining 50's Deep Delver.) Three asks: a free change for
+24 hours after a pick, a couple of free changes for new players, and the week as a lock after a change rather than a wait
+for it to take effect. DECIDED (the owner, 2026-10-24, picked from the three as put to the owner: "Trial + instant"): the first
+and the third; the second is the first's work - a new player's first pick is tried for a day.
+
+THE LAW (`src/net/professionLaw.js`; the service's `server-account/src/professions.js` chooseSpec):
+
+- **A choice's day of trial** (SPEC_TRIAL_S, a real day): from when a rank's choice is made - its first, or a paid change -
+  changing it is free and at once, as often as wanted. A change on trial neither restarts the day nor waits on the lock;
+  it is a row in `prof_choices`, as a first choice is, so a request asked twice is answered once.
+- **A paid change** (RESPEC.marks, 1,000 Marks burnt, its line `respec` as ever) takes effect AT ONCE, starts its own day of
+  trial, and **locks the track's next paid change for RESPEC.days** (`respec_at` the lock's end; `respec_to` stays empty -
+  nothing waits). Inside the lock a paid change is refused (`prof-respec-pending`, its words now the lock's) and nothing
+  is burnt. A first choice at the other rank, the merge's free change (CRAFT3) and a choice on its day of trial are
+  answered before the lock, as FIRST-PICK answered them before the old wait.
+- **Asked as free, never charged**: the page asks a change on its day of trial as one (`trial: true`, `profBook.js`
+  choose, off the card as it was armed - AUDIT PERK-TRIAL P1, below); the day out meanwhile, the service refuses it
+  `prof-trial-over` (AUDIT PERK-TRIAL P4: it was `prof-spec-stale`, said as a stale page) and the book reads the track again - a card left open across the day's end never burns 1,000 Marks the player was shown as free.
+- **The page**: on its day a choice's other cards say "Change: free until <time>"; past it "Change: 1,000 silver", "Press
+  again: 1,000 silver, in effect at once. The next change waits 7 days" (AUDIT PERK-TRIAL P5: the lock said before it is paid for); inside the lock the chosen card says "Next change from <date>" and the others
+  wait. The track as the service says it carries `trial` (`{ 50: until }`) and `lock`, each only where there is one.
+- **The changes already waiting** (migration `0173_perk_trial.sql`): a change bought before PERK-TRIAL and still waiting
+  its week lands at the migration, its trial from then (its buyer paid to try it) and its week kept as the lock; one
+  already in effect is folded with neither. `specsAt` keeps its fold for a row the migration has not seen.
+
+The fee and the week are the record's PROF0 numbers, kept. The account service's law moved: `acct186` (acct182 on its branch, renumbered past STAFF-EVENT, AUDIT HIDDEN-UNCOUNTED, STAFF-EVENT BOSS and CLOTH-GEMS at the merge; with DECOR-USE's
+station; deploy before the site). The page's three new lines and the lock's refusal are the text core's, drafted
+in-session for the thirteen whole languages (and the refusal for the drafting ones that held it; `locales/README.md`).
+
+**Pins.** `test/net/perktrial.test.js` (the law's reads, the track as said, the migration over the rows it finds);
+`test/net/prof1_service.test.js` (PIN MOVED: the walk - a first pick's day, a trial change and back, a paid change at once,
+its own day, the lock's refusal, the week out); `test/net/fb1016b_firstpick.test.js` (PIN MOVED: the page over the real
+Worker - a lock at 50 leaves 100's first pick open, its day free past the lock, then the lock; a change asked as free past
+its day refused, never charged); `test/net/audit29_client.test.js` (the book asks the day as the day); AUDIT 29 A2's one
+burn, one track (`test/net/audit29_service.test.js`, PIN MOVED: the track changed, not waiting). Mutants:
+`tools/mutants/perktrial.json`, 25 dead; `audit29.json`, `craft3.json` and `fb1016b_firstpick.json` records re-aimed by
+content, and the 44 older records on the choice (PROF1, AUDIT 29, AUDIT 30, CRAFT3, FIRST-PICK, MINE-PERKS) judged again,
+all dead.
+
+### AUDIT PERK-TRIAL (2026-10-25)
+
+The owner: *"Audit"*. A cold lane on a frozen snapshot of the branch, given the ask and the files and never this
+section, walked the page, the book, the account service and the migration over the real Worker and its node:sqlite D1.
+Each finding below failed on the snapshot and passes now.
+
+- **P1 - a card armed free was charged past its day.** The book read the clock at the second press: a card armed as
+  free whose day ran out before it was pressed again was asked as a paid change and burnt 1,000 Marks the player had
+  been shown as free. The page sends the card's word as it was armed (`trial`, `profBook.js` choose's `shown`), the
+  book asks the change so, and a card armed free whose day runs out on the screen arms again at its price.
+- **P2 - a free change was a free write.** A change on trial is a row kept for good, and nothing held how often one
+  could be asked: the professions' own hour holds it (`overRate`, PROF_OPS_MAX in PROF_OPS_WINDOW_S).
+- **P3 - an answer lost was answered as the old one.** The book kept a request's id for each choice it asked, and a
+  flip whose answer was lost, asked again after the rank had moved on, was answered by the service as the first - with
+  nothing changed. A choice answered forgets every other id kept for its rank.
+- **P4 - a free change past its day was refused as a stale page.** It is `prof-trial-over` (409) now, said as itself:
+  the free day ended, nothing was spent.
+- **P5 - the lock was said only after it was paid for.** The armed card says the week it starts.
+- **P6 - a moment was written in English.** The trial's end and the lock's are written as the player's language writes
+  a day and a time, in UTC and said to be (`profPages.js`; here and not in `textManager.js`, which the relay bundles).
+- **P7 - a choice made in the day before the deploy had no trial.** The migration takes each choice's time from its own
+  `prof_choices` row, so one made an hour before has the rest of its day, as one made a minute after has.
+- **P8 - a change bought across the deploy waited its week.** An older service writes a change as waiting until the
+  new one is up; the law stands a change written as waiting at once whatever its time (`specsAt`), and the service
+  folds it with its week as the lock (`trackView` says no `respec`, ever).
+- **P9 - the waits' table said "sixty harvests a day"** (`Online-Waits.md`), false since CAP-OFF.
+
+Pinned in `test/net/audit29_client.test.js` (P1, P3), `test/net/fb1016b_firstpick.test.js` (P1 on the page, P4),
+`test/net/prof1_service.test.js` (P2), `test/net/perktrial.test.js` (P7, P8) and `test/systems/foraging/prof1_law.test.js`
+(PIN MOVED, P8); `tools/mutants/perktrial.json` (31, all dead).
+
+## 52. FIRST-BUDGET and POTION-DOOR - a track's first-makes at Smithing's pace, and the potion maker is the brew's door (BUILT 2026-10-25)
 
 SaberGGaming's report (2026-10-25): Provisioning is slow, and potions made from recipes give no XP. The owner: "No
-band aids".
+band aids"; and, asked how fast the tracks should climb: "Match Smithing's pace".
 
-### 51.1 What stood (MEASURED, 2026-10-25)
+### 52.1 What stood (MEASURED, 2026-10-25)
 
 - **Every track paid alike a craft** - a brew 20 x its potion's tier (`alchemyLaw.js` `brewXp`), a dish 20 x the rank's
   tier (`recipeLaw.js` `cookXp`), a piece 20 x its tier - and +500 once a first-make (`FIRST_CRAFT_XP`, as it stood; the
@@ -5627,46 +5706,61 @@ band aids".
   37) - while the brew on the Stores page paid. The Mages Guild's Make Potions opened that maker, and a Mages Guild hall
   was no alchemy station (`scenes/worldModes.js` `alchemyHere`: an Alchemist's, a home's).
 
-### 51.2 FIRST-BUDGET - a discovery budget a track
+### 52.2 FIRST-BUDGET - a first-make's share a track, at Smithing's pace
 
-- **DECIDED (the brief)**: each crafting track's first-makes together pay `DISCOVERY_BUDGET`, **110,500** - Smithing's
-  whole pool at the 500 it paid, so no track loses and Smithing is unchanged. A first-make pays the budget over its
-  track's count (`firstMakesOf`), the remainder one XP each to the first in the tables' order (RECIPES, then the mason's
-  works, then DFU's twenty), so the shares sum to the budget exactly: **Smithing 500** (all 221), **Building 2,570** (33)
-  and 2,569 (10, the two works among them), **Provisioning 5,023** (16) and 5,022 (6). Enchanting and the gathering tracks
-  have no first-make, so no budget.
-- **NO TRACK LOSES - the floor** (`FIRST_MAKE_FLOOR`, 500; `budgetOf`): a track whose pool is larger than Smithing's keeps
-  the 500 a first, its budget its count's 500s - **Outfitting 500** (all 332, its budget 166,000). DECIDED at the merge with
-  CLOTH-GEMS (section 50), whose cloth patterns took Outfitting's pool from 180 to 332: a fixed 110,500 would have paid
-  each 332 or 333, below the 500 they paid, and the brief's own rule is that no track loses. A DEPARTURE FROM THE BRIEF,
-  named: its budget was one fixed figure; it is that figure, or the floor's where a pool outgrows it.
-- **THE BUDGET SAYS HOW MUCH A FIRST PAYS, CLOTH-GEMS WHETHER**: every recipe's first can pay since the loom's own cloth
+- **DECIDED (the owner, asked: "Match Smithing's pace", 2026-10-25)**: each crafting track's first-make pays the share
+  that brings the track to Master in the crafts Smithing takes - **Smithing 500** (the 500 it always paid, its pace the
+  target: 45 crafts to Journeyman, 172 to Master), **Outfitting 511**, **Building 1,823**, **Provisioning 3,155**
+  (`recipeLaw.js` `FIRST_MAKE_SHARE`). Each share is DERIVED, not set by hand: `tools/craftPace.mjs` `firstShares`
+  bisects for each track the least share at which the walk reaches Master in Smithing's 172 or fewer, and
+  `test/net/firstbudget_law.test.js` holds the law's figures equal to it and each the least (one XP less and the track
+  takes a 173rd craft). A change to a track's recipes, its pool or its XP moves the derivation, and the test says by how
+  much.
+- **One share a track matches Master, not Journeyman as well**: a small pool's firsts come early in the climb, so
+  Building reaches Journeyman in 14 crafts and Provisioning in 8, against Smithing's 45 (Outfitting in 45, as Smithing).
+  Matching both would take a second figure a track (the firsts paid by the rank they open at, say); the owner's word was
+  the pace, and Master is the pace's whole.
+- **NO TRACK PAYS LESS THAN IT DID - the floor** (`FIRST_MAKE_FLOOR`, 500, the flat first every track paid before):
+  `firstShares` never answers under it, and the law's every share stands at it or above.
+- **Before it, on this branch** (superseded): every crafting track's first-makes together paid a fixed 110,500 -
+  Smithing's whole pool at the 500 it paid - each the budget over its track's count, the remainder one XP each to the
+  first (Building 2,569 or 2,570, Provisioning 5,022 or 5,023), and Outfitting's 332 the floor's 500 at the merge with
+  CLOTH-GEMS. It made the small pools the fastest - Provisioning at Master in 20 crafts and Building in 39, against
+  Smithing's 172 - and the owner, shown that, chose Smithing's pace.
+- **The pace** (`tools/craftPace.mjs`, pinned; crafts to Journeyman / to Master; on CLOTH-GEMS' recipe set):
+
+  | Track | Before (a flat 500) | The 110,500 budget | Now (Smithing's pace) | A first-make pays |
+  |---|---|---|---|---|
+  | Smithing | 45 / 172 | 45 / 172 | 45 / 172 | 500 |
+  | Outfitting | 46 / 176 | 46 / 176 | 45 / 172 | 511 |
+  | Building | 116 / 525 | 10 / 39 | 14 / 172 | 1,823 |
+  | Provisioning | 178 / 599 | 5 / 20 | 8 / 172 | 3,155 |
+
+- **THE SHARE SAYS HOW MUCH A FIRST PAYS, CLOTH-GEMS WHETHER**: every recipe's first can pay since the loom's own cloth
   does, so every recipe's pattern is in its track's pool (`firstCraftPays(r, true)`); the service binds the share asked as
   own (`firstCraftXp(r, true)`) and its decision's `p` says whether the units are (`craftAtAnvil`, the answer's
-  `firstPaid`); the words ask `firstCraftXp(r, own)` with the page's `ownSpend`.
+  `firstPaid`); the words ask `firstCraftXp(r, own)` with the page's `ownSpend`. The walk pays a cloth pattern's first
+  as own - the player levelling weaves his cloth.
 - **A first-make is what the service keys its "made before" by**: a recipe's pattern at its tier (`firstCraftKey`, its kin
-  one share), a mason's work by its id (`smeltAtForge`), a brew by its potion (`brewAtStation`) - each only where its
-  first pays (AUDIT 32 S1, `firstCraftPays` and `brewFirstPays`).
-- **One home** - `src/net/recipeLaw.js` (`DISCOVERY_BUDGET`, `firstMakesOf`, `firstMakeXp`, `firstCraftXp`, `workFirstXp`,
-  `brewFirstXp`), computed once and read by the service's binds (`server-account/src/professions.js` `craftAtAnvil` and
-  `smeltAtForge`, `alchemy.js` `brewAtStation` - each binds the share where it bound 500, the decision's `first` as it
-  was) and the stations' words (`ui/craftXpWords.js`, `ui/professions/profPages.js`). `craftXp`, `brewXp` and `masonXp`
-  take no first; `FIRST_CRAFT_XP` is gone. `brewFirstPays` moved to recipeLaw.js beside `firstCraftPays`, and
-  `ingredientKeys` and `keyTemplate` down to professionLaw.js (recipeLaw.js counts the brews, and alchemyLaw.js imports
-  it); alchemyLaw.js re-exports the three, so every reader's import stands. ACCOUNT_VERSION acct186 (acct182 on its
-  branch, renumbered past STAFF-EVENT, AUDIT HIDDEN-UNCOUNTED, STAFF-EVENT BOSS and CLOTH-GEMS at the merge).
-- **MEASURED after** (`tools/craftPace.mjs`, pinned, on CLOTH-GEMS' recipe set): Smithing 45 and 172 (unchanged),
-  Outfitting 46 and 176 (unchanged - the floor's), Building 10 and 39, Provisioning 5 and 20.
-- **FOR THE OWNER**: the budget as set makes the small pools the fastest - Provisioning reaches Master in 20 crafts and
-  Building in 39, against Smithing's 172 - because the same 110,500 is shared by 22 and 43 first-makes where Smithing's is
-  shared by 221 (each of Provisioning's firsts is a tenth of the way to Master). The lever, if that is too quick, is
-  `DISCOVERY_BUDGET` a track; nothing here caps it.
-- **The words** say each first's share, its thousands grouped (`{more, number}`): "20 Building experience, and 2,570
-  more the first time you make this piece at this grade."; "The first time you cook this dish: 5,023 more Provisioning
-  experience."; "Your first cut and your first mix each earn 2,569 more Building experience."; the alchemy station's
-  "5 Provisioning experience, and 5,022 the first time.". 41.9 and 41.10's lines stand; their figure is the share.
+  one first), a mason's work by its id (`smeltAtForge`), a brew by its potion (`brewAtStation`) - each only where its
+  first pays (AUDIT 32 S1, `firstCraftPays` and `brewFirstPays`): Smithing 221, Outfitting 332, Building 43 (41 recipes and
+  the mason's two works), Provisioning 22 (the four dishes' patterns and eighteen of DFU's twenty brews). Enchanting and
+  the gathering tracks have no first-make, so no share.
+- **One home** - `src/net/recipeLaw.js` (`FIRST_MAKE_SHARE`, `FIRST_MAKE_FLOOR`, `firstMakesOf`, `firstMakeXp`,
+  `firstCraftXp`, `workFirstXp`, `brewFirstXp`), read by the service's binds (`server-account/src/professions.js`
+  `craftAtAnvil` and `smeltAtForge`, `alchemy.js` `brewAtStation` - each binds the share where it bound 500, the
+  decision's `first` as it was) and the stations' words (`ui/craftXpWords.js`, `ui/professions/profPages.js`). `craftXp`,
+  `brewXp` and `masonXp` take no first; `FIRST_CRAFT_XP` is gone. `brewFirstPays` moved to recipeLaw.js beside
+  `firstCraftPays`, and `ingredientKeys` and `keyTemplate` down to professionLaw.js (recipeLaw.js counts the brews, and
+  alchemyLaw.js imports it); alchemyLaw.js re-exports the three, so every reader's import stands. ACCOUNT_VERSION acct187
+  (acct182 on its branch, renumbered past STAFF-EVENT's acct182, AUDIT HIDDEN-UNCOUNTED's acct183, STAFF-EVENT BOSS's
+  acct184, CLOTH-GEMS's acct185 and DECOR-USE and PERK-TRIAL's acct186 at the merges).
+- **The words** say each first's share, its thousands grouped (`{more, number}`): "20 Building experience, and 1,823
+  more the first time you make this piece at this grade."; "The first time you cook this dish: 3,155 more Provisioning
+  experience."; "Your first cut and your first mix each earn 1,823 more Building experience."; the alchemy station's
+  "5 Provisioning experience, and 3,155 the first time.". 41.9 and 41.10's lines stand; their figure is the share.
 
-### 51.3 POTION-DOOR - one door to the brew
+### 52.3 POTION-DOOR - one door to the brew
 
 - **DECIDED**: online (the Professions pages standing) at an **alchemy station**, DFU's potion maker is the brew's door.
   Its grid holds the Stores' ingredients after the carried ones (each the Stores' row as DFU's own item -
@@ -5705,7 +5799,7 @@ band aids".
   `scenes/exterior.js` and `scenes/dungeonContext.js` - FLAGGED, none to wire: neither opens a guild's service or the
   maker.
 
-### 51.4 As built
+### 52.4 As built
 
 - **The law**: `src/net/recipeLaw.js`, `src/net/professionLaw.js` (`ingredientKeys`, `keyTemplate`, `INGREDIENT_KEYS`),
   `src/net/alchemyLaw.js` (the re-exports, `brewXp`), `src/net/temperLaw.js`.
@@ -5760,10 +5854,10 @@ At dusk the hub warns of a Motherlode in the Wrothgarian foothills in ten minute
 | Template range | 600-699 (the Skinning Knife 603; the other tools are Foraging's 1600-1603, 1607) |
 | Ranks | Novice 0, Apprentice 25, Journeyman 50, Expert 75, Master 100 |
 | XP to rank n | 10 x n^2 |
-| XP a harvest / a craft / a first craft / a writ | 15 x tier (+50% clean; a quarter for a node or recipe more than two tiers below the rank's top; a haul and a herb at the rank's own tier - PROF8, HERB-XP) / 20 x tier a craft (AUDIT 30 R4: this row said x units) / ~~+500~~ its track's share of a 110,500 discovery budget, 500 at the least - Smithing 500, Outfitting 500 (the floor's), Building 2,569-2,570, Provisioning 5,022-5,023 (FIRST-BUDGET, section 51; AUDIT 32 S1: none for a recipe made wholly of goods only a counter sells - CLOTH-GEMS, section 50: unless its units are the maker's own) / 2 x Marks value; answered as credited (AUDIT 29) |
+| XP a harvest / a craft / a first craft / a writ | 15 x tier (+50% clean; a quarter for a node or recipe more than two tiers below the rank's top; a haul and a herb at the rank's own tier - PROF8, HERB-XP) / 20 x tier a craft (AUDIT 30 R4: this row said x units) / ~~+500~~ its track's share, the least that brings it to Master in Smithing's crafts, 500 at the least - Smithing 500, Outfitting 511, Building 1,823, Provisioning 3,155 (FIRST-BUDGET, section 52; AUDIT 32 S1: none for a recipe made wholly of goods only a counter sells - CLOTH-GEMS, section 50: unless its units are the maker's own) / 2 x Marks value; answered as credited (AUDIT 29) |
 | Tier ranks | 0, 10, 25, 40, 55, 70, 90 |
 | Crafts above Journeyman | 2 |
-| Respecialisation | 1,000 Marks, 7 days |
+| Respecialisation | 1,000 Marks, in effect at once, the next paid change 7 days after (PERK-TRIAL); a choice free to change for its first day |
 | Marks value by tier | 1, 2, 4, 6, 9, 14, 40; herbs 1 / 2 / 5 |
 | Daily caps | ~~60 harvests a gathering profession a character (the Basket's among Herbalism's), and 120 an account (AUDIT 29 - a character is an id the client names);~~ 4 dungeon veins an account in dungeons nobody has vouched for (AUDIT 29); ~~Fishing 40 hauls an account; Hunting 30 hides an account,~~ Hunting 3 hides of tiers 5-6 an account - CAP-OFF, 2026-10-07 (Mac: "Remove the cap on life skills"; the two bounds a modified client's claim needs kept, Mac's word): no day's cap on harvests, hauls or hides (section 40) |
 | Node tiers | 40 / 25 / 15 / 10 / 6 / 4 % |
@@ -5785,7 +5879,7 @@ At dusk the hub warns of a Motherlode in the Wrothgarian foothills in ten minute
 | A body (PROF7) | `body:<day>:<12 hex>`, stamped at the player's own kill; a node while the pack holds a Skinning Knife; a hide 1, a clean pelt x1.5, a torn one its part lost; the part one body in four (Big Tooth, Spider's Venom, Giant Scorpion Stinger, Dragon's Scales); the butchery one Raw Meat (the Slaughterfish's Raw Fish), a Butcher's two, a Butcher's meat withdrawn spoiling at half the pace; ~~30 hides an account a day,~~ 3 of tiers 5-6 an account a day (AUDIT 32 L2: hides, not bodies; CAP-OFF, 2026-10-07: the thirty gone); lapsed at the UTC day's turn (B1); reached at DFU's corpse distance (H7); no ground, no hours, no witness; Hunting XP 15 x tier |
 | The hides (PROF7) | Rat Pelt 1, Bat Leather 2, Bear Hide 2, Tiger Pelt 3, Spider Silk 3, Scorpion Chitin 4, Slaughterfish Scales 4, Harpy Feathers 5, Dreugh Shell 5, Dragonling Scale 6 (655-664); DEX-HIDES' Wolf Pelt 2, Boar Hide 2, Mudcrab Chitin 1 (681-683 - AUDIT FB1021 L2-4); Cured Leather tier 2, Hardened 5 (665-666); Linen 1, Wool 2, Silk 4, Standard-bearer's Silk 5 (668-671, the last unyielded); a hide 1 kg (Spider Silk and Harpy Feathers 0.25), a bolt 0.5; 8 x the tier's Marks value in gold, a leather and a Silk Bolt x1.5 |
 | The loom (PROF7) | a Clothing Store's, 50 gold a craft, a cure or a weave; a home's `loom` station, 50,000 gold; two hides a leather (tiers 1-3 Cured, 4-6 Hardened), a Tanner's two a unit (a choice at 50); three Spider Silk a Silk Bolt; no XP |
-| Outfitting's recipes (PROF7) | leather armour at Leather - Cuirass 6, Greaves 4, the rest 2 - Cured (rank 10) or Hardened (rank 55, a step); DFU's 76 garments in each cloth - a bolt, two, three, boots a bolt and a Cured Leather; rugs 3 Wool, tapestries 4 Wool, skins 2 and 1 of a pelt; the Fishing-Net 2 Linen; the steps a Tailor's clothing, a Leatherworker's leather armour; XP 20 x tier, and the first its share of Outfitting's discovery budget, the floor's 500 (FIRST-BUDGET, section 51; AUDIT 32 S1: not the 152 made wholly of Linen and Wool - CLOTH-GEMS, section 50: unless of the loom's own cloth) |
+| Outfitting's recipes (PROF7) | leather armour at Leather - Cuirass 6, Greaves 4, the rest 2 - Cured (rank 10) or Hardened (rank 55, a step); DFU's 76 garments in each cloth - a bolt, two, three, boots a bolt and a Cured Leather; rugs 3 Wool, tapestries 4 Wool, skins 2 and 1 of a pelt; the Fishing-Net 2 Linen; the steps a Tailor's clothing, a Leatherworker's leather armour; XP 20 x tier, and the first Outfitting's share, 511 (FIRST-BUDGET, section 52; AUDIT 32 S1: not the 152 made wholly of Linen and Wool - CLOTH-GEMS, section 50: unless of the loom's own cloth) |
 | A garment's dye (PROF7) | DFU's ten clothing dyes (0-9), chosen at the loom, signed into the record (`u`); every garment (AUDIT 32 L3: the four unchangeable shirts too) |
 | The stitch (PROF7) | eight presses, the beat every 0.75 s, the band 0.2 of it x (AGI + SPD) / 2's band, 0.25 s between presses; all eight on the beat a step |
 | Fishing | throw 0.3-1.5 s / 3-12 m, wait 5-30 s (first and last daylight hour x0.5, storm x2), tug 600 ms (Angler 840), band 20-30%, fill 6 s inside, 20 s, slip 2 s; pearl 1/50 (Pearl Diver x3, Deep-Sea x2), slaughterfish 1/100 (Deep-Sea x2) - at sea on confirmed ground - trophy 1/200; 1-2 fish, a school +1 (Netter +2); schools 2 a pixel a day, 24 spots, 10 m; ~~40 hauls an account a day~~ (CAP-OFF, 2026-10-07: none); XP at the rank's own tier (PROF8); Raw Fish tier 1, 1 Mark; Pearl tier 5 |
@@ -5809,7 +5903,7 @@ At dusk the hub warns of a Motherlode in the Wrothgarian foothills in ten minute
 | Furniture's quality (PROF4) | its value x its condition multiplier; no Loot Rarity roll; a Masterwork or a Master Joiner's piece marked |
 | The furnisher's stock (PROF4) | Linen 2 Marks a unit, 100 a purchase, bought units; Linen, Cured Leather and Bear Hide had no pack form until PROF7 registered their templates |
 | Station use fee in town | 50 gold |
-| Alchemy | 2 / 3 potions; Potent +25%, 10% / 20%, +5% an unbruised herb; brewed at an Alchemist's, a Mages Guild hall (POTION-DOOR, section 51) or a home's station, from the Stores page or the potion maker there |
+| Alchemy | 2 / 3 potions; Potent +25%, 10% / 20%, +5% an unbruised herb; brewed at an Alchemist's, a Mages Guild hall (POTION-DOOR, section 52) or a home's station, from the Stores page or the potion maker there |
 | Enchanting | -10% / -20%; 1 Essence per 100 points |
 | Listings | 72 h, 30 an account, 1-1,000,000 Marks (a material's a unit, a piece's whole), 1-5,000 units; a listing's or an order's worth at most 10,000,000 (the Marks cap, AUDIT 30); buy orders 20, 7 days; 60 postings and 120 market acts an hour, each its own counter (PROF5) |
 | Fees | listing 1% of the listing's worth, rounded up (min 1); sales tax 5% of a listing's (an order's) running total, rounded down, less what its earlier sales paid (PROF5; AUDIT 30); the Tithe 0-10% / 0-15% from the seller, across the bailiwick (nought until SEAT1 holds a seat); courier ceil(ceil(units / 20) x (1 + px / 25)), min 2, px the hubs' straight line rounded; courier's time 15 min + 1 min per 10 px begun |

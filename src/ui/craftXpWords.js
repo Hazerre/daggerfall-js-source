@@ -30,11 +30,11 @@
 // units stand (`own`, the page's read of the Stores and the bag: ui/professions/profPages.js ownSpend), and the craft's
 // word says what the service decided (its answer's `firstPaid`). bible/06-Systems/Professions-Arc.md 50.
 //
-// FIRST-BUDGET (SaberGGaming's report, 2026-10-25: Provisioning is slow): A FIRST-MAKE'S XP IS ITS TRACK'S SHARE of the
-// discovery budget (net/recipeLaw.js DISCOVERY_BUDGET - firstCraftXp, workFirstXp), no longer a flat 500 every track:
-// Smithing's 500, Outfitting's 500 (its pool larger than the budget, the floor's), Building's 2,569 or 2,570,
-// Provisioning's 5,022 or 5,023 - every line below says the recipe's own. The budget says how much a first pays,
-// CLOTH-GEMS whether. bible/06-Systems/Professions-Arc.md 51.
+// FIRST-BUDGET (SaberGGaming's report, 2026-10-25: Provisioning is slow; the owner, asked: "Match Smithing's pace"): A
+// FIRST-MAKE'S XP IS ITS TRACK'S SHARE (net/recipeLaw.js FIRST_MAKE_SHARE - firstCraftXp, workFirstXp), no longer a flat
+// 500 every track: Smithing's 500, Outfitting's 511, Building's 1,823, Provisioning's 3,155 - each the least that brings
+// its track to Master in Smithing's crafts - and every line below says the recipe's own. The share says how much a first
+// pays, CLOTH-GEMS whether. bible/06-Systems/Professions-Arc.md 52.
 import { t, intlLocale } from '../systems/textManager.js';
 import { craftXp, firstCraftPays, counterMade, firstCraftXp, workFirstXp, masonXp } from '../net/recipeLaw.js';
 import { creditedXp, professionName, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN, MASON_RECIPES } from '../net/professionLaw.js';   // FIRST-BUDGET: the bench's two works, each its first's share
@@ -52,7 +52,7 @@ function craftsList(by) {
 /**
  * CRAFT-LIMIT-SAID: WHAT AN ACT AT A STATION IS PAID, as the service decides it - `xp` the act's own law's figure (cookXp,
  * brewXp, temperXp, disenchantXp) with the Firmament's percent on it, under the room `pay.limit` leaves (none read, no
- * bound). A first's XP (its share of its track's discovery budget) is laid on whole beside it, never scaled (the lines
+ * bound). A first's XP (its track's first-make share) is laid on whole beside it, never scaled (the lines
  * that say one, below).
  * @param {number} xp @param {CraftPay} [pay]
  */
@@ -101,7 +101,7 @@ export const limitRuleLine = (past) => t('prof.page.limit.rule', 'Only {max} cra
  */
 export function craftXpLine(r, rank, profession, pay = {}, own = false) {
   const xp = scaleXp(craftXp(r.tier, rank), pay.pct ?? 0);
-  const more = firstCraftXp(r, own);   // FIRST-BUDGET: the pattern's share of its track's budget; CLOTH-GEMS: a cloth piece's where its cloth is own
+  const more = firstCraftXp(r, own);   // FIRST-BUDGET: its track's first-make share; CLOTH-GEMS: a cloth piece's where its cloth is own
   if (!counterMade(r)) {
     return capLine(profession, pay, xp + more) || t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.', { xp, profession, more });
   }
@@ -112,7 +112,7 @@ export function craftXpLine(r, rank, profession, pay = {}, own = false) {
 
 /**
  * The fire's first-time line for a dish (its XP is the pans line's - cookXp, XP follows the rank; the first's XP - FIRST-BUDGET:
- * the dish's share of Provisioning's budget, firstCraftXp - the service lays on beside it, professions.js craftAtAnvil):
+ * Provisioning's first-make share, firstCraftXp - the service lays on beside it, professions.js craftAtAnvil):
  * empty for a dish whose first pays none. CRAFT-LIMIT-SAID: the
  * limit's line in its place where the track cannot take `clean` (a clean pan's XP, the Firmament's percent on it) and the
  * first's.
@@ -123,7 +123,7 @@ export const dishFirstLine = (r, profession, pay = {}, clean = 0) => capLine(pro
 
 /**
  * The mason's bench's works' first-time line: the first cut and the first mix each lay on their first's XP (FIRST-BUDGET:
- * each work's share of Building's budget, workFirstXp - the service's, keyed by the work, professions.js smeltAtForge;
+ * Building's first-make share, each work's, workFirstXp - the service's, keyed by the work, professions.js smeltAtForge;
  * both works pay it, and pay the same, FACT, pinned). CRAFT-LIMIT-SAID: the limit's line in its place where the track
  * cannot take a first clean work of one unit.
  * @param {number} rank @param {string} profession @param {CraftPay} [pay]

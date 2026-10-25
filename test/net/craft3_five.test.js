@@ -43,7 +43,7 @@ test('CRAFT3 DONE WHEN: a Silver Ring and an Iron Dagger raise one Smithing trac
     assert.equal(r.ok, true, `${id}: ${JSON.stringify(r)}`);
     made.push([id, r.data.track.profession, r.data.xp]);
   }
-  const each = craftXp(1, 0) + 500;   // PIN MOVED (FIRST-BUDGET): Smithing's share of its discovery budget, the 500 a first always paid it
+  const each = craftXp(1, 0) + 500;   // PIN MOVED (FIRST-BUDGET): Smithing's first-make share, the 500 a first always paid it
   assert.deepEqual(made, [['ring:silver', 'smithing', each], ['dagger:iron', 'smithing', each]]);
   assert.equal(book.track('smithing').xp, 2 * each);
   assert.equal(book.track('jewelcrafting'), book.track('smithing'), 'a discipline\'s track its craft\'s');

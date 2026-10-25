@@ -153,9 +153,9 @@ test('PROF9 DONE WHEN: a Hunter\'s Stew cooked with a clean pan at a fire from t
     assert.match(stew.provenance, /^[0-9a-f]{16}$/);
     assert.deepEqual([isFood(stew), isDish(stew), foodOf(stew).satiety], [true, true, FOOD[TEMPLATE.Meat].satiety]);
     // PIN MOVED (CRAFT3): book.track('cooking') is Provisioning's track, the dish's XP credited there
-    assert.deepEqual([book.track('cooking').profession, book.track('cooking').xp, book.track('provisioning').xp], ['provisioning', 30 + 5023, 30 + 5023], 'a clean pan half again, and the first stew\'s share of Provisioning\'s budget');   // PIN MOVED (FIRST-BUDGET): 5,023, 110,500 over 22
+    assert.deepEqual([book.track('cooking').profession, book.track('cooking').xp, book.track('provisioning').xp], ['provisioning', 30 + 3155, 30 + 3155], 'a clean pan half again, and the first stew\'s - Provisioning\'s share');   // PIN MOVED (FIRST-BUDGET): 3,155
     assert.deepEqual([book.held('food:meat'), book.held('food:mushroom'), book.held('p1:13')], [0, 0, 0]);
-    assert.match(page.text(), /You cooked a Hunter's Stew \(\+5053 Provisioning XP\)\./);   // PIN MOVED (FIRST-BUDGET)   // PIN MOVED (CRAFT3): the fire's xp word
+    assert.match(page.text(), /You cooked a Hunter's Stew \(\+3185 Provisioning XP\)\./);   // PIN MOVED (FIRST-BUDGET)   // PIN MOVED (CRAFT3): the fire's xp word
     // EATEN: C&C's own law - the hunger met - and Endurance +5 for two hours, the player's own buff
     const now = 100_000;
     hungry(player, now);

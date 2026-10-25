@@ -195,7 +195,7 @@
       "test/net/fb1015f_firstcraft.test.js",
       "test/systems/clothgems_client.test.js"
     ],
-    "note": "FIRST-BUDGET (re-aimed at the merge, Professions-Arc 51): the line's first is firstCraftXp(r, own) - the share where the units are own - where it was firstCraftPays(r, own) ? FIRST_CRAFT_XP : 0."
+    "note": "FIRST-BUDGET (re-aimed at the merge, Professions-Arc 52): the line's first is firstCraftXp(r, own) - the share where the units are own - where it was firstCraftPays(r, own) ? FIRST_CRAFT_XP : 0."
   },
   {
     "name": "CLOTHGEMS-words-branch-inverted",

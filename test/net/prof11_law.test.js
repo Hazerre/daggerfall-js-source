@@ -82,7 +82,7 @@ test('PROF11 law: the mason\'s bench\'s works (4.5) - the cut, two Rough Stone a
 
 test('PROF11 law: the bench\'s XP - 20 a tier a unit of work at the RANK\'s own tier (XP follows the rank: the stone is tiers 1-2, and at its own tier a quarter would hold Masonry from 40), half again for a clean chisel (the Stores keep no quality - Mining\'s clean act at the rock), 500 the first time; a Quarryman\'s second Cut Stone earns nothing more', () => {
   assert.equal(CRAFT_XP_PER_TIER, 20);
-  assert.deepEqual(MASON_RECIPES.map((w) => workFirstXp(w)), [2569, 2569]);   // PIN MOVED (FIRST-BUDGET): the first's XP its share of the track's discovery budget (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - both works the last of Building's 43 first-makes, 110,500 over 43
+  assert.deepEqual(MASON_RECIPES.map((w) => workFirstXp(w)), [1823, 1823]);   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - both works Building's 1,823
   for (const rank of [0, 9, 10, 24, 25, 40, 55, 70, 89, 90, 99, 100]) {
     assert.equal(masonTier(rank), topTierOf(rank), `rank ${rank}`);
     assert.equal(masonXp(3, rank), 20 * topTierOf(rank) * 3, `rank ${rank}: never quartered`);

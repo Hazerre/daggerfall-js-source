@@ -72,7 +72,7 @@ test('PROF10 law: the jeweller\'s bench\'s 504 recipes (CLOTH-GEMS: every grade 
   assert.deepEqual([recipeOpen(recipeById('ring:gold'), 24), recipeOpen(recipeById('ring:gold'), 25), recipeOpen(recipeById('torc:platinum'), 54), recipeOpen(recipeById('torc:platinum'), 55),
     recipeOpen(recipeById('wand:ironwood:jade'), 69), recipeOpen(recipeById('wand:ironwood:jade'), 70), recipeOpen(recipeById('clothamulet:linen:jade'), 0)], [false, true, false, true, false, true, true]);
   assert.ok(JEWELCRAFTING_RECIPES.every((r) => firstCraftPays(r)), 'a gathered metal or gem in every one: the first time\'s 500 pays (the Cloth Amulet\'s gem)');
-  assert.deepEqual([craftXp(1, 0), craftXp(3, 25) + firstCraftXp(recipeById('ring:gold')), craftXp(1, 40), craftXp(5, 100)], [20, 60 + 500, 5, 100], 'a craft\'s XP by its tier (3.2) - the ladder\'s first quartered from 40');   // PIN MOVED (FIRST-BUDGET): the first's XP its share of the track's discovery budget (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - a jewel is Smithing's, its share the 500 it was
+  assert.deepEqual([craftXp(1, 0), craftXp(3, 25) + firstCraftXp(recipeById('ring:gold')), craftXp(1, 40), craftXp(5, 100)], [20, 60 + 500, 5, 100], 'a craft\'s XP by its tier (3.2) - the ladder\'s first quartered from 40');   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp, brewFirstXp, workFirstXp), no longer a flat 500 - a jewel is Smithing's, its share the 500 it was
 });
 
 test('PROF10 law: a piece of jewellery takes a quality and lists among the Jewellery (commissioned at a quality; a Masterwork to auction); one piece a craft; a Wand takes a Heartwood for a plank, its step; no family step for a jeweller', () => {

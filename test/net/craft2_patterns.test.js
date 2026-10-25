@@ -41,8 +41,8 @@ test('CRAFT2 DONE WHEN: the first-make 500 is a pattern\'s at a tier, through th
     made.push([id, r.data.first, r.data.xp]);
   }
   const t6 = craftXp(6, 70), t5 = craftXp(5, 70);
-  // PIN MOVED (FIRST-BUDGET, Professions-Arc 51): a first's XP its pattern's share of the track's discovery budget - Smithing's
-  // the 500 it always was (110,500 over its 221 first-makes), so these stand as they were
+  // PIN MOVED (FIRST-BUDGET, Professions-Arc 52): a first's XP its track's first-make share - Smithing's
+  // the 500 it always was, so these stand as they were
   const first = 500;
   assert.deepEqual(made, [
     ['longsword:adamantium', true, t6 + first], ['longsword:ebony', false, t6], ['longsword:mithril', true, t5 + first],

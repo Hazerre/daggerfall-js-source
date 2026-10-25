@@ -71,7 +71,7 @@ async function brewAnswer(db, player, row, nowS, extra = {}) {
  * POTENT is rolled here, once a brew: the rank's chance (10 at Expert, 20 at Master), +5 an unbruised herb the brew spends
  * (prof_unbruised, its units reckoned against the OWN units spent - bought ones are spent first), a Distiller's +10, the
  * hall's; its share +25, a Master Alchemist's +40. The potions a brew makes: brewCount (2 - CRAFT-PAYS's, it was 1; 2 at Journeyman, a Brewer's 3;
- * 3 at Master - AUDIT PROF-541 R2-S1: one whatever the rank for a potion wholly of the Apothecaries' goods). XP 20 x the potion's tier, and the character's first of it its share of Provisioning's discovery budget (FIRST-BUDGET,
+ * 3 at Master - AUDIT PROF-541 R2-S1: one whatever the rank for a potion wholly of the Apothecaries' goods). XP 20 x the potion's tier, and the character's first of it Provisioning's first-make share (FIRST-BUDGET,
  * recipeLaw brewFirstXp - none for one made wholly of the Apothecaries' goods, brewFirstPays), under the crafter's limit. Decided by the brew's own INSERT: every input held (never gold's).
  * Then the unbruised count down by what it reckoned, the inputs out (bought first - the count clamped to the own units
  * left, AUDIT PROF12 A1), the XP in. The potions are the
@@ -115,7 +115,7 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
   const nonce = mintId(rand);
   // ?1 player ?2 character ?3 rid ?4 potion ?5 keys ?6 count ?7 potent ?8 unbruised ?9 steps ?10 xp ?11 the first time's
   // ?12 now ?13 nonce; the inputs ?14 on, two a one
-  const binds = [player.id, character, rid, potion.id, JSON.stringify(keys), count, potent, unbruised, steps, xp, brewFirstXp(potion), nowS, nonce];   // FIRST-BUDGET: the potion's share of Provisioning's budget (recipeLaw brewFirstXp - none for the counter's goods alone)
+  const binds = [player.id, character, rid, potion.id, JSON.stringify(keys), count, potent, unbruised, steps, xp, brewFirstXp(potion), nowS, nonce];   // FIRST-BUDGET: Provisioning's first-make share (recipeLaw brewFirstXp - none for the counter's goods alone)
   const held = [];
   inputs.forEach((inp, i) => {
     binds.push(inp.key, inp.n);
@@ -126,8 +126,8 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
   // (workStatements), so a brew is a crafting writ's only while none of its inputs had any to spend
   const loose = `EXISTS (SELECT 1 FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND origin = '${LOOSE_ORIGIN}' AND qty > 0 AND material IN (${inputs.map((_, i) => `?${14 + 2 * i}`).join(', ')}))`;
   await db.batch([
-    // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first brew's share
-    // of Provisioning's discovery budget (FIRST-BUDGET, ?11)
+    // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first brew's -
+    // Provisioning's first-make share (FIRST-BUDGET, ?11)
     // laid on when the character has brewed none of the potion
     db.prepare(`INSERT OR IGNORE INTO prof_brews (player, rid, char_id, potion, keys, count, potent, unbruised, steps, xp, first, at, n, witnessed)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9,

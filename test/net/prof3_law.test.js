@@ -77,9 +77,9 @@ test('PROF3 law: the quality - the margin\'s four rows, a roll on them, a step e
   assert.deepEqual([craftCount(recipeById('kit:iron'), 'quartermaster'), craftCount(ls, 'quartermaster'), craftCount(recipeById('kit:iron'), 'masterwright')], [2, 1, 1]);
 });
 
-test('PROF3 law: the XP - 20 x the tier, a quarter more than two tiers below the rank\'s top, +500 the first (FIRST-BUDGET: Smithing\'s share of its discovery budget, the 500 it paid); the heat\'s band and glow; the maker\'s name; a piece\'s lines', () => {
-  assert.deepEqual([craftXp(5, 55) + firstCraftXp(recipeById('longsword:mithril')), craftXp(5, 55), craftXp(1, 55), craftXp(1, 25), craftXp(7, 100)], [600, 100, 5, 20, 140]);   // PIN MOVED (FIRST-BUDGET): the first's XP its pattern's share of the track's discovery budget (recipeLaw firstCraftXp), no longer a flat 500
-  assert.equal(firstCraftXp(recipeById('longsword:mithril')), 500, 'Smithing\'s share: 110,500 over its 221 first-makes - the 500 it always paid');
+test('PROF3 law: the XP - 20 x the tier, a quarter more than two tiers below the rank\'s top, +500 the first (FIRST-BUDGET: Smithing\'s first-make share, the 500 it paid); the heat\'s band and glow; the maker\'s name; a piece\'s lines', () => {
+  assert.deepEqual([craftXp(5, 55) + firstCraftXp(recipeById('longsword:mithril')), craftXp(5, 55), craftXp(1, 55), craftXp(1, 25), craftXp(7, 100)], [600, 100, 5, 20, 140]);   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp), no longer a flat 500
+  assert.equal(firstCraftXp(recipeById('longsword:mithril')), 500, 'Smithing\'s share: the 500 it always paid');
   assert.deepEqual(HEAT_ACT, { strikes: 3, periodS: 2, bandLo: 0.62, bandW: 0.2, gapS: 0.35 });
   assert.deepEqual(heatWindow(1).map((x) => +x.toFixed(3)), [0.62, 0.82]);
   assert.deepEqual(heatWindow(1.3).map((x) => +x.toFixed(3)), [0.62, 0.88]);

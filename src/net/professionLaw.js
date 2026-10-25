@@ -133,8 +133,28 @@ export const JOURNEYMAN_RANK = 50;
 
 /** The ranks a choice opens at. */
 export const SPEC_RANKS = Object.freeze([50, 100]);
-/** A change of mind: 1,000 Marks burnt, and the new one takes effect a week later (the old stands until then). */
+/** A change of mind: 1,000 Marks burnt. PERK-TRIAL (2026-10-24, the owner's pick of the Discord's "The time limit of a
+ *  profession's perks changing"): the new one takes effect AT ONCE, and the week is a lock after it - the track's next paid
+ *  change waits `days` from this one (Professions-Arc PERK-TRIAL). Before it, the new one waited the week, the old standing. */
 export const RESPEC = Object.freeze({ marks: 1000, days: 7 });
+/** PERK-TRIAL: A CHOICE'S TRIAL - for this long (s) after a rank's choice is made (its first, or a paid change), changing
+ *  it is free and at once, as often as wanted; it neither starts a trial of its own nor waits on the lock. A perk is
+ *  understood by trying it. */
+export const SPEC_TRIAL_S = 86_400;
+/** PERK-TRIAL: the second a rank's trial ends (its choice's `spec50_at`/`spec100_at` and SPEC_TRIAL_S), or null - none
+ *  open at `nowS`. */
+export function specTrialUntil(row, rank, nowS) {
+  const at = Number(row?.[rank === 50 ? 'spec50_at' : rank === 100 ? 'spec100_at' : ''] ?? NaN);
+  return Number.isSafeInteger(at) && nowS < at + SPEC_TRIAL_S ? at + SPEC_TRIAL_S : null;
+}
+/** PERK-TRIAL: whether a track as the service says it (professions.js trackView: `trial`, `{ 50: until }`) shows its
+ *  rank's choice on trial at `nowS` - the client's read, so a day run out on an open page is no longer offered free. */
+export const specTrialShown = (track, rank, nowS) => { const at = Number(track?.trial?.[rank]); return Number.isFinite(at) && nowS < at; };
+/** PERK-TRIAL: the second the track's next paid change is open from (RESPEC.days after its last), or null - open now. */
+export function respecLockUntil(row, nowS) {
+  const at = Number(row?.respec_at ?? NaN);
+  return Number.isSafeInteger(at) && at > nowS ? at : null;
+}
 /** MINE-PERKS (Professions-Arc 43): THE SURVEYOR's id - Mining 100's second choice, the Stonebreaker until MINE-PERKS,
  *  whose id the tracks that chose it still hold (`spec100`, `respec_to`), so the id stands and the choice is new. */
 export const SURVEYOR = 'stonebreaker';
@@ -249,11 +269,15 @@ export const specOf = (profession, rank, specId) => SPECIALISATIONS[trackOf(prof
 /**
  * The specialisations a track stands under at `nowS`: the chosen ones, a paid change taking the place of its rank's
  * choice once its week is out. `row` is the service's track row (spec50, spec100, respec_rank, respec_to, respec_at).
+ * PERK-TRIAL: a change is written at once now (`respec_to` stays empty, `respec_at` the lock's end) - the fold is for a
+ * change made before it, which migration 0173 folds too. AUDIT PERK-TRIAL P8: a change written as waiting stands AT ONCE,
+ * whatever its `respec_at` (now the lock): the older service, serving between the migration and the new one's deploy,
+ * still wrote changes to wait their week, and they would have waited it.
  * @returns {{ 50: string|null, 100: string|null }}
  */
 export function specsAt(row, nowS) {   // CRAFT3: a merged craft's track stands under one choice a rank, of its four
   const out = { 50: row?.spec50 ?? null, 100: row?.spec100 ?? null };
-  if (row?.respec_to && Number.isSafeInteger(row?.respec_at) && nowS >= row.respec_at && (row.respec_rank === 50 || row.respec_rank === 100)) {
+  if (row?.respec_to && (row.respec_rank === 50 || row.respec_rank === 100)) {   // AUDIT PERK-TRIAL P8: whatever its time
     out[row.respec_rank] = row.respec_to;
   }
   return out;
@@ -768,7 +792,7 @@ export const APOTHECARY_STOCK = Object.freeze(REAGENTS.map((r) => Object.freeze(
 export const COUNTER_ONLY = Object.freeze([LINEN.key, WOOL.key, ...REAGENTS.map((r) => r.key)]);   // PROF12: the Apothecaries' sixteen, never gathered
 /** PROF12 (Professions-Arc 37): the Stores' rows that are DFU ingredients, by template - the metals, the gems, the sea's
  *  Pearl, a body's parts and the Apothecaries' sixteen (an herb is its group's - PLANT_GROUP_TEMPLATES). FIRST-BUDGET
- *  (Professions-Arc 51) moved these three here from alchemyLaw.js, which re-exports them: the Stores' keys are this law's,
+ *  (Professions-Arc 52) moved these three here from alchemyLaw.js, which re-exports them: the Stores' keys are this law's,
  *  and recipeLaw.js reads them to count a brew's first-makes - it cannot import alchemyLaw.js, which imports it. */
 const DFU_ROWS = new Map([...METALS, ...GEMS, PEARL, ...PARTS, ...REAGENTS].map((m) => [m.templateIndex, m]));
 /** THE STORES' KEYS A DFU INGREDIENT IS HELD UNDER: an herb its northern and its southern (`p1:16`, `p2:16`) where its
@@ -779,7 +803,7 @@ export function ingredientKeys(templateIndex) {
   const row = DFU_ROWS.get(templateIndex);
   return row ? [row.key] : [];
 }
-/** POTION-DOOR (Professions-Arc 51): every Stores key that holds a DFU ingredient - each group's herbs, then the rows -
+/** POTION-DOOR (Professions-Arc 52): every Stores key that holds a DFU ingredient - each group's herbs, then the rows -
  *  the keys the potion maker lists at an alchemy station (scenes/potionMakerHost.js). */
 export const INGREDIENT_KEYS = Object.freeze([
   ...['p1', 'p2'].flatMap((g) => PLANT_GROUP_TEMPLATES[/** @type {'p1'|'p2'} */ (g)].map((t) => `${g}:${t}`)), ...[...DFU_ROWS.values()].map((m) => m.key),
@@ -1018,7 +1042,7 @@ const QUARRYMAN = Object.freeze({ profession: 'masonry', spec: 'quarryman', per:
 /**
  * A MASON'S WORK (PROF11): the forge's work's shape at the mason's bench (`station: 'mason'`), raising Masonry - and
  * unlike every other work, a CRAFT's law: `tier` the rank it asks (TIER_RANKS - `rank`, read by workOpen), its XP the
- * craft's (recipeLaw masonXp: 20 a tier a unit, and the first its share of Building's discovery budget - workFirstXp,
+ * craft's (recipeLaw masonXp: 20 a tier a unit, and the first Building's first-make share - workFirstXp,
  * FIRST-BUDGET; 3.2's +500 until then) and its act the chisel (`act`, 9.4). DECIDED: the
  * cut's tier is its stone's - Rough Stone's 1, as a smith's recipe is its ingot's and a carpenter's its wood's (PROF3,
  * PROF4), so a Novice mason has work at rank 0 as every other craft does; Mortar's its own 2 (4.5), at rank 10.
