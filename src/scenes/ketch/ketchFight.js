@@ -1,4 +1,5 @@
 // @ts-check
+// BOSS-TRAITS (bible/05-Combat/Boss-Traits.md section 3; AUDIT WORLD-EVENTS L5-16) - FLAGGED: the Tonal Warden carries no boss traits; its health and blows are the ship's room's, and this deck host has no striker's half yet.
 // KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md sections 5-8): THE SHIP'S FIGHTS ON THIS SCREEN - the constructs and
 // the Tonal Warden as the room says them (net/ketch/ketchLink.js's fold), every blow on the floor it lands on, every blow
 // judged on MY OWN FEET (co-op's law - the gate's court and the Spire's halls alike: net/eliteGates/egShape.js
