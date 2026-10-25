@@ -1353,35 +1353,38 @@ export function createDecorTool(deps) {
     const delta = decorDelta([...d.before.values()], roomPieces());
     return delta.put.length + delta.drop.length > 0 || d.packOut.length + d.packIn.length > 0;
   };
-  /** Other players' Confirm and access, while this one stands in the room and is not mid-edit. */
+  /** Other players' Confirm, while this one stands in the room and is not mid-edit. One row until the revision moves. */
   let heardRev = null;
   let hearAt = 0;
   let hearing = false;
   function hearRoom(dt) {
     const r = deps.room?.();
-    if (!usesBatch(r) || placing || typeof deps.homeDecor?.list !== 'function') return;
+    const probe = deps.homeDecor?.rev;
+    if (!usesBatch(r) || placing || typeof probe !== 'function') return;
     hearAt += dt > 0 ? dt : 0;
     if (hearAt < 2 || hearing || draftDirty()) return;
     hearAt = 0;
     hearing = true;
     const key = roomKey(r);
     const visit = deps.visit?.();
-    Promise.resolve(deps.homeDecor.list(r.mapId, r.buildingKey, false, !!r.yard)).then((res) => {
+    const yard = !!r.yard;
+    Promise.resolve(probe(r.mapId, r.buildingKey, false, yard)).then((res) => {
       hearing = false;
       if (deps.visit?.() !== visit || roomKey(deps.room?.()) !== key || placing || draftDirty()) return;
       const rev = Number(res?.data?.rev);
-      if (!res?.ok || !Number.isSafeInteger(rev)) return;
-      readUse();
-      if (heardRev === rev) return;
-      const first = heardRev == null;
-      heardRev = rev;
-      if (first || typeof pool.set !== 'function') return;
-      const pieces = (res.data.pieces ?? []).map((p) => decorPieceOf(p)).filter(Boolean);
-      pool.set(pieces);
-      const d = liveDraft();
-      if (d) d.before = new Map(pieces.map((p) => [p.id, snapPiece(p)]));
-      if (Number.isSafeInteger(rev) && d) d.rev = rev;
-      readUse();
+      if (!res?.ok || !Number.isSafeInteger(rev) || heardRev === rev) return;
+      if (heardRev == null || typeof deps.homeDecor?.list !== 'function') { heardRev = rev; return; }
+      return deps.homeDecor.list(r.mapId, r.buildingKey, false, yard).then((full) => {
+        if (deps.visit?.() !== visit || roomKey(deps.room?.()) !== key || placing || draftDirty() || !full?.ok) return;
+        heardRev = rev;
+        readUse();
+        if (typeof pool.set !== 'function') return;
+        const pieces = (full.data.pieces ?? []).map((p) => decorPieceOf(p)).filter(Boolean);
+        pool.set(pieces);
+        const d = liveDraft();
+        if (d) d.before = new Map(pieces.map((p) => [p.id, snapPiece(p)]));
+        if (d) d.rev = rev;
+      }, () => {});
     }, () => { hearing = false; });
   }
   /** While a wagon's Confirm is still ahead, the save and the relay keep the last picture. */
