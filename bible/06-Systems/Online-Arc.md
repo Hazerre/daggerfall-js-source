@@ -9163,6 +9163,49 @@ this one - an unescaped `'` in the RELAY_VERSION history; fixed - so every list 
 `test/net/soc3_socialpanel.test.js` 33 -> 34; `tools/mutants/partyready.json` (14, 14 dead); one `auditpartyui.json` and
 one `party-travel.json` record re-aimed.
 
+**PARTY-FOLLOW (2026-10-25; the report: "Party members can get drawn into fights while following during fast travel but
+remain too far away to assist. Other times, party fast travel fails entirely, forcing manual travel/warping.").** Four
+faults in the follower's half of the journey, each closed with a pin that fails without it:
+- *A refused departure ended the follow.* A follower waits where the party set out until the leader's pose says they
+  have arrived - the leader's PARTY_TRIP_GO_MS, their whole build and a pose's latency. An enemy that reached them in
+  that wait made the map door refuse ("You cannot travel with enemies nearby."), and `followTick` had already dropped
+  the follow: the member fought alone at the departure, the leader already gone, and `/leader` was refused for the same
+  reason. The follow now waits a refusal out as it waits out a window - the reason said once, and said again only when
+  it changes ("... You will follow <leader> once you can."), the journey taken the moment it lifts - and a member
+  refused twice TRIP_FOLLOW_MS is left behind with the window's own line (`partyTravel.js` `leaveBehind`). The door's
+  `off` (the member fell, or a journey of their own is moving them) and a fare they cannot pay are no refusals of the
+  moment: the follow still ends on them, so a member who fell and respawned elsewhere is never carried off to the
+  leader by a follow from before they fell.
+- *The landing beside the leader gave up on its first check.* The arrival probe in `fastTravelTo` took the place's own
+  arrival (a town's start marker, a location's edge) the first time no spot beside the leader held a body, so the
+  bounded wait never ran. A leader mid-jump, knocked back in a fight or on a ledge at that moment put the follower
+  hundreds of metres away, told only "You arrive at <place>.". The probe now waits for a spot beside the leader for the
+  whole PARTY_ARRIVAL_WAIT_MS and takes the ordinary landing on the last attempt (`partyArrival.js`
+  `waitForPartyArrival` hands the probe `last`); with no leader in the pixel's open air (indoors, in a dungeon, gone
+  quiet) it takes it at once, as before. An arrival not beside the leader says so: "There was no room beside <leader>.
+  You arrive at <place>." (the pick's `besideMissedText`). Cost: a leader who stays unsupported for the whole wait
+  (swimming, flying) holds the follower's black screen PARTY_ARRIVAL_WAIT_MS longer than before.
+- *A journey sent back stayed "bound".* `journey()` set `bound` to the destination and never read what the journey
+  came to, so a member sent back ("No safe landing found.") was taken to be on their way there, and `watch` never
+  offered that place again. A journey that resolves false now clears its own `bound`.
+- *The follower gave up on a leader still on the road, and misread one who had landed.* The follower's TRIP_FOLLOW_MS
+  counted from when they read `go`: a leader's build slower than that sent the follower to the place's own arrival
+  ahead of the leader, and a leader the follower never saw land in the destination's open air (an arrival in the
+  next pixel, a walk on) read "did not set out" once the round left their pose, which it does only once their journey
+  has ended (AUDIT PARTY-TRAVEL). The follow now records the pixel the leader set out from (`from`), and reads the
+  round's leaving by where the leader stands: still there, they did not set out; anywhere else, their journey is over
+  and the follower travels to where they stand, beside them in the open air. While the leader's seat is here and
+  carries the round the follower waits, however slow the build; only a seat gone quiet is given up on after
+  TRIP_FOLLOW_MS, to the place. Two older pins changed with it: AUDIT PARTY-TRAVEL's slow build (the follower went to
+  the place at TRIP_FOLLOW_MS; now waits for the leader to land) and AUDIT PARTY-UI2's held round (a follower under a
+  window went to the round's place after the leader had travelled on alone; now goes to the leader).
+THE HOSTS DO NOT GROW: the arrival's landing and its line left `bootWorld` for `systems/party/partyArrival.js`
+(`createPartyArrival`, `createPartyArrivalHost`), so the host keeps only their wiring and the change conflicts with no
+other pull request's `world.js` (`01-Overview/Host-Split.md`, PARTY-FOLLOW's move).
+Records: `test/systems/party/partytravel.test.js` 44 -> 47, `test/systems/partyArrivalTransaction.test.js` 12 -> 17;
+`tools/mutants/partyfollow.json` (14, 14 dead); seven records re-aimed by content (four in `party-travel.json`, two
+in `auditpartytravel.json`, one in `l10n3escenes.json`).
+
 ## EVENT1 (2026-09-25, Mac: "I wanna do a fun live event for the server. Wanna setup the infastructure for this without breaking anything. We have a lot of major updates today, but I want to turn the skies of Daggerfall into a detailed oblivion styled dread in prep for the world bosses. Red lightning and such") - a live event, staged for everyone online: the dread, world110
 
 Asked two things first: how it is switched (Mac: **a staff command** - `/event dread on|off`, the dev glyph, as /red) and who sees it (Mac: **online players only**).

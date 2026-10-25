@@ -906,7 +906,7 @@ import { GATE_BRAIN_V } from '../net/wire.js';   // AUDIT WBX R7: the brain's la
 import { characterIdOf } from '../systems/characterId.js';   // AUDIT HCC-PARK: my parked team is my CHARACTER's (the relay keys it by the account and this)
 import { chooseTable, tableMoveSpeed } from '../player/eyeOfTheBeholder/eotbBillboard.js';   // AUDIT RIDE: the rider's gallop is the table the rider's own sprite shows
 import { PARTY_READY_TIMEOUT_MS, memberPresent, latestStamp, voteStands, snapshotCancels, cancelRequestFor, mirrorKey, cooldownStamp, stampOf, restsAlone, partyRestsTogether, restAloneText, restsApart, REST_APART_TEXT } from '../systems/party/partyRestLaw.js';   // AUDIT PARTY-REST: the pure half of the party-rest mechanic, pinned by execution   // SOC2: the hub's room and the party pose's floor (a second wire import: AUDIT WORLD4 A1 pins the first as it stands)
-import { partyArrivalBeside, supportedPartyPosition, waitForPartyArrival, PartyArrivalUnavailable, PARTY_ARRIVAL_TEXT } from '../systems/party/partyArrival.js';
+import { createPartyArrivalHost, PartyArrivalUnavailable, PARTY_ARRIVAL_TEXT } from '../systems/party/partyArrival.js';
 import { PARTY_TRAVEL_TEXT, fareText } from '../systems/party/partyTravelLaw.js';   // PARTY-TRAVEL: the party's journey - to the leader, and together; SHIP-SAIL: the fare's own row
 import { createPartyTravel } from '../systems/party/partyTravel.js';   // PARTY-TRAVEL: its session, over this host's seams
 import { TravelPopUpWindow } from '../ui/travel/travelPopUp.js';   // PARTY-TRAVEL: the map's own popup prices a party journey, headless
@@ -13674,12 +13674,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // terrain ten units past its edge can differ by far more on a steep site.
   const ARRIVAL_LIFT = 40;
   const ARRIVAL_REACH = 240;
-  /** Resolve against the same capsule that will stand on the destination. */
-  function partyBesideLanding(w, seat = 0) {
-    if (!w) return null;
-    const [lx, lz] = state.localFromWorld(w.x, w.z);
-    return partyArrivalBeside([lx, w.y + state.compensation[1], lz], collider, seat, tvSeaY() - 0.1);
-  }
+  // PARTY-FOLLOW: a follower's landing beside the leader, resolved against the same capsule that will stand on the
+  // destination (systems/party/partyArrival.js); the wait says itself on the loading screen and in the chat
+  const partyLanding = createPartyArrivalHost({
+    state, collider, seaY: tvSeaY,
+    sync: () => { csaPeers.frame(0); csaSyncColliders(); },
+    waiting: (line) => { _partyWaitLine = line; townTalk.say(line); },
+  });
   // TL2: a floor this far ABOVE the location's flat is a roof, not the
   // ground - a step or a doorsill is under a unit; a house is many.
   const OBSTRUCTED_ABOVE = 3;
@@ -14941,7 +14942,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }
 
   /** PARTY-TRAVEL: a pick may carry `besideAt` - a follower's journey to the party leader lands beside them, read once
-   *  the core has built the pixel - and `besideText`, the arrival's line when it did. True once the journey arrived;
+   *  the core has built the pixel - and `besideText`, the arrival's line when it did (`besideMissedText` when it took
+   *  the place's own arrival instead). True once the journey arrived;
    *  nothing (falsy) when it never left. */
   let _goLeadBusy = false;   // WAGONS2 (AUDIT): fastTravelTo is waiting out GO_LEAD_MS for my riders' clients to hear `go`
   async function fastTravelTo(pick, opts, computed) {
@@ -15045,15 +15047,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
             reposition: REPOSITION.DirectionFromStartMarker,
             travelStart, modEvent: 'travel',
             resolveArrival: partyArrival ? async (fallback) => {
-              const resolved = await waitForPartyArrival(() => {
-                csaPeers.frame(0); csaSyncColliders();
-                const target = pick.besideAt();
-                beside = partyBesideLanding(target, pick.besideSeat);
-                if (beside) return beside;
-                // Preserve the ordinary outside/entrance fallback on dry,
-                // supported ground, including a swimming or flying leader.
-                return supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);
-              }, { onWait: () => { _partyWaitLine = PARTY_ARRIVAL_TEXT.waiting; townTalk.say(PARTY_ARRIVAL_TEXT.waiting); } });
+              const arrival = await partyLanding.land(pick, fallback);
+              beside = arrival.beside;
+              const resolved = arrival.landing;
               // Stop/pack a departure helm only after success is certain. Its
               // own position write is replaced by the validated spawn below.
               if (csaRuntime) csaCall(() => {
@@ -15210,7 +15206,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // keeps the crime in DFU too.
       setCrimeCommitted(playerEntity, CRIMES.None);
       arrestFlow.crimeCleared();   // DISC28-B: a surrender box a guard raised as the journey committed asks about THIS crime - it goes with it
-      townTalk.say(beside && pick.besideText ? pick.besideText : `You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`);   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
+      townTalk.say(partyLanding.arrivalLine(pick, partyArrival, beside, `You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`));   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
       if (warmAshesOn()) warmAshesPostTravel();   // WA1: RaiseOnPostFastTravelEvent (:383) - Warm Ashes' CheckforEncounters arms its 0.05s coroutine
       if (csaRuntime) csaCall(() => csaRuntime.OnPostFastTravel());   // CSA-J (the audit): ComeSailAway.OnPostFastTravel, the same event's - ResetTimeScale(false)
     } finally {

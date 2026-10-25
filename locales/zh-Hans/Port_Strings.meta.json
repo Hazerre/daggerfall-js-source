@@ -3004,6 +3004,26 @@
   "tr": "a3fed81adebb",
   "by": "claude-in-session"
  },
+ "party.travel.followOnceAble": {
+  "en": "314d66a59d0d",
+  "tr": "c8e90c86c672",
+  "by": "claude-in-session"
+ },
+ "party.travel.noRoomBeside": {
+  "en": "cbaaddfcd442",
+  "tr": "59f104a35a29",
+  "by": "claude-in-session"
+ },
+ "party.travel.theLeader": {
+  "en": "5f1102735a26",
+  "tr": "e4d2957d3907",
+  "by": "claude-in-session"
+ },
+ "party.travel.yourLeader": {
+  "en": "c48711f615f3",
+  "tr": "68293a3013df",
+  "by": "claude-in-session"
+ },
  "player.sealedDoor": {
   "en": "91d5e853b118",
   "tr": "5dff63da7d34",

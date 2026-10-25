@@ -613,3 +613,17 @@ wiring lives there. `bootWorld` 36,389 (main's, at the merge) -> 36,251 logical 
 pin read the moved code's text; the stall's settle is held by a test that builds the vendor host and opens a stall
 (`fb1025_vendorlost.test.js`). The tool wrote Windows absolute paths into the module's imports on this machine; they were
 set back to the host's relative ones by hand.
+
+## PARTY-FOLLOW's move - the party arrival out of bootWorld (2026-10-25)
+
+PARTY-FOLLOW (`06-Systems/Online-Arc.md`) changes how a follower lands beside the party leader: it waits for a spot
+beside them before taking the place's own arrival, and says when it took it. That law stood in `bootWorld` - the
+waiting callback inside `fastTravelTo`'s teleport, the `partyBesideLanding` frame conversion beside `_teleportToPixel`,
+and the arrival line's choice - and other open pull requests touch `world.js` too. It went out rather than changing
+there: `systems/party/partyArrival.js`, beside `waitForPartyArrival` whose wait it drives, written as a module the host
+wires (fishHost.js's shape, not a verbatim move - its new behaviour is in it). `createPartyArrival` is the law over its
+seams (a test runs it with fakes); `createPartyArrivalHost` binds it to the host's streaming state, collider and sea.
+The host keeps one construction (`partyLanding`), one `land(pick, fallback)` and one `arrivalLine`. `bootWorld`
+36,387 -> 36,384 logical lines, its ceiling 36,389 -> 36,384. The pins that quoted the moved code run the module now
+(`partyArrivalTransaction.test.js`, `partyBoatTeleportFix.test.js`, `l10n3e_scenes.test.js`; `partytravel.test.js`
+pins only the wiring), and three mutant records were re-aimed there.
