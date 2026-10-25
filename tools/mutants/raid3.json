@@ -273,7 +273,7 @@
   {
     "name": "RAID3-relay-cell-not-asked",
     "file": "server/src/index.js",
-    "old": "    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers\n    if (!raidWordSane(m)) { this._junk(ws); return; }",
+    "old": "    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;\n    if (!raidWordSane(m)) { this._junk(ws); return; }",
     "new": "    if (!raidWordSane(m)) { this._junk(ws); return; }",
     "tests": [
       "test/net/raid3_raidLedger.test.js"

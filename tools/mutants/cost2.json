@@ -579,5 +579,14 @@
     "tests": [
       "test/net/cellhalo.test.js"
     ]
+  },
+  {
+    "name": "COST2-cover-guard-open",
+    "file": "server/src/cellNodes.js",
+    "old": "  if (inCover(attachment, cell)) return false;",
+    "new": "  if (true) return false;",
+    "tests": [
+      "test/net/raid3_raidLedger.test.js"
+    ]
   }
 ]

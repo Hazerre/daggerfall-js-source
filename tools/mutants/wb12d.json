@@ -144,7 +144,7 @@
   {
     "name": "WB12d-the-cell-unasked",
     "file": "server/src/index.js",
-    "old": "    if (!inCover(a, worldRoom(m.px, m.py))) { this._junk(ws); return; }   // COST-2 (b): in a cell this socket covers\n    if (!isGateDay(m.d)",
+    "old": "    if (junkOutsideCover(this, ws, a, worldRoom(m.px, m.py))) return;\n    if (!isGateDay(m.d)",
     "new": "    if (!isGateDay(m.d)",
     "tests": [
       "test/net/gate/wb12d_rite_relay.test.js"

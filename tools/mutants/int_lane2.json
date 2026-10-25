@@ -688,7 +688,7 @@
   {
     "name": "INT9-AUDIT-RELAY-ANOTHER-ROOMS-ORDER",
     "file": "server/src/index.js",
-    "old": "      if (!inCover(a, c.wm)) { this._junk(ws); return; }",
+    "old": "      if (junkOutsideCover(this, ws, a, c.wm)) return;",
     "new": "",
     "tests": [
       "test/net/int9_wild_ref.test.js"

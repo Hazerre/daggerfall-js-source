@@ -138,6 +138,16 @@ export const cellLevelOf = (room) => (room._node ? String(nodeLevelOf(room._node
 export const coverOf = (attachment) => attachment?.nd ?? attachment?.key;
 /** Does a socket's cover cover cell `cell`? @param {any} attachment @param {unknown} cell */
 export const inCover = (attachment, cell) => coversCell(coverOf(attachment), cell);
+/** THE COVER GUARD, one home for every word that names its cell (the relay's arms in index.js, staffEvents.js): a
+ *  frame naming a cell outside the socket's cover is junk, as a frame naming another room was before the tree.
+ *  Returns true when the frame was junked, so the caller returns.
+ *  @param {{ _junk: (ws: any) => void }} room @param {any} ws @param {any} attachment the socket's @param {unknown} cell
+ *  @returns {boolean} */
+export function junkOutsideCover(room, ws, attachment, cell) {
+  if (inCover(attachment, cell)) return false;
+  room._junk(ws);
+  return true;
+}
 /** A park word's law of its room (index.js, the `park` arm): `cover` is a cell socket's cover, or null for a place that
  *  is no cell. A cell holds a team whose anchor's cell it covers; a place holds one that names no cell.
  *  @param {unknown} cover @param {unknown} cell */
