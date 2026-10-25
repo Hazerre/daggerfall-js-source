@@ -38,8 +38,9 @@ import { noteFeudHarm, elementFeudClass } from './feudLedger.js';   // RVN1: my 
 import { raceById, raceByKey } from './races.js';   // L2-slice (magic-10): the racial immunity arm
 import { STAT_KEYS_ORDER, FATIGUE_MULTIPLIER, maxFatigue, increaseDrainMagnitude, liveStat } from './statMods.js';
 import { dice100 } from '../combat/formulas.js';
-import { tryAbsorption, effectCastingCost, absorbRefund } from './absorption.js';
-import { enemyGroupOf, NEARBY } from './nearbyObjects.js';   // X8: Pacify matches on DFU's EnemyGroups, the same table X4 ported   // S24; X7: the Identify refund reads the same per-effect cost
+import { tryAbsorption, absorbRefund } from './absorption.js';
+import { identifyRefund } from './spell/identifyRefund.js';   // the refund priced as the cast was (a discount included)
+import { enemyGroupOf, NEARBY } from './nearbyObjects.js';   // X8: Pacify matches on DFU's EnemyGroups, the same table X4 ported
 // AUDIT 24 (wave 31): the concealment BREAK lives in its own leaf so that
 // combat/formulas.js can reach it without the effects -> spellcast ->
 // formulas cycle. Re-exported here because this is the module its readers
@@ -331,8 +332,6 @@ export const isCharmEffect = (e) => e.type === 34 && classicSub(e) === 255;
 export const spellSways = (sp) => (sp?.effects ?? []).some((e) => e && (isPacifyEffect(e) || isCharmEffect(e)));
 /** X7: Identify (40,255) - a window opener, not a lasting effect. */
 export const isIdentifyEffect = (e) => e.type === 40 && classicSub(e) === 255;
-/** Identify.cs:54-55 - the refund never drops below 5. */
-export const IDENTIFY_REFUND_FLOOR = 5;
 /** presence = active; expired entries End on the NEXT tick pass (DFU shape). HELD-CONCEAL: an ENDED entry is not -
  *  DoConstantEffects runs no ConstantEffect once HasEnded (EntityEffectManager.cs:1693-1694), so it sets no flag. A worn
  *  item's concealment a blow broke stands ended on its item until the reroll (concealment.js). */
@@ -1705,7 +1704,7 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
       if (target?.mobileType != null) continue;   // "target must be player"
       out.identify = {
         chance: chanceValue(e, casterLevel),
-        refund: Math.max(IDENTIFY_REFUND_FLOOR, effectCastingCost(e, spell.rangeType, target)),
+        refund: identifyRefund(spell, e, caster?.entity ?? target),
       };
       continue;
     }

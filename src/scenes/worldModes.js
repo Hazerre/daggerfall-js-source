@@ -390,7 +390,7 @@ import {
 } from '../systems/homeRent.js';
 // DECOR1c: the pieces a room's owner placed (their law, and the pool that stands them in the room)
 import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../net/decorLaw.js';
-import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
+import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest, openOwnChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
 import { openHomeTransfer, answerHomeTransfer } from '../ui/homeTransferWindow.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
 import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, focusStoresStation } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
@@ -5069,8 +5069,8 @@ export function createWorldModes(host) {
       if (interiorHome) say(homeBelongsLine(interiorHome));
       return;
     }
-    const win = interiorInventory({ loot: { items: () => interiorDecor.itemsOf(id), storage: true } });   // SHIP-STORE: the owner's own storage, two-way
-    if (win) interiorOverlay = win;
+    // SHIP-STORE: the owner's own storage, two-way; HOME-SHARE-WAIT: in an online home, once the service has said it is not shared (decorGrants.js openOwnChest)
+    openOwnChest(piece.id, !!interiorHome, () => { interiorOverlay = interiorInventory({ loot: { items: () => interiorDecor.itemsOf(id), storage: true } }) ?? interiorOverlay; });
   }
 
   /** HOME-VENDOR (net/vendorLaw.js): A HOME'S TRADER PRESSED - its window (the host's: the owner stocks it, a visitor
