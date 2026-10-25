@@ -198,6 +198,7 @@ async function party({ model = MODELS.bloodline, online = true, ear = true } = {
     social: { acct: 'acct-ysolde', others: () => r.ysoldeHears ?? [] }, modes: { sdRealmSlot: () => null, clearDeath() {} },
     legacyHost: r.host, madeRuleHere, rezSnapshot, rezFor, reviveForPlay, playerEntity: r.e, RESURRECT_HEALTH_PCT, RESURRECT_TEXT, DeathScreen,
     statedDeathLoss, stateDeathLoss, townTalk: r.townTalk, wildGhostEnd: () => {}, wildDeathKill: () => false, forgetLastSlew: () => {}, player: { stopAutorun() {} },
+    hourRezOpen: () => true, _sdFallen: { rise() {} },   // SD-REZ (EVENT-RULES): no Hour here - a Resurrect is always open, and a rise lets no slot go
   };
   r.ysolde = v;
   const frame = mount(`${fnOf('resurrectInPlace')}\n${fnOf('closeDeathScreen')}\nreturn () => { ${REZ_FRAME} };`, v);

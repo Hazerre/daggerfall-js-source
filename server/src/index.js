@@ -362,7 +362,7 @@ import { newRemains, foldFall, takeFrom, remainsNamedFor, collectAsk, remainsWor
 import { wildGate, wildDirected, WILD_HZ_MAX, WDUN_HZ_MAX, WDUN_HERE_MS, WDUN_INTERNAL_RESET, WDUN_INTERNAL_KIN, WDUN_INTERNAL_GONE, WILD_INTERNAL_VIT, wdunRoomKey, wdunHall, wdunHallOfRoom, seaRoomCell, DUNGEON_ROOM_TAGS, WILD_REMAINS_MS as WDUN_PILE_MS } from './relay.js';
 import { WDUN_KEY, wdunOf, wdunPrune, wdunEnter, wdunHere, wdunLeave, wdunDie, wdunGone, wdunState, wdunCrows, wdunBound, wdunGiantDie, wdunGiants, wdunFleetSunk, wdunFleets } from '../../src/net/wild/wildLaw.js';   // PVPDUNGEONS: the zone's halls, kept by the hub
 import { validSdRecord, sdRelayGate, validSdFoundTell, chatRegionRoom, SD_INTERNAL_CENSUS, SD_INTERNAL_FOUND, SD_INTERNAL_LIVE, SD_TELL_RETRY_MS, SD_KEY, SD_FOUND_KEY, SD_REALM_KEY, sdDeadKey, SD_REGION_COUNT, SD_FIGHTERS_MAX, sdPzRelayGate, SD_ORRERY_KEY, sdFightRelayGate, SD_BRAIN_MIN, SD_NO_WORDS, SD_FIGHT_KEY, SD_INTERNAL_FELL, validSdFellTell, SD_INTERNAL_IN, validSdInTell, SD_RC_PREFIX, sdReceiptKey, SD_HERE_HOLD_MS, SD_SLOT_KEY, SD_HELD_KEY } from './relay.js';   // SD3: the Super dungeon's frame, its record and its doors (the wire's, through relay.js)
-import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
+import { sdFirst, sdRise, sdFind, sdEnter, sdFell, sdGone, sdDue, pickSdRegion, sdFindBelieved, sdNearSite, sdHolds, sdAdmits, isSdRoom, sdSlotOfRoom, SD_NO_CLOSED, SD_NO_FULL, SD_NO_FALLEN, sdDownWord, SD_REZ_MS } from '../../src/net/superDungeon/sdLaw.js';   // SD3: the Super dungeon's law - the director's moves, the census's pick, the find, the realm's room
 // SD-HERALD (2026-10-09, the owner: "We need to add discord integration to abyss dungeons"): TWO FILES JOIN THE BUNDLE -
 // net/superDungeon/sdHerald.js (the Abyss Dungeon's Discord posts and when they are owed, pure law - it imports sdLaw.js and
 // gateHerald.js, both here) and formats/mapsTables.js (MapsFile's verbatim tables, which import nothing - the region a
@@ -8599,7 +8599,8 @@ export class Room {
     if (this._sdRealm === undefined) {
       const v = await this.state.storage.get(SD_REALM_KEY);
       const strs = (xs) => (Array.isArray(xs) ? xs.filter((x) => typeof x === 'string').slice(0, SD_FIGHTERS_MAX) : []);
-      if (this._sdRealm === undefined) this._sdRealm = v && v.s === s && Array.isArray(v.in) ? { s, in: strs(v.in), gu: strs(v.gu), dead: strs(v.dead) } : { s, in: [], gu: [], dead: [] };   // SD-ONELIFE: `dead` the accounts that died in it   // AUDIT SD II (L7 M3): `gu` the guests among them
+      const downs = (xs) => (Array.isArray(xs) ? xs.filter((d) => Array.isArray(d) && typeof d[0] === 'string' && Number.isSafeInteger(d[1])).map(([x, at]) => [x, at]).slice(0, SD_FIGHTERS_MAX) : []);   // SD-REZ: `down` the accounts lying dead in it, each with its moment
+      if (this._sdRealm === undefined) this._sdRealm = v && v.s === s && Array.isArray(v.in) ? { s, in: strs(v.in), gu: strs(v.gu), dead: strs(v.dead), down: downs(v.down) } : { s, in: [], gu: [], dead: [], down: [] };   // SD-ONELIFE: `dead` the accounts that died in it   // AUDIT SD II (L7 M3): `gu` the guests among them
     }
     return this._sdRealm;
   }
@@ -8612,7 +8613,10 @@ export class Room {
     if (rec === undefined) return SD_NO_BUSY;   // AUDIT SD: no answer - try again
     if (!rec || rec.s !== s || !sdHolds(rec, now)) return SD_NO_CLOSED;
     const realm = await this._sdRealmOf(s);
-    if (sub && (realm.dead.includes(sub) || (realm.dead.length >= SD_FIGHTERS_MAX && (await this.state.storage.get(sdDeadKey(sub))) != null))) return SD_NO_FALLEN;   // SD-ONELIFE: one life a Hollow; AUDIT SD III (R2): past the list, its own key
+    const lies = sub ? sdDownWord(realm, sub, now) : null;   // SD-REZ: down inside its window is a rise; past it, the Hollow's for good
+    if (lies === 'fallen' && !realm.dead.includes(sub)) await this._sdBury(realm, sub);
+    if (sub && (lies === 'fallen' || (realm.dead.length >= SD_FIGHTERS_MAX && (await this.state.storage.get(sdDeadKey(sub))) != null))) return SD_NO_FALLEN;   // SD-ONELIFE: one life a Hollow; AUDIT SD III (R2): past the list, its own key
+    if (lies === 'rise') { realm.down = realm.down.filter(([x]) => x !== sub); await this.state.storage.put(SD_REALM_KEY, realm); }   // SD-REZ: raised where it lay - alive in the realm again
     if (sub && realm.in.includes(sub)) { this._sdTellIn(s, rec, now); return null; }   // SD-THROUGH
     if (!sdAdmits(rec, now)) return SD_NO_CLOSED;
     const f = await this._sdFightOf();
@@ -8681,15 +8685,26 @@ export class Room {
   }
   /** SD-ONELIFE (Mac: "A death within the rift casts you out and youre unable to re enter. You get one life to prove your
    *  worth"): the account whose dying pose (PCORPSE1's `dd`) came through a realm is kept as dead there - every hello of
-   *  its after is refused (SD_NO_FALLEN), whatever its page says. */
+   *  its after is refused (SD_NO_FALLEN), whatever its page says. SD-REZ (EVENT-RULES, the owner: "Resurrect allowed"):
+   *  kept DOWN first - a hello inside SD_REZ_MS is the body a friend raised (net/superDungeon/sdLaw.js sdDownWord), and
+   *  past it the death is the Hollow's for good. */
   async _sdMarkFallen(key, sub) { return this._sdMarkFallenAt(sdSlotOfRoom(key), sub); }
   /** INT12: the same, by the realm's slot - a fall by the relay's count (enforced) is the one life's, as a `dd` is. */
-  async _sdMarkFallenAt(s, sub) {
+  async _sdMarkFallenAt(s, sub, now = Date.now()) {
     const realm = await this._sdRealmOf(s);
-    if (realm.dead.includes(sub)) return;
-    if (realm.dead.length >= SD_FIGHTERS_MAX) { await this.state.storage.put(sdDeadKey(sub), 1); return; }   // AUDIT SD III (R2): past the list, one key an account - never forgotten
-    realm.dead.push(sub);
+    if (realm.dead.includes(sub) || realm.down.some(([x]) => x === sub)) return;
+    for (const [x] of realm.down.filter(([, at]) => now - at > SD_REZ_MS)) await this._sdBury(realm, x, false);   // SD-REZ: the windows passed, buried - the list stays the lying
+    realm.down = [...realm.down.filter(([, at]) => now - at <= SD_REZ_MS), [sub, now]].slice(-SD_FIGHTERS_MAX);
     await this.state.storage.put(SD_REALM_KEY, realm);
+  }
+  /** SD-REZ: a death the Hollow's for good - off the lying, into its dead (past the list, one key an account: AUDIT SD III
+   *  R2 - never forgotten). `keep` false: the caller writes the realm. */
+  async _sdBury(realm, sub, keep = true) {
+    realm.down = realm.down.filter(([x]) => x !== sub);
+    if (realm.dead.includes(sub)) return;
+    if (realm.dead.length >= SD_FIGHTERS_MAX) await this.state.storage.put(sdDeadKey(sub), 1);
+    else realm.dead.push(sub);
+    if (keep) await this.state.storage.put(SD_REALM_KEY, realm);
   }
   /** SD6b: THE ORRERY'S HALL in a realm - `{ s, st, f, ok, last }`: the stones' hours, the fray, the Concord, and each
    *  stone's last turn (the relay's clock) - the instance's, else storage's, else fresh from the slot's law. */
@@ -9813,8 +9828,11 @@ export class Room {
     void this._relayCfgFresh(now);   // SCALE5b: the line the count runs by, as the hub holds it - AUDIT SCALE II R1-2: asked ahead, never awaited by the beat
     try {
       // INT12: ITS BLOWS JUDGED HERE first, on the census as the count has it - one life: a fall by the count, enforced,
-      // is the realm's own (_sdMarkFallenAt), and no death rises again here
-      const line = this._bodyLine(), bodies = this._sdFightBodies(f, now), census = () => bodyCensus(f, bodies, now, line.body, line.enforce, { lives: false });   // AUDIT INT11: read once a beat
+      // is the realm's own (_sdMarkFallenAt), and no death rises again here - SD-REZ: but the body a friend raised, that
+      // the realm let back in (neither lying nor dead in it now), is a new life
+      const realm = this._sdRealm?.s === f.s ? this._sdRealm : null;
+      const raised = (sub) => !!realm && !realm.dead.includes(sub) && !realm.down.some(([x]) => x === sub);
+      const line = this._bodyLine(), bodies = this._sdFightBodies(f, now), census = () => bodyCensus(f, bodies, now, line.body, line.enforce, { lives: raised });   // AUDIT INT11: read once a beat
       await this._bodyCount('sd', f, SD_SEAM.judge(f, census(), now), now, line.body, (sub) => this._sdMarkFallenAt(f.s, sub));
       this._bodyTell('sd', f, now);   // AUDIT INT11: a fall its game has not taken, told again
       this._sdFightFan(SD_SEAM.step(f, now, this._bodiesBare(census()), rand01));

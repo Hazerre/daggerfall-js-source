@@ -250,3 +250,24 @@ export const SD_NO_FULL = 'The Hour is full.';
 /** SD-ONELIFE (2026-10-07, Mac: "A death within the rift casts you out and youre unable to re enter. You get one life to
  *  prove your worth"): the Hour refuses an account that died in it - one life a Hollow. */
 export const SD_NO_FALLEN = 'The Hour will not take you back.';
+/**
+ * SD-REZ (EVENT-RULES, 2026-10-25, the owner: "Resurrect allowed" in the Hour, the Spire and the Ketch): ONE LIFE, UNLESS A
+ * FRIEND CALLS IT BACK. A death in the Hour no longer marks its account dead at once: the realm keeps it DOWN (`down`,
+ * `[sub, at]`) for SD_REZ_MS - long enough for a party member to reach the body and cast Resurrect - and a hello of that
+ * account inside the window is its rise (the body raised where it lay rejoins the realm's room). Past the window, or once
+ * the fallen gives the death up (the death screen's way out casts them out of the Hour, and the page never asks again),
+ * the death is the Hollow's for good: SD_NO_FALLEN as before.
+ */
+export const SD_REZ_MS = 120_000;
+/**
+ * A realm's word on an account (the realm's record `{ dead, down }`): 'fallen' (dead for good, or down past the window),
+ * 'rise' (down inside it), or null (neither). Pure.
+ * @param {{ dead: string[], down?: [string, number][] }} realm @param {string} sub @param {number} now
+ * @returns {'fallen'|'rise'|null}
+ */
+export function sdDownWord(realm, sub, now) {
+  if (realm.dead.includes(sub)) return 'fallen';
+  const d = (realm.down ?? []).find(([x]) => x === sub);
+  if (!d) return null;
+  return now - d[1] <= SD_REZ_MS ? 'rise' : 'fallen';
+}

@@ -54,7 +54,8 @@ export const EG_NO_FLIGHT_TEXT = 'The Spire\'s spans are walked, not flown.';
  *   recall        'refused'  - a Recall cast (the court refuses the Mark alone - World-Bosses.md: "Recall's mark")
  *   portalStone   'refused'  - a Portal Stone's portal
  *   companions    'out'      - GATE-ALONE, SD-ALONE: lifted at the door, stood again outside
- *   regen         'off'      - the court's law (systems/courtRules.js): no natural regeneration
+ *   regen         'held'     - the court's law (systems/courtRules.js): natural regeneration at half, and none for 5 s
+ *                              after a hurt (EVENT-RULES - it was 'off', WBX6's)
  *   potions       'counted'  - THE POTION LAW: two restoring potions a hall (systems/eliteGates/spireKit.js, the count the breach's
  *                              client keeps - ui/eliteGates/egHud.js EG_POTIONS_PER_HALL)
  *   levitate      'banned'   - the Levitate ward (characters/playerEntity.js registerLevitateWard)
@@ -65,7 +66,8 @@ export const EG_NO_FLIGHT_TEXT = 'The Spire\'s spans are walked, not flown.';
  *   runLeap       'refused'  - EG-PERFECT: the enhanced climb's RUNNING LEAP (player/motor.js _pkMayLeap - CLIMB3's leap at an
  *                              edge and its late press) refused, so a running Jump at an edge is the plain jump the courses
  *                              were proven with; the wall run, the mantle, the vault and the free climb are kept
- *   resurrect     'refused'  - a party member's Resurrect
+ *   resurrect     'refused'  - a party member's Resurrect (EVENT-RULES, 2026-10-25, the owner: "Resurrect allowed" - no
+ *                              level refuses it now; the key stays for a level that will)
  *   avoidDeath    'refused'  - Stendarr's AvoidDeath (GuildManager.AvoidDeath)
  *   death         'castOut' | 'final' | 'fall' - what a death is: cast out before the gate, final for the Hollow, a fall
  *   deathPenalty  'none'     - DEATH-PENALTY's tenth of the purse not taken
@@ -87,20 +89,25 @@ const row = (o) => Object.freeze(Object.fromEntries(MADE_LEVEL_RULE_KEYS.map((k)
  *  the leap, none refused - Elite-Gates.md's EG-PERFECT ways record). The Hour shares the law (its Steps are the Spire's pieces'
  *  own record, and its online page forces the same lane), so both rows refuse it; the court has no course. The wall run, the
  *  mantle, the vault and the free climb stay on. THE AUDIT: the Hour gives no late press (DFU's motor's own), so its refused
- *  late Jump past an edge is nothing at all - as DFU's; the Spire's is its own forgiveness, the plain jump. */
+ *  late Jump past an edge is nothing at all - as DFU's; the Spire's is its own forgiveness, the plain jump.
+ *  EVENT-RULES (2026-10-25, the owner, on "a lot of people are unhappy with the world event restrictions including the
+ *  regen not working"): every level HOLDS regeneration now ('held' - half, and none for 5 s after a hurt), where it had
+ *  turned it off and said nothing; and none refuses a party member's Resurrect - the Hour's one life is the relay's to
+ *  keep until the fallen gives it up (Super-Dungeons.md SD-ONELIFE, EVENT-RULES). The rest stands, said on the HUD's
+ *  made-level tile (ui/hud/statusTips.js madeRulesTip). */
 export const MADE_LEVEL_RULES = Object.freeze({
-  court: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', portalStone: 'refused', companions: 'out', regen: 'off', death: 'castOut', unstuck: 'refused', says: 'mid' }),
-  hour: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'off', levitate: 'banned',
-    runLeap: 'refused', resurrect: 'refused', death: 'final', unstuck: 'wayHome', says: 'hour' }),
-  spire: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'off', potions: 'counted',
-    levitate: 'banned', slowfall: 'banned', techFlight: 'refused', jumpBuffer: EG_JUMP_BUFFER_S, latePress: EG_LATE_PRESS_S, runLeap: 'refused', resurrect: 'refused', avoidDeath: 'refused', death: 'fall',
+  court: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', death: 'castOut', unstuck: 'refused', says: 'mid' }),
+  hour: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', levitate: 'banned',
+    runLeap: 'refused', death: 'final', unstuck: 'wayHome', says: 'hour' }),
+  spire: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', potions: 'counted',
+    levitate: 'banned', slowfall: 'banned', techFlight: 'refused', jumpBuffer: EG_JUMP_BUFFER_S, latePress: EG_LATE_PRESS_S, runLeap: 'refused', avoidDeath: 'refused', death: 'fall',
     deathPenalty: 'none', unstuck: 'refused', says: 'mid' }),
   // KETCH (bible/11-Multiplayer/Sky-Ketch.md section 3): the Hour's row for the deck (its Sailwalk the Hour's own course, its
   // running leap refused), the Spire's for flight (no Levitate, no slow fall, no technique's leap on the Sailwalk), and a
   // death a FALL - the death save's (scenes/ketch/ketchClient.js fallSave): out of the sky to the fields under her
   // anchor-lift, no DEATH-PENALTY, no Stendarr, and the anchor-lift there to ride again while she keeps station
-  ketch: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'off', levitate: 'banned',
-    slowfall: 'banned', techFlight: 'refused', runLeap: 'refused', resurrect: 'refused', avoidDeath: 'refused', death: 'fall', deathPenalty: 'none', unstuck: 'refused', says: 'mid' }),
+  ketch: row({ save: 'refused', rest: 'refused', automap: 'off', mark: 'refused', recall: 'refused', portalStone: 'refused', companions: 'out', regen: 'held', levitate: 'banned',
+    slowfall: 'banned', techFlight: 'refused', runLeap: 'refused', avoidDeath: 'refused', death: 'fall', deathPenalty: 'none', unstuck: 'refused', says: 'mid' }),
 });
 /** HOW EACH REFUSES, in its own words - the three homes' own lines, unchanged (the Spire's Mark is its Recall's). */
 export const MADE_LEVEL_TEXT = Object.freeze({

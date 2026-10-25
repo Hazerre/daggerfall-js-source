@@ -47,7 +47,7 @@ import { enemyGroupOf, NEARBY } from './nearbyObjects.js';   // X8: Pacify match
 import { breakNormalPowerConcealment, handleAttackFromSource } from './concealment.js';
 import { entityAbsorbsSpells, setEnchantmentEffectDoors } from './enchantments.js';   // E1: the AbsorbsSpells fold feeds the absorption gate
 import { markPlayerHarm } from './harmMark.js';   // REVENANT-HARM: a lingering effect's round on the player keeps its caster's mark
-import { regenBarred } from './courtRules.js';   // WBX6: the Burning Court keeps no regeneration
+import { regenShare } from './courtRules.js';   // WBX6 / EVENT-RULES: a made level holds regeneration
 import { localizedText, localizedTable } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { HEAL_SPELL_POINTS_KEY } from './potionRecipes.js';   // PROF12: Heal-SpellPoints' key, beside the one recipe that names it
 import { isClassEnemyId } from '../characters/enemy/enemyBasics.js';   // DEX1: DFU's class test (DaggerfallEntity.IsClassEnemyId) - a mod's monster past 255 is no class
@@ -753,7 +753,7 @@ function runEffectRound(a, target, sinks, rolls) {
       const k = schoolMult(a.caster, target, a.school, { self: true });
       if (k !== 1) n = Math.max(1, Math.round(n * k));
     }
-    if (n > 0 && sinks.heal && !regenBarred()) sinks.heal(n);   // WBX6: the Burning Court keeps no regeneration (systems/courtRules.js)
+    if (n > 0 && sinks.heal) { const held = regenShare(n, target?.isPlayer ? 'spell' : 'spell-foe', !!target?.isPlayer); if (held > 0) sinks.heal(held); }   // WBX6 / EVENT-RULES: a made level holds regeneration - half, and none just after a hurt (systems/courtRules.js)
   }
 }
 

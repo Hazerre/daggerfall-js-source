@@ -206,7 +206,7 @@ async function withRealm(fn, env = {}) {
   } finally { Date.now = realNow; }
 }
 
-test('INT12 THE ABYSS DUNGEON\'S COUNT: the Hour\'s own blow on the realm\'s count of each fighter in the arena; its word a mend; measured, nothing more; ENFORCED, the count\'s fall takes the Hour\'s one life as a `dd` does (the realm\'s dead) and tells the fallen; a body\'s word from one the fight does not count is never junk (mutants: the realm judging nothing; the one life kept; no word to the fallen)', async () => {
+test('INT12 THE ABYSS DUNGEON\'S COUNT: the Hour\'s own blow on the realm\'s count of each fighter in the arena; its word a mend; measured, nothing more; ENFORCED, the count\'s fall takes the Hour\'s one life as a `dd` does (the realm\'s down, then its dead - SD-REZ) and tells the fallen; a body\'s word from one the fight does not count is never junk (mutants: the realm judging nothing; the one life kept; no word to the fallen)', async () => {
   for (const enforce of [false, true]) {
     await withRealm(async ({ realm, beat, now }) => {
       const ann = realm.connect(); await realm.hello(ann, 'peer-ann', inArenaAt(0, -12), { name: 'Ann' });
@@ -221,12 +221,14 @@ test('INT12 THE ABYSS DUNGEON\'S COUNT: the Hour\'s own blow on the realm\'s cou
       await beat(600);
       assert.ok(Math.abs(p.bd.t - (0.05 + SD_END_PCT)) < 1e-9, 'the Hour\'s End on the count');
       assert.equal(p.bd.w, 1, 'the count fell');
-      const realmDead = (await realm.room._sdRealmOf(f.s)).dead;
+      const kept = await realm.room._sdRealmOf(f.s), realmDead = kept.dead, realmDown = kept.down.map(([x]) => x);
       if (!enforce) {
-        assert.equal(sds(ann, 'bd').length, 0); assert.equal(realmDead.includes(A), false, 'measured alone');
+        assert.equal(sds(ann, 'bd').length, 0); assert.equal(realmDead.includes(A) || realmDown.includes(A), false, 'measured alone');
       } else {
         assert.deepEqual(sds(ann, 'bd'), [{ t: 'sd', k: 'bd' }], 'told');
-        assert.equal(realmDead.includes(A), true, 'the one life taken');
+        // PIN MOVED (SD-REZ, EVENT-RULES): the one life taken - DOWN first, for a friend's Resurrect; past the window, dead
+        assert.equal(realmDown.includes(A), true, 'the one life taken - down');
+        assert.equal(realmDead.includes(A), false, 'not yet for good');
       }
     }, enforce ? { BOSS_BODY: ENFORCE } : {});
   }

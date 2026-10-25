@@ -148,7 +148,7 @@ import { livingRemainsLay } from './livingWorld/remainsGoods.js'; import { lwRng
 import { createLivingIndoors } from './livingWorld/livingIndoors.js';   // LW8: the residents inside the building the player is in
 import { createTravellerSprites, classLookOf } from '../world/travellerSprites.js';   // LW3: their bodies, and the armed walk's sprite
 import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '../characters/mobile/mobilePerson.js';
-import { bowDamageArrow, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all; OH-E: UpgradeLoot's SetItem + ApplyWeaponMaterial / ApplyArmorSettings
+import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
 import { poseHandsOf } from '../net/wire.js';   // AUDIT MIXED-PAIR L4-3: the pose's hands (`lh`, `ah`) - the wire's law, never a two-hands module (THE FOUR HOSTS)
 import { createPlayerMagic, CAST_PRESS, liveCollider } from './hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
@@ -1128,7 +1128,8 @@ import { createUnderwaterDecorations, createDecorTextureSource } from './deepWat
 import { createOceanHoles, oceanHolesOn } from './oceanHolesHost.js';   // OH-B: There's a Hole in the Bottom of the Ocean (jet082) - the pits in the carved sea
 import { OceanHolesRenderer } from '../render/oceanHolesRender.js';   // OH-C: its discs and its miasma
 import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
-import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR, addBonusMagicLoot, upgradeLoot } from '../world/oceanHoles.js';
+import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
+import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
 import { DUNGEON_AMBIENT } from '../world/dungeon/dungeonLights.js';   // OH-E: PlayerAmbientLight.DungeonAmbientLight, what the abyss darkens
 import { TILE_WORLD_SIZE_F32 } from '../world/deepWater/deepWaterFloor.js';   // OH-D: RestoreOceanPosition's terrainData.size (AUDIT PRE-MERGE 0928 H4: a float)
@@ -1137,9 +1138,6 @@ import { createEnemySpawner, ENEMY_ATTEMPTS_PER_PIXEL_PER_TICK, trySpawnTreasure
 import { createUnderwaterLoot } from './deepWater/deepWatersLoot.js';   // DW-E5: the sunken loot
 import { TREASURE_PILE_ARCHIVE, RUBBLE_RECORDS, centroidLocal } from '../world/underwater/underwaterLoot.js';   // DW-E5: the pile's picture, the rubble, the anchor
 import { createRandomReligiousItem, createRandomJewellery, createRandomGem, createRandomPotion, createRandomClothing, createRandomWeapon, createRandomArmor } from '../systems/loot/loot.js';   // DW-E5: FillRandomItem's seven ItemBuilder calls
-import { createRegularMagicItem, getMagicItemTemplates, lootMatrix, tableLootSpawned } from '../systems/loot/loot.js';   // OH-E: CreateRandomMagicItem, GetMatrix, LootTables.OnLootSpawned
-import { enemyLootSpawned } from '../characters/enemy/enemyEntity.js';   // OH-E: EnemyEntity.OnLootSpawned
-import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // OH-E: UpgradeLoot's `GetType() != typeof(DaggerfallUnityItem)`
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';   // DW-E5: the item constructor's name, value and condition
 import { registerItemUseHandler } from '../systems/item/itemTemplates.js';   // CSA-H: the boat items' UseItem on the item-use door
 import { mintBoatItem, mintShelfBoatUids, assignVariantsToShopItems, cargoLootTarget, BOAT_PARTS_TEMPLATE as CSA_PARTS_TEMPLATE, BOAT_DEED_TEMPLATE as CSA_DEED_TEMPLATE } from '../systems/comeSailAway/comeSailAwayItems.js';   // CSA-H: the two items, their shelf
@@ -4835,28 +4833,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // player's bound abyss, or is the Recall back to it: AddBonusMagicLoot off the key's MI, then UpgradeLoot
   _ohLootOff?.();
   _ohLootOff = null;
-  if (ohAbyss) {
-    // AUDIT OH-F B3: the dungeon's loot alone - DFU's build is one synchronous call and the exterior is off inside, so
-    // ShouldUpgradeLoot never meets another host's roll; the port's build awaits, and the street runs meanwhile
-    // PARTY-LOOT: the raiser's dice and roller when it hands them (a room's shared base rolls on the room's - the party's
-    // level and gender, the room's stream), else the player's, as before
-    const ohUpgrade = (key, items, worn = [], where = null, rolls = Math.random, roller = playerEntity) => {
-      if (where !== 'dungeon' || !ohAbyss.shouldUpgradeLoot()) return;
-      addBonusMagicLoot(lootMatrix(key).MI, items, () => {   // ItemBuilder.CreateRandomMagicItem(Level, Gender, Race)
-        const t = getMagicItemTemplates();
-        return t ? mintCondition(setItemFields(createRegularMagicItem(t, roller.level, roller.gender, rolls))) : null;
-      }, rolls);
-      upgradeLoot(worn.length ? [...new Set([...items, ...worn])] : items, {   // the bonus in: UpgradeLoot walks the whole of Items after it
-        remintWeapon: (ti, m) => weaponOfMaterial(ti, m),
-        remintArmor: (ti, m, v) => armorOfMaterial(ti, m, v),   // ApplyArmorSettings(the player's gender and race, the variant kept)
-        isCustom: (it) => !!customItemClass(it.templateIndex),
-        isEnchanted,
-      });
-    };
-    const offTable = tableLootSpawned.add((e) => ohUpgrade(e.key, e.items, [], e.where, e.rolls ?? Math.random, e.roller ?? playerEntity));
-    const offEnemy = enemyLootSpawned.add((e) => ohUpgrade(e.lootTableKey, e.items, e.worn, e.where, e.rolls ?? Math.random, e.roller ?? playerEntity));
-    _ohLootOff = () => { offTable(); offEnemy(); };
-  }
+  if (ohAbyss) _ohLootOff = ohLootUpgrades(ohAbyss, () => playerEntity);   // AUDIT OH-F B3: the dungeon's loot alone; PARTY-LOOT: the raiser's dice and roller (scenes/ohLootHost.js)
   /** OH-C: BuildPit's children that need a machine of their own - the miasma's particles and the entrance's BoxCollider,
    *  pixel-local through the live translation (the walls' shape). The discs are one shared mesh, drawn from the pit. */
   function ohCreatePit(entry, pit) {
@@ -14595,6 +14572,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const spared = wildDeathKill() ? 0 : statedDeathLoss() ?? 0;   // AUDIT FOE-KEEPS H4: a kill's tenth lies in the remains - none was spared
     wildGhostEnd();   // WILD1: a body raised in the open zone - its offer over (what it dropped stays dropped), its cell let go to be joined again
     _rezSeen = null;
+    _sdFallen.rise(modes?.sdRealmSlot?.());   // SD-REZ (EVENT-RULES): raised in the Hour I fell in - its slot let go, the realm lets me back
     _deadMark = null; _partyComposedAt = -Infinity;   // PCORPSE3: my body is gone - my party pose says so at once
     reviveForPlay(playerEntity, { force: true });
     forgetLastSlew();   // AUDIT FEUD (RVN8): no respawn - its killer takes nothing, now or at a later death
@@ -24868,6 +24846,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  worth"): the Hollows' slots whose Hour I died in - their Rift refuses me for good (the realm's door refuses the
    *  account too: SD_NO_FALLEN). */
   const _sdFallen = sdSlotsKept(SD_FALLEN_KEY, () => _accountSds.me());
+  /** SD-REZ (EVENT-RULES): may a friend's Resurrect still raise me where I lie - always, but in the Hour I fell in past its realm's window. */
+  const hourRezOpen = () => _sdFallen.mayRise(modes?.sdRealmSlot?.());
   const sdRiftOf = (s) => {
     if (!sdHost) return null;
     const rec = sdHost.record(), now = Date.now() + _sharedOffsetMs;
@@ -25988,7 +25968,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // unconditionally, like restEnemyAt/restCancelAt above.
       restStartedAt: Number.isFinite(_partyRestJustStartedAt) ? _partyRestJustStartedAt : null,
       ...(_rezOut && performance.now() < _rezOut.until ? { rz: { to: _rezOut.to, at: _rezOut.at } } : {}),
-      ...(_deadMark ? { dd: _deadMark } : {}), ...(legacyHost?.raisable() === false ? { fg: 1 } : {}),   // PCORPSE3: my body, for a party member who missed the death   // RESURRECT1: my Resurrect's call, held a few sends   // REZ-BLOODLINE: fallen for good - no Resurrect raises me (net/wire.js validPartyPose `fg`)
+      ...(_deadMark ? { dd: _deadMark } : {}), ...(legacyHost?.raisable() === false || !hourRezOpen() ? { fg: 1 } : {}),   // PCORPSE3: my body, for a party member who missed the death   // RESURRECT1: my Resurrect's call, held a few sends   // REZ-BLOODLINE: fallen for good - no Resurrect raises me (net/wire.js validPartyPose `fg`)
       // PARTY-TRAVEL (2026-09-25, Mac: "...the option for party members to ready up and travel together"): the party's
       // journey (net/wire.js validPartyPose, systems/party/partyTravelLaw.js), each field omitted when there is none - my
       // proposal while I lead one (`tv`, the round's stamp and, once we set out, `go`), my answer to the leader's round
@@ -28854,7 +28834,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // caster's pose) as new, and rose the instant it fell
       if (!_respawning) {
         if (!_rezSeen) _rezSeen = rezSnapshot(social?.others() ?? []);
-        const rez = social?.acct && madeRuleHere('resurrect') !== 'refused' ? rezFor(social.others(), social.acct, _rezSeen) ?? legacyHost?.raised() ?? null : null;   // SD-ONELIFE: no Resurrect in the Hour - one life; EG-H2: nor in the Spire (the made level's law) (AUDIT SD III: asked of the call, so the rise stays MWBODY1's `if (rez)`); REZ-BLOODLINE AUDIT R1: or the call the realm let go, the caster's pose done carrying it
+        const rez = social?.acct && madeRuleHere('resurrect') !== 'refused' && hourRezOpen() ? rezFor(social.others(), social.acct, _rezSeen) ?? legacyHost?.raised() ?? null : null;   // SD-ONELIFE: no Resurrect in the Hour - one life; EG-H2: nor in the Spire (the made level's law); EVENT-RULES (the owner: "Resurrect allowed"): no level refuses it now, and in the Hour only inside the realm's window (SD-REZ, systems/superDungeon/sdSlots.js mayRise) (AUDIT SD III: asked of the call, so the rise stays MWBODY1's `if (rez)`); REZ-BLOODLINE AUDIT R1: or the call the realm let go, the caster's pose done carrying it
         if (rez && legacyHost?.raise(rez) !== false) { resurrectInPlace(rez); return; }   // REZ-BLOODLINE (FIELD BUGS 2026-10-16b): a Bloodline death held for it is let go; one decided for good stays down (legacyHost.js raise); AUDIT R1: the realm asked first - down until it answers
       }
       peerBodies.destroy(); remotePlayers.sync([], onlineToScene); peerRiders?.destroy(); peerWalkers?.destroy(); peerCandlesFrame([], dt); return;   // PEERLIGHT2: and no candle hangs over the dead; AUDIT RIDE: and no rider stands frozen over it either
@@ -32522,7 +32502,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     sdAirFrame();   // SD14b: and the Hour's, the same way
     if (onlineOn && playerSpawned && (seatOut() || townTalk.overlay instanceof DeathScreen || modes?.deathUp?.())) { siegeHud?.hide(); siegeNpcs?.leave(); }   // AUDIT SEATS-2 C4: the dead and a tab out of the seat draw no battle - the online frame returns before its tick
     arenaFrame(dt);   // ARENA2: the bout on the city's floor or the instance's - before the modal return, so the instance's runs too
-    setCourtRules(madeRuleHere('regen') === 'off');   // SD5a: nor in the Shattered Hour - the court's law (Super-Dungeons.md section 7); EG-H2: nor in the Spire - one law, systems/madeLevel.js   // WBX6: the Deadlands keep no regeneration - set before any magic round of this frame, cleared the frame the court is gone
+    setCourtRules(madeRuleHere('regen') === 'held', playerEntity.health);   // WBX6: the Deadlands hold regeneration - set before any magic round of this frame, cleared the frame the court is gone; SD5a: and the Shattered Hour; EG-H2: and the Spire - one law, systems/madeLevel.js; EVENT-RULES: held, not off - half, and none for 5 s after a hurt (systems/courtRules.js)
     egCourtFrame();   // EG-PLAY: no online frame - the breach's fight and tracker put away; in an Elite Breach, the court's law (Elite-Gates.md section 16)
     // LOAD1: THE LOADING SCREEN STANDS WHILE THE WORLD IS MOVED - AUDIT 68 S22's one question (every mover's latch, the
     // teleport core's window, the abyss) and a door's build in this host's modes. Above the mode's return, so every
