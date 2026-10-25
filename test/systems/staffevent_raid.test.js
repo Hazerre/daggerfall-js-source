@@ -148,6 +148,53 @@ test('STAFF-EVENT: RUN AS A RAID - its own monsters, mixed, up to its total; no 
   assert.equal(staffBossWanted(staffRaids()[0]), 2);
 });
 
+test('BOSS-LOST and BOSS-HP (mob 2026-10-25: "boss seems to not spawn every time", "need be able to eneter a exact amount of healt"): a boss stand given up on is asked again; a boss gone without falling is stood again; one coming over is waited for; the exact health wins', async () => {
+  const { at, log, h } = rig();
+  restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
+  setSharedClock(() => at.now);
+  raidRelayWord({ k: 'sev', sev: { k: 'ev', l: [{ ...EV, hp: 5000 }] } }, 'social');
+  const raid = staffRaids()[0];
+  await run(4);
+  const room = log.words.at(-1)?.room ?? 'world:0';
+  // the boss stand never answers: given up at the pending's timeout, then asked again
+  const stand = h.standRaider;
+  h.standRaider = () => new Promise(() => {});
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 0, bk: 0, fc: 0 } }, room);
+  assert.equal(frame(0.1), 'boss');
+  for (let i = 0; i < 9; i++) frame(1);
+  assert.equal(raid.bossFc, -1, 'given up: the call stands unanswered');
+  h.standRaider = stand;
+  assert.equal(frame(0.1), 'boss', 'asked again');
+  await tick();
+  const boss = log.raiders.at(-1);
+  assert.equal(boss.entity.maxHealth, 5000, 'BOSS-HP: the exact health, over the 20x');
+  raidRelayWord({ k: 'sev', sev: { k: 'st', id: EV.id, n: 3, bd: 1, bu: 1, bk: 0, fc: 0 } }, room);
+  // a jump's sweep takes it without a fall: stood again for the same call, once the wait is out
+  boss.dead = true;
+  await run(1, 0.1);
+  const n = log.raiders.length;
+  at.wall += 7000;
+  await run(1, 0.1);
+  assert.equal(log.raiders.length, n, 'not yet: one coming over from a fallen runner may land');
+  at.wall += 2000;
+  assert.equal(frame(0.1), 'boss');
+  await tick();
+  assert.ok(isStaffBoss(log.raiders.at(-1).entity) && raid.bossFc === 0, 'the same call\'s boss, stood again');
+  // a puppet of it standing at another's: nothing stood
+  log.raiders.at(-1).dead = true;
+  at.puppets = [{ _pupRaid: KEY, dead: false, entity: { staffBoss: { size: 2 } } }];
+  await run(1, 0.1);
+  at.wall += 20000;
+  await run(2, 0.1);
+  assert.ok(!isStaffBoss(log.raiders.at(-1).entity) || log.raiders.at(-1).dead, 'its puppet stands: no second boss');
+  // one that fell, its word not yet heard: never stood again
+  at.puppets = [];
+  raid.bossDown = 1;
+  at.wall += 20000;
+  await run(2, 0.1);
+  assert.ok(!log.raiders.slice(-2).some((f) => isStaffBoss(f.entity) && !f.dead), 'fallen: no second boss');
+});
+
 test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of any of the kinds picked, each led from anywhere around me, its pack around its leader, to the 25 cap in 20-45 s', async () => {
   const { at, log, h } = rig();
   restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });

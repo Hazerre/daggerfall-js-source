@@ -8,7 +8,7 @@ import {
   validStaffEvent, validStaffEventIn, validStaffEventOut, validStaffEventTell, newStaffLedger, staffEventCap, staffBossCall,
   foldStaffWord, staffEventDone, staffLedgerState, staffEventTell, staffEventKey, staffEventIdOf, staffEventLapsed, isAreaEvent,
   relaySupportsStaffEvents, staffEventKindOk, STAFF_EVENT_KILLS_BURST, STAFF_EVENT_KILL_MS, STAFF_BOSS_HEALTH_DEFAULT,
-  STAFF_EVENT_ACCOUNTS_MAX, STAFF_EVENT_PRESENT_MS,
+  STAFF_EVENT_ACCOUNTS_MAX, STAFF_EVENT_PRESENT_MS, STAFF_BOSS_HP_MAX,
 } from '../../src/net/staffEvent/staffEventLaw.js';
 import { mintStaffEventOrder, verifyOrder, orderValid, ORDER_KINDS } from '../../src/net/identityToken.js';
 import { staffPlaces, staffHere, placeKind, gameMaps, keptMaps } from '../../src/net/staffPlaces.js';
@@ -18,13 +18,13 @@ const { subtle } = globalThis.crypto;
 const EV = Object.freeze({ id: 'ab12cd34ef', rg: 17, loc: 0, px: 207, py: 213, nm: 'Daggerfall', ct: 1, mt: [7, 12], n: 50, m: 25, b: 24, bs: 200, bh: 10, at: 1_700_000_000_000, ue: 0, eb: 1, fb: 0, by: 'SirMcMobdon' });
 
 test('STAFF-EVENT: an event is held to its bounds - kinds any monster but the two barred, the meter no past the total, the boss sized 1.5x-3x and 1x-100x its health', () => {
-  assert.deepEqual(validStaffEvent(EV), { ...EV, mt: [7, 12] });
+  assert.deepEqual(validStaffEvent(EV), { ...EV, mt: [7, 12], hp: 0 });
   assert.equal(validStaffEvent({ ...EV, bh: undefined }).bh, STAFF_BOSS_HEALTH_DEFAULT, 'an order before the health pick reads 10x');
   assert.equal(validStaffEvent({ ...EV, ct: 1 }).ct, 1, 'a city said as one');
   assert.equal(validStaffEvent({ ...EV, ct: undefined }).ct, 0, 'a place the panel did not call a city is an area');
   assert.equal(validStaffEvent({ ...EV, loc: -1, ct: 1 }).ct, 0, 'an area is never a city');
   for (const bad of [{ id: 'AB' }, { rg: 256 }, { loc: -2 }, { px: 1000 }, { py: 500 }, { mt: [] }, { mt: [39] }, { mt: [146] }, { mt: Array.from({ length: 13 }, (_, i) => i) },
-    { n: 0 }, { n: 501 }, { m: 51 }, { m: 0 }, { b: 39 }, { bs: 149 }, { bs: 301 }, { bh: 0 }, { bh: 101 }, { bh: 2.5 }, { at: 0 }, { ue: EV.at }, { ue: EV.at + 24 * 3600_000 + 1 }, { fb: 100 }]) {
+    { n: 0 }, { n: 501 }, { m: 51 }, { m: 0 }, { b: 39 }, { bs: 149 }, { bs: 301 }, { bh: 0 }, { bh: 101 }, { bh: 2.5 }, { hp: -1 }, { hp: STAFF_BOSS_HP_MAX + 1 }, { hp: 1.5 }, { at: 0 }, { ue: EV.at }, { ue: EV.at + 24 * 3600_000 + 1 }, { fb: 100 }]) {
     assert.equal(validStaffEvent({ ...EV, ...bad }), null, JSON.stringify(bad));
   }
   assert.deepEqual(validStaffEvent({ ...EV, mt: [7, 7, 12] }).mt, [7, 12], 'each kind once');
@@ -61,7 +61,7 @@ test('STAFF-EVENT: THE LEDGER - kills credited the most each account said, under
   r = foldStaffWord(led, e, 'acctA', 'Ann', { n: 25 }, t0 + 4 * STAFF_EVENT_KILL_MS);
   assert.equal(led.n, 14, 'the cap grows with time');
   assert.ok(r.boss && led.bd === 1, 'the meter at 12 calls the boss');
-  assert.equal(staffBossCall(led, e), false, 'once');
+  assert.equal(staffBossCall(led, e), false, 'one at a time: never again while it stands');
   // a word that says less credits nothing; another account adds its own
   foldStaffWord(led, e, 'acctA', 'Ann', { n: 3 }, t0 + 5000);
   assert.equal(led.n, 14);
@@ -87,6 +87,33 @@ test('STAFF-EVENT: THE LEDGER - kills credited the most each account said, under
   assert.equal(staffEventTell(led, t0 + 63_000 + STAFF_EVENT_PRESENT_MS + 1).f, 0, 'nobody fighting after 15 s quiet');
   led.ended = 1;
   assert.deepEqual(foldStaffWord(led, e2, 'acctC', 'C', { n: 5 }, t0), { credited: 0, known: false, boss: false }, 'an ended ledger hears nothing');
+});
+
+test('BOSS-HP and BOSS-AGAIN (mob 2026-10-25: "need be able to eneter a exact amount of healt for mini bosses", "boss seems to not spawn every time"): an exact health carried; the meter calls a boss each time it fills, one at a time; a hand call between moves the next call on', () => {
+  assert.equal(validStaffEvent({ ...EV, hp: 12345 }).hp, 12345, 'the exact health staff typed');
+  assert.equal(validStaffEvent({ ...EV, hp: undefined }).hp, 0, 'an order before it reads none - the times its kind\'s');
+  const e = validStaffEvent({ ...EV, n: 100, m: 10, eb: 0 });
+  const led = newStaffLedger(e, 0);
+  const t = (/** @type {number} */ s) => s * 1000;
+  foldStaffWord(led, e, 'a', 'Ann', { n: 10 }, t(10));
+  assert.ok(led.bd === 1 && led.fc === 0 && led.mc === 1, 'the first fill: boss call 0');
+  foldStaffWord(led, e, 'a', 'Ann', { n: 25, bu: 1, fb: 0 }, t(20));
+  assert.equal(led.fc, 0, 'past the second fill while it stands: no call yet');
+  foldStaffWord(led, e, 'a', 'Ann', { n: 25, bu: 1, bk: 1, fb: 0 }, t(21));
+  assert.ok(led.bk === 1 && led.bossN === 1);
+  assert.ok(foldStaffWord(led, e, 'a', 'Ann', { n: 25, fb: 0 }, t(22)).boss && led.fc === 1 && led.bd === 1 && led.bu === 0 && led.bk === 0 && led.mc === 2, 'fallen: the second fill calls the next');
+  foldStaffWord(led, e, 'a', 'Ann', { n: 26, bu: 1, bk: 1, fb: 1 }, t(23));
+  assert.equal(staffBossCall(led, e), false, 'the third fill waits for 30');
+  assert.ok(staffBossCall(led, { ...e, fb: 1 }) && led.fc === 2 && led.hc === 1, 'a hand call: the next call, its own');
+  assert.equal(staffBossCall(led, { ...e, fb: 1 }), false, 'the same hand once');
+  foldStaffWord(led, e, 'a', 'Ann', { n: 30, bu: 1, bk: 1, fb: 2 }, t(30));
+  assert.ok(staffBossCall(led, { ...e, fb: 1 }) && led.fc === 3 && led.mc === 3, 'the third fill');
+  // a ledger kept before BOSS-AGAIN: its meter boss called, a hand call taken as fc 1
+  const old = { ...newStaffLedger(e, 0), n: 12, bd: 1, bu: 1, bk: 1, fc: 1, bossN: 2 };
+  delete old.hc; delete old.mc;
+  assert.equal(staffBossCall(old, { ...e, fb: 1 }), false, 'its hand taken, its meter once: 12 kills call nothing');
+  old.n = 20;
+  assert.ok(staffBossCall(old, { ...e, fb: 1 }) && old.fc === 2, 'its second fill calls the next');
 });
 
 test('STAFF-EVENT: THE ORDER - its own kind, only its own fields, each op with what it needs; minted and verified', async () => {

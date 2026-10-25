@@ -14,10 +14,11 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number }} StaffRaid
  *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
- *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced.
+ *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced;
+ *   `bossLostAt` BOSS-LOST's: when its stood boss was first seen standing nowhere.
  */
 
 /** @type {Map<string, StaffRaid>} */
@@ -107,6 +108,22 @@ export function staffBossWanted(r) {
   if (!led || !led.bd || led.bu || led.bk) return -1;
   return r.bossFc === led.fc ? -1 : led.fc;
 }
+/**
+ * BOSS-LOST (mob 2026-10-25: "boss seems to not spawn every time"): the call whose boss stood but stands nowhere now -
+ * not fallen, not mine, no puppet of it - for STAFF_BOSS_LOST_MS, or -1. A jump's sweep, a removal or a runner gone took
+ * it, and the cell, told it stood, would never call it again: the one who runs the event stands it again, for the same
+ * call. The wait lets a fallen runner's boss come over to me (raidingParties.js tookStaffBoss) first.
+ * @param {StaffRaid} r @param {boolean} standing @param {number} nowMs
+ */
+export function staffBossLost(r, standing, nowMs) {
+  const led = _ledgers.get(r.staff.id);
+  if (!led || !led.bd || !led.bu || led.bk || standing || (r.bossDown && r.bossFc === led.fc)) { r.bossLostAt = undefined; return -1; }
+  r.bossLostAt ??= nowMs;
+  if (nowMs - r.bossLostAt < STAFF_BOSS_LOST_MS) return -1;
+  r.bossLostAt = undefined;
+  return led.fc;
+}
+export const STAFF_BOSS_LOST_MS = 8000;
 /** The boss line, once a call, where the player stands in the event: the call whose boss is due, or -1. @param {StaffRaid} r */
 export function staffBossToSay(r) {
   const led = _ledgers.get(r.staff.id);

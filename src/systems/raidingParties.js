@@ -94,7 +94,7 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
 import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLaw.js';
 import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss } from './eliteFoes.js';   // STAFF-EVENT: its mini boss
@@ -410,6 +410,7 @@ function scheduleNextDefender() {
 /** CancelPending [IL_14d4]: a spawn still in flight lands into nothing. */
 function cancelPending() {
   if (_pending) _pending.cancelled = true;
+  if (_pending?.boss) _pending.boss.bossFc = -1;   // BOSS-LOST: a boss given up on is called again (a late one is let go)
   _pending = null;
 }
 
@@ -496,7 +497,7 @@ function sweep() {
 /** SpawnRaidEnemy [IL_0764]: one foe in flight; a spot not found costs nothing but this tick (fix 10). */
 function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const h = host();
-  const p = { key: raidKey(raid), age: 0, cancelled: false };
+  const p = { key: raidKey(raid), age: 0, cancelled: false, boss: kind === 'boss' ? raid : null };
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
   const promise = kind === 'defender' ? h.standDefender?.(threats()) : h.standRaider?.(mobileType, o);   // STAFF-EVENT PACKS: where, for a pack's
@@ -506,7 +507,7 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
     if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
     if (pack && !pack.at && Array.isArray(foe.ai?.feet)) pack.at = [...foe.ai.feet];   // STAFF-EVENT PACKS: its pack stands around it
     if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; return; }
-    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh }); raid.bossUp = 1; raid.bossDown = 0; }
+    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp }); raid.bossUp = 1; raid.bossDown = 0; }
     if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: boss ? 'raider' : kind, boss, routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
     if (kind !== 'defender') foe.raidKey = p.key;   // RAID2: it rides my frame tagged with its raid
   }, () => { if (_pending === p) _pending = null; if (boss) raid.bossFc = -1; });
@@ -606,6 +607,8 @@ export function raidFrame(dt = 0) {
   if (raid.staff) {
     const fc = staffBossWanted(raid);
     if (fc >= 0) { raid.bossFc = fc; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    const lost = staffBossLost(raid, staffBossStanding(raid, h), localNow());   // BOSS-LOST: stood, then gone without falling
+    if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
   }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
   if (!raid.staff && _nextDefenderIn <= 0) {
@@ -820,6 +823,12 @@ function staffPuppetKills(puppets, now) {
 }
 /** The puppets counted as my kills (THE REWARD). */
 let _pupKilled = new WeakSet();
+/** BOSS-LOST: does its boss stand anywhere I can see - mine, or a puppet of another's? @param {any} raid @param {any} h */
+function staffBossStanding(raid, h) {
+  const key = raidKey(raid);
+  if (_live.some((e) => e.key === key && e.boss && !e.foe.dead)) return true;
+  return (h.raidPuppets?.() ?? []).some((pup) => pup._pupRaid === key && !pup.dead && pup.entity?.staffBoss);
+}
 /** A foe of mine taken over from a fallen runner: its event's mini boss is still the boss I stand now. */
 function tookStaffBoss(f) {
   if (!f?.entity?.staffBoss) return false;

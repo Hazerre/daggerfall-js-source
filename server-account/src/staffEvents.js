@@ -5,7 +5,8 @@
 //
 // /v1/staff/event { op } - 'start' stages one (`ev`: the place, the monsters, how many, the meter's kills, the mini boss
 // and its size, whether its fall ends the event, and how many minutes it runs - 0 until it is ended); 'end' ends one and
-// 'boss' calls its mini boss now (`id`). /v1/staff/events reads them back, newest first, a page at a time (`before`), each
+// 'boss' calls its mini boss now (`id`); EVENT-CLEAR (mob 2026-10-25: "let me clear other events as well form history")
+// 'clear' takes an event that is over off the list (`id`), or every one (`all`) - a live one never. /v1/staff/events reads them back, newest first, a page at a time (`before`), each
 // with the hub's live word on it - its kills (the meter), its boss, and the players fighting.
 //
 // STORED FIRST, as a staff message is (staffMessage.js): the row is written and audited in one batch, and only then is a
@@ -30,7 +31,7 @@ export const STAFF_EVENT_KEEP_S = 30 * 24 * 60 * 60;
 export const STAFF_EVENT_MINUTES_MAX = STAFF_EVENT_LONGEST_MS / 60000;
 
 /** The refusals' words, and their status (staff.js STAFF_STATUS). */
-export const EVENT_STATUS = Object.freeze({ 'event-bad': 400, 'event-full': 409, 'event-gone': 404, 'event-relay': 503 });
+export const EVENT_STATUS = Object.freeze({ 'event-bad': 400, 'event-full': 409, 'event-gone': 404, 'event-relay': 503, 'event-live': 409 });
 
 /** An event's id: ten of [a-z0-9], from the service's randomness. @param {(b: Uint8Array) => void} rand */
 export function mintEventId(rand) {
@@ -51,7 +52,7 @@ export function stagedEvent(ev, id, nowS, by) {
   const mins = ev.mins ?? 0;
   if (!Number.isSafeInteger(mins) || mins < 0 || mins > STAFF_EVENT_MINUTES_MAX) return null;
   const at = nowS * 1000;
-  return validStaffEvent({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by });
+  return validStaffEvent({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, hp: ev.hp ?? 0, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by });
 }
 
 /** A row's kept board. @param {unknown} s */
@@ -131,7 +132,7 @@ export async function staffEvents(ctx, env, path, body, who, audit) {
     const id = mintEventId(rand);
     const ev = stagedEvent(body.ev, id, nowS, displayName(me));
     if (!ev) return { error: 'event-bad' };
-    const detail = { id, place: ev.nm, rg: ev.rg, loc: ev.loc, kinds: ev.mt, n: ev.n, m: ev.m, boss: ev.b, size: ev.bs, health: ev.bh };
+    const detail = { id, place: ev.nm, rg: ev.rg, loc: ev.loc, kinds: ev.mt, n: ev.n, m: ev.m, boss: ev.b, size: ev.bs, health: ev.bh, hp: ev.hp };
     await db.batch([
       db.prepare("INSERT INTO staff_events (id, at, staff_id, staff_name, ev, state, kills, boss) VALUES (?1, ?2, ?3, ?4, ?5, 'starting', 0, 'none')")
         .bind(id, nowS, me.id, displayName(me), JSON.stringify(ev)),
@@ -147,6 +148,18 @@ export async function staffEvents(ctx, env, path, body, who, audit) {
     const book = bookOf(said.l);
     const row = await db.prepare('SELECT rowid AS n, * FROM staff_events WHERE id = ?').bind(id).first();
     return { ok: true, event: shown(row, book.get(id)) };
+  }
+
+  if (body.op === 'clear') {   // EVENT-CLEAR: the history alone - the hub is not asked, a live or starting row is never taken
+    const all = body.all === 1;
+    if (!all && (typeof body.id !== 'string' || !STAFF_EVENT_ID_RE.test(body.id))) return { error: 'body' };
+    const gone = all
+      ? await db.prepare("DELETE FROM staff_events WHERE state IN ('ended', 'failed')").run()
+      : await db.prepare("DELETE FROM staff_events WHERE id = ?1 AND state IN ('ended', 'failed')").bind(body.id).run();
+    const n = gone?.meta?.changes ?? 0;
+    if (!all && !n) return { error: 'event-live' };
+    await audit('event-clear', null, all ? { all: 1, n } : { id: body.id }).run();
+    return { ok: true, cleared: n };
   }
 
   if (body.op === 'end' || body.op === 'boss') {

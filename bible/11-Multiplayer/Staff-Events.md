@@ -19,13 +19,16 @@
 | Kills to fill the meter | 1 to the total | 25 |
 | Mini boss | any kind | the first monster picked |
 | Its size | 150-300 % of its kind | 200 % |
-| Its health | 1-100 x its kind's | 10 x |
+| Its health | 1-100 x its kind's, or an EXACT number 1-1,000,000 (`hp`, BOSS-HP - it wins) | 10 x |
 | Ends when it falls | yes / no | yes |
 | Runs for | until ended, 15 min - 1 day | until ended |
 
 Up to four events run at once (`STAFF_EVENTS_MAX`). The page lists every event with its meter (kills / kills to the
 boss, kills / total), its boss's state (not yet, due, up, fallen), the players fighting, and **Spawn mini boss now** and
-**End**. Players never see the meter.
+**End**, and on an event that is over **Clear** (EVENT-CLEAR, 2026-10-25, mob: "let me clear other events as well form
+history" - one row, or **Clear ended events** for every one over; a running one never; the hub is not asked; audited
+`event-clear`). The list is read again every 5 s while an event runs, and only a row whose words moved is drawn again,
+in place (Staff Panel 0.2.9; mob: "event windows refreshses alot"). Players never see the meter.
 
 ## 2. One law, three readers (`src/net/staffEvent/staffEventLaw.js`)
 
@@ -50,7 +53,9 @@ service, the relay and the game all import. It imports nothing (`raidLaw.js`'s r
    says, every 5 s or at once when it moved, the deaths of the monsters THEY stand (`{t:'sev', k:'w'}`). The cell hears
    a word only in the cell the event's pixel stands in, never in a layer, credits it only from a socket whose pose stands
    on the pixel, the most each account said, under a cap of 10 at once and four a second after. At the meter it calls
-   the boss once (`bd`); each hand call is one more. It hears the boss stand (`bu`) and fall (`bk`) from the one who
+   the boss (`bd`), and again each time the meter fills - every `m` kills - once the last boss fell (BOSS-AGAIN, 2026-10-25,
+   mob: "boss seems to not spawn every time"; `mc` the meter's calls); each hand call is one more (`hc` the hands taken).
+   Every call is the next `fc`. It hears the boss stand (`bu`) and fall (`bk`) from the one who
    stands it, says its ledger to the place (`k:'st'` - the game reads the count only to stop standing monsters at the
    total), and tells the hub (at once for a boss moment, else every 3 s). Done by its ledger - the boss fell with
    "ends when it falls", or every monster fell and no boss stands - the hub ends it.
@@ -88,6 +93,12 @@ An elite (the flag, the 3x blows, the elite's drop), staff's size and health, an
 place of the elite's blue. A puppet boss is promoted from the frame's `sb` side list (`[[record, size %]]`,
 `world/raidShared.js` `validStaffBossTags`, one a frame); its health is its owner's.
 
+BOSS-LOST (2026-10-25, mob: "boss seems to not spawn every time"): a boss stand that does not answer in
+`PENDING_TIMEOUT_S` is given up and asked again (`raidingParties.js` `cancelPending`); and a boss that stood but stands
+nowhere now - not fallen, not mine, no puppet of it - for `STAFF_BOSS_LOST_MS` (a jump's sweep, a removal, a runner
+gone) is stood again by the one who runs the event, for the same call (`staffEvents.js` `staffBossLost`). The wait lets
+a fallen runner's boss come over first.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
@@ -102,6 +113,9 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
   player for about 40 s.
 - Account service `acct182`, migration 0167: drops nobody.
 - Staff Panel 0.2.7: the Events page.
+- STAFF-EVENT BOSS: relay `world257` (the law's `hp` and the meter's boss each fill), account service `acct184` (`hp`
+  staged, `clear`), Staff Panel 0.2.9 (the exact health box, Clear, the quiet list). The relay first; an older relay
+  drops `hp`, so the boss reads its times.
 
 ## 8. Known limits
 
