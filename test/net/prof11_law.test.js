@@ -41,7 +41,7 @@ test('PROF11 law: Mortar is 675 - the stone family, tier 2, worth 2 Marks, Lodes
   assert.equal(TIER_VALUES[MORTAR.tier - 1], 2, '4.5: Mortar tier 2 (2)');
   assert.equal(minedMaterial('stone:mortar'), MORTAR);
   assert.ok(MINED_KEYS.includes('stone:mortar'), 'the registry, the market\'s catalogue');
-  assert.deepEqual(MINED_KEYS.slice(-19, -17), ['stone:mortar', 'work:ram'], 'registered last - no key before it moved (SEAT2b part two\'s Ram Kit after it - PIN MOVED; PROF12\'s sixteen reagents and Arcane Essence after them - PIN MOVED)');
+  assert.deepEqual(MINED_KEYS.slice(-20, -18), ['stone:mortar', 'work:ram'], 'registered last - no key before it moved (SEAT2b part two\'s Ram Kit after it - PIN MOVED; PROF12\'s sixteen reagents and Arcane Essence after them - PIN MOVED; DAEDRIC-SMELT\'s Daedra\'s Heart after them - PIN MOVED)');
   assert.equal(withdrawable('stone:mortar'), true);
   assert.ok(marketCatalogue().some((m) => m.key === 'stone:mortar'), 'listed on the Materials view');
   assert.equal(UNYIELDED.includes('stone:mortar'), false, 'the bench yields it');

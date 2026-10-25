@@ -268,7 +268,10 @@ export function specsAt(row, nowS) {   // CRAFT3: a merged craft's track stands 
 
 /** AUDIT 29 A5: the veins an account may work a UTC day in dungeons nobody has vouched for - one dungeon's most. A
  *  dungeon's id is the client's word, and an unconfirmed dungeon's least (Silver, tier 3, at any hour) was worth more
- *  than any unconfirmed pixel; a confirmed dungeon is bounded by its own veins (1-4 a day, each once a character). */
+ *  than any unconfirmed pixel; a confirmed dungeon is bounded by its own veins (1-4 a day, each once a character).
+ *  DEEP-OPEN (Professions-Arc.md section 50; the owner: "FULL ORE TABLE"): such a dungeon draws its whole deep table now
+ *  (nodeLaw.js dungeonVein - all but the climate's own Moonstone), and these four are the whole of the bound - the trade
+ *  the owner accepted: a modified client that invents dungeon ids mines four full-table deep veins a day, no more. */
 export const DEEP_UNCONFIRMED_PER_DAY = 4;
 /** The Stores hold at most this many of any one material, own and bought together. */
 export const STORES_MAX = 5000;
@@ -392,7 +395,8 @@ export const ORES = Object.freeze([
   made('ore:orichalcum', 'metals', 6, 615, 'Orichalcum Ore', ICON_LODESTONE, 'Orcish'),
 ]);
 /** The ingots (620-630), each its DFU material's tier and dye. Daedric (7) and Warforged Steel (6: counts as Ebony
- *  with a step, a Siege Honour's) are registered with the rest; nothing in PROF2 makes them. */
+ *  with a step, a Siege Honour's) are registered with the rest; nothing in PROF2 made them - the Daedric is smelted since
+ *  DAEDRIC-SMELT (SMELT_RECIPES), the Warforged a siege's Spoils (townSeatLaw.js SIEGE_SPOILS). */
 export const INGOTS = Object.freeze([
   made('ingot:iron', 'metals', 1, 620, 'Iron Ingot', ICON_IRON, 'Iron'),
   made('ingot:steel', 'metals', 2, 621, 'Steel Ingot', ICON_IRON, 'Steel'),
@@ -515,6 +519,16 @@ export const PARTS = Object.freeze([
   dfu('part:stinger', 'hides', gemTierOfPrice(25), 'CreatureIngredients2', 47),
   dfu('part:dragonscale', 'hides', gemTierOfPrice(375), 'CreatureIngredients2', 46),
 ]);
+/**
+ * DAEDRIC-SMELT (Professions-Arc.md section 50; the owner: "the heart may come FROM LOOT OR THE GATE"): DFU'S DAEDRA'S
+ * HEART as the Stores keep it - its own ingredient (CreatureIngredients1 53, 500 gold: itemTemplates.json), at its price's
+ * tier as a body's part is (6) - the Daedric Ingot's heart (PROF0 4.1). No door of the service counts one: no body is
+ * skinned of it and no counter sells it. It enters the Stores only as a station's loose unit (bagLaw.js looseOrder - the
+ * forge's shortfall, or the Stores page's Put in, LOOT-LOOSE): DFU's own heart looted off a daedra (systems/loot/
+ * lootThemes.js CREATURE_INGREDIENT_THEME: an Imp, a Daedra Seducer, a Daedra Lord), or won at the Gate from the
+ * faithful's chest (systems/riteChest.js RITE_HEART). So the market and the writs never see one (marketLaw.js UNYIELDED).
+ */
+export const DAEDRA_HEART = dfu('part:daedra-heart', 'hides', gemTierOfPrice(500), 'CreatureIngredients1', 53);
 /**
  * @typedef {MinedRow & { foes: readonly number[], part: string|null, meat: string|null, cures: string|null }} HideRow
  *   a hide's row: the foes it is skinned from, the DFU part a body may give, what its butchery gives, what it cures to
@@ -755,7 +769,7 @@ export const STOCK_MAX = 100;
 export const NO_PACK_FORM = Object.freeze(['work:ram', 'essence:arcane']);   // SEAT2b part two: a siege work's road is the writ's (RAM_KIT); AUDIT PROF12 E1: Arcane Essence's the Stores'
 /** Whether the Stores may give a material to the pack. */
 export const withdrawable = (key) => !NO_PACK_FORM.includes(key);
-const MINED = new Map([...METALS, ...ORES, ...INGOTS, ...STONES, ...GEMS, SIEGE_GEM, PEARL, ...WOOD_TEMPLATES, ...HIDE_TEMPLATES, ...PARTS, ...MASONRY_TEMPLATES, RAM_KIT, ...REAGENTS, ARCANE_ESSENCE].map((m) => [m.key, m]));   // PROF7: the hides, leathers, cloth and a body's DFU parts; PROF8: the sea's Pearl; AUDIT-SEATS: the Siege-cracked Gem; PROF11: the bench's Mortar; SEAT2b part two: the Ram Kit; PROF12: the Apothecaries' sixteen and Arcane Essence
+const MINED = new Map([...METALS, ...ORES, ...INGOTS, ...STONES, ...GEMS, SIEGE_GEM, PEARL, ...WOOD_TEMPLATES, ...HIDE_TEMPLATES, ...PARTS, ...MASONRY_TEMPLATES, RAM_KIT, ...REAGENTS, ARCANE_ESSENCE, DAEDRA_HEART].map((m) => [m.key, m]));   // PROF7: the hides, leathers, cloth and a body's DFU parts; PROF8: the sea's Pearl; AUDIT-SEATS: the Siege-cracked Gem; PROF11: the bench's Mortar; SEAT2b part two: the Ram Kit; PROF12: the Apothecaries' sixteen and Arcane Essence; DAEDRIC-SMELT: the Daedra's Heart
 /** A mined (or smelted) material's row, or null. */
 export const minedMaterial = (key) => MINED.get(key) ?? null;
 /** PROF5: every registered material's key, in the registry's order - the market's catalogue beside the herbs and foods. */
@@ -896,14 +910,29 @@ export const JEWEL_FEE = 50;
  * for a character standing under `more.spec`, their `more.profession`'s choice at `more.rank` (100 unless it says: a
  * Quartermaster's ingots, a Charcoal Burner's charcoal, a Timberwright's planks; PROF7 a Tanner's leather, a choice at
  * 50); `station` where it is done; `xp` the track it raises (10 x the product's tier a unit) or null (a log's XP was
- * its fall's - PROF0 25; a hide's its skinning's - PROF0 29).
+ * its fall's - PROF0 25; a hide's its skinning's - PROF0 29). DAEDRIC-SMELT: an input written `[key, n, true]` is a
+ * CATALYST - spent as every input is, but its origin never reaches the product (smeltOrigin); and `embers` the Deadlands
+ * Embers a unit spends out of the account's purse (DAEDRIC_EMBERS) - a recipe that spends none carries neither field.
  */
-const recipe = (id, out, inputs, { station = 'forge', per = 1, more = null, xp = 'smithing' } = {}) =>
-  Object.freeze({ id, out, inputs: Object.freeze(inputs.map(([key, n]) => Object.freeze({ key, n }))), station, per, more, xp });
+const recipe = (id, out, inputs, { station = 'forge', per = 1, more = null, xp = 'smithing', embers = 0 } = {}) =>
+  Object.freeze({ id, out, inputs: Object.freeze(inputs.map(([key, n, catalyst]) => Object.freeze(catalyst === true ? { key, n, catalyst: true } : { key, n }))), station, per, more, xp, ...(embers > 0 ? { embers } : {}) });
 const QUARTERMASTER = Object.freeze({ profession: 'smithing', spec: 'quartermaster', per: 2 });
-const ingot = (id, inputs) => recipe(id, id, inputs, { more: QUARTERMASTER });
+const ingot = (id, inputs, opts = {}) => recipe(id, id, inputs, { more: QUARTERMASTER, ...opts });
+/**
+ * DAEDRIC-SMELT (Professions-Arc.md section 50; PROF0 4.1: "Ebony Ingot + Daedra's Heart (DFU 53) + a Sigil Stone (570)
+ * ... smelted only - the Oblivion Gate's gift"): THE DEADLANDS EMBERS A UNIT OF THE DAEDRIC SMELT SPENDS - the Sigil
+ * Stone's name since WB12a (systems/gate/gateSpoils.js SIGIL_STONE). Spent as the Sigil Broker spends them: out of the
+ * account's purse on the service, in the smelt's own decision (server-account/src/accounts.js insigniaPurse - the gates'
+ * embers, the serpents' and the Redoubts', less what the insignia, the Panoply and the forge already took), and out of
+ * the pack on the client (systems/sigil/sigilBroker.js emberWork) - both halves, as the Broker's insignia.
+ */
+export const DAEDRIC_EMBERS = 1;
+/** The Deadlands Embers `count` units of a work spend - none for every work but the Daedric smelt. */
+export const workEmbers = (r, count) => (Number.isSafeInteger(r?.embers) && r.embers > 0 && Number.isSafeInteger(count) && count > 0 ? r.embers * count : 0);
 /** The forge's recipes, in the window's order: two of a raw metal an ingot; Steel an Iron Ingot and a Charcoal; Brass
- *  a Copper and a Tin. Daedric waits on its heart and its stone (PROF0 23). */
+ *  a Copper and a Tin; DAEDRIC-SMELT: Daedric an Ebony Ingot, a Daedra's Heart and a Deadlands Ember - the heart a catalyst
+ *  (loot's word, the loose door's: its origin never reaches the ingot, whose bound is the ember the service counts) and
+ *  a Quartermaster's two ingots a unit, as every ingot's (3.3). */
 export const SMELT_RECIPES = Object.freeze([
   ingot('ingot:iron', [['metal:iron', 2]]),
   ingot('ingot:steel', [['ingot:iron', 1], ['wood:charcoal', 1]]),
@@ -915,6 +944,7 @@ export const SMELT_RECIPES = Object.freeze([
   ingot('ingot:adamantium', [['ore:adamantium', 2]]),
   ingot('ingot:ebony', [['ore:ebony', 2]]),
   ingot('ingot:orichalcum', [['ore:orichalcum', 2]]),
+  ingot('ingot:daedric', [['ingot:ebony', 1], [DAEDRA_HEART.key, 1, true]], { embers: DAEDRIC_EMBERS }),
 ]);
 /** PROF4 (PROF0 4.2, 25): a log burns to a Charcoal at a forge (a Charcoal Burner's two); a log saws to two planks of its
  *  wood at a workbench (a Timberwright's three). No XP. */
@@ -981,6 +1011,11 @@ export const workSpecOk = (r, specs) => !r?.spec || specs?.[r.spec.rank] === r.s
  *  transmutations - by its id. */
 export const WORK_RECIPES = Object.freeze([...SMELT_RECIPES, ...BURN_RECIPES, ...SAW_RECIPES, ...CURE_RECIPES, ...WEAVE_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]);
 export const smeltRecipe = (id) => WORK_RECIPES.find((r) => r.id === id) ?? null;
+/** DAEDRIC-SMELT (Professions-Arc.md section 50): THE MATERIALS ONLY A WORK THAT SPENDS EMBERS MAKES - the Daedric Ingot.
+ *  Reachable, so the market lists it and a buyer may commission its pieces; never a guild's ask (craftWritLaw.js
+ *  WRIT_KITS: a writ pays its inputs' worth, and the ember is the account's purse, no Stores good) nor a chain's
+ *  (chainLaw.js chainWorkOk: the player's own press at the forge spends it). */
+export const EMBER_MADE = Object.freeze([...new Set(WORK_RECIPES.filter((r) => workEmbers(r, 1) > 0).map((r) => r.out))]);
 /** PROF11: whether a rank may do a work - a mason's asks its tier's rank (masonWork); every other work asks none. */
 export const workOpen = (r, rank) => !!r && rank >= (r.rank ?? 0);
 /** The rank a work's raising choice is made at: its own (a Tanner's 50), else 100. */
@@ -997,12 +1032,14 @@ export function smeltXp(tier, units, rank = 0) {
 /**
  * THE ORIGIN OF A SMELT'S UNITS (PROF0 7, 23): `count` products, each input spent bought-first (`bought[i]` the
  * bought units of input i the Stores hold). Product j takes input i's units j*n_i .. (j+1)*n_i - 1 in that order, so
- * it is bought when any of them is: the bought products are the most any input's bought units reach.
+ * it is bought when any of them is: the bought products are the most any input's bought units reach. DAEDRIC-SMELT: a
+ * catalyst input's (the Daedric smelt's heart) are no input's here - its units never make a product bought or loose.
  * @returns {{ own: number, bought: number }}
  */
 export function smeltOrigin(r, count, bought) {
   let b = 0;
-  r.inputs.forEach((inp, i) => { b = Math.max(b, Math.ceil(Math.min(Math.max(0, bought[i] ?? 0), inp.n * count) / inp.n)); });
+  // DAEDRIC-SMELT: a catalyst's units give the product no origin (the heart's - loot's word, its bound the ember's)
+  r.inputs.forEach((inp, i) => { if (!inp.catalyst) b = Math.max(b, Math.ceil(Math.min(Math.max(0, bought[i] ?? 0), inp.n * count) / inp.n)); });
   b = Math.min(count, b);
   return { own: count - b, bought: b };
 }

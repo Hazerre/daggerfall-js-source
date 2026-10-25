@@ -21,15 +21,20 @@ test('AUDIT 31 S3, L9: a won auction waits seven days past its end for its selle
   assert.deepEqual([auctionable('longsword:mithril', MASTERWORK), auctionable('kit:iron', MASTERWORK), auctionable('table-small:oak', MASTERWORK)], [true, false, true]);
 });
 
-test('AUDIT 31 L2: a listable piece of a material nothing yields yet - every Daedric piece, 27 - is never commissioned; every other listable piece is', () => {
+test('AUDIT 31 L2: a listable piece of a material nothing yields yet is never commissioned; every other listable piece is - DAEDRIC-SMELT: every Daedric piece, 27, is now (the forge smelts its ingot), and no listable piece waits on anything', () => {
   const listable = RECIPES.filter((r) => pieceListable(r.id));
   const unmade = listable.filter((r) => commissionUnyielded(r.id));
-  assert.equal(unmade.length, 27);   // PIN MOVED (AUDIT-SEATS): the sieges' Spoils yield the Warforged ingot (26 pieces) and Standard-bearer's Silk (76 garments) now
-  assert.deepEqual([...new Set(unmade.map((r) => r.id.split(':')[1]))].sort(), ['daedric']);
+  // PIN MOVED (AUDIT-SEATS): the sieges' Spoils yield the Warforged ingot (26 pieces) and Standard-bearer's Silk (76
+  // garments); PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 50): the forge smelts the Daedric ingot - its 27 pieces
+  // were the last that waited
+  assert.equal(unmade.length, 0);
+  const daedric = listable.filter((r) => /:daedric$/.test(r.id));
+  assert.equal(daedric.length, 27, 'every Daedric work the anvil makes');
+  for (const r of daedric) assert.equal(commissionable(r.id), true, r.id);
   assert.equal(listable.filter((r) => /:(warforged|standard)$/.test(r.id) && !commissionUnyielded(r.id)).length, 26 + 76, 'the Spoils\' pieces are commissioned');
-  for (const r of unmade) assert.equal(commissionable(r.id), false, r.id);
-  for (const r of listable.filter((x) => !commissionUnyielded(x.id))) assert.equal(commissionable(r.id), true, r.id);
-  assert.ok(unmade.every((r) => r.inputs.some((i) => UNYIELDED.includes(i.key))));
+  for (const r of listable) assert.equal(commissionable(r.id), true, r.id);
+  // a recipe asking what nothing yields still waits - the heart's, were one ever to ask it as a craft's input
+  assert.ok(RECIPES.every((r) => commissionUnyielded(r.id) === r.inputs.some((i) => UNYIELDED.includes(i.key))));
   assert.equal(commissionUnyielded('no-such'), false);
 });
 
