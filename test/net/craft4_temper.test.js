@@ -230,15 +230,18 @@ test('CRAFT4 the Reforge with Essence through the real Worker: Enchanting 50, 2 
   assert.equal(t.raw.prepare('SELECT COUNT(*) AS n FROM prof_reforges').get().n, 2);
   // REFORGE-REPLACE: the piece's count doubles the Essence - the book asks it with the piece's (reforgeCount), and a count
   // no piece holds is refused before a unit moves
-  t.give(ARCANE_ESSENCE.key, 16);
-  const had = t.held(ARCANE_ESSENCE.key);   // the 16, and the 9 gold's units no reforge spends
+  t.give(ARCANE_ESSENCE.key, 30);
+  const had = t.held(ARCANE_ESSENCE.key);   // the 30, and the 9 gold's units no reforge spends
   for (const bad of [-1, REFORGE_COUNT_MAX + 1, 1.5, '1']) assert.equal((await ask('rare', rid(), bad)).body.error, 'prof-reforge', `count ${bad}`);
   assert.equal(t.held(ARCANE_ESSENCE.key), had, 'nothing spent for a count refused');
   const second = await t.book.reforge('magic', reforgeCount(sword));
   assert.deepEqual([second.ok, second.data?.essence, t.held(ARCANE_ESSENCE.key)], [true, 4, had - 4], 'a piece reforged once: twice the Essence');
+  // two pieces of one tier at once, one reforged and one not: two asks, each its own price - never one answer for both
+  const [fresh, once] = await Promise.all([t.book.reforge('magic', 0), t.book.reforge('magic', 1)]);
+  assert.deepEqual([fresh.data?.essence, once.data?.essence, fresh.data?.seed === once.data?.seed, t.held(ARCANE_ESSENCE.key)], [2, 4, false, had - 10]);
   assert.equal((await ask('rare', rid(), 1)).body.essence, 10);
-  assert.equal(t.held(ARCANE_ESSENCE.key), had - 14);
-  assert.equal((await ask('magic', rid(), 1)).body.error, 'stores-gold', 'twice the Essence, or none - the 2 left and gold\'s units never');
+  assert.equal(t.held(ARCANE_ESSENCE.key), had - 20);
+  assert.equal((await ask('magic', rid(), 3)).body.error, 'stores-gold', 'eight times the Essence, or none - the 10 left and gold\'s units never');
 });
 
 test('CRAFT4 the Reforge with Essence on the piece: the Loot arc\'s own Reforge - a known Magic or Rare piece, not worn, REFORGE-REPLACE: any line however often, never one nothing else can replace; nothing rolled for a refusal', () => {

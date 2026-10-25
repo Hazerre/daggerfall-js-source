@@ -122,11 +122,12 @@
   {
     "name": "TECH1-the-reforge-out-of-the-family",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "  const pool = (was.technique ? ['technique'] : AFFIX_IDS).filter((id) => {",
-    "new": "  const pool = AFFIX_IDS.filter((id) => {",
+    "old": "  const ids = (was.technique ? ['technique'] : AFFIX_IDS).filter((id) => {",
+    "new": "  const ids = AFFIX_IDS.filter((id) => {",
     "tests": [
       "test/systems/tech1_roster.test.js"
-    ]
+    ],
+    "note": "REFORGE-REPLACE and AFFIX-LINES (2026-10-25): re-aimed by content - the pool is reforgePool's; a technique's pool is empty now (no technique but its own may stand there), and this mutant fills it with numbers."
   },
   {
     "name": "TECH1-the-exalted-index",
