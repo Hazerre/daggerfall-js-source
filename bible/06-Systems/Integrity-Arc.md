@@ -691,7 +691,8 @@ receipt's carrier); `scenes/dungeonContext.js` and `scenes/worldModes.js` NO DUE
   `gold` - wildTookOf), and the fallen's game takes out EXACTLY that (`wildTakeTook` - it ran the law again without the
   ledger's word, and took what the service kept). The fallen's own act at its tab's `at` (`realmGoldAct`, its answer
   needed: checkpointed as it will rise, the service asked, the room named), or its killer's SEIZURE once
-  `WILD_FALL_GRACE_S` (30 s) has gone by (the record moved where it stands, its lease cleared, a dead record never), laid
+  `WILD_FALL_GRACE_S` (30 s) has gone by - at once since WILD-REJOIN where the fall was signed with its fallen gone from
+  the room (`g` 1, `11-Multiplayer/Wild-Zone.md` section 4) - (the record moved where it stands, its lease cleared, a dead record never), laid
   where the body fell and asked again on a word that says nothing. Once a fall (`wild_falls`, by the remains' id): a
   second asking is answered the first's records and THE SAME ORDER, issued at its first minting for its first room (`oi`,
   `wm`) and good its minute alone - and, for the fallen's own tab, where its record stands. A death to a foe has no

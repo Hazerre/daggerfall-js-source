@@ -102,9 +102,11 @@ nowhere now - not fallen, not mine, no puppet of it - for `STAFF_BOSS_LOST_MS` (
 gone) is stood again by the one who runs the event, for the same call (`staffEvents.js` `staffBossLost`). The wait lets
 a fallen runner's boss come over first.
 
-BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"): while a boss is due or
-stands, no monster is stood; the meter's boss waits until every monster of the event standing is dead - mine and the
-puppets of it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min) for one nobody can reach. Staff's **Spawn mini boss now** stands
+BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"; then BOSS-CLEAR-CALL, mob:
+"no only the mini boss need to wait for everything to be dead to count to spawn"): the packs come on all the while; the
+meter's boss waits until every monster of the event that stood at its call is dead or gone - mine and the puppets of it,
+taken once at the first ask (`clearWait`), so a pack stood since never holds it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min)
+for one nobody can reach. Staff's **Spawn mini boss now** stands
 at once (`staffBossByHand`: the book's `fb` past the last I stood). Its line is said once it stands (`bu`), not at its
 call.
 
@@ -135,6 +137,12 @@ within `STAFF_BOSS_GROUP_M` (30 m) of them, themselves counted - a tie to the gr
 the lower id (`raidingParties.js` `staffBossSpot`, off the host's `peerFeetInTown`: me first, then each player in the
 place's rect, each with their level). Beside me when it is me.
 
+PACK-SCALE (2026-10-25, mob: "they arnt spawn ing quick enough"; card: "Scale with players in town"): an event's packs
+by the players in its place, me counted (`raidingParties.js` `staffPackScale`) - one alone as ever (`MAX_RAID_ENEMIES`
+standing, the event's pace); each more player `STAFF_PACK_CAP_PER` (5) more standing, to `STAFF_PACK_CAP_MAX` (40), and
+the pace a quarter quicker, to twice. A reader stands as many of a runner's raiders (`world/raidShared.js`
+`RAID_PUPPETS_MAX`, 40; a runner's raiders, its watch and its loose stands still ride one frame).
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
@@ -152,7 +160,7 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
 - STAFF-EVENT BOSS: relay `world257` (the law's `hp` and the meter's boss each fill), account service `acct184` (`hp`
   staged, `clear`), Staff Panel 0.2.9 (the exact health box, Clear, the quiet list). The relay first; an older relay
   drops `hp`, so the boss reads its times.
-- REWARD-KILLS: relay `world258` alone (the reward earned by kills alone) - drops every connected player for about 40 s;
+- REWARD-KILLS: relay `world262` alone (world258 on its branch, renumbered past main at the merge) (the reward earned by kills alone) - drops every connected player for about 40 s;
   no account or site change.
 
 ## 8. Known limits
@@ -176,7 +184,7 @@ Dagon's way, without Dagon's gear. At the FIRST fall of an event's mini boss the
   `STAFF_EVENT_EARN_KILLS` (3) kills of its own - a monster that fell after a blow of theirs, whoever stood it (a word's
   `h`: `raidingParties.js` counts its own struck monsters and a fallen puppet it struck, once; the meter's `n` is the
   runner's, who stands them all). One reward an account an event. REWARD-KILLS (2026-10-25, mob: "im getting drops
-  even tho i barlky particpate"; card "Kills only (3+)"; world258): a stand alone - a word every
+  even tho i barlky particpate"; card "Kills only (3+)"; world262, world258 on its branch): a stand alone - a word every
   `STAFF_EVENT_STAND_TICK_MS` (4 s) from a pose on the pixel, half the run - earned it before and earns nothing now; it
   still breaks a tie on the board.
 - **The board** (`staffEventBoard`): the earners' top `STAFF_EVENT_BOARD_MAX` (10) by kills, the killing blow before

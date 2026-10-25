@@ -30,7 +30,7 @@ export const RAID_WORDS_MAX = 4;
 /** A reader's allowance for one owner's raiders: the mod's cap whole (systems/raidingParties.js MAX_RAID_ENEMIES,
  *  Mac's "Keep"), apart from CELL_PUPPETS_MAX as the watch's and the camps' are - twenty-five raiders stood in twelve
  *  slots were thirteen a reader could not see and was killed by. */
-export const RAID_PUPPETS_MAX = 25;
+export const RAID_PUPPETS_MAX = 40;
 /** The most tags a frame may carry - a frame's records (wire.js CELL_FRAME_RECORDS_MAX). */
 export const RAID_TAGS_MAX = 64;
 /** The most deaths a word may state, and the oldest claim, ms (two real hours - a raid is ten minutes). */
@@ -55,6 +55,30 @@ export function validRaidWords(raw) {
     if (!Number.isInteger(age) || age < -1 || age > RAID_CLAIM_AGE_MAX) continue;
     seen.add(key);
     out.push({ key, n, age });
+  }
+  return out;
+}
+
+/** RAID5 (bible/03-World/Raiding-Parties.md RAID5): the kinds a raid's objective word names (systems/raidKinds.js
+ *  RAID_KIND_ORDER - classic 0 says none), and the most either of its two numbers says (a standard's per cent; refugees). */
+export const RAID_OBJ_KINDS = 4;
+export const RAID_OBJ_MAX = 100;
+/** RAID5: a frame's word on the objectives of the raids its owner runs - `[[key, kind, a, b], ...]` - projected: the
+ *  valid entries, at most RAID_WORDS_MAX, each raid once. */
+export function validRaidObjWords(raw) {
+  /** @type {Array<{key: string, k: number, a: number, b: number}>} */
+  const out = [];
+  if (!Array.isArray(raw)) return out;
+  const seen = new Set();
+  for (const e of raw) {
+    if (out.length >= RAID_WORDS_MAX) break;
+    if (!Array.isArray(e) || e.length !== 4) continue;
+    const [key, k, a, b] = e;
+    if (!raidLikeKey(key) || seen.has(key)) continue;
+    if (!Number.isInteger(k) || k < 1 || k >= RAID_OBJ_KINDS) continue;
+    if (!Number.isInteger(a) || a < 0 || a > RAID_OBJ_MAX || !Number.isInteger(b) || b < 0 || b > RAID_OBJ_MAX) continue;
+    seen.add(key);
+    out.push({ key, k, a, b });
   }
   return out;
 }
