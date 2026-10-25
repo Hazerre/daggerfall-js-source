@@ -90,7 +90,7 @@ import { layoutRoomKey } from '../world/interior/interiorShared.js';   // WD3 (A
 import { tabStorage } from '../systems/appStorage.js';   // the tab's own storage - the seam, never the browser's own (a PIN)
 import { STAMP_RE } from './safety/chatStamp.js';   // SAFE2: a line's stamp, carried as the relay said it
 import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js';   // AUDIT SAFE RELAY-2: the order meter and my own lines' pace, the relay's word on my chat's own bucket; RELAY-3: the ban frame's relay
-import { REALM_CHARACTER_RE } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape
+import { REALM_CHARACTER_RE, tokenBodyOf, TOKEN_MAX_CHARS } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape; HIDDEN-UNCOUNTED: a token's hidden mark (tokenHidden)
 import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_FRAME_MIN_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
 import { LEASE_WIRE_MAX } from './wire.js';
 /** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
@@ -153,6 +153,17 @@ export const POSE_CROWD = 24;
  *  host, three at once as the page starts). It covers the service's real answer now, and stays under the relay's
  *  HELLO_WAIT_MS (net/wire.js), past which a full room closes a socket that has said nothing. */
 export const TOKEN_WAIT_MS = 8000;
+
+/** Whether an identity token names a hidden staff socket (`hd: 1`) - read off its body alone; the relay verifies it.
+ *  HIDDEN-UNCOUNTED: here, so the session notes its own mark at its hello (`hidden`); net/staffMap.js hands it on.
+ *  @param {unknown} tok */
+export function tokenHidden(tok) {
+  if (typeof tok !== 'string' || tok.length > TOKEN_MAX_CHARS) return false;
+  try {
+    const b = tokenBodyOf(tok).replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(globalThis.atob(b + '='.repeat((4 - (b.length % 4)) % 4)))?.hd === 1;
+  } catch { return false; }
+}
 
 export const GAP_MIN_MS = 50;
 export const GAP_MAX_MS = 1000;
@@ -894,6 +905,8 @@ export class OnlineSession {
     // shape AUDIT-CHATR deleted `whoRows()` for. The hook is the whole
     // seam; the detector owns the memory.
     this.onRelay = null;          // SRV-N: (version) => void - a welcome named the relay's deploy
+    this._hiddenTok = undefined;  // HIDDEN-UNCOUNTED: the hello token `hidden` last read, and what it read (one decode a token, never one a frame)
+    this._hiddenIs = false;
     this.roomCount = null;        // ROSTER-G: the welcome's `n` when its list was CUT - how many the room holds beyond the names it gave (a channel's; a place's welcome carries none)
     this.look = look ?? { race: 'Breton', gender: 'male', faceIndex: 0, items: [] };
     this.id = id ?? peerId();
@@ -975,6 +988,19 @@ export class OnlineSession {
   /** AUDIT SCALE II C-1: my room's socket is open and its relay has answered the hello - so its word on what it keeps
    *  (`findOk` and the rest) is this relay's, not a default waiting for the welcome. */
   get welcomed() { return this.status === 'open' && !!this._ws && this._welcomed.has(this._ws); }
+  /** HIDDEN-UNCOUNTED: whether my room's socket said hello on a hidden staff token (`hd`) - the relay counts me nowhere
+   *  then, so my own roster leaves me out (net/roster.js) and no count I am told has me in it. Read off the socket that
+   *  stands for my room NOW (AUDIT HIDDEN-UNCOUNTED L3): a rehello's swap, a halo promoted at a crossing, a leave and a
+   *  refused or tokenless hello (no token remembered) each answer for the socket the relay actually holds. */
+  get hidden() {
+    const tok = this._ws ? this._helloTok.get(this._ws) : undefined;
+    if (tok !== this._hiddenTok) { this._hiddenTok = tok; this._hiddenIs = tokenHidden(tok); }
+    return this._hiddenIs;
+  }
+  /** HIDDEN-UNCOUNTED: my own seat in the hub's count (`{t:'n'}`) - one, or none while hidden (AUDIT HIDDEN-UNCOUNTED
+   *  L1 = C2: its rule read `+ 1` for a seat a hidden socket never has, so a count one past my own shard's was thrown
+   *  away; L2: and its floor of one never took a count of nobody). */
+  get _seatN() { return this.hidden ? 0 : 1; }
 
   /** Enter a room (leaving the last). The pose is the hello's. AUDIT WORLD34 D5: said out loud, with whether the
    *  wire keeps a world for it - until now nothing on screen or in the console told a player whether the dungeon
@@ -3475,6 +3501,8 @@ export class OnlineSession {
       // is not. Kept ONLY when the list was cut - a whole list counts itself, and a number that outlives the rows goes
       // stale on the first leave (the browser run that found this: three rows, one left, the header still said three).
       // While kept, every join and leave the channel says moves it, so it stays the room's count.
+      // HIDDEN-UNCOUNTED: `+ 1` here even while hidden - the welcome's own `n` counts its joiner, a hidden one too
+      // (index.js, the channel welcome's `others.length + 1`); the hub's count after it leaves me out (`_seatN`, `{t:'n'}`)
       this.roomCount = Number.isFinite(m.n) && m.n > keep.size + 1 ? m.n : null;
       // OW6L: A CELL'S WELCOME CARRIES ITS OVERWORLD LEDGER (`ow`: {sp, dg} - absent, an empty one), handed on as the
       // cell's own words are - one `sp` and one `dg`, each through the wire's door (validOwOut), each only when it holds
@@ -3990,7 +4018,7 @@ export class OnlineSession {
       if (primary && isChatRoom(room) && key && key !== this.room && channelOf(key) === channelOf(room)) this.join(key);   // part two: a region's link the same - never out of its own channel
     } else if (m.t === 'n') {
       // SCALE5c: the hub's count, moved by the other shards' joins and leaves - kept as a join's `n` keeps it
-      if (primary && isChatRoom(room) && Number.isSafeInteger(m.n) && m.n >= 1) this.roomCount = m.n > (this._rooms.get(room)?.size ?? 0) + 1 ? m.n : null;
+      if (primary && isChatRoom(room) && Number.isSafeInteger(m.n) && m.n >= this._seatN) this.roomCount = m.n > (this._rooms.get(room)?.size ?? 0) + this._seatN ? m.n : null;   // HIDDEN-UNCOUNTED: a hidden link's count has no seat of mine - and may be nobody (AUDIT L2)
     } else if (m.t === 'found') {
       // SCALE5c (Mac's decision 2): the hub's answer to a search - each name through the wire's own readers
       if (!primary || !isChatRoom(room) || !Array.isArray(m.l) || (!isSocialRoom(room) && m.all !== 1)) return;   // part two: a region's channel answers everyone online alone

@@ -214,13 +214,13 @@
   {
     "name": "PROF11-works-unlisted",
     "file": "src/net/professionLaw.js",
-    "old": "...WEAVE_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]",
-    "new": "...WEAVE_RECIPES, ...TRANSMUTE_RECIPES]",
+    "old": "...WEAVE_RECIPES, ...SPIN_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]",
+    "new": "...WEAVE_RECIPES, ...SPIN_RECIPES, ...TRANSMUTE_RECIPES]",
     "tests": [
       "test/net/prof11_law.test.js",
       "test/net/prof11_service.test.js"
     ],
-    "note": "PROF12 (PIN MOVED): re-aimed by content."
+    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "PROF11-work-open-past-rank",
@@ -590,8 +590,8 @@
   {
     "name": "PROF11-no-mason-station",
     "file": "src/net/decorLaw.js",
-    "old": "'workbench', 'loom', 'mason', 'jeweller', 'vendor']);",
-    "new": "'workbench', 'loom', 'jeweller', 'vendor']);",
+    "old": "'workbench', 'cooking', 'loom', 'mason', 'jeweller', 'vendor']);",
+    "new": "'workbench', 'cooking', 'loom', 'jeweller', 'vendor']);",
     "tests": [
       "test/net/prof11_law.test.js",
       "test/ui/homestations.test.js",

@@ -58,7 +58,7 @@ read when its ask closed, so a solo Ready ended the rest about 13 s after the wi
 CHANGED. The word is open 30 s - the top of what the thread asked, and well inside the rest's 90 s (`EG_REST_S`), so
 every question closes before the rest can end. It is one constant for every ask (Elite-Gates.md 16.4): the decrees, a
 Dagon's Bargain at its shrine, the respite and the Ready alike. The screens count from the relay's `until`, so no client
-changes. egRun.js rides the relay's bundle, so the law is a new relay: `world257` (`wire.js` RELAY_VERSION, its row in
+changes. egRun.js rides the relay's bundle, so the law is a new relay: `world259` (`wire.js` RELAY_VERSION, its row in
 `test/net/relayversion.test.js`; no frame changes, so a page needs no minimum), NOT YET DEPLOYED. What moves with it: a Ready voted at once now ends the rest 33 s after the window, not 13 s - the time to read
 is the point, and it is the same for every company on the season's boards.
 

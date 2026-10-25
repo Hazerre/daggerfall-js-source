@@ -14,10 +14,13 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, clearSince?: number, clearWait?: Set<any> }} StaffRaid
  *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
- *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced.
+ *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced;
+ *   `bossLostAt` BOSS-LOST's: when its stood boss was first seen standing nowhere; `handSeen` BOSS-CLEAR's: the book's
+ *   hand calls (`fb`) as of the last boss I stood - one past it is staff's Spawn mini boss now, stood at once; `clearSince`
+ *   when its boss first waited for the field clear (raidingParties.js STAFF_BOSS_CLEAR_MAX_MS).
  */
 
 /** @type {Map<string, StaffRaid>} */
@@ -32,7 +35,7 @@ const ENDED_KEPT = 32;
 const raidOf = (e) => ({
   staff: e, key: staffEventKey(e.id), regionIndex: e.rg, locationIndex: e.loc, locationName: e.nm, px: e.px, py: e.py,
   startMinute: -Infinity, endMinute: Infinity, attackAmount: e.n, type: 9, killed: 0, struck: false, announced: false,
-  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0, fillS: undefined,
+  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0, fillS: undefined, handSeen: e.fb,
 });
 
 const endOne = (/** @type {string} */ id) => {
@@ -74,6 +77,19 @@ export const staffLedgerOf = (id) => _ledgers.get(id) ?? null;
 /** The events live here, as raids. @returns {StaffRaid[]} */
 export const staffRaids = () => [..._raids.values()].filter((r) => !r.cleansed);
 /** The events that ended and whose monsters are not yet routed (raidingParties routs each once). */
+/**
+ * BOSS-BOUND (2026-10-25, mob: "heal was set to 10000 for zombie its wromng", "the event boss had to low of health"): the
+ * most health a peer's mini boss of the event `key` may claim - the exact health staff typed (`hp`), or its kind's
+ * normal bound (net/foeBounds.js, `normal`) times the event's multiplier (`bh`), whichever is more. FOE-BOUNDS judged it
+ * as a plain elite, and every copy but its owner's took a boss past that down as impossible. Null when no live event
+ * of my book has that key: the plain bound holds.
+ * @param {string} key @param {number} normal @returns {number|null}
+ */
+export function staffBossBound(key, normal) {
+  const r = staffRaids().find((x) => x.key === key);
+  if (!r) return null;
+  return Math.max(r.staff.hp ?? 0, Math.round(normal * Math.min(100, Math.max(1, r.staff.bh ?? 10))));
+}
 export const staffRaidsEnded = () => [..._raids.values()].filter((r) => r.cleansed && !r.routed);
 /** A key's raid, or null. @param {string} key */
 export const staffRaidOfKey = (key) => { const id = staffEventIdOf(key); return id ? _raids.get(id) ?? null : null; };
@@ -107,10 +123,28 @@ export function staffBossWanted(r) {
   if (!led || !led.bd || led.bu || led.bk) return -1;
   return r.bossFc === led.fc ? -1 : led.fc;
 }
+/** @param {StaffRaid} r */
+export const staffBossByHand = (r) => (r.staff.fb ?? 0) > (r.handSeen ?? 0);
+/**
+ * BOSS-LOST (mob 2026-10-25: "boss seems to not spawn every time"): the call whose boss stood but stands nowhere now -
+ * not fallen, not mine, no puppet of it - for STAFF_BOSS_LOST_MS, or -1. A jump's sweep, a removal or a runner gone took
+ * it, and the cell, told it stood, would never call it again: the one who runs the event stands it again, for the same
+ * call. The wait lets a fallen runner's boss come over to me (raidingParties.js tookStaffBoss) first.
+ * @param {StaffRaid} r @param {boolean} standing @param {number} nowMs
+ */
+export function staffBossLost(r, standing, nowMs) {
+  const led = _ledgers.get(r.staff.id);
+  if (!led || !led.bd || !led.bu || led.bk || standing || (r.bossDown && r.bossFc === led.fc)) { r.bossLostAt = undefined; return -1; }
+  r.bossLostAt ??= nowMs;
+  if (nowMs - r.bossLostAt < STAFF_BOSS_LOST_MS) return -1;
+  r.bossLostAt = undefined;
+  return led.fc;
+}
+export const STAFF_BOSS_LOST_MS = 8000;
 /** The boss line, once a call, where the player stands in the event: the call whose boss is due, or -1. @param {StaffRaid} r */
 export function staffBossToSay(r) {
   const led = _ledgers.get(r.staff.id);
-  if (!led || !led.bd || r.bossSaid === led.fc) return -1;
+  if (!led || !led.bd || !led.bu || r.bossSaid === led.fc) return -1;   // BOSS-CLEAR: said once it stands, not at its call
   r.bossSaid = led.fc;
   return led.fc;
 }

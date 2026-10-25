@@ -436,7 +436,7 @@ test('AUDIT PROF12 E1 client: the Stores page offers no Withdraw for Arcane Esse
   assert.match(accountRefusalText('prof-no-pack-form'), /stays in the Stores/);
 });
 
-test('AUDIT PROF12 E2 client: the Enchanting Station says a piece\'s XP by its recipe\'s tier (a Gold ring\'s 3, an Expert\'s Iron sword quartered, the counter\'s Linen none), and the streaming world hands each piece its recipe', async () => {
+test('AUDIT PROF12 E2 client: the Enchanting Station says a piece\'s XP by its recipe\'s tier (a Gold ring\'s 3, an Expert\'s Iron sword quartered, a garment of cloth an own piece\'s figure and its rule - CLOTH-GEMS), and the streaming world hands each piece its recipe', async () => {
   const pieces = [
     { provenance: 'aaaaaaaaaaaaaaaa', name: 'Gold Ruby Ring', points: 2160, essence: 21, recipe: 'ring:gold:ruby' },
     { provenance: 'bbbbbbbbbbbbbbbb', name: 'Linen Plain Robes', points: 700, essence: 7, recipe: 'garment-163:linen' },
@@ -445,7 +445,10 @@ test('AUDIT PROF12 E2 client: the Enchanting Station says a piece\'s XP by its r
   stubPages({ enchanter: { kind: 'home', fee: 0 }, enchantingTrack: { rank: 0, specs: { 50: null, 100: null } }, over: { disenchantable: () => pieces } });
   let page = pageOf();
   assert.match(page.text(), /Gold Ruby Ring2,160 points: 21 Arcane Essence, \+315 Enchanting experience/);
-  assert.match(page.text(), /Linen Plain Robes700 points: 7 Arcane Essence, \+0 Enchanting experience/);
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): a piece wholly of cloth gives its XP where its maker's own cloth made it and
+  // it was never sold - the station says that figure (tier 1: 35), and the rule once
+  assert.match(page.text(), /Linen Plain Robes700 points: 7 Arcane Essence, \+35 Enchanting experience/);
+  assert.ok(page.text().includes('A piece made only of cloth gives Enchanting experience only if its maker wove or spun that cloth and it was never sold.'));
   assert.match(page.text(), /Iron Longsword600 points: 6 Arcane Essence, \+30 Enchanting experience/);
   page.done();
   // PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): the quarter at an Expert's 90 - the same top tier, 7, as a Master's,

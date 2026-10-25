@@ -894,7 +894,7 @@ import { badJoinText } from '../net/chatCommands.js';   // CHAT-TRADE: /join's a
 import { oocText, localLineHeard, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
 import { breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
 import { parseChatLine, CHAT_GREETING_TEXT, unknownCommandText, emptyCommandText, hostMisuseText, badRollText, expandShortcodes, EMOTE_LINES, foundText, FIND_OFFLINE_TEXT, FIND_RELAY_TEXT } from '../net/chatCommands.js';   // CHAT-CHAN: what a typed line IS; DICE1: and a roll; EMOTE1: an action, a gesture, a shortcode
-import { partyRosterSource, localRosterSource, guildRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists
+import { partyRosterSource, localRosterSource, guildRosterSource, placedRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists; HIDDEN-UNCOUNTED: and a placed tab's
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
 import { SocialState, accountId, accountSecret } from '../net/social.js';   // SOC2: the friends and the party, as the hub says them; the account the hub's hello carries; SOC3: and the two colours a name wears in the DOM - my party's green, a friend's blue
 import { SOCIAL_ROOM, PARTY_SEND_MS, chatRegionRoom, relaySupportsRite, relaySupportsCage } from '../net/wire.js';   // CHAT-CHAN: a region's channel
@@ -10744,7 +10744,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // Insertion order is priority, and it is the ACTIVATION ladder's own
   // order, so the plaque reads a tie the way the press resolves one.
   const _hoverNamers = [
-    (key) => gatherHost?.hoverName?.(key) ?? null,   // PROF-MENU: a profession node, its acts the plaque's rows
+    (key) => gatherHost?.hoverName?.(key) ?? yards?.hoverName?.(key) ?? null,   // PROF-MENU: a profession node, its acts the plaque's rows; HOME-YARD: a yard piece's Move, Duplicate, Remove
     (key) => gatePool?.hoverName(key) ?? null,   // WB2: the Oblivion Gate, and its countdown
     (key) => sigilBroker?.hoverName(key) ?? null,   // SET7: the Sigil Broker (BROKER-CAGE: caged at the faithful's circle)
     (key) => riteHost?.hoverName(key) ?? null,   // WB12d: the faithful's chest - its own keys, and its pile's before the piles' word
@@ -20034,7 +20034,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     townHere: (outdoors) => ((modes?.mode ?? 'exterior') !== 'exterior' ? null : outdoors || (_musicInLocationRect() ? _questLoc() : null)),   // FindCurrentRaid: outdoors, in the rect, at a location; STAFF-EVENT: `outdoors` (true) asks only that - an area's event
     playerPixel: () => playerTravelPixel(),
     standRaider: (mobileType, at) => standLooseFoe({   // STAFF-EVENT PACKS: `at` a pack's place - around its leader's feet, or far (systems/raidingParties.js staffPackStep)
-      collider, feet: at?.at ?? enchantFeet(), yawRad: cam.yaw, fovDegrees: fieldOfView() * 180 / Math.PI, foes: exteriorFoePool(),
+      collider, feet: at?.at ?? at?.near ?? enchantFeet(), yawRad: cam.yaw, fovDegrees: fieldOfView() * 180 / Math.PI, foes: exteriorFoePool(),
       spawn: (mt, pos, o) => exteriorFoes.spawnFoe(mt, pos, { yaw: o.yawRad, loose: true, transient: true }),
     }, mobileType, raidSpawnRange(at)),
     standDefender: (threats) => cityGuards.standDefender({
@@ -20051,6 +20051,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     selfId: () => online?.id ?? null,
     wallNow: () => performance.now(),
     peersInTown: () => (peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => p.id),   // FIELD-RAID-FT: no room open (a fast travel between the old cell's room and the new) is nobody in town, never a null walked - the crash Discord reported arriving in a raided town
+    peerFeetInTown: () => [[online?.id ?? '', player.feetAt(), playerEntity.level ?? 1], ...(peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => [p.id, p.feet, online?.peers.get(p.id)?.lv ?? 0])],   // PACK-SPREAD: where each player in the town stands, for its share of the packs; BOSS-SPOT: me first, and each one's level
     raidPuppets: () => exteriorFoes.foes.filter((f) => f.puppet && f._pupRaid),   // STAFF-EVENT THE REWARD: the fallen too - a puppet I fought that fell is my kill on the board
     ownRaidFoes: () => exteriorFoes.foes.filter((f) => !f.puppet && f.raidKey && !f.dead),
     // RAID3: the relay's arm - does it keep this world's raids, and my word to the town's cell
@@ -28050,7 +28051,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (tabId === 'local') return localRosterSource(s, openPeers(peersNear(), isPartyMate), player.feetAt());   // AUDIT (pre-merge) I-F: a concealed player is not listed near - the F key's law (INVIS-NET; CONCEAL-MATE: a mate is)
     if (tabId === 'world' || tabId === 'region') s?.sendHubWho?.();   // SCALE5c: on a shard, everyone online asked of the bus while the channel is small (the session's own clock bounds it); part two: a region's too
     const place = chatLog?.tab(tabId)?.place ?? null;
-    return place && s ? { id: s.id, name: s.name, title: s.title, glyphs: s.glyphs, gt: s.gt, peers: s.peers, roomCount: s.roomCount, hubOnline: s.hubOnline, label: place } : s;   // GUILD1c: my own row wears my tag
+    return place && s ? placedRosterSource(s, place) : s;   // GUILD1c: my own row wears my tag; HIDDEN-UNCOUNTED: and my hidden mark (net/roster.js)
   };
   /** CHAT-CHAN: the Party and Region tabs on a relay from before the channels - the World link's welcome said so. */
   const chanOld = () => { const world = chatLinks?.get('world'); return world?.status === 'open' && !world.chanOk; };
@@ -29355,6 +29356,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     climbFeel: staffFollow.indoors(climbFeel, player, cam),   // CLIMB4: the one body's climb camera - the modal frames take it after their own motor step; FOLLOW-INDOORS: and a follow's camera before it (scenes/staffFollowHost.js)
     outsideView,   // RW1: the street through a building's glass (render/realWindows.js)
     instanceDoor,   // INSTANCES: public or an instance, at the door (scenes/instanceDoor.js)
+    grabLook: () => { setCursorActive(false); requestLook(canvas); },   // DECOR: the decorator asks this host for the look; the click delay stays armed here
     seatedPeers: () => seatedPeerFeet(),   // CARDS2b (AUDIT CARDS B3): the others' seated feet, in this room's scene - their seats are taken
     cardOnline: { ok: () => !!online?.holdemOk, send: (w) => !!online?.sendHoldem(w), id: () => online?.id ?? null, welcomes: () => online?.holdemWelcomes ?? 0, room: () => online?.room ?? null },   // CARDS5: the relay that deals - a word to the room's card table, and who I am at it; CARDS6: the room a stake names
     cardStakes,   // CARDS6: a realm character's stakes at a relay's gold table (null off the realm)
@@ -31094,17 +31096,20 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     csaCall(() => { boat = csaRuntime.LaunchFromParts(parts, () => playerEntity.items, spot.at, spot.dir, csaTerrainOf(csaPixelAt(spot.at[0], spot.at[2]))); });
     if (boat) csaCall(() => csaRuntime.StartSailing(boat));   // "You control the boat!"
   }
-  /** Metres along a flat direction from `p` to the first land within `far` (TV_SEA_AHEAD_M; Infinity: none seen). */
-  function tvSeaLandAlong(p, dx, dz, far = TV_SEA_AHEAD_M) {
-    for (let d = 5; d <= far; d += 5) if (!tvSeaWaterAt(p[0] + dx * d, p[2] + dz * d)) return d;
-    return Infinity;
+  /** Metres along a flat direction from `p` to the first land within `far` (TV_SEA_AHEAD_M; Infinity: none seen) -
+   *  FERRY-CLEAR: with `hulls`, or the first ship's hull, if nearer (the naval host's hullAlong); AUDIT FERRY-CLEAR F1:
+   *  `hulls` 'only', the hulls alone (a landfall's line, whose land is its shore). */
+  function tvSeaLandAlong(p, dx, dz, far = TV_SEA_AHEAD_M, hulls = false) {
+    let d = 5;
+    while (hulls !== 'only' && d <= far && tvSeaWaterAt(p[0] + dx * d, p[2] + dz * d)) d += 5;
+    return Math.min(hulls !== 'only' && d <= far ? d : Infinity, (hulls && naval?.hullAlong(p, dx, dz, far)) || Infinity);
   }
   /** The hand with more water: land along 45 degrees each side of the bow within `far`, the farther side's (-1 left,
    *  1 right). */
   function tvSeaFreer(p, fw, far) {
     const c = Math.SQRT1_2;
-    const right = tvSeaLandAlong(p, (fw[0] + fw[2]) * c, (fw[2] - fw[0]) * c, far);
-    const left = tvSeaLandAlong(p, (fw[0] - fw[2]) * c, (fw[2] + fw[0]) * c, far);
+    const right = tvSeaLandAlong(p, (fw[0] + fw[2]) * c, (fw[2] - fw[0]) * c, far, true);   // AUDIT FERRY-CLEAR F2: a ship's side is no freer water
+    const left = tvSeaLandAlong(p, (fw[0] - fw[2]) * c, (fw[2] + fw[0]) * c, far, true);
     return left > right ? -1 : 1;
   }
   /** At the landfall: the helm left by the mod's own key (the sails lowered, "You stop controlling the boat!"). */
@@ -31162,18 +31167,20 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const w = s.windVectorCurrent ?? [0, 0, 0];
     // her lane: from her bow and either beam (her nodes - the points the runtime stops her on), and the lane she would
     // sail to the mark - her beam's breadth and TV_SEA_LANE_M either side of its line
-    let lane = landAhead;
-    for (const j of [1, 3, 4]) { const n = boat.Nodes?.[j]; if (n) lane = Math.min(lane, tvSeaLandAlong(n.position, fw[0], fw[2], far)); }
+    // FERRY-CLEAR (systems/naval/seaClearance.js): and a ship's hull as land, from her bow and either beam and along the
+    // mark's lane - a ship moored at the next berth stood dead ahead of a booked ship leaving hers, and the hand saw water
+    let lane = landAhead, hulls = Infinity;   // AUDIT FERRY-CLEAR F1: the land and the hulls apart - a landfall runs in to its land, never to a ship; the hulls from her bow and beams (her middle's look is her bow's, behind it)
+    for (const j of [1, 3, 4]) { const n = boat.Nodes?.[j]; if (n) { lane = Math.min(lane, tvSeaLandAlong(n.position, fw[0], fw[2], far)); hulls = Math.min(hulls, tvSeaLandAlong(n.position, fw[0], fw[2], far, 'only')); } }
     let markAhead = Infinity;
-    if (!landfall && dist >= 1) {
+    if (dist >= 1) {   // AUDIT FERRY-CLEAR F1: a landfall's line too, for its hulls alone
       const mx = (mark[0] - p[0]) / dist, mz = (mark[2] - p[2]) / dist, sb = boat.Nodes?.[3]?.position, pt = boat.Nodes?.[4]?.position;
       const half = (sb && pt ? Math.hypot(sb[0] - pt[0], sb[2] - pt[2]) / 2 : 0) + TV_SEA_LANE_M;
-      for (const k of [-1, 0, 1]) markAhead = Math.min(markAhead, tvSeaLandAlong([p[0] + mz * half * k, p[1], p[2] - mx * half * k], mx, mz, Math.min(far, dist)));
+      for (const k of [-1, 0, 1]) markAhead = Math.min(markAhead, tvSeaLandAlong([p[0] + mz * half * k, p[1], p[2] - mx * half * k], mx, mz, Math.min(far, dist), landfall ? 'only' : true));
     }
     const cmd = seaHelmStep(tvSea.helm, {
       heading: seaHeadingOf(fw[0], fw[2]), bearing: seaHeadingOf(mark[0] - p[0], mark[2] - p[2]), wind: [w[0], w[2]],
       hasSails: boat.Sails.length > 0, squareOnly: seaSquareOnly(boat), sailsUp: s.sailPosition > 0, canSail: csaRuntime.CanSail(boat),
-      way: v[2], dt: gs, landfall, landAhead: lane, markAhead, freer: lane <= far ? tvSeaFreer(p, fw, far) : 1,
+      way: v[2], dt: gs, landfall, landAhead: lane, markAhead, hullAhead: hulls, freer: Math.min(lane, hulls) <= far ? tvSeaFreer(p, fw, far) : 1,   // AUDIT FERRY-CLEAR F1
       crewed: !!boat.crewed, oarWay: csaRuntime.oarWayOf(boat),
       sailWay: csaRuntime.sailWayOf(boat), free: !!csaRuntime.helmResponsive(),   // SAIL-FREE: straight up to windward - AUDIT SHIPS A4: her sails' way, the runtime's own word
     });
@@ -33415,7 +33422,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           // everything, the townsfolk included.
           const _nonPersonRival = _race.nonPersonRival;
           const _rivalDist = _race.rival;
-          if (_lockFoe) lockOn.toggle(_lockFoe);
+          if (yards?.press(cam.pos, useFwd)) { /* HOME-YARD: the plaque's lit row on the piece under the crosshair */ }
+          else if (_lockFoe) lockOn.toggle(_lockFoe);
           else if (_tapLockOnly) { /* TS1: the stick-half tap found no foe - it opens nothing */ }
           else if (!_act.pressCast && plaquePeerAct(cam.pos, useFwd)) { /* ACT-MENU: a player the plaque named nearest, and the verb it lit - never on a press that cast (AUDIT DISC7 A1) */ }
           else if (!_race.loot && !_race.drop && naval?.activate({ boatTrigger: !!_race.boatWins })) { /* NAV-D: grapples thrown on a struck ship, a rail gone over, a prize's hold opened - a body or a pile under the ray still takes the click first; AUDIT HOLDINGS Q4: her own helm, hold or door under the ray before the gangway */ }
@@ -35491,7 +35499,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             torch: pickActivatableHit(cam.pos, _hd, droppedTorches.targets(), collider),
             wagon: pickActivatableHit(cam.pos, _hd, mwViewWagonTargets(RAY_DISTANCE), collider),
             horseCart: pickActivatableHit(cam.pos, _hd, hcc.targets(), collider),   // HCC
-            camp: pickActivatableHit(cam.pos, _hd, camps.targets(), collider),
+            camp: pickActivatableHit(cam.pos, _hd, [...camps.targets(), ...(yards?.targets() ?? [])], collider),
             water: pickActivatableHit(cam.pos, _hd, springTargets(), collider),
             gate: gatePool ? pickActivatableHit(cam.pos, _hd, [...gatePool.targets(), ...(riteHost?.targets() ?? [])], collider) : null,   // WB2; WB12d: the casket
             broker: sigilBroker ? pickActivatableHit(cam.pos, _hd, sigilBroker.targets(), collider) : null,   // SET7

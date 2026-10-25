@@ -30,7 +30,7 @@ export const RAID_WORDS_MAX = 4;
 /** A reader's allowance for one owner's raiders: the mod's cap whole (systems/raidingParties.js MAX_RAID_ENEMIES,
  *  Mac's "Keep"), apart from CELL_PUPPETS_MAX as the watch's and the camps' are - twenty-five raiders stood in twelve
  *  slots were thirteen a reader could not see and was killed by. */
-export const RAID_PUPPETS_MAX = 25;
+export const RAID_PUPPETS_MAX = 40;
 /** The most tags a frame may carry - a frame's records (wire.js CELL_FRAME_RECORDS_MAX). */
 export const RAID_TAGS_MAX = 64;
 /** The most deaths a word may state, and the oldest claim, ms (two real hours - a raid is ten minutes). */
