@@ -11,7 +11,7 @@ import { decorCatalogue, collectDecor } from '../src/systems/decor/decorCatalogu
 import { DECOR_CAP, decorPrice } from '../src/net/decorLaw.js';
 import { PROP_MODEL_TYPE } from '../src/world/interior/interiorLayout.js';
 import { isFurnishing } from '../src/systems/decor/decorFurnish.js';
-import { decorMatrix, decorKeyOf } from '../src/scenes/decor/decorRoom.js';
+import { decorMatrix, decorKeyOf, createDecorRoom } from '../src/scenes/decor/decorRoom.js';
 import { localAabb } from '../src/render/frustum.js';
 import { createHomeYards } from '../src/scenes/homeYards.js';
 import { applyClimate, SEASON } from '../src/world/climateSwaps.js';
@@ -160,20 +160,25 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     const tris = new Uint32Array([0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 3, 2, 6, 3, 6, 7, 0, 3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2]);
     collider.addMesh(decorKeyOf(p.id), at, tris, decorMatrix(p, [10, 0, 10]));
   };
+  // FIELD BUGS 2026-10-25b CHEST-DRAFT: what the storage pieces hold is the REAL room's store (scenes/decor/decorRoom.js
+  // itemsOf, itemsSnapshot, setItems) - the fake's no-op `setItems` and empty `itemsSnapshot` let "Discard puts the room
+  // back" pass while the discard wrote every chest back as it stood when the draft opened. `chests` is that store.
+  const chests = createDecorRoom({ meshes: {}, renderer: null, getTexture: async () => null, uploadRecord() {}, uploadRecordFrame() {}, collider: () => null, origin: () => [10, 0, 10] });
   const pool = {
     put: (p) => { const i = standing.findIndex((x) => x.id === p.id); if (i >= 0) standing[i] = p; else standing.push(p); solid(p); },
     remove: (id) => { const i = standing.findIndex((x) => x.id === id); if (i >= 0) standing.splice(i, 1); collider?.removeBucket?.(decorKeyOf(id)); },
     list: () => standing.map((p) => ({ ...p })),
     size: () => standing.length,
-    holdsAny: (id) => holds.has(id),
+    holdsAny: (id) => holds.has(id) || chests.holdsAny(id),
     pieceOf: (id) => standing.find((p) => p.id === id) ?? null,
     targets: () => aim,
     ownOf: (id) => owned.get(id) ?? null,
     keepOwn: (id, item) => { if (item) owned.set(id, item); },
     takeOwn: (id) => { const it = owned.get(id) ?? null; owned.delete(id); return it; },
     ownIds: () => [...owned.keys()],
-    itemsSnapshot: () => ({}),
-    setItems() {},
+    itemsOf: (id) => chests.itemsOf(id),
+    itemsSnapshot: () => chests.itemsSnapshot(),
+    setItems: (record) => chests.setItems(record),
     ownSnapshot: () => Object.fromEntries([...owned].map(([id, item]) => [id, { ...item }])),
     setOwn(record) { owned.clear(); if (record) for (const [id, item] of Object.entries(record)) owned.set(id, item); },
   };
@@ -258,7 +263,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
   const cam = { pos: [10, 1.6, 10], yaw: 0, pitch: 0 };
   const frame = (over = {}) => tool.frame({ dt: 0.1, cam, overlayUp: false, interior: true, ...over });
   return {
-    tool, doc, win, entries, standing, holds, aim, owned, hand, rays, pack, furnishings, names, slots, said, w, cam, frame, draws, state, decals, textures, renderer,
+    tool, doc, win, entries, standing, holds, chests, aim, owned, hand, rays, pack, furnishings, names, slots, said, w, cam, frame, draws, state, decals, textures, renderer,
     setVisit: (v) => { visit = v; }, cursorOffs: () => cursorOff,
   };
 }

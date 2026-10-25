@@ -1,0 +1,197 @@
+[
+  {
+    "name": "FB1025B-CHEST-DRAFT-DISCARD-WRITES-THE-CHESTS",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "    pool.setOwn?.(d.owns);",
+    "new": "    pool.setItems?.(d.items);\n    pool.setOwn?.(d.owns);",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "the field bug's shape, its picture gone with the fix: the Discard writes the chests' record back - what was stored since the draft opened is lost"
+  },
+  {
+    "name": "FB1025B-CHEST-DRAFT-STAGED-CHEST-GOODS-LOST",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      if (pool.holdsAny?.(p.id)) for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);\n",
+    "new": "",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "a chest the draft stood and Discard takes away keeps what was put in it, under an id no piece stands for"
+  },
+  {
+    "name": "FB1025B-CHEST-DRAFT-STAGED-CHEST-GOODS-TWICE",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "pool.itemsOf?.(p.id)?.splice(0) ?? []",
+    "new": "pool.itemsOf?.(p.id)?.slice(0) ?? []",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "the goods given to the pack AND left in the chest's record - a pair of each"
+  },
+  {
+    "name": "FB1025B-CHEST-DRAFT-OWN-STOOD-AGAIN",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "    for (const { id, item } of d.packIn) if (!deps.packTake?.(item)) pool.takeOwn?.(id);",
+    "new": "    for (const { item } of d.packIn) deps.packTake?.(item);",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "the shape that shipped: an own thing taken down and stored since stands again beside the chest's"
+  },
+  {
+    "name": "FB1025B-CHEST-DRAFT-OWN-NEVER-AGAIN",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "if (!deps.packTake?.(item)) pool.takeOwn?.(id);",
+    "new": "{ deps.packTake?.(item); pool.takeOwn?.(id); }",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-CHEST-DRAFT-PACKIN-NO-PIECE",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "d?.packIn.push({ id: piece.id, item })",
+    "new": "d?.packIn.push({ id: null, item })",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-NONE",
+    "file": "server-account/src/ledger.js",
+    "old": "  if (lifted.length) steps.push(...liftSteps(db, char, lifted, nowS));\n",
+    "new": "",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "a locked copy stays locked for good, as before - the reporter's pieces never come back"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-UNSAID",
+    "file": "server-account/src/ledger.js",
+    "old": "  const freed = new Set(lifted);",
+    "new": "  const freed = new Set();",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-PAIR-STILL-SHOWN",
+    "file": "server-account/src/ledger.js",
+    "old": "if (n === 1 && gone.length < LEDGER_NEW_MAX",
+    "new": "if (n >= 1 && gone.length < LEDGER_NEW_MAX",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "the real duplicate detection weakened: a pair still shown would be lifted"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-ONE-A-CHECKPOINT",
+    "file": "server-account/src/ledger.js",
+    "old": "gone.length < LEDGER_NEW_MAX &&",
+    "new": "gone.length < 1 &&",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-ANY-KIND",
+    "file": "server-account/src/ledger.js",
+    "old": "c?.kind === 'twice' && c.trail_found",
+    "new": "!!c && c.trail_found",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "a craft's copy, or one found before the census said how, would be lifted"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-COPIER",
+    "file": "server-account/src/ledger.js",
+    "old": "c.trail_found !== 'copier' && !!r",
+    "new": "!!r",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-ROW-ANOTHERS",
+    "file": "server-account/src/ledger.js",
+    "old": "!!r && r.char_id === char && r.state",
+    "new": "!!r && r.state",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "equivalent": true,
+    "why": "belt-and-braces: a known copy's row is read only among the record's own (ledgerReads - its char_id or its claim_char this record), so a row another record holds is this record's claim, and `r.claim_char == null` refuses it first"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-ROW-GONE",
+    "file": "server-account/src/ledger.js",
+    "old": "r.state === 'held' && r.claim_char",
+    "new": "r.claim_char",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-CLAIMED",
+    "file": "server-account/src/ledger.js",
+    "old": "r.claim_char == null && r.fp",
+    "new": "r.fp",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "a piece another record shows, its claim waiting, would be lifted on this one"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-OTHER-PIECE",
+    "file": "server-account/src/ledger.js",
+    "old": "r.fp === fp;",
+    "new": "true;",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-ELSEWHERE",
+    "file": "server-account/src/ledger.js",
+    "old": "lifted.push(...gone.filter((k) => !elsewhere.has(k)));",
+    "new": "lifted.push(...gone);",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "a piece another record also holds a copy of would be lifted here"
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-KIND-UNREAD",
+    "file": "server-account/src/ledger.js",
+    "old": "'SELECT uid, kind, trail_found FROM item_dupes WHERE char_id = ?'",
+    "new": "'SELECT uid FROM item_dupes WHERE char_id = ?'",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-DELETES-OTHER-KIND",
+    "file": "server-account/src/ledger.js",
+    "old": "DELETE FROM item_dupes WHERE char_id = ?1 AND kind = 'twice' AND uid IN",
+    "new": "DELETE FROM item_dupes WHERE char_id = ?1 AND kind = 'claim' AND uid IN",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-COPY-LIFT-FINDING-SILENT",
+    "file": "server-account/src/ledger.js",
+    "old": "JSON.stringify({ lifted: keys.slice(0, 40), count: keys.length })",
+    "new": "JSON.stringify({ count: keys.length })",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-KEEP-IGNORED",
+    "file": "server-account/src/staffRealm.js",
+    "old": "const keep = body.keep === true;",
+    "new": "const keep = false;",
+    "tests": ["test/server/staffpanel3realm.test.js"],
+    "why": "the purge takes both of a pair - the reporter's 89 pieces destroyed"
+  },
+  {
+    "name": "FB1025B-KEEP-NONE-KEPT",
+    "file": "server-account/src/staffRealm.js",
+    "old": "          if (keep && !kept.has(k)) { kept.add(k); continue; }   // COPY-LIFT: the first of each stays\n",
+    "new": "",
+    "tests": ["test/server/staffpanel3realm.test.js"]
+  },
+  {
+    "name": "FB1025B-KEEP-LEDGER-ROWS-GONE",
+    "file": "server-account/src/staffRealm.js",
+    "old": "i < keys.length && !keep; i += 80",
+    "new": "i < keys.length; i += 80",
+    "tests": ["test/server/staffpanel3realm.test.js"],
+    "why": "a keep drops the ledger's row of a piece the record still holds, and every mark - a claim's copy unlocked by staff's hand"
+  },
+  {
+    "name": "FB1025B-KEEP-CHEST-OF-NONE",
+    "file": "server-account/src/staffRealm.js",
+    "old": "const binKeys = keep ? keys.filter((k) => holds.has(k)) : keys;",
+    "new": "const binKeys = keys;",
+    "tests": ["test/server/staffpanel3realm.test.js"]
+  },
+  {
+    "name": "FB1025B-KEEP-EXTRA-MISCOUNTED",
+    "file": "server-account/src/staffRealm.js",
+    "old": "const extra = held - holds.size;",
+    "new": "const extra = held;",
+    "tests": ["test/server/staffpanel3realm.test.js"]
+  },
+  {
+    "name": "FB1025B-KEEP-SEIZES-FOR-NOTHING",
+    "file": "server-account/src/staffRealm.js",
+    "old": "if (!keys.length || (keep && !extra && !bins))",
+    "new": "if (!keys.length)",
+    "tests": ["test/server/staffpanel3realm.test.js"]
+  }
+]

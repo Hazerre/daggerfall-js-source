@@ -505,11 +505,23 @@ shelf's fix - each finding reproduced over the real code before it counted. What
 
 Not changed, and why: a deploy runs the migration a moment before the new Worker serves, and an old Worker's
 checkpoint in that window can lift a migrated hold early - the new one's first checkpoint holds it again from
-`held_until`; a locked copy is locked for good (no route clears `item_dupes` - the owner's call is the piece, not a
-term); the dungeon's legacy piles and bodies were not re-traced past the find; a claim costs its maker nothing now (a contested
+`held_until`; a locked copy is locked for good (the owner's call is the piece, not a term) - save a record's copy of its
+own once that record shows the piece once again (COPY-LIFT, below); the dungeon's legacy piles and bodies were not re-traced past the find; a claim costs its maker nothing now (a contested
 claim is no strike - the owner's call), so a player who reads a piece's key off the wire and shows the same piece with
 it stops that piece moving for the grace (`DUPE_GRACE_S`, five minutes) each time, and takes nothing - its own copy
 locked.
+
+**COPY-LIFT (FIELD BUGS 2026-10-25b, Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
+Locked'").** The decorator's Discard wrote a home's chests back as they stood when its draft opened
+(`scenes/decor/decorTool.js` CHEST-DRAFT): a piece taken out since stood in the chest and the pack, a key shown twice in
+one record - and in #1223's build a Discard in the ship's or the caravan's decorator stood the home's chests there, a
+copy of everything stored. The ledger now lifts a `twice` copy at the checkpoint that shows the piece ONCE again, its row
+the record's own, held and unclaimed, of the same piece, no other record's copy known and no trail check calling it a
+copier's (`ledger.js:"const ownCopyGone = (/** @type {any} */ c, /** @type {any} */ r, /** @type {string} */ char, /** @type {string} */ fp) =>"`),
+written among the findings as a `dupe` with `lifted`; a claim's, a craft's, an escrow's or a drop's copy, and a pair
+still shown, stay locked. A record still holding both is repaired by staff's purge with `keep: true` - one of each kept
+(its own lists before a room's chest), only the copies destroyed, the ledger's rows left for the next checkpoint to
+lift. Pinned by `test/server/fb1025b_chestlock.test.js` and `staffpanel3realm.test.js`; `tools/mutants/fb1025b_chestlock.json`.
 
 ### 4b. The audit (2026-10-09, Mac: "Lets do a comprehensive audit on this")
 

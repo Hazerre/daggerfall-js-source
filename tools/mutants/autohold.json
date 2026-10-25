@@ -31,11 +31,12 @@
   {
     "name": "AUTOHOLD-the-locked-unlisted",
     "file": "server-account/src/ledger.js",
-    "old": "  const locked = [...new Set([...[...shown.keys()].filter((k) => copiesKnown.has(k)), ...copies])].slice(0, LOCKED_SAID_MAX);",
+    "old": "  const locked = [...new Set([...[...shown.keys()].filter((k) => copiesKnown.has(k) && !freed.has(k)), ...copies])].slice(0, LOCKED_SAID_MAX);",
     "new": "  const locked = [...new Set([...copies])].slice(0, LOCKED_SAID_MAX);",
     "tests": [
       "test/server/autohold.test.js"
-    ]
+    ],
+    "note": "FIELD BUGS 2026-10-25b COPY-LIFT (PIN MOVED): re-aimed by content - a copy of its own the record shows once again is lifted (`freed`), every other known copy still named."
   },
   {
     "name": "AUTOHOLD-the-locked-unanswered",

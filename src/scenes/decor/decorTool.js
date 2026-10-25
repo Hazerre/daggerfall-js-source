@@ -1312,7 +1312,13 @@ export function createDecorTool(deps) {
 
   /** DECOR-BATCH: an online home, a guild hall included, stages into the room and writes once, on Confirm. A palace
    *  keeps one write a piece. A wagon stages the same way and pays on Confirm, into the save. The revision is the
-   *  list's, read when the session opens, never a zero sent before it answers. */
+   *  list's, read when the session opens, never a zero sent before it answers.
+   *  FIELD BUGS 2026-10-25b CHEST-DRAFT ("I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'"):
+   *  the draft stages PIECES and the owner's own things it moves (packOut, packIn) - never what a storage piece holds,
+   *  which the inventory window moves at once and the save keeps as it lies. The draft kept a picture of every chest and
+   *  Discard wrote it back: a piece taken out since stood in the chest AND the pack, and the next checkpoint locked both
+   *  (ledger.js, a key shown twice); a piece put in since was gone. In the #1223 build the draft outlived the room, and a
+   *  Discard in the ship's or the caravan's decorator stood the home's chests there with a copy of all they held. */
   let draft = null;
   const usesBatch = (r) => !!(r && r.kind === 'home' && !r.seat && typeof deps.homeDecor?.batch === 'function');
   const stages = (r) => usesBatch(r) || r?.kind === 'caravan';
@@ -1337,7 +1343,7 @@ export function createDecorTool(deps) {
       : Promise.resolve();
     draft = {
       key, rev: usesBatch(r) ? null : 0, txn: mintDecorTxn(), before,
-      items: pool.itemsSnapshot?.() ?? null, owns: pool.ownSnapshot?.() ?? null, packOut: [], packIn: [], asked,
+      owns: pool.ownSnapshot?.() ?? null, packOut: [], packIn: [], asked,
     };
     return draft;
   }
@@ -1397,12 +1403,19 @@ export function createDecorTool(deps) {
   function discardDraft() {
     const d = liveDraft();
     if (!d) return false;
-    for (const p of roomPieces()) if (!d.before.has(p.id)) pool.remove(p.id);
+    for (const p of roomPieces()) {
+      if (d.before.has(p.id)) continue;
+      // CHEST-DRAFT: what the chests hold stays as it lies; a piece the draft stood and takes away again gives back what
+      // was put in it - to the pack, never lost under an id no piece stands for
+      if (pool.holdsAny?.(p.id)) for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);
+      pool.remove(p.id);
+    }
     for (const p of d.before.values()) pool.put(snapPiece(p));
-    pool.setItems?.(d.items);
     pool.setOwn?.(d.owns);
     for (const item of d.packOut) deps.packGive?.(item);
-    for (const item of d.packIn) deps.packTake?.(item);
+    // CHEST-DRAFT: an own thing the draft took down stands again only from the pack - one stored, sold or dropped since
+    // is where it went, and standing it again was a second of it
+    for (const { id, item } of d.packIn) if (!deps.packTake?.(item)) pool.takeOwn?.(id);
     for (const id of [...usePending]) if (!d.before.has(id)) { usePending.delete(id); useMode.delete(id); useRank.delete(id); }
     d.packOut = [];
     d.packIn = [];
@@ -1462,7 +1475,6 @@ export function createDecorTool(deps) {
         d.before = new Map(roomPieces().map((p) => [p.id, snapPiece(p)]));
         d.packOut = [];
         d.packIn = [];
-        d.items = pool.itemsSnapshot?.() ?? null;
         d.owns = pool.ownSnapshot?.() ?? null;
         if (placing) placing.draftWhy = null;
         publishDraft();
@@ -1495,7 +1507,6 @@ export function createDecorTool(deps) {
       d.txn = mintDecorTxn();
       d.packOut = [];
       d.packIn = [];
-      d.items = pool.itemsSnapshot?.() ?? null;
       d.owns = pool.ownSnapshot?.() ?? null;
       if (placing) placing.draftWhy = null;
       await flushStagedUse(r);
@@ -1884,7 +1895,7 @@ export function createDecorTool(deps) {
       const d = openDraft();
       pool.remove(piece.id);
       const item = pool.takeOwn?.(piece.id) ?? null;
-      if (item) { d?.packIn.push(item); deps.packGive?.(item); }
+      if (item) { d?.packIn.push({ id: piece.id, item }); deps.packGive?.(item); }   // CHEST-DRAFT: with its piece, for a Discard
       publishDraft();
       deps.say?.(t('decor.tool.setAsideDown', '{name} set aside. Confirm takes it down.', { name }));
       return true;

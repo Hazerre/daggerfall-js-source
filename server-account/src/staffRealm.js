@@ -588,6 +588,11 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
    * back, and no trail check - a hundred flagged rares is the case the one-piece Remove cannot clear. A chest in a home
    * this account does not own keeps its row. The record is seized even when the preview found nothing in it: a withdraw
    * can move a flagged chest row into the save after that read, and the sequence guard is what refuses the purge then.
+   * FIELD BUGS 2026-10-25b COPY-LIFT: `keep: true` KEEPS ONE OF EACH - the first the record shows (its own lists before a
+   * room's chest) stays, and only the copies go: every other one in the record and, of a piece it keeps, the account's
+   * chests' (a piece it holds none of is the chest's to keep). The ledger's rows and marks stay; the player's next
+   * checkpoint lifts each copy of its own it no longer shows twice (ledger.js COPY-LIFT) - the decorator's Discard made a
+   * pair of every piece a home's chests held (decorTool.js CHEST-DRAFT), and the purge took both.
    */
   async function purgeDupes() {
     const act = 'purge-dupes';
@@ -599,45 +604,60 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     const flagged = /** @type {{ uid: string }[]} */ ((await db.prepare('SELECT uid FROM item_dupes WHERE char_id = ?1').bind(row.id).all())?.results ?? []);
     const keys = flagged.map((d) => d.uid).filter((u) => typeof u === 'string');
     const keySet = new Set(keys);
+    const keep = body.keep === true;   // COPY-LIFT
     let held = 0;
-    for (const list of possessedItemLists(save)) for (const it of list) if (keySet.has(ledgerKeyOf(it))) held++;
+    const holds = new Set();
+    for (const list of possessedItemLists(save)) for (const it of list) { const k = ledgerKeyOf(it); if (keySet.has(k)) { held++; holds.add(k); } }
+    const extra = held - holds.size;   // COPY-LIFT: what a keep destroys of the record's
+    const binKeys = keep ? keys.filter((k) => holds.has(k)) : keys;
     let bins = 0;
-    for (let i = 0; i < keys.length; i += 80) {
-      const part = keys.slice(i, i + 80);
+    for (let i = 0; i < binKeys.length; i += 80) {
+      const part = binKeys.slice(i, i + 80);
       const m = part.map((_, j) => `?${j + 2}`).join(', ');
       const n = await db.prepare(`SELECT COUNT(*) AS n FROM decor_bin b WHERE b.uid IN (${m}) AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = b.map_id AND h.building_key = b.building_key AND h.player = ?1)`).bind(row.player, ...part).first();
       bins += Number(n?.n ?? 0);
     }
     if (body.confirm !== true) {
       await audit('purge-dupes-check', row.player, ch, { onceIn: READ_ROW_S }).run();
-      return { character: { id: row.id, name: row.name, account: accountOf(row) }, seq: row.seq, playing: playing(row), dupes: keys.length, held, bins };
+      return { character: { id: row.id, name: row.name, account: accountOf(row) }, seq: row.seq, playing: playing(row), dupes: keys.length, held, bins, ...(keep ? { keep, extra } : {}) };
     }
     const reason = REMOVE_REASONS.includes(body.reason) ? body.reason : null;
     const note = noteOf(body.note);
-    const detail = { ...ch, reason, note, dupes: keys.length, held, bins };
+    const detail = { ...ch, reason, note, dupes: keys.length, held, bins, ...(keep ? { keep, extra } : {}) };
     if (!reason) return said(act, row.player, detail, { error: 'staff-reason' });
     if (!note) return said(act, row.player, detail, { error: 'staff-note' });
-    if (!keys.length) return said(act, row.player, detail, { error: 'no-dupes' });
+    if (!keys.length || (keep && !extra && !bins)) return said(act, row.player, detail, { error: 'no-dupes' });
     if (body.seq !== row.seq) return said(act, row.player, detail, { error: 'seq' });
     const seized = await seizeRealmRecord(c, row.player, row.id, (s) => {
-      const doomed = [];
-      for (const list of possessedItemLists(s)) for (const it of list) if (keySet.has(ledgerKeyOf(it))) doomed.push(it);
+      const doomed = [], kept = new Set();
+      for (const list of possessedItemLists(s)) {
+        for (const it of list) {
+          const k = ledgerKeyOf(it);
+          if (!keySet.has(k)) continue;
+          if (keep && !kept.has(k)) { kept.add(k); continue; }   // COPY-LIFT: the first of each stays
+          doomed.push(it);
+        }
+      }
       for (const it of doomed) takeOut(s, it);   // gear and a room's own piece are not the list the walk handed back
       return null;
     }, { take: true, escrow: false });
     if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
     const steps = [...seized.steps];
     const seq = seized.seq;
-    for (let i = 0; i < keys.length; i += 80) {
+    for (let i = 0; i < keys.length && !keep; i += 80) {   // COPY-LIFT: a keep leaves the ledger's rows - the piece stays
       const part = keys.slice(i, i + 80);
       const m = part.map((_, j) => `?${j + 2}`).join(', ');
       steps.push(
         db.prepare(`DELETE FROM item_dupes WHERE char_id = ?1 AND uid IN (${m})`).bind(row.id, ...part),
         db.prepare(`DELETE FROM item_uids WHERE char_id = ?1 AND uid IN (${m})`).bind(row.id, ...part),
-        db.prepare(`DELETE FROM decor_bin WHERE uid IN (${m}) AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = decor_bin.map_id AND h.building_key = decor_bin.building_key AND h.player = ?1)`).bind(row.player, ...part),
       );
     }
-    steps.push(staffFinding(db, row, nowS, { act, by, note, reason, dupes: keys.length, held, bins, from: row.seq, to: seq }));
+    for (let i = 0; i < binKeys.length; i += 80) {
+      const part = binKeys.slice(i, i + 80);
+      const m = part.map((_, j) => `?${j + 2}`).join(', ');
+      steps.push(db.prepare(`DELETE FROM decor_bin WHERE uid IN (${m}) AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = decor_bin.map_id AND h.building_key = decor_bin.building_key AND h.player = ?1)`).bind(row.player, ...part));
+    }
+    steps.push(staffFinding(db, row, nowS, { act, by, note, reason, dupes: keys.length, held, bins, ...(keep ? { keep, extra } : {}), from: row.seq, to: seq }));
     try {
       await db.batch(steps);
     } catch {
@@ -645,7 +665,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       return said(act, row.player, detail, { error: 'seq' });
     }
     await dropObjects(c.bucket, [seized.prev]);
-    return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, bins, playing: false });
+    return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, bins, ...(keep ? { keep, extra } : {}), playing: false });
   }
 
   /**
