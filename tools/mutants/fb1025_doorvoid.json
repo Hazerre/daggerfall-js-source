@@ -90,6 +90,15 @@
     ]
   },
   {
+    "name": "FB1025-DOORVOID-the-owner-takes-it-out",
+    "file": "src/systems/decor/decorInteriorDoors.js",
+    "old": "object.kind === 'door' && !object.special && !object.sealed",
+    "new": "object.kind === 'door' && !object.special",
+    "tests": [
+      "test/world/fb1025_doorvoid.test.js"
+    ]
+  },
+  {
     "name": "FB1025-BADCELL-every-31000-of-a-listed-room",
     "file": "src/world/interior/interiorLayout.js",
     "old": "  if (obj.xPos !== BAD_MODEL_SPOT.xPos || obj.yPos !== BAD_MODEL_SPOT.yPos || obj.zPos !== BAD_MODEL_SPOT.zPos) return false;\n",

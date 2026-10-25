@@ -22,8 +22,15 @@
 // why. `pay` is what a station reads off the book (ui/professions/profPages.js craftPayOf): the limit over its track
 // (professionLaw craftLimit, from the service's ten tracks) and the Firmament's percent on its XP.
 // bible/06-Systems/Professions-Arc.md 41.10.
+//
+// CLOTH-GEMS (2026-10-25; the player SaberGGaming's "Profession oversights", the owner: "No band aids"): S1 JUDGES THE
+// UNITS. The loom weaves Linen and spins Wool of the world's goods now (net/professionLaw.js WEAVE_RECIPES, SPIN_RECIPES),
+// and a piece made wholly of cloth pays its first where its cloth is the character's own (recipeLaw firstCraftPays's
+// `own`); the Weavers' - bought - never does, and a station spends bought units first. So a box says which way its
+// units stand (`own`, the page's read of the Stores and the bag: ui/professions/profPages.js ownSpend), and the craft's
+// word says what the service decided (its answer's `firstPaid`). bible/06-Systems/Professions-Arc.md 50.
 import { t, intlLocale } from '../systems/textManager.js';
-import { craftXp, firstCraftPays, masonXp, FIRST_CRAFT_XP } from '../net/recipeLaw.js';
+import { craftXp, firstCraftPays, counterMade, masonXp, FIRST_CRAFT_XP } from '../net/recipeLaw.js';
 import { creditedXp, professionName, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN } from '../net/professionLaw.js';
 import { scaleXp } from '../net/firmament/firmamentLaw.js';
 
@@ -76,19 +83,24 @@ export const limitRuleLine = (past) => t('prof.page.limit.rule', 'Only {max} cra
 /**
  * A station box's XP line for its picked recipe at `rank` (the craft's track's rank): its craft's XP (craftXp - a quarter
  * more than two tiers below the rank's top), and what its first time lays on - the first of its PATTERN AT ITS TIER
- * (firstCraftKey) - or, for a recipe wholly of the Weavers' cloth, that it lays on none. Every recipe of RECIPES that
- * pays none is made of that cloth (FACT, pinned), so the line names it. CRAFT-LIMIT-SAID: the XP the service's own
- * (craftAtAnvil's ?10, the Firmament's percent on it, and its ?13 whole), and the limit's line in its place where the
- * track cannot take it (capLine).
+ * (firstCraftKey). Every recipe of RECIPES that S1 judges is made wholly of cloth (FACT, pinned), so the line names it:
+ * CLOTH-GEMS - its first pays where `own` (the units the craft would spend are the character's own - its own cloth), and
+ * where the Stores or the bag hold cloth for it that is not (the Weavers', bought; a pack's, loose), that is spent first
+ * and lays on none. CRAFT-LIMIT-SAID: the XP
+ * the service's own (craftAtAnvil's ?10, the Firmament's percent on it, and its ?13 whole), and the limit's line in its
+ * place where the track cannot take it (capLine).
  * @param {any} r a recipe of net/recipeLaw.js RECIPES @param {number} rank @param {string} profession the track's name
- * @param {CraftPay} [pay]
+ * @param {CraftPay} [pay] @param {boolean} [own] whether the units it would spend are the character's own
  */
-export function craftXpLine(r, rank, profession, pay = {}) {
+export function craftXpLine(r, rank, profession, pay = {}, own = false) {
   const xp = scaleXp(craftXp(r.tier, rank, false), pay.pct ?? 0);
-  const more = firstCraftPays(r) ? FIRST_CRAFT_XP : 0;
+  const more = firstCraftPays(r, own) ? FIRST_CRAFT_XP : 0;
+  if (!counterMade(r)) {
+    return capLine(profession, pay, xp + more) || t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade.', { xp, profession, more });
+  }
   return capLine(profession, pay, xp + more) || (more
-    ? t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade.', { xp, profession, more })
-    : t('prof.page.craft.xpShop', '{xp} {profession} experience. Pieces made only from Weavers\' cloth earn no first-time bonus.', { xp, profession }));
+    ? t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth you wove or spun yourself.', { xp, profession, more })
+    : t('prof.page.craft.xpBought', '{xp} {profession} experience. Cloth you did not weave or spin yourself is used first, and earns no first-time bonus.', { xp, profession }));
 }
 
 /**
@@ -113,15 +125,16 @@ export const masonWorksFirstLine = (rank, profession, pay = {}) => capLine(profe
 
 /**
  * The craft's word's XP, from the service's answer (professions.js craftAnswer - `xp` as credited, `first` whether this
- * craft was the character's first of its pattern at its tier): "(+620 Smithing XP, with the first-time bonus)"; a first
- * of the Weavers' cloth says why none came; any other craft its XP alone. CRAFT-LIMIT-SAID: where the crafter's limit
+ * craft was the character's first of its pattern at its tier, CLOTH-GEMS `firstPaid` whether its 500 was laid on): "(+620
+ * Smithing XP, with the first-time bonus)"; a first of bought cloth says why none came; any other craft its XP alone. An
+ * answer without `firstPaid` (a service before CLOTH-GEMS) is read by the recipe, as it was. CRAFT-LIMIT-SAID: where the crafter's limit
  * now holds the track with no room left (`limit`, professionLaw craftLimitOf over the book's tracks once the answer is in
  * them - net/profBook.js limit), that is what it says - a first's bonus the limit ate is never said as paid. AUDIT FB1018f
  * L5-4: AND MASTER'S, where no craft holds the track and the top leaves it none - "(+0 Smithing XP - Smithing is at
  * Master)": a Master's limit names no crafts, so its word fell through to "(+0 Smithing XP, with the first-time bonus)",
  * and a first the top ate (200 paid at 99,800) was said as paid. L5-2: the rank the limit holds it at, the track's own
  * past its cap.
- * @param {any} r the recipe asked @param {{ xp?: number, first?: boolean }|null|undefined} data the answer @param {string} profession
+ * @param {any} r the recipe asked @param {{ xp?: number, first?: boolean, firstPaid?: boolean }|null|undefined} data the answer @param {string} profession
  * @param {{ room: number, by: string[], rank: number }|null} [limit]
  */
 export function craftXpText(r, data, profession, limit = null) {
@@ -132,7 +145,7 @@ export function craftXpText(r, data, profession, limit = null) {
       : t('prof.craft.xpTop', '(+{xp} {profession} experience. {profession} is at Master)', { xp, profession });
   }
   if (!r || data?.first !== true) return t('prof.craft.xp', '(+{xp} {profession} experience)', { xp, profession });
-  return firstCraftPays(r)
+  return (typeof data.firstPaid === 'boolean' ? data.firstPaid : firstCraftPays(r))
     ? t('prof.craft.xpFirst', '(+{xp} {profession} experience, with the first-time bonus)', { xp, profession })
-    : t('prof.craft.xpFirstShop', '(+{xp} {profession} experience. Weavers\' cloth earns no first-time bonus)', { xp, profession });
+    : t('prof.craft.xpFirstBought', '(+{xp} {profession} experience. Your first, but only cloth you wove or spun yourself earns the first-time bonus)', { xp, profession });
 }

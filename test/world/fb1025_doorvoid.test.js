@@ -195,6 +195,19 @@ test('DOOR-VOID: the room is built with its door to nothing sealed, and the play
   whole.destroy();
 });
 
+test('DOOR-VOID: a home\'s owner cannot take a sealed door out - its doorway would open onto nothing; a door between two floors stays theirs to take', async () => {
+  const pipeline = pipelineOf({ [HALF_ROOM]: halfRoom, [WHOLE_ROOM]: wholeRoom, 9000: doorLeaf });
+  const deps = { renderer: fakeRenderer, ...pipeline };
+  const half = await buildInteriorContext(deps, blockOf(HALF_ROOM), 7, 0, 300, 0, null, { baseEditable: true, houseOwned: true });
+  assert.deepEqual(half.base.roomDoors.list(), [], 'not on the owner\'s list');
+  assert.equal(half.base.roomDoors.apply(['intdoor:0']), 0, 'an owner\'s list saved before the seal takes nothing out');
+  assert.ok(half.actions.objects.get('door:0'), 'the door still hangs');
+  half.destroy();
+  const whole = await buildInteriorContext(deps, blockOf(WHOLE_ROOM), 7, 0, 300, 0, null, { baseEditable: true, houseOwned: true });
+  assert.deepEqual(whole.base.roomDoors.list().map((d) => d.key), ['intdoor:0']);
+  whole.destroy();
+});
+
 // ── BAD-CELL ──────────────────────────────────────────────────────────────────────────────────────────────
 test('BAD-CELL: a listed room drops the misplaced 31000 and keeps a 31000 standing anywhere else', () => {
   const cell = { modelIdNum: 31000, objectType: 0, xRotation: 0, yRotation: 0, zRotation: 0 };

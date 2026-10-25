@@ -58,18 +58,22 @@ THE CALL (our departure from `DaggerfallInterior.AddActionDoors` and `Daggerfall
 - **Nothing opens a sealed door.** `_openDoor` refuses it before DFU's own order (so no lock, spell, bash, foe or action
   chain), `activate` answers it before an armed Open or Lock is spent, `attemptBash` never bursts it, and
   `restoreSaveData` keeps it shut whatever a save from before the seal or a peer says.
-- **The player is told.** "This door will not open." on the mid-screen label, where a locked door's line is said.
+- **The player is told.** "This door will not open." on the mid-screen label, where a locked door's line is said
+  (`player.sealedDoor`, drafted in every language).
+- **A home's owner cannot take it out.** The room-door list (`systems/decor/decorInteriorDoors.js`) lets an owner take
+  a swing door out of the room; a sealed one is not on it, and an owner's list saved before the seal takes nothing out.
+  The room's doors are offered to the list once the seal has run.
 
 THE FOUR HOSTS: both interior hosts build through `scenes/interiorContext.js` (worldModes' buildings and the standalone
 interior scene), which seals and wires the line; the dungeon and the two exterior hosts build no interior door.
 
-PINS. `fb1025_doorvoid.test.js` (9): the seal law over real colliders (one side, the other, both, none; a lip; a turned
+PINS. `fb1025_doorvoid.test.js` (10): the seal law over real colliders (one side, the other, both, none; a lip; a turned
 leaf and a leaf thin in its own x; a cellar inside the reach and a pit past it), every way of opening a sealed door, the
-room built through `buildInteriorContext` with its line said, BAD-CELL's layout over a synthetic listed record, and two
+room built through `buildInteriorContext` with its line said, a home's owner kept from taking a sealed door out, BAD-CELL's layout over a synthetic listed record, and two
 over ARENA2 (the 60 classic records and the 7 pack ones; every residence and house for sale of both packs and
 Daggerfall's blocks, the sealed list pinned door by door). `interior.test.js` (BAD-CELL's spot, axis by axis) and
 `fb1007b_towerfloors.test.js` (its filter's new argument) moved, each marked. MUTANTS:
-`tools/mutants/fb1025_doorvoid.json` (12, all dead).
+`tools/mutants/fb1025_doorvoid.json` (13, all dead).
 
 NOT SEEN IN GAME. Checked on the real data through the real layout, collider and action system, not on a real install.
 Not exercised: furniture an owner places themselves, an online home's visit flow, and the live game loop (stairs,
