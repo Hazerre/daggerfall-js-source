@@ -136,9 +136,9 @@ test('HOME-STATIONS the room and the service: a station pressed opens its craft\
   const M = src('src/scenes/worldModes.js');
   assert.match(M, /if \(piece\?\.station\) \{ useDecorStation\(piece\); return; \}/);
   const use = M.slice(M.indexOf('  function useDecorStation(piece) {'), M.indexOf('  function offerStationActs(piece) {'));   // GUILD1d (re-aimed by content): the hall's members' rung inside the owner's check; PIN MOVED (FIELD BUGS 2026-10-11f STATION-DOOR): the press and the maker it opens (openStationMaker), to the chooser
-  assert.match(use, /if \(!stationOwnerHere\(\)\) \{/, 'the owner\'s alone');   // PIN MOVED (FB1018D HOME-BENCH, test/scenes/fb1018d_homebench.test.js): the owner's account's - any visitor is still refused
+  assert.match(use, /if \(!stationOwnerHere\(\) && !decorMayStation\(piece\.id\)\) \{/, 'the owner\'s, or a grant\'s');   // PIN MOVED (DECOR access): a visitor still stops here; a grant or a hall member goes on
   assert.match(use, /openServiceFlow\(DECOR_STATION_SERVICES\[piece\.station\], \{ guild: null, memberships: null, store: null, rows, route: null \}\)/);
-  assert.match(src('server-account/src/decor.js'), /const placeJson = \(\{ pos, rot, scale, light, storage, paid, station \}\) => JSON\.stringify\(\{ pos, rot, scale, light, storage, paid, \.\.\.\(station \? \{ station \} : \{\}\) \}\);/);
+  assert.match(src('server-account/src/decor.js'), /const placeJson = \(\{ pos, rot, scale, light, storage, paid, station, name \}\) => JSON\.stringify\(\{ pos, rot, scale, light, storage, paid, \.\.\.\(station \? \{ station \} : \{\}\), \.\.\.\(name \? \{ name \} : \{\}\) \}\);/);
 });
 
 // ─── AUDIT (the batch's audit, agent E) ────────────────────────────────────────────────────────────────────────────
@@ -231,10 +231,11 @@ test('AUDIT HOME-STATIONS S3 + S6 + S9: the room\'s view repaints when a piece\'
 
 test('AUDIT HOME-STATIONS S5 + S7 + S8: six acts fit a landscape phone (the side scrolls, a short screen\'s preview gives way); a maker\'s refusal with no record still says so; a station says its craft on the hover (mutants: each dropped)', () => {
   const P = src('src/ui/decorPanel.js');
-  assert.match(P, /\.dfdecor-side \{ display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; \}/);
+  assert.match(P, /\.dfdecor-side \{ display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; contain: layout; \}/);
   assert.match(P, /@media \(max-height: 480px\) \{ \.dfdecor-preview \{ min-height: 60px; \} \}/);
   const M = src('src/scenes/worldModes.js');
   assert.match(M, /for \(const t of lines\.length \? lines : \[DECOR_STATION_REFUSED\]\) say\(t\);/);
   assert.match(M, /const DECOR_STATION_REFUSED = 'You cannot use the station right now\.';/);
-  assert.match(M, /const craft = piece\.station \? DECOR_STATION_NAMES\[piece\.station\] : null;[^\n]*\n\s*return t \? \{ title: craft \? `\$\{t\} \(\$\{craft\}\)` : t \} : craft \? \{ title: craft \} : null;/);
+  assert.match(src('src/systems/worldTooltips.js'), /const craft = piece\.station \? stationName : null;\n\s*return t \? \{ title: craft \? `\$\{t\} \(\$\{craft\}\)` : t \} : craft \? \{ title: craft \} : null;/);
+  assert.match(M, /stationName: piece\?\.station \? \(DECOR_STATION_NAMES\[piece\.station\] \?\? null\) : null/);
 });

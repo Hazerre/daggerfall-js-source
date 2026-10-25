@@ -55,9 +55,12 @@ test('CRAFT-FIRST-SHOWN the law the words say: the patterns whose first lays on 
   assert.equal(none.some((r) => r.id === 'fishingnet:linen'), true, 'the Fishing-Net, the report\'s, never paid');
   assert.deepEqual(MASON_RECIPES.map((w) => [w.id, !!w.act && firstCraftPays(w)]), [['cut:stone', true], ['mix:mortar', true]], 'the bench\'s line says both');
   assert.deepEqual(COOKING_RECIPES.filter((r) => !firstCraftPays(r)).map((r) => r.id), [], 'the fire\'s line stands for every dish');
-  // the box's line, at the rank the craft is read at
-  assert.equal(craftXpLine(recipeById('garment-165:linen'), 0, 'Outfitting'), '20 Outfitting experience. Pieces made only from Weavers\' cloth earn no first-time bonus.');
-  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting'), '20 Outfitting experience. Pieces made only from Weavers\' cloth earn no first-time bonus.');
+  // the box's line, at the rank the craft is read at. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): S1 judges the units -
+  // the cloth's line says bought cloth goes first and earns none (`own` unsaid or false), and the made cloth's 500 (`own`)
+  assert.equal(craftXpLine(recipeById('garment-165:linen'), 0, 'Outfitting'), '20 Outfitting experience. Cloth you did not weave or spin yourself is used first, and earns no first-time bonus.');
+  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting'), '20 Outfitting experience. Cloth you did not weave or spin yourself is used first, and earns no first-time bonus.');
+  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting', {}, true), '20 Outfitting experience, and 500 more the first time you make this piece at this grade from cloth you wove or spun yourself.');
+  assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting', {}, false), '20 Outfitting experience, and 500 more the first time you make this piece at this grade.', 'a boot is never judged');
   assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting'), '20 Outfitting experience, and 500 more the first time you make this piece at this grade.', 'a bolt and a Cured Leather: the 500');
   assert.equal(craftXpLine(recipeById('longsword:daedric'), 90, 'Smithing'), '140 Smithing experience, and 500 more the first time you make this piece at this grade.');
   assert.equal(craftXpLine(recipeById('dagger:iron'), 70, 'Smithing'), '5 Smithing experience, and 500 more the first time you make this piece at this grade.', 'tier 1 at rank 70: a quarter; the 500 whole');
@@ -76,7 +79,7 @@ test('CRAFT-FIRST-SHOWN the craft\'s word, from the real Worker\'s answer throug
     assert.equal(r.ok, true, JSON.stringify(r));
     return [r.data.xp, r.data.first, craftXpText(recipeById(id), r.data, 'Outfitting')];
   };
-  assert.deepEqual(await word('garment-141:linen'), [20, true, '(+20 Outfitting experience. Weavers\' cloth earns no first-time bonus)']);
+  assert.deepEqual(await word('garment-141:linen'), [20, true, '(+20 Outfitting experience. Your first, but only cloth you wove or spun yourself earns the first-time bonus)']);   // PIN MOVED (CLOTH-GEMS): the answer's `firstPaid` said
   assert.deepEqual(await word('garment-149:linen'), [520, true, '(+520 Outfitting experience, with the first-time bonus)']);
   assert.deepEqual(await word('garment-149:linen'), [20, false, '(+20 Outfitting experience)'], 'once');
   assert.deepEqual(await word('garment-141:linen'), [20, false, '(+20 Outfitting experience)'], 'and the cloth\'s second says nothing of a first');
@@ -87,9 +90,9 @@ test('CRAFT-FIRST-SHOWN the craft\'s word, from the real Worker\'s answer throug
   const fr = new Map(rows);
   try {
     tm.setLocale('fr');
-    const shop = craftXpText(recipeById('garment-141:linen'), { xp: 20, first: true }, 'Outfitting');
-    assert.equal(shop, tm.formatMessage(fr.get('prof.craft.xpFirstShop'), { xp: 20, profession: 'Outfitting' }));
-    assert.match(shop, /Tisserands/);
+    const shop = craftXpText(recipeById('garment-141:linen'), { xp: 20, first: true, firstPaid: false }, 'Outfitting');
+    assert.equal(shop, tm.formatMessage(fr.get('prof.craft.xpFirstBought'), { xp: 20, profession: 'Outfitting' }));   // PIN MOVED (CLOTH-GEMS): the bought cloth's word
+    assert.match(shop, /vous-même/);
     assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting'), tm.formatMessage(fr.get('prof.page.craft.xpFirst'), { xp: 20, more: 500, profession: 'Outfitting' }));
   } finally {
     tm.setLocale('en');
@@ -139,7 +142,8 @@ test('CRAFT-FIRST-SHOWN the stations say it, read off the real book: the loom\'s
     return [b.children[0].textContent, [...b.querySelectorAll('p')].map((p) => p.textContent)];
   };
   const FIRST = (xp, prof) => `${xp} ${prof} experience, and 500 more the first time you make this piece at this grade.`;
-  const SHOP = (xp) => `${xp} Outfitting experience. Pieces made only from Weavers' cloth earn no first-time bonus.`;
+  // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): with no bought cloth held the loom says the made cloth's 500 (ownSpend)
+  const SHOP = (xp) => `${xp} Outfitting experience, and 500 more the first time you make this piece at this grade from cloth you wove or spun yourself.`;
   try {
     draw();
     // THE LOOM, Outfitting 10: the Weavers' cloth alone says it earns none; a boot's Cured Leather and the leathers the 500

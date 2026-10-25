@@ -27,6 +27,7 @@ import { goldStack } from './inventory.js';
 import { isAmmunition } from './item/itemTemplates.js';
 import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';   // ELITE-FLOOR: the watch is never an elite
 import { ENEMY_BASICS, isClassEnemyId } from '../characters/enemy/enemyBasics.js';   // ELITE-FLOOR: a kind's own level, the same on every client
+import { WEAPON_MATERIALS } from '../characters/weapons.js';   // BOSS-HARD: Silver, the Troll's floor
 import { renownOpens } from './sigil/sigil.js';   // RENOWN-GATE: the page's Renown, the door every Renown-woken power reads
 import { markUnquiet } from './revenant/unquietMark.js';   // UNQUIET (Revenants.md section 46): one elite in four carries the mark - its own, never a puppet's
 
@@ -272,25 +273,40 @@ export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size 
 export const STAFF_BOSS_GLOW = 2;
 export const STAFF_BOSS_HEALTH_MULT = 10;
 export const STAFF_BOSS_DAMAGE_MULT = ELITE_FOE_DAMAGE_MULT;
+// BOSS-HARD (2026-10-25, mob: "apply this logic to all mini bosses we spawn we want them to be very hard for the players"):
+// every mini boss is held to the Enemy Expansion Troll's rules (MonsterBase.mdb.csv row 272) - MinMetalToHit Silver, so a
+// blade below Silver does nothing (combat/formulas.js dropWeaponIfTargetImmune; hand-to-hand still lands, as DFU's does),
+// and ArmorValue 2, so its every part is at least as hard to hit as a Troll's (EnemyEntity.cs:264-267: ArmorValue x 5).
+/** The weapon material a mini boss asks before a blade bites (WeaponMaterialTypes: Silver). */
+export const STAFF_BOSS_MIN_METAL = WEAPON_MATERIALS.Silver;
+/** A mini boss's worst armour on any part (the Troll's ArmorValue 2 x 5; lower is harder to hit). */
+export const STAFF_BOSS_ARMOR = 10;
 /** Is this entity a staff event's mini boss? */
 export const isStaffBoss = (entity) => !!entity?.staffBoss;
 /**
  * Make a freshly built foe a staff event's mini boss: an elite (the flag, the blows, the drop), `healthX` times its health
- * (staff's pick on the start form, 1-100; STAFF_BOSS_HEALTH_MULT unset), at `sizePct` of its kind's size. `own` false for a puppet - its maximum is its owner's word (the record's `k`). Idempotent.
- * @param {any} entity @param {{ own?: boolean, sizePct?: number, healthX?: number, level?: number }} [o]
+ * (staff's pick on the start form, 1-100; STAFF_BOSS_HEALTH_MULT unset) or BOSS-HP's `hp`, the exact health staff typed (it
+ * wins; 0 none), at `sizePct` of its kind's size, held to the Troll's Silver and armour (BOSS-HARD). `own` false for a puppet - its maximum is its owner's word (the record's `k`). Idempotent.
+ * @param {any} entity @param {{ own?: boolean, sizePct?: number, healthX?: number, hp?: number, level?: number }} [o]
  */
-export function promoteStaffBoss(entity, { own = true, sizePct = 200, healthX = STAFF_BOSS_HEALTH_MULT, level } = {}) {
+export function promoteStaffBoss(entity, { own = true, sizePct = 200, healthX = STAFF_BOSS_HEALTH_MULT, hp = 0, level } = {}) {
   if (!entity || entity.staffBoss) return !!entity;
   entity.staffBoss = { size: Math.max(1.5, Math.min(3, sizePct / 100)) };
   entity.eliteFoe = true;
   if (own) {
-    const hx = Number.isFinite(healthX) && healthX >= 1 ? Math.min(100, healthX) : STAFF_BOSS_HEALTH_MULT;   // staff's pick on the start form
+    const base = entity.maxHealth || 1;
+    const hx = Number.isSafeInteger(hp) && hp >= 1 ? Math.min(1000000, hp) / base   // BOSS-HP: the exact health staff typed
+      : Number.isFinite(healthX) && healthX >= 1 ? Math.min(100, healthX) : STAFF_BOSS_HEALTH_MULT;   // staff's pick on the start form
     entity.maxHealth = Math.max(1, Math.round((entity.maxHealth || 1) * hx));
     entity.health = entity.maxHealth;
     entity.healthMult = (entity.healthMult ?? 1) * hx;
   }
   const prior = Number.isFinite(entity.damageScale) && entity.damageScale > 0 ? entity.damageScale : 1;
   entity.damageScale = prior * STAFF_BOSS_DAMAGE_MULT;
+  // BOSS-HARD: owner and puppet alike - a peer's blow on a puppet is rolled against the puppet's entity
+  entity.minMetalToHit = Math.max(entity.minMetalToHit ?? -1, STAFF_BOSS_MIN_METAL);
+  entity.armorValues = Array.from({ length: 7 }, (_, i) => Math.min(entity.armorValues?.[i] ?? 100, STAFF_BOSS_ARMOR));
+  entity.armor = Math.min(entity.armor ?? 100, STAFF_BOSS_ARMOR);
   if (own) grantEliteLoot(entity, level ?? entity.level);
   return true;
 }
