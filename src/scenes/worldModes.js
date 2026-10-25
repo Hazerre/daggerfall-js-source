@@ -5898,7 +5898,7 @@ export function createWorldModes(host) {
    *  IsLastNPCClickedAnActiveQuestor (:45-63). */
   function openQuestOfferFor(offer, npcData, mount) {
     if (!questBridge) return false;
-    const step = questBridge.offerSocialQuest(offer.npc ?? npcData, offer.socialGroup, offer.menu);
+    const step = questBridge.offerSocialQuest(offer.npc ?? npcData, offer.socialGroup, offer.menu, inTavern());   // QL-OFFERED: a tavern's own lines first (questBridge.js)
     const boxes = questBridge.offerBoxes(step, (id) => townTalk?.lines?.(id) ?? []);
     if (!boxes.length || !guildServiceArtLoaded() || !_shopFont) return true;
     // the U24 identity guard: a window that dispatches to another

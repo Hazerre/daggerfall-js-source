@@ -424,7 +424,8 @@ test('NOTICE1 the wiring: a rumour board carries its town to the press online; t
   const all = ['src/scenes/world.js', 'src/scenes/worldModes.js', 'src/scenes/exterior.js', 'src/scenes/dungeonContext.js'].map(src).join('\n');
   assert.equal((all.match(/createNoticeOverlay\(/g) ?? []).length, 1, 'the board is built in one place');
   assert.doesNotMatch(all, /mountNoticeBoard\(/, 'and mounted only through its door');
-  assert.match(src('src/ui/noticeDoor.js'), /mount: \(m\) => \{ view = m\.mountNoticeBoard\(host, \{ \.\.\.deps, onExit: close \}\); \}/);
+  // PIN MOVED (QL-OFFERED): the door hands the board the page's questline offers beside the host's own deps
+  assert.match(src('src/ui/noticeDoor.js'), /mount: \(m\) => \{ view = m\.mountNoticeBoard\(host, \{ lines: lineBoard, \.\.\.deps, onExit: close \}\); \}/);
   // THE SLOT IS EMPTIED BEFORE THE OCCUPANT IS TOLD: `done` true only once the DOM is gone, the host told last
   const door = src('src/ui/noticeDoor.js');
   const close = door.slice(door.indexOf('const close = () => {'), door.indexOf('\n  };', door.indexOf('const close = () => {')));

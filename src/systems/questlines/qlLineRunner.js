@@ -195,10 +195,9 @@ export function createLineRunner({ machine, ctx = {}, service = null, nowMs = ()
     const step = l.steps[rec.step];
     if (!step) return;
     // LINES-18: a step's quest already running (a copy kept from before) is the step - its opening asked all the same
+    // QL-OFFERED: a first step never reaches here without its quest - look puts its line back on offer first - so what
+    // starts here is a later step of a line the player took
     if (runningStep(step.quest)) { if (!rec.claims[rec.step]) queueClaim(l.id, rec.step, 'open'); return; }
-    // QL-OFFERED: a first step is the player's to take (takeLine), never started here - its line, with no quest, goes
-    // back on offer (look)
-    if (rec.step === 0) return;
     if (unmetNeeds(l, rec.step, probe).length) return;   // ACTS-2, LINES-3, LINES-6: it waits, and the window says on what
     if (!courierMay(now())) return;   // FB1020c LETTER-PACE, re-aimed: a later step's courier waits for the last one
     const q = machine.scheduleQuestByName(step.quest);

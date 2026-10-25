@@ -27534,6 +27534,21 @@
   "tr": "3bb3f987aa4f",
   "by": "claude-in-session"
  },
+ "ql.board.head": {
+  "en": "05d05c6f6a06",
+  "tr": "7f44ea7c4dfe",
+  "by": "claude-in-session"
+ },
+ "ql.board.take": {
+  "en": "c689fc7624f3",
+  "tr": "bb569b964b47",
+  "by": "claude-in-session"
+ },
+ "ql.board.takeTitle": {
+  "en": "0bdd5f2c3d5d",
+  "tr": "9d06fa0535c2",
+  "by": "claude-in-session"
+ },
  "ql.journal.armour": {
   "en": "b1fc5d10fc8c",
   "tr": "504cc3a1ede4",
@@ -27619,9 +27634,9 @@
   "tr": "b879515ea262",
   "by": "claude-in-session"
  },
- "ql.journal.lineLocked": {
-  "en": "579e49a89bd5",
-  "tr": "29132361b307",
+ "ql.journal.lineOffered": {
+  "en": "07bf16996609",
+  "tr": "05c6d076d602",
   "by": "claude-in-session"
  },
  "ql.journal.lineRetry": {
@@ -27734,6 +27749,26 @@
   "tr": "6c8307b99358",
   "by": "claude-in-session"
  },
+ "ql.journal.postBoard": {
+  "en": "b48aa46cc5ca",
+  "tr": "945ce4c1e6de",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postMagery": {
+  "en": "0f27bb922998",
+  "tr": "2c774b6eb0a6",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTavern": {
+  "en": "afef99026036",
+  "tr": "d3b9e0c088df",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTemple": {
+  "en": "15f1bcb76f3d",
+  "tr": "ca349e65ca7f",
+  "by": "claude-in-session"
+ },
  "ql.journal.rare": {
   "en": "cce370d2f978",
   "tr": "06cb62918d2d",
@@ -27792,6 +27827,21 @@
  "ql.journal.takeTitle": {
   "en": "af0f07ace7a5",
   "tr": "6ee0da92d87b",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUp": {
+  "en": "c1053d9f1913",
+  "tr": "89ccecfd25b0",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpArmed": {
+  "en": "353746f0aeb1",
+  "tr": "38d90cf242da",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpTitle": {
+  "en": "52010f457a24",
+  "tr": "de2c90d978ab",
   "by": "claude-in-session"
  },
  "ql.journal.toDo": {
@@ -28112,6 +28162,21 @@
  "ql.line.weirRoad.lead": {
   "en": "c1d3a2b041dd",
   "tr": "87c93b104b48",
+  "by": "claude-in-session"
+ },
+ "ql.offer.noPlace": {
+  "en": "c58adc7df55a",
+  "tr": "97ceca2acbd8",
+  "by": "claude-in-session"
+ },
+ "ql.offer.notOnOffer": {
+  "en": "ca30bfe9279d",
+  "tr": "261f54c66dfd",
+  "by": "claude-in-session"
+ },
+ "ql.offer.taken": {
+  "en": "5c2c69a3dd8f",
+  "tr": "08d665dfc286",
   "by": "claude-in-session"
  },
  "ql.reward.dropped": {

@@ -127,7 +127,12 @@ test('QL12 a questline\'s page: what a questline is, its story and giver, its st
   const done = qlLineDetail(doc, { ...line, state: 'done', opens: null, outcome: 'The embers went to the Guild.' }, { titleText: () => 'Doorwarden' });
   assert.match(text(done), /How it ended.*The embers went to the Guild\./);
   assert.match(text(done), /earns the title Doorwarden/);
-  assert.equal(lineStateWords('locked'), 'Not begun');
+  // PIN MOVED (QL-OFFERED - a questline is taken, never sent): a line its gate shuts is no row, so no state says it; a
+  // line on offer says nothing comes until it is taken, and where else it is posted
+  assert.equal(lineStateWords('offered'), 'On offer: nothing comes until you take it up');
+  const offered = qlLineDetail(doc, { ...line, state: 'offered', opens: null, post: 'magery', steps: line.steps.map((x) => ({ ...x, state: 'next', outcome: null })) }, { titleText: () => 'Doorwarden' });
+  assert.match(text(offered), /On offer: nothing comes until you take it up.*A Mages Guild questor in any guild hall offers it too\./);
+  assert.doesNotMatch(text(box), /offers it too/, 'a line begun is posted nowhere');
 });
 
 test('AUDIT QUESTLINES UI-7, UI-16, ACTS-1: a done step\'s mark is the service\'s answer (witnessed / not yet seen, and what to do); a finished line\'s title waits on a deed not yet seen; the last step\'s outcome said once; a failed step and a step set aside said (mutants: the mark from the kind; the title regardless; the outcome twice; the states\' words)', () => {
