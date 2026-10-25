@@ -746,8 +746,9 @@ service's /v1/prof/reforge takes the piece's `count` (acct182). The card says th
 no other kind can replace says so when pressed (`reforgeWindow.js` REFORGE_NOTE, `REFORGE_REFUSALS.line`, through t()).
 `test/systems/affixlines_reforge.test.js`; PIN MOVED: `loot9_reforge` (no lock, never the same kind, the count and the
 doubling price, every line's press), `tech1_roster` (a technique's line not offered), `craft4_temper`.
-`tools/mutants/affixlines.json`; `loot9.json` re-aimed (three records whose law was inverted renamed and aimed at the
-new one).
+`tools/mutants/affixlines.json` (36, all dead); `loot9.json` re-aimed (three records whose law was inverted renamed and
+aimed at the new one; LOOT9-carried-kind-again equivalent as recorded - its guard is belt-and-braces beside the draw's
+weights); AUDIT LOOT II A4 pinned from its other side (a gem's kind free for the piece's own lines).
 
 ### LOOT10 - the codex, and the imprint (2026-10-01)
 

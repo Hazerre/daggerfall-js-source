@@ -524,4 +524,4 @@ numeric prefix) and holds it about half the time, by the first pick's lean; and 
 Pinned: `test/systems/affixlines_reforge.test.js` (the distribution over 10,000 mints a piece, one roll a pick under
 either law, the mint version, the Exalted's, curse's and reforge's draws at their lines' shares); `lr1_lootrarity` (a
 Rare named as its lines fall, the old law's both parts), `fb1013e_craftprocs` (the last pass pinned at its own version),
-`auditloot2` (A6's fixture, A7's sample) moved with it. `tools/mutants/affixlines.json`.
+`auditloot2` (A6's fixture, A7's sample), the seeded spoils and the hoard (`fb1003b_aethericmaker`'s Gatecleaver seed 17 -> 2, `serpentset`'s golden to seed 6 - seed 2's amulet was "Porter's"), `loot14_wardrobe`'s goldens and the fixed streams of `disc29_rarity`, `auditcc_ui` and `fb0929d_accompare` moved with it. `tools/mutants/affixlines.json` (36, all dead); every record whose pins moved judged again - 490, 485 dead, 5 equivalent as recorded (craft4's four, and loot9's LOOT9-carried-kind-again: a carried kind without params weighs no line in the draw), none alive.
