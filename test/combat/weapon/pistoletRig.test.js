@@ -37,22 +37,21 @@ test('a pair: each hand its own item\'s art, the left in the mirror, the strikin
   const right = q.find((x) => /gilded/.test(x.tex)), left = q.find((x) => !/gilded/.test(x.tex));
   assert.ok(right && left, `each hand its own picture (${q.map((x) => x.tex)})`);
   assert.ok(left.uv && !right.uv, 'the left drawn in the mirror');
-  // PIN MOVED (PISTOL-PROTO): the pistols are drawn as painted, as the page draws them - no room's light, no lift; the
-  // flash is the strip's own flash frame
-  assert.equal(left.tint ?? null, null, 'drawn as painted');
+  const restTint = left.tint;
+  assert.ok(Array.isArray(restTint), 'the room\'s light on the pistols - a flash has a tint to lift');
   r.clickAttack();
   let checked = 0, flashed = false;
   for (let i = 0; i < 30 && r.playerWeapon.machine.state !== 'Idle'; i++) {
     q = await frame();
     assert.ok(/gilded/.test(q.at(-1).tex), 'the firing right drawn last');
     const resting = q.find((x) => !/gilded/.test(x.tex));
-    assert.equal(resting.tex, 'pistolet:0', 'the resting left on its idle - never the other\'s flash');
-    assert.equal(resting.tint ?? null, null, 'and as painted');
-    if (/:1$/.test(q.at(-1).tex)) flashed = true;
+    assert.equal(resting.tex, 'pistolet:0', 'the resting left on its idle');
+    assert.deepEqual(resting.tint, restTint, 'and unlit by the other\'s flash');
+    if (q.at(-1).tint.some((v, k) => Math.abs(v - restTint[k]) > 0.05)) flashed = true;
     checked++;
   }
   assert.ok(checked > 3);
-  assert.ok(flashed, 'while the firing pistol shows its own flash frame');
+  assert.ok(flashed, 'while the firing pistol is lit by its own flash');
   while (!r.playerWeapon.handLoaded('L') || r.playerWeapon.machine.state !== 'Idle') await frame();
   r.clickAttack();
   q = await frame();
