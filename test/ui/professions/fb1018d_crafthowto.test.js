@@ -105,6 +105,7 @@ const SHOP_WORDS = Object.freeze({
   WeaponSmith: ['Weaponsmith\'s', 'Weaponsmiths'], Armorer: ['Armorer\'s', 'Armorers'], FurnitureStore: ['Furniture Store\'s', 'Furniture Stores'],
   ClothingStore: ['Clothing Store\'s', 'Clothing Stores'], GeneralStore: ['General Store\'s', 'General Stores'], PawnShop: ['Pawn Shop\'s', 'Pawn Shops'],
   GemStore: ['Gem Store\'s', 'Gem Stores'], Alchemist: ['Alchemist\'s', 'Alchemists'],
+  GuildHall: ['Mages Guild hall', 'Mages Guilds'],   // POTION-DOOR: the Mages Guild's hall an alchemy station (alchemyHere); the tutorial's list within its sixty words
 });
 /** Each craft's how-to by the station questions it names. */
 const HOW_OF = () => ({

@@ -754,6 +754,11 @@ export function ingredientKeys(templateIndex) {
   const row = DFU_ROWS.get(templateIndex);
   return row ? [row.key] : [];
 }
+/** POTION-DOOR (Professions-Arc 50): every Stores key that holds a DFU ingredient - each group's herbs, then the rows -
+ *  the keys the potion maker lists at an alchemy station (scenes/potionMakerHost.js). */
+export const INGREDIENT_KEYS = Object.freeze([
+  ...['p1', 'p2'].flatMap((g) => PLANT_GROUP_TEMPLATES[/** @type {'p1'|'p2'} */ (g)].map((t) => `${g}:${t}`)), ...[...DFU_ROWS.values()].map((m) => m.key),
+]);
 /** The DFU template a Stores key holds (an herb's, a metal's, a gem's, a part's, a reagent's), or null. */
 export function keyTemplate(key) {
   if (typeof key !== 'string') return null;
