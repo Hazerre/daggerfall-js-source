@@ -255,7 +255,7 @@ import { wildHallFoes } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS
 import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
 import { wildRingAtPlace } from '../systems/wild/etherWild.js';
 import { seaPileMore } from '../systems/sea/seaSpoils.js';   // SEA-SET: the deep's Tidemail, a ruin's pile's last roll   // WILD2: a place's ring by its map pixel - ETHER-WILD: an isle's ruin of the open sea by its band
-import { elitesAllowed, pickDungeonElites, promoteEliteFoe, grantEliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, eliteCorpseSize, ELITE_FOE_SIZE } from '../systems/eliteFoes.js';   // ELITE FOES: 3-4 champions in an Elite Dungeon
+import { elitesAllowed, pickDungeonElites, promoteEliteFoe, grantEliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, eliteCorpseSize } from '../systems/eliteFoes.js';   // ELITE FOES: 3-4 champions in an Elite Dungeon
 import { ELITE_FOE_MULTIPLIER, ELITE_HEALTH_SCALE, ELITE_DAMAGE_SCALE, ELITE_LOOT_DROP_MULT, ELITE_LOOT_QUALITY_MULT } from '../world/spawnedDungeons.js';   // ELITE: an elite spawn's foe count and strength
 import { superFoeLevel, scaleSuperFoe, SUPER_ELITE_FOES, SUPER_LOOT_OPTS, SUPER_LOOT_DROP_MULT, SUPER_LOOT_QUALITY_MULT, sdEndMarks, sdRiftPlace, sdReturnPlace, sdLandingPlace } from '../world/superDungeon/sdDungeon.js';   // SD4a: a Super dungeon's difficulty; SD4b: its end's place
 import { reachableEndOf, LAIR_WALK_WAIT_MS } from '../world/dungeon/dungeonEnd.js';   // SD4b: RVN7d's lair law, lifted - the lair's stand and a Super dungeon's end read one law
@@ -268,7 +268,9 @@ import { createSdRemnant } from './superDungeon/sdRemnant.js';   // SD8c: the Br
 import { sdMarksOf } from '../net/superDungeon/sdMarks.js';   // SD18c: its Hollow's Ending - the light it burns with
 import { SD_NO_RIFT } from '../net/superDungeon/sdLaw.js';   // SD4b: the Rift's word when nobody can answer it
 import { isSdRealm, SD_REALM_TEXT, SD_WAY_BACK_Z, SD_WAY_BACK_SIZE, SD_THRESHOLD_RIM } from '../world/superDungeon/sdRealm.js';   // SD5a: the Shattered Hour - a made place, its refusals, its way back
-import { isEgHall } from '../world/eliteGates/egHall.js';   // EG-PLAY: an Elite Breach's circle - a made place (EG-H2: its refusals the made level's law's)
+import { isEgHall } from '../world/eliteGates/egHall.js';
+import { isKetchShip } from '../world/ketch/ketchShip.js';   // KETCH: a crew's sky-ketch - a made place, its Sailwalk the Hour's course law
+import { KT_COURSE } from '../net/ketch/ketchDeck.js';   // KETCH: the Sailwalk's course, laid by the Hour's own Steps   // EG-PLAY: an Elite Breach's circle - a made place (EG-H2: its refusals the made level's law's)
 import { madeLevelOf, madeLevelRule, madeLevelSays } from '../systems/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every refusal below asks the one law
 import { createEgSpan, egSpanCollider } from './eliteGates/egSpan.js';   // EG-PLAY: its spans' steps, ridden before the motor; AUDIT EG V (L6-10): the collider's doors they use
 import { realmToDungeon } from '../net/superDungeon/sdBrain.js';   // SD5a: the realm's frame
@@ -1042,6 +1044,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   const _superTier = dungeonTier(dfLocation) === 'super';
   const _sdRealm = isSdRealm(dfLocation);   // SD5a: the Shattered Hour, read once - every arm below asks the flag
   const _egHall = isEgHall(dfLocation);   // EG-PLAY: an Elite Breach's circle, read once
+  const _ketch = isKetchShip(dfLocation);   // KETCH: a crew's sky-ketch, read once
   const _made = madeLevelOf(dfLocation);   // EG-H2 (Elite-Gates.md section 24): the made level this is ('court', 'hour', 'spire' or null), read once - its rules are the law's (systems/madeLevel.js)
   // REST3 (2026-10-03, bible/06-Systems/Rest-Arc.md section 4; Mac: "Dungeon layouts now recieve multiple strategic
   // placements for campfires"): THE DUNGEON'S OWN FIRES (world/dungeon/dungeonFires.js). Placed here - after every block's
@@ -1052,7 +1055,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // casts the same rays over the same layout, so nothing rides the wire. Offline too (OPEN 8: a hearth; the rest stays
   // DFU's). Never in the Burning Court, nor on the Arena's sand (ARENA2: a made level, its rest refused - the merge of
   // main's #545, AUDIT REST II). Permanent - never cold, never picked up - and a 15 m ward (_spawnEncounter).
-  const firePlan = isGateArena(dfLocation) || isArenaFloor(dfLocation) ? null : dungeonFirePlan({
+  const firePlan = isGateArena(dfLocation) || isArenaFloor(dfLocation) || _ketch ? null : dungeonFirePlan({   // KETCH: and no hearth aboard - her rest is refused
     blocks: dungeon.blocks,
     probe: colliderFireProbe(collider),   // the rays, the law's own (world/dungeon/dungeonFires.js) - the probe tool casts the same
     ...fireLayoutInputs(dungeon.blocks, dungeonHearths),   // AUDIT REST-PARTY C6: the law's doors and fires, read as tools/dungeonFireProbe.mjs reads them
@@ -1974,7 +1977,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // its Shattered Hour, an Ocean Hole's flooded dungeon (its id the abyss's own, 0x60000000 and up - getAbyssMapId), or
   // the first dungeon past the starting cave (the welcome tour told that one). ONE page a build (AUDIT TUT1: an Ocean
   // Hole's door popped its own and the build a second, back to back).
-  noteFirstUse(isGateArena(dfLocation) ? 'oblivion-gate' : isArenaFloor(dfLocation) ? 'arena' : _superTier || _sdRealm ? 'abyss'
+  noteFirstUse(isGateArena(dfLocation) ? 'oblivion-gate' : isArenaFloor(dfLocation) ? 'arena' : _ketch ? 'sky-ketch' : _superTier || _sdRealm ? 'abyss'
     : (Number(dfLocation?.mapTableData?.mapId) >>> 0) >= 0x60000000 ? 'ocean-holes'
       : isStartDungeon(dfLocation) ? null : 'dungeons', { after: SCENE_CHANGE_TUTORIAL_MS });
   // SD6c (Super-Dungeons.md section 8): THE ORRERY'S HALL in the Shattered Hour (scenes/superDungeon/sdHall.js) - its stones,
@@ -2000,7 +2003,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // SD7b (Super-Dungeons.md section 9): THE UNMOORED STEPS in the Shattered Hour (scenes/superDungeon/sdSteps.js) - the course's steps,
   // stood the first frame the outer host asks, each moved on the realm's clock (the outer host's) and ridden BEFORE the
   // motor: the outer host asks every frame, beside the action movers' ride, and stands a body the void took back
-  const sdSteps = _sdRealm ? createSdSteps({ ending: sdMarksOf(dfLocation.sdRealm)[0], renderer, audio }) : null;   // SD-LOOK S9: its Hollow's Ending on the vane
+  const sdSteps = _sdRealm ? createSdSteps({ ending: sdMarksOf(dfLocation.sdRealm)[0], renderer, audio }) : _ketch ? createSdSteps({ course: KT_COURSE, renderer, audio }) : null;   // SD-LOOK S9: its Hollow's Ending on the vane; KETCH: the Sailwalk, the Hour's own course law on the ship's frame
   let _sdStepsStood = false;
   /** One frame of the Steps, before the motor: the landing of a cast-back, or null. */
   function sdStepsRide(dt, body, live) {
@@ -4336,7 +4339,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // so this arms nothing today, but DFU gives corpses the same
     // billboard and lets the data decide, and so does this.
     armFlatAnim(batch, t, ct.archive, ct.record, flatAnims, uploadRecordFrame);
-    if (isEliteCorpse(f.entity)) markEliteCorpseBatch(batch);   // ELITE FOES: the blue outline stays, the embers stop
+    if (isEliteCorpse(f.entity)) markEliteCorpseBatch(batch, Math.random(), !!f.entity.staffBoss);   // ELITE FOES: the blue outline stays, the embers stop
     f.corpseBatch = batch;   // SL2: the rewind frees a corpse BY ITS FOE
     batch.castOnly = !!_npcLane?.has('foe', foeId(f));   // AUDIT MW-NPC II H3: the body stands from the kill - the flat minted under it casts alone from its first frame (the level's pass draws it before drawFoes marks it)
     billboardBatches.push(batch);   // hosts draw + destroy() frees
@@ -7481,7 +7484,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // under those) and the outer host's street slot (opts.breathHeld), which held the motor while the lungs ran on.
       breathTick(opts.breathHeld?.() ? 0 : dt, playerFeet, playerHeight);
       const _surf = waterSurfaceYAt(playerFeet[0], playerFeet[2]);
-      if (!isGateArena(dfLocation) && !isArenaFloor(dfLocation) && !_sdRealm && !_egHall) sceneAmbience.update(dt, {   // ARENA2: no drip nor dungeon door on the open sand - the crowd is its air (scenes/arena/arenaBouts.js)   // WB6b: the court has its own air (scenes/deadlandsAir.js) - no drip, no door, no bird in the Deadlands   // EG-ROAR: nor in the Spire - its air is its own (scenes/eliteGates/egAir.js)
+      if (!isGateArena(dfLocation) && !isArenaFloor(dfLocation) && !_sdRealm && !_egHall && !_ketch) sceneAmbience.update(dt, {   // KETCH: nor on a ship in the sky   // ARENA2: no drip nor dungeon door on the open sand - the crowd is its air (scenes/arena/arenaBouts.js)   // WB6b: the court has its own air (scenes/deadlandsAir.js) - no drip, no door, no bird in the Deadlands   // EG-ROAR: nor in the Spire - its air is its own (scenes/eliteGates/egAir.js)
         playerPos: [playerFeet[0], playerFeet[1] + playerHeight / 2, playerFeet[2]],   // the controller center (DFU transform.position)
         waterSurfaceY: _surf,
         submerged: _surf != null && playerFeet[1] + playerHeight / 2 + 76 * 0.025 - 0.95 < _surf,
@@ -8087,7 +8090,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (f.corpseBatch) f.corpseBatch.castOnly = false;
       // the body from the kill (f.corpse, raised at the death - the flat is minted after its texture warms), until the
       // corpse is freed
-      if (npcLane && f.dead && f.corpse && isBodyFoe(f) && f.ai) { npcLane.stand('foe', foeActor(f, foeId(f), { scale: isEliteCorpse(f.entity) ? ELITE_FOE_SIZE : 1 }), null, 0, foeFx(f, f.corpseBatch)); _npcStood.push(f); }   // an elite's body as large as its corpse
+      if (npcLane && f.dead && f.corpse && isBodyFoe(f) && f.ai) { npcLane.stand('foe', foeActor(f, foeId(f), { scale: eliteSize(f.entity) }), null, 0, foeFx(f, f.corpseBatch)); _npcStood.push(f); }   // an elite's body as large as its corpse
     }
     if (npcLane) {
       npcLane.end(dt, eye);
@@ -9376,8 +9379,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     },
     /** FIELD BUGS 2026-10-19f VOID-DUNGEON (player/enterExit.js dungeonVoidRescue): VOID-ENTRY's failsafe record for this
      *  dungeon, asked by the hosts' frames - where it stands a body that fell below everything it stands on (the start
-     *  marker's landing, by the way in, else the enter marker's); none in a realm that casts its own void back. */
-    voidRescue: dungeonVoidRescue(collider, () => api.startSpawn({ preferEnterMarker: false }) ?? api.startSpawn(), _sdRealm || _egHall),
+     *  marker's landing, by the way in, else the enter marker's); none in a realm that casts its own void back (KETCH: a
+     *  ship's void is her nets' - the Steps' cast-back). */
+    voidRescue: dungeonVoidRescue(collider, () => api.startSpawn({ preferEnterMarker: false }) ?? api.startSpawn(), _sdRealm || _egHall || _ketch),
     /** Verbatim TransitionDungeonInterior's orientation half
      *  (:936-952): the player faces the NORMAL of the nearest dungeon
      *  exit door, which points into the dungeon - so you come through

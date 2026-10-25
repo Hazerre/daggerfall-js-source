@@ -327,8 +327,10 @@ function frameAlone() {
 
 test('D9: THE LEFT HAND IS THE RIGHT IN THE GLASS - its rig steps flipped: a walk bobs the two pistols OUTWARD, each the other\'s mirror; a turn of the head lags both the SAME way across the screen (Two-Hands\' two sway rules) (mutant: the left rig never flipped)', () => {
   // read on the SCREEN, where the left hand's picture and rect are mirrored (the rig's own space is the mod's)
-  const W = 1280, box = { x: 0, y: 0, w: 120, h: 90 };
-  const xOf = (f, h) => VM.pistolHandRect(f.hands, h, { canvasW: W, canvasH: 800, anchor: box, union: box, widthPct: 0.3, offset: 0, raise: 0, heightPx: 90 }).rect;
+  // PIN MOVED (PISTOL-EDGE): the union reaches past the anchor's corner as the strip's does (pistolStrip.js bleedArm) - a
+  // union flush with the screen's corner is art that ends there, and holdToCorner holds such a picture still
+  const W = 1280, box = { x: 0, y: 0, w: 120, h: 90 }, union = { x: 0, y: 0, w: 120 + 96, h: 90 + 64 };
+  const xOf = (f, h) => VM.pistolHandRect(f.hands, h, { canvasW: W, canvasH: 800, anchor: box, union, widthPct: 0.3, offset: 0, raise: 0, heightPx: 90 }).rect;
   const walk = frameAlone();
   const restR = xOf(walk, 'R').x;
   let span = 0;
@@ -445,11 +447,13 @@ test('D11: THE CHARACTER\'S SPEED EASES THE DIP - the Offset module\'s pace is t
     await rig.frame();
     rig.r.clickAttack();
     let q;
-    for (let i = 0; i < 40; i++) q = await rig.frame();
+    // PISTOL-RAISE: 31 frames, while both are still on their way down - at the owner's -60 a fast pistol is off the
+    // screen's bottom by frame 40, and a dip that has finished cannot show its pace
+    for (let i = 0; i < 31; i++) q = await rig.frame();
     return q[0].rect.y;
   };
   const slow = await yAt(20), fast = await yAt(90);
-  assert.ok(fast - slow > 20, `a fast character's pistol is lower 40 frames in (${slow.toFixed(1)} at Speed 20, ${fast.toFixed(1)} at 90)`);
+  assert.ok(fast - slow > 20, `a fast character's pistol is lower 31 frames in (${slow.toFixed(1)} at Speed 20, ${fast.toFixed(1)} at 90)`);
 });
 
 test('D7: THE PAGE\'S CLACKS - its open clip at 0.9, then its close clip at 0.95, through its own wiring (mutant: the clips swapped)', () => {

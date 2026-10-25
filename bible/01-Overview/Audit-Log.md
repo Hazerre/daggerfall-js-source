@@ -8,6 +8,37 @@
 
 Newest first.
 
+**2026-10-25 - AUDIT FB-FEEDBACK-1024 (AIM-ENDS, FERRY-CLEAR, DECOR-USE, PERK-TRIAL).** The owner: *"Audit"*, of the
+branch's four slices for the Discord's feature-feedback (2026-10-24). Four cold lanes on a frozen snapshot, each given the
+ask and the files and never the record's conclusions; each lane built its own harness over the real code (the naval
+host's eye over every hull's ends, world.js's hand on Come Sail Away's runtime, a real decor room wired to the camps,
+the page and the book over the real Worker and its D1). Paid: the stern's aim eye past the barrel's mark and the bow's
+inside a galley's prow and behind a set jib, its 29-56 m jump between sides; a landfall rowed in through a ship moored
+off its shore, a departure frozen under no sail and no oar, a boat of mine or a peer's at the next berth seen as
+water, a ship under way looked for where she stood; a placed fire taking its wall's door's press, a fireplace model no
+hearth, the cooking station opening the brazier's door, Daggerfall's fireplaces named "Furniture 26"; a card shown
+free charged 1,000 Marks past its day, a lost answer answered as the old one, a change bought across the deploy left
+waiting its week, a choice made the day before it given no trial. Each failed on the snapshot, fixed and pinned, with a
+mutant. The pins themselves: F2's oars rowed her off an islet's edge, so "she arrived" no longer told whether her beam
+was looked along - the crossings hold her off land and HULL_CLEAR_M off a hull now. Left, each with its reason, in the
+slices' records. 121 mutant records judged, 120 dead; the survivor, AUDIT SHIPS A5's `the-gain-on-every-coast`
+(`comeSailAway.js`), survives on main too - not this branch's, left for its own slice. Records: `03-World/Naval-Combat.md`
+AUDIT AIM-ENDS, `03-World/Passage.md` AUDIT FERRY-CLEAR, `06-Systems/Online-Arc.md` AUDIT DECOR-USE,
+`06-Systems/Professions-Arc.md` AUDIT PERK-TRIAL.
+
+**2026-10-24 - AUDIT KETCH.** The owner: *"Its time to be a deep audit on this and ensure absolute perfection"*, of the
+Sky-Ketch slice (KETCH and the asks before it on the same branch). Five cold lanes on a frozen snapshot, each given the
+asks and the files and never the record's conclusions; 67 reported, 62 defects. Paid: the Engine's spiders numbered into
+the Warden's forks and unkillable six minutes in; a fallen earner off the ship losing its receipt, and one share paying
+again on every other device; the Keel-Song never counted; a ninth aboard breaking every page; a quitter's place never
+freed; a modified page warping through the carry and the Sailwalk; the Ketch's spoils in the Hour's pool and promised to a
+mailbox that refused them; the bridge's rail walling off the gangway and the cabin, the nets drawn solid, DFU's climb over
+the gallery's wall into the barred hold, a 24 m drop down the lift's shaft; the line's book paid as its reward at the
+letter, "every Loredas" false on the game's own calendar, three cells a hand no crew of eight could meet, and lore that
+promised constructs, a stone and a hum the game did not have. Each fixed and pinned red, with a mutant; the lodestone made
+true; the untested fight pinned. One left, with its reason (the loot ladder off is DFU's own loot). 297 mutants, 295
+dead, two recorded equivalent. Record: `Audit-Ketch.md` (AUDIT KETCH).
+
 **2026-10-23 - AUDIT GUILD-WINDOW.** The owner: *"Audit thus"*, of the Guild window (GUILD-WINDOW, the same day). Two
 cold lanes and a measured pass in Chromium; sixteen findings (two HIGH: an invitation's Decline over the window's Close
 on a phone, the touch sizes outranked), each reproduced, fixed and pinned. The record is

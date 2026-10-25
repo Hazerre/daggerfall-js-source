@@ -476,11 +476,11 @@ export const TUTORIALS = Object.freeze([
     id: 'crafting', group: 'livelihood',
     get title() { return t('tutorials.crafting.title', 'Crafting'); },
     get trigger() { return t('tutorials.crafting.trigger', 'When you first gather something.'); },
-    get body() { return [t('tutorials.crafting.body', 'Online, you craft at a station: stand at one, press {Professions} and open Holdings > Stores. Cook at any fire.')]; },
+    get body() { return [t('tutorials.crafting.body', 'Online, craft at a station: stand at one, press {Professions} and open Holdings > Stores. Cook at any fire.')]; },
     get points() {
       return [
         t('tutorials.crafting.shops1', 'Forge: Weaponsmiths, Armorers. Loom: Clothing Stores. Workbench: Furniture Stores, joineries.'),
-        t('tutorials.crafting.shops2', 'Jeweler\'s bench: Pawn Shops, Gem Stores. Mason\'s bench: General Stores. Alchemy: Alchemists. Enchanting: Mages Guild halls.'),
+        t('tutorials.crafting.shops2', 'Jeweler\'s bench: Pawn Shops, Gem Stores. Mason\'s bench: General Stores. Alchemy: Alchemists, Mages Guilds. Enchanting: Mages Guild halls.'),
         t('tutorials.crafting.more', 'Your home can hold stations too. Each crafting profession under {Professions} says more.'),
       ];
     },
@@ -546,6 +546,18 @@ export const TUTORIALS = Object.freeze([
       'Online, there is one Abyss Dungeon at a time, near a city in the busiest region. Look for the pillar of light, or listen to the talk in that city\'s taverns.',
       'The Rift at its end leads to the Shattered Hour and the Brass Remnant. You have only one life in there.',
     ],
+  }),
+  page({
+    id: 'sky-ketch', group: 'challenges',
+    // KETCH: the whole page in the player's language (L10N4), as the guilds' is
+    get title() { return t('tutorials.skyKetch.title', 'The Sky-Ketch'); },
+    get trigger() { return t('tutorials.skyKetch.trigger', 'When you first ride the anchor-lift up to the Sky-Ketch.'); },
+    get body() {
+      return [
+        t('tutorials.skyKetch.body1', 'Every ten hours the Rourken sky-ketch keeps station over the fields east of the capital, for seven hours at a time. Ride her anchor-lift up with your party, eight hands at most.'),
+        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine; a blow knocks one loose. Her nets catch a fall; only death wakes you below.'),
+      ];
+    },
   }),
   page({
     id: 'ocean-holes', group: 'challenges', title: 'Ocean Holes', trigger: 'When you first dive into an Ocean Hole.',

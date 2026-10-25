@@ -22,7 +22,11 @@
 // - Every work of the forge, the workbench, the loom and the mason's
 //   bench (professionLaw WORK_RECIPES) - never a transmutation: that
 //   is a Transmuter's choice of what to spend, and its ladder trades
-//   a metal for another the craft may also want.
+//   a metal for another the craft may also want. DAEDRIC-SMELT
+//   (Professions-Arc.md section 53): nor a work that spends Deadlands
+//   Embers (the Daedric smelt's, professionLaw workEmbers) - the gate's
+//   currency, the Broker's too, spent by the player's own press at the
+//   forge, never by a craft on its way to the anvil.
 // - NEVER DOWN A TIER (DECIDED, CRAFT0 41.2): a work whose input is of
 //   a higher tier than its product is never planned - Ghostwood is
 //   never burnt to Charcoal, a Dragonling hide never cured to Hardened
@@ -55,13 +59,16 @@ import { WORK_RECIPES, SMELT_MAX, STORES_MAX, workOpen, workPer, workSpecRank, m
  *  Steel), so the bound is a guard, never a limit a real recipe meets. */
 export const CHAIN_DEPTH = 4;
 
-/** A material's tier, the ladder's (professionLaw materialOf; a work takes no herb) - 0 for a key no table names. */
+/** A material's tier, the ladder's (professionLaw materialOf) - 0 for a key no table names. CLOTH-GEMS: and for an herb, read
+ *  here with no herb's table - the Linen's Root Tendrils (professionLaw WEAVE_RECIPES), a common herb, never above the
+ *  tier-1 bolt it weaves. */
 const tierOf = (/** @type {string} */ key) => materialOf(key, () => null)?.tier ?? 0;
 
-/** Whether a work never trades down: every input of a tier at most its product's (41.2). */
-export const chainWorkOk = (/** @type {any} */ r) => !!r && !r.spec && r.inputs.every((/** @type {any} */ inp) => tierOf(inp.key) <= tierOf(r.out));
+/** Whether a work never trades down: every input of a tier at most its product's (41.2) - and DAEDRIC-SMELT: spends no
+ *  Deadlands Ember (the Daedric smelt's - the player's own press at the forge). */
+export const chainWorkOk = (/** @type {any} */ r) => !!r && !r.spec && !r.embers && r.inputs.every((/** @type {any} */ inp) => tierOf(inp.key) <= tierOf(r.out));
 
-/** The works a chain may plan - WORK_RECIPES less the transmutations and the works that trade down. */
+/** The works a chain may plan - WORK_RECIPES less the transmutations, the works that trade down and the ember's. */
 export const CHAIN_WORKS = Object.freeze(WORK_RECIPES.filter(chainWorkOk));
 
 /** The works that make `key`, in the table's order - the cheapest first. */
