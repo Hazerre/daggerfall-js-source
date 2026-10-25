@@ -155,6 +155,12 @@ foe still refuses it). And a foe's record says its health within the wire's `FOE
 past it is said at the same share of 100,000 (`wireHealth`), so every player's bar falls with the owner's - clamped,
 a 1,000,000-health boss read full until 900,000 were gone. Both in `scenes/exteriorFoes.js`.
 
+BOSS-SPELL-WARD (2026-10-25, mob: "use crazy spell reduction on mini bosses like 90%", "of all spell damage"): a mini
+boss takes `STAFF_BOSS_SPELL_TAKEN` (a tenth, `systems/eliteFoes.js`) of every spell's damage - a peer's and the
+owner's, a lasting spell's rounds, a weapon's strike spell - at least 1; a whole-health spell (a Disintegrate) takes a
+tenth of its health and never kills it. Cut once, where its health is (`scenes/exteriorFoes.js` `damageFoe`): a puppet
+sends its owner the spell whole. A departure: DFU has no such foe.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
