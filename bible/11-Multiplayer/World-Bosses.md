@@ -752,7 +752,8 @@ inside the rock geometry from world of daggerfall"*. The record is `01-Overview/
   and nothing keeps a gate past its collapse. The rock kept anyone from the fire, so no kill ended it early and it stood
   its whole schedule saying nothing.
 - **GATE-CLEAR** (`world/gate/gateClearance.js`): the gate's spot stays the clock's and the map files'; World of Daggerfall's
-  rock yields - a whole site reaching 24 m of the gate's foot is refused at its pick, any other piece whose mesh box
+  rock yields - a whole site reaching 24 m of the gate's foot stands none of its objects (GATE-AGREE: it keeps its pick and
+  its level ground, `03-World/World-Of-Daggerfall.md`), any other piece whose mesh box
   reaches it is not stood - for the gate the clock is about, the pixels a turn changes built again between builds.
 - **GATE-COLLAPSE** (Mac: *"Count down to collapse"*): the sealed hours count down - `gateCountdown`'s `closed` arm,
   `countdownWords`, the seal line's time (the table above). World125: the words are in the relay's bundle.
@@ -1123,9 +1124,11 @@ the `price`). ONE UPDATE is the sale - the id
 joins the column and the price the spend only where the row does not hold it yet and its gates still cover it - so two
 sales pressed at once never spend the same stones, and a piece is never bought twice (409 `owned`); a guest row keeps
 none (403 `guest`), and the id is appended in the UPDATE itself (AUDIT WB9 I3). The Broker HOLDS the stones before it
-asks the service and gives them back unless the service holds the sale - a lost answer asked after - and saves a held
-sale at once (AUDIT WB9 I1/I2: `systems/sigil/sigilBroker.js insigniaSale`), so a refused sale takes nothing and no sale goes
-unpaid; the account view says the purse beside the wardrobe.
+asks the service, gives them back where the service refuses the sale, and saves a held sale at once (AUDIT WB9 I1/I2:
+`systems/sigil/sigilBroker.js insigniaSale`); a press whose answer was lost is asked after by its own request id, and
+the service answers that sale or fences the id - the stones back - and one unheard twice is owed and settled at her
+next open (BROKER-RID, AUDIT FB1024: `01-Overview/bugs/Field-Bugs-2026-10-24.md`), so a refused sale takes nothing and
+no sale goes unpaid; the account view says the purse beside the wardrobe.
 
 HELD, WORN, SIGNED. A title bought is held as a founder's is (`server-account/src/titles.js titlesHeld` reads it off the
 row) and worn through the title's own door. An aura is held off the row (`aurasHeld`) and worn through its own

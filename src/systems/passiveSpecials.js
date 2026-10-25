@@ -8,7 +8,7 @@
 // arms, which had stood open since E1 and are answered here: the two
 // readers below are wired into the enchant ctx at world.js:"V2c filled inSunlight/inHolyPlace"
 // off the host seam that worldModes.js:"now: () => Math.floor(skyMinutes())" and dungeonContext.js:"const _prevPassiveHost"
-// register (bible/01-Overview/Port-Ledger.md:846 strikes the pair
+// register (bible/01-Overview/Port-Ledger.md:852 strikes the pair
 // through as closed, V2c 2026-08-27).
 //
 // THE TWO FLAGS ARE SMALL LAWS, verbatim:
@@ -72,6 +72,11 @@ export function playerInSunlight(nowMinutes = null) {
   const now = nowMinutes ?? _host?.now?.() ?? 0;
   return isDayFromMinutes(now) && !(_host?.isInside?.() ?? false) && !(_host?.inPrison?.() ?? false);
 }
+/** PlayerEnterExit.cs:201, "Same as !IsPlayerInSunlight" - RegensHealth.cs:98's InDarkness arm. Not the
+ *  career's darkness (`!day || dungeon` below, PassiveSpecialsEffect's own law): a lit shop at noon is dark here. AUDIT
+ *  FB1024 (lane A N1): with no host registered and no clock handed in, idle (false), as the seam's every arm is - the
+ *  unregistered clock reads minute 0, midnight, and would answer dark. */
+export const playerInDarkness = (nowMinutes = null) => (_host !== null || nowMinutes !== null) && !playerInSunlight(nowMinutes);
 /** PlayerEnterExit.cs:1424-1431, the host's answer. */
 export const playerInHolyPlace = () => !!(_host?.isHolyPlace?.() ?? false);
 

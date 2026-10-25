@@ -1478,6 +1478,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     get _lootUnreadable() { return _lootUnreadable; },
     get _roomClaimN() { return _roomClaimN; }, set _roomClaimN(v) { _roomClaimN = v; },
     get _roomMintHold() { return _roomMintHold; },
+    get _retyping() { return _retyping; },
     get _roomNowMs() { return _roomNowMs; }, set _roomNowMs(v) { _roomNowMs = v; },
     get _sharedById() { return _sharedById; },
     get _sharedStamp() { return _sharedStamp; },

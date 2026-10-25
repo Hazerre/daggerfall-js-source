@@ -32,8 +32,9 @@ the whole suite's on the snapshot (A0, below, four of them L6-1's), and the suit
 pins the fixes had moved (A1). Two findings are left, each with its reason (L1-11, L2-12). One was the owner's to decide
 (L1-4): asked what "Resurrect allowed" means where a death is a fall, the owner chose **"Raise before the fall"**.
 
-What reached a player: nothing yet - the branch is unmerged and relay `world260` undeployed (re-hashed in place for the
-fixes, `test/net/relayversion.test.js`). On the branch, the Hour's one life rested on the device alone (L1-1: a second
+What reached a player: nothing yet - the audit's fixes landed with the slices, before any deploy (relay `world260` on the
+branch, re-hashed in place for the fixes, then `world261` past THE FOLD's `world260` at the merge -
+`test/net/relayversion.test.js`). On the branch, the Hour's one life rested on the device alone (L1-1: a second
 device walked back into the fight inside the window), "Resurrect allowed" did nothing in two of the three places the owner
 named (L1-4), a raid's exodus could not run in any city of the game (L4-3) and its refugees, when they stood at all, never
 walked and were culled and counted lost (L4-1, L4-2).
