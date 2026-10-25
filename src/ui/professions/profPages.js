@@ -15,7 +15,8 @@
 //   Crafting, each a row with its rank, its rank's name and a thin bar;
 //   the chosen one below: the XP to the next rank, today's harvests, the
 //   specialisation cards at 50 and 100 (choose one - a change of mind
-//   costs 1,000 Marks and a week, and is pressed twice), the unlocks by
+//   is free for a day after a choice, then costs 1,000 Marks and locks
+//   the next for a week - PERK-TRIAL - and is pressed twice), the unlocks by
 //   rank, and the crafter's limit.
 //   THE STORES PAGE - the materials with their counts, own and bought;
 //   the families to filter by, a search, the sort; a material's action:
@@ -49,7 +50,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS } from '../../net/bagLaw.js';   // BAG1: what a character carries
 import {
-  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN,
+  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
   WEAVE_RECIPES, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,
@@ -690,12 +691,17 @@ export function drawProfessionsPage(detail, rerender, kit) {
     if (_sel === 'mining' && tr.specs?.[100] === SURVEYOR) pane.append(el('p', 'px-note', miningSurveyorLine()));   // MINE-PERKS
   }
   // THE SPECIALISATIONS: two cards a rank (CRAFT3: a merged craft's four, each its discipline's), the chosen one lit; a
-  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`)
+  // change of mind pressed twice - free once where the five crafts' merge lost a choice (`free`); PERK-TRIAL: free and at
+  // once on the choice's day of trial (`trial`), else 1,000 silver and at once, and the week after a paid change locked
   const two = disciplinesOf(_sel).length > 1;
+  const nowS = Date.now() / 1000;
+  const when = (at) => `${new Date(at * 1000).toUTCString().slice(5, 22)} UTC`;
   for (const r of SPEC_RANKS) {
     pane.append(divider(t('prof.page.specs.at', 'At {rank}', { rank: r })));
     const cards = el('div', 'prof-specs');
     const chosen = tr.specs?.[r] ?? null;
+    const trial = !!chosen && specTrialShown(tr, r, nowS);   // PERK-TRIAL: the choice's day of trial
+    const lock = Number(tr.lock ?? 0) > nowS ? Number(tr.lock) : null;   // PERK-TRIAL: the week after a paid change
     for (const s of SPECIALISATIONS[_sel][r]) {
       const card = el('button', `prof-spec${chosen === s.id ? ' on' : ''}${tr.respec?.to === s.id && tr.respec?.rank === r ? ' coming' : ''}`);
       card.type = 'button';
@@ -703,17 +709,20 @@ export function drawProfessionsPage(detail, rerender, kit) {
       if (two) card.append(el('i', 'prof-of', disciplineName(specDiscipline(s.id))));   // CRAFT3: whose choice it is
       const locked = tr.rank < r || !practised || !!s.later;   // AUDIT 29 A17: a choice whose slice is to come is named, never chosen
       const free = tr.free?.includes(r) === true;   // CRAFT3: the merge's free change
-      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way gates a paid CHANGE, as the service's chooseSpec refuses
-      // one (prof-respec-pending) - never a rank's first choice, nor the merge's free change, which it answers first
-      const waits = !!chosen && !!tr.respec && !free;
+      // FIRST-PICK (FIELD BUGS 2026-10-16b): a change on its way - PERK-TRIAL: or the week's lock after one - gates a paid
+      // CHANGE, as the service's chooseSpec refuses one (prof-respec-pending); never a rank's first choice, the merge's
+      // free change, nor a choice on its day of trial, which it answers first
+      const waits = !!chosen && (!!tr.respec || lock !== null) && !free && !trial;
       card.disabled = locked || chosen === s.id || waits;
       if (s.later) card.append(el('i', 'prof-cost', LATER_WORDS[s.later] ?? t('prof.page.later.any', 'Comes in a later update')));
       const armedHere = _armed === `${r}|${s.id}`;
       if (!locked && chosen && chosen !== s.id && !waits) {
         card.append(el('i', 'prof-cost', free ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecFree', 'Change: free, once'))
-          : armedHere ? t('prof.page.specs.respecArmed', 'Press again: {cost, number} silver, in effect in {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })
-            : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
+          : trial ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecTrial', 'Change: free until {date}', { date: when(tr.trial[r]) }))
+            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once', { cost: RESPEC.marks })
+              : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
       }
+      if (chosen === s.id && waits && lock !== null) card.append(el('i', 'prof-cost', t('prof.page.specs.lockedUntil', 'Next change from {date}', { date: when(lock) })));   // PERK-TRIAL
       if (tr.respec?.to === s.id && tr.respec?.rank === r) card.append(el('i', 'prof-cost', t('prof.page.specs.inEffect', 'In effect from {date}', { date: new Date(tr.respec.at * 1000).toUTCString().slice(0, 16) })));
       card.onclick = async () => {
         if (chosen && !armedHere) { _armed = `${r}|${s.id}`; rerender(); return; }

@@ -485,7 +485,7 @@ account.refusal.profPixel,"Az itteni föld nem egyezik a szerver térképével. 
 account.refusal.profRank,"A mesterséged még nem elég fejlett ehhez."
 account.refusal.profRate,"Ebben az órában túl sokat kézműveskedtél. Próbáld újra később."
 account.refusal.profReforge,"Az Arkán esszencia újrakovácsolhatja egy Mágikus vagy Ritka darab egy sorát, de Legendásét, Éteriét vagy ereklyéét soha."
-account.refusal.profRespecPending,"Egy szakosodásváltás már folyamatban van ({days} nap)."
+account.refusal.profRespecPending,"Ennek a mesterségnek a szakosodását kevesebb mint {days} napja változtattad meg. A következő váltás {days} nappal az utolsó után nyílik meg."
 account.refusal.profRid,"Azt a kérést nem sikerült beolvasni. Próbáld újra."
 account.refusal.profSculptor,"Kődíszt csak Szobrász faraghat. A Kőművesség 100-as szintjén választhatod, az Építés alatt."
 account.refusal.profSpec,"Ezt a szakosodást ez a mesterség nem kínálja."

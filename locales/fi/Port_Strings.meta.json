@@ -2430,8 +2430,8 @@
   "by": "claude-in-session"
  },
  "account.refusal.profRespecPending": {
-  "en": "2d84c2cdcdb9",
-  "tr": "cee06308e0b5",
+  "en": "4833b6eb8bf6",
+  "tr": "dc43ace9a766",
   "by": "claude-in-session"
  },
  "account.refusal.profRid": {
@@ -4332,6 +4332,11 @@
  "death.youDied": {
   "en": "6e4f16746fcc",
   "tr": "edba5865ffe1",
+  "by": "claude-in-session"
+ },
+ "decor.station.cooking": {
+  "en": "36967130897c",
+  "tr": "7323ec666c45",
   "by": "claude-in-session"
  },
  "dex.enemy.archerRider": {
@@ -12224,14 +12229,14 @@
   "tr": "a0230a3b55ab",
   "by": "claude-in-session"
  },
+ "prof.page.specs.lockedUntil": {
+  "en": "32ae7407ce72",
+  "tr": "60840d8c846f",
+  "by": "claude-in-session"
+ },
  "prof.page.specs.respec": {
   "en": "554094d6102a",
   "tr": "1c4e083b99df",
-  "by": "claude-in-session"
- },
- "prof.page.specs.respecArmed": {
-  "en": "3d0437b1c833",
-  "tr": "1fa7a3b6ea24",
   "by": "claude-in-session"
  },
  "prof.page.specs.respecFree": {
@@ -12242,6 +12247,16 @@
  "prof.page.specs.respecFreeArmed": {
   "en": "0a4acdc3c730",
   "tr": "907bd1fd38b5",
+  "by": "claude-in-session"
+ },
+ "prof.page.specs.respecNowArmed": {
+  "en": "6221283a2423",
+  "tr": "957ac1b0cfb7",
+  "by": "claude-in-session"
+ },
+ "prof.page.specs.respecTrial": {
+  "en": "426a695c9785",
+  "tr": "e36555a7904d",
   "by": "claude-in-session"
  },
  "prof.page.stores.bought": {

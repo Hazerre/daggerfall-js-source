@@ -17227,7 +17227,9 @@ THE LAW (`systems/decor/decorUse.js`, the port's own - DFU places no furniture):
   from the end stand), at the crafts' own licence (50,000 gold, STATION-FEES' law for the profession stations), named
   "Cooking station" - makes ANY piece the room's fire: a fireplace model, a stove, a cauldron. It is a hearth as a placed
   fire is, and pressed it opens the same. Offered online and offline (Climates & Calories cooks offline), in a home, a
-  caravan and a ship's cabin; the account service keeps it by the shared law, so it waits on its deploy.
+  caravan and a ship's cabin; the account service keeps it by the shared law, so it waits on its deploy (`acct182`). Its
+  name is the text core's (`decor.station.cooking`, drafted in-session for the thirteen whole languages) - the other
+  stations' names are not yet, and the hard-coded ratchet holds decorLaw.js at its count.
 - A piece that holds things holds things - pressed, its storage opens - and a fire made another craft's station serves
   that craft. Neither is a bed or a hearth.
 

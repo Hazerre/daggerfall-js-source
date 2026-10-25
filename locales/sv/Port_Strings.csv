@@ -485,7 +485,7 @@ account.refusal.profPixel,"Landet här stämmer inte med serverns karta. Spelet 
 account.refusal.profRank,"Ditt hantverk är inte tillräckligt skickligt för det än."
 account.refusal.profRate,"Du har hantverkat för mycket den här timmen. Försök igen senare."
 account.refusal.profReforge,"Arkan essens kan omsmida en rad på ett Magiskt eller Sällsynt föremål, men aldrig på ett Legendariskt, Eteriskt eller artefaktföremål."
-account.refusal.profRespecPending,"Ett byte av specialisering är redan på väg ({days} dagar)."
+account.refusal.profRespecPending,"Det här hantverkets specialisering byttes för mindre än {days} dagar sedan. Nästa byte öppnar {days} dagar efter det senaste."
 account.refusal.profRid,"Begäran kunde inte läsas. Försök igen."
 account.refusal.profSculptor,"Bara en Skulptör kan hugga dekor i sten. Välj den vid Stenhuggeri 100, under Byggande."
 account.refusal.profSpec,"Den specialiseringen är inte en som det här hantverket erbjuder."

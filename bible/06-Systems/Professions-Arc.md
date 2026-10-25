@@ -153,7 +153,8 @@ Enchanting - ten professions a character holds, with the five that gather.
 
 At 50 and again at 100 each profession offers two; the choice is made on the Professions tab. CRAFT3 (41.6): a merged
 craft offers its two disciplines' - four a rank, one chosen - each acting on its own discipline's work. A change costs **1,000
-Marks** and a week's wait.
+Marks** and a week's wait. PERK-TRIAL (section 50, 2026-10-24, the owner's pick): a choice is free to change for a day
+after it is made, and a paid change (1,000 Marks) takes effect at once - the week is the lock after it.
 
 | Profession | At 50 | At 100 |
 |---|---|---|
@@ -1610,7 +1611,9 @@ of Makers; commissions; regional prices to haul between; and every seat on the m
 ## 14. The server's shape
 
 - `prof_tracks` (player, char_id, profession, xp, spec50, spec100) - BUILT, `0027_professions.sql`, with the
-  pending change of specialisation (respec_rank, respec_to, respec_at)
+  pending change of specialisation (respec_rank, respec_to, respec_at) - PERK-TRIAL (`0167_perk_trial.sql`): a change
+  is written at once and `respec_at` is the lock's end, `respec_to` left empty; `spec50_at`/`spec100_at` when each
+  rank's choice was made, its day of trial from it
 - `prof_stores` (player, char_id, material, origin, qty) - BUILT, `0027_professions.sql` - `origin` own or bought
   (section 7); `guild_prof_stores` (guild_id, material, origin, qty) with its ledger - BUILT, `0034_writs.sql` (PROF6,
   section 28: a row a material and a depositor - a member's own deposit kept under the character, the guild's own under
@@ -5454,6 +5457,50 @@ what changed, is marked with its ids above.
   Worker's board read by the clock (`performance.now`), not 400 turns - the read does more since the crafting writs ride
   it, and the count ran out under a loaded suite.
 
+## 50. PERK-TRIAL - a specialisation tried before it is kept, and a change that lands at once (BUILT 2026-10-24)
+
+The Discord's feature-feedback, "The time limit of a profession's perks changing" - marbletoff: *"1k silver + week wait is
+too punishing. I understand that it's to prevent players from changing it back and forth and getting the best of two
+worlds. But the effects of some of the perks can be properly understood only after trying. It's frustrating that I'm stuck
+with the useless "Deep Diver" for a week after paying 1k silver."* (Mining 50's Deep Delver.) Three asks: a free change for
+24 hours after a pick, a couple of free changes for new players, and the week as a lock after a change rather than a wait
+for it to take effect. DECIDED (the owner, 2026-10-24, picked from the three as put to the owner: "Trial + instant"): the first
+and the third; the second is the first's work - a new player's first pick is tried for a day.
+
+THE LAW (`src/net/professionLaw.js`; the service's `server-account/src/professions.js` chooseSpec):
+
+- **A choice's day of trial** (SPEC_TRIAL_S, a real day): from when a rank's choice is made - its first, or a paid change -
+  changing it is free and at once, as often as wanted. A change on trial neither restarts the day nor waits on the lock;
+  it is a row in `prof_choices`, as a first choice is, so a request asked twice is answered once.
+- **A paid change** (RESPEC.marks, 1,000 Marks burnt, its line `respec` as ever) takes effect AT ONCE, starts its own day of
+  trial, and **locks the track's next paid change for RESPEC.days** (`respec_at` the lock's end; `respec_to` stays empty -
+  nothing waits). Inside the lock a paid change is refused (`prof-respec-pending`, its words now the lock's) and nothing
+  is burnt. A first choice at the other rank, the merge's free change (CRAFT3) and a choice on its day of trial are
+  answered before the lock, as FIRST-PICK answered them before the old wait.
+- **Asked as free, never charged**: the page asks a change on its day of trial as one (`trial: true`, `profBook.js`
+  choose, off the track's `trial`); the day out meanwhile, the service refuses it `prof-spec-stale` and the book reads the
+  track again - a card left open across the day's end never burns 1,000 Marks the player was shown as free.
+- **The page**: on its day a choice's other cards say "Change: free until <time>"; past it "Change: 1,000 silver", "Press
+  again: 1,000 silver, in effect at once"; inside the lock the chosen card says "Next change from <date>" and the others
+  wait. The track as the service says it carries `trial` (`{ 50: until }`) and `lock`, each only where there is one.
+- **The changes already waiting** (migration `0167_perk_trial.sql`): a change bought before PERK-TRIAL and still waiting
+  its week lands at the migration, its trial from then (its buyer paid to try it) and its week kept as the lock; one
+  already in effect is folded with neither. `specsAt` keeps its fold for a row the migration has not seen.
+
+The fee and the week are the record's PROF0 numbers, kept. The account service's law moved: `acct182` (with DECOR-USE's
+station; deploy before the site). The page's three new lines and the lock's refusal are the text core's, drafted
+in-session for the thirteen whole languages (and the refusal for the drafting ones that held it; `locales/README.md`).
+
+**Pins.** `test/net/perktrial.test.js` (the law's reads, the track as said, the migration over the rows it finds);
+`test/net/prof1_service.test.js` (PIN MOVED: the walk - a first pick's day, a trial change and back, a paid change at once,
+its own day, the lock's refusal, the week out); `test/net/fb1016b_firstpick.test.js` (PIN MOVED: the page over the real
+Worker - a lock at 50 leaves 100's first pick open, its day free past the lock, then the lock; a change asked as free past
+its day refused, never charged); `test/net/audit29_client.test.js` (the book asks the day as the day); AUDIT 29 A2's one
+burn, one track (`test/net/audit29_service.test.js`, PIN MOVED: the track changed, not waiting). Mutants:
+`tools/mutants/perktrial.json`, 25 dead; `audit29.json`, `craft3.json` and `fb1016b_firstpick.json` records re-aimed by
+content, and the 44 older records on the choice (PROF1, AUDIT 29, AUDIT 30, CRAFT3, FIRST-PICK, MINE-PERKS) judged again,
+all dead.
+
 ## Appendix A - a day of a gatherer
 
 Ilsa, a Journeyman herbalist and Apprentice miner in Anticlere (a march), sets out at seven (ANY-HOUR: the wilderness keeps no hours now - seven is her habit). The board's Work tab has a
@@ -5475,7 +5522,7 @@ At dusk the hub warns of a Motherlode in the Wrothgarian foothills in ten minute
 | XP a harvest / a craft / a first craft / a writ | 15 x tier (+50% clean; a quarter for a node or recipe more than two tiers below the rank's top; a haul and a herb at the rank's own tier - PROF8, HERB-XP) / 20 x tier a craft (AUDIT 30 R4: this row said x units) / +500 (AUDIT 32 S1: none for a recipe made wholly of goods only a counter sells) / 2 x Marks value; answered as credited (AUDIT 29) |
 | Tier ranks | 0, 10, 25, 40, 55, 70, 90 |
 | Crafts above Journeyman | 2 |
-| Respecialisation | 1,000 Marks, 7 days |
+| Respecialisation | 1,000 Marks, in effect at once, the next paid change 7 days after (PERK-TRIAL); a choice free to change for its first day |
 | Marks value by tier | 1, 2, 4, 6, 9, 14, 40; herbs 1 / 2 / 5 |
 | Daily caps | ~~60 harvests a gathering profession a character (the Basket's among Herbalism's), and 120 an account (AUDIT 29 - a character is an id the client names);~~ 4 dungeon veins an account in dungeons nobody has vouched for (AUDIT 29); ~~Fishing 40 hauls an account; Hunting 30 hides an account,~~ Hunting 3 hides of tiers 5-6 an account - CAP-OFF, 2026-10-07 (Mac: "Remove the cap on life skills"; the two bounds a modified client's claim needs kept, Mac's word): no day's cap on harvests, hauls or hides (section 40) |
 | Node tiers | 40 / 25 / 15 / 10 / 6 / 4 % |

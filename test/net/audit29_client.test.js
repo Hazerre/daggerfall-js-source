@@ -108,6 +108,22 @@ test('AUDIT 29 A15: a specialisation is asked with the choice the client saw sta
   for (const e of ['prof-spec-stale', 'prof-spec-taken', 'prof-account-cap', 'prof-deep-cap']) assert.doesNotMatch(accountRefusalText(e), /problem|could not be read/, e);
 });
 
+test('PERK-TRIAL the book asks a change on its choice\'s day of trial as one (`trial`) - never a paid change the player was shown as free; past the day, as a paid one (mutants: the trial unasked; the trial asked always)', async () => {
+  const asked = [];
+  let t = T;
+  const door = {
+    account: () => 'acct-1',
+    state: async () => okState(20500, { tracks: [{ profession: 'herbalism', xp: 25000, rank: 50, specs: { 50: 'gardener', 100: null }, respec: null, trial: { 50: T / 1000 + 60 } }] }),
+    spec: async (c, p, r, s, from, rid, trial) => { asked.push({ s, from, trial }); return { ok: false, error: 'prof-respec-pending' }; },
+  };
+  const book = createProfBook({ door, storage: memStorage(), character: () => 'c1', now: () => t, sleep: noWait });
+  await book.refresh();
+  await book.choose('herbalism', 50, 'botanist');
+  t = T + 61_000;   // the day out on the open page
+  await book.choose('herbalism', 50, 'botanist');
+  assert.deepEqual(asked, [{ s: 'botanist', from: 'gardener', trial: true }, { s: 'botanist', from: 'gardener', trial: false }]);
+});
+
 test('AUDIT 29 C1: a page drawn over a stale state it cannot read draws again only when a NEW read answers - never on the backoff\'s last answer (the loop that starved the tab)', async () => {
   const { setProfessionsPages, drawStoresPage, drawProfessionsPage } = await import('../../src/ui/professions/profPages.js');
   let asked = 0, t = T;
