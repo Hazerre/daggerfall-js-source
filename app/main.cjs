@@ -134,6 +134,7 @@ const CONFIG_FILE = () => path.join(app.getPath('userData'), 'config.json');
 // second one's sweep would delete a version the first is writing.
 const { GAME_ENTRY, parseManifestFile, routeFor, gameAssetsOf, versionOfTag } = require('./lib/gameChannel.cjs');
 const { openGameStore, loadSeed } = require('./lib/gameStore.cjs');
+const { switchesReadyGame } = require('./lib/readyGameSwitch.cjs');
 const GAME_SEED = path.join(__dirname, 'game-seed.json');
 const GAME_ROOT = () => path.join(app.getPath('userData'), 'Game');
 /** The game store, or null: an unpackaged run, a build cut without a release (it carries no seed), or a store that
@@ -1361,8 +1362,11 @@ async function createWindow({ onShown = null } = {}) {
   }
   // DA13: a version on trial counts this boot (gameStore.bootStarting); a version readied while a page ran is switched
   // to at this page's next document load (playReadyGame), never under it; and one on trial whose page fails to load, or
-  // whose renderer dies before the game came up, is given up at once - the one before it plays again (rollback)
-  win.webContents.on('did-start-navigation', (d) => { if (d?.isMainFrame && !d.isSameDocument) playReadyGame(); });
+  // whose renderer dies before the game came up, is given up at once - the one before it plays again (rollback).
+  // Only for a navigation that loads the game's own pages (lib/readyGameSwitch.cjs says why)
+  win.webContents.on('did-start-navigation', (d) => {
+    if (switchesReadyGame(d)) playReadyGame();
+  });
   const giveUp = (why) => {
     const bad = gameStore?.rollback();
     if (!bad) return false;
