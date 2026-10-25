@@ -29,14 +29,6 @@
 // A key on a piece that is not what the key was minted for (`fp`, the template and material) is no claim at all: the
 // record showing it holds a forged id - a law finding (verdict.js), and the holder never hears of it.
 //
-// FIELD BUGS 2026-10-25b COPY-LIFT (Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
-// Locked'"): A RECORD'S COPY OF ITS OWN, GONE, LIFTS. A key one record showed twice ('twice' - its claim on itself) is
-// one piece and a copy; the decorator's Discard wrote a home's chests back and made that pair of every piece stored
-// (scenes/decor/decorTool.js CHEST-DRAFT). Once the record shows the key ONCE again, its row the record's own and
-// unclaimed, no other record's copy known and no trail check calling it a copier's, the copy is gone and the piece is
-// one: its lock is lifted at that checkpoint (and said, a 'dupe' finding with `lifted`). Every other copy stays locked for
-// good - a claim's, a craft's, an escrow's, a death's drop - and a pair still shown is a copy as ever.
-//
 // ═══ THE SERVICE'S OWN MOVES ════════════════════════════════════════
 //
 // A move the service makes - a sale, a vault, a trade, a stake (realm.js prepareRealmRecord, realmTrade.js) - moves
@@ -105,22 +97,15 @@ const overKeys = (/** @type {any} */ db, /** @type {string[]} */ keys, /** @type
  *  own, and a checkpoint is a third of the primary's statements). */
 export const ledgerReads = (/** @type {any} */ db, /** @type {string} */ char) => [
   db.prepare('SELECT uid, char_id, state, fp, claim_char, claim_at, at FROM item_uids WHERE char_id = ?1 OR claim_char = ?1').bind(char),
-  db.prepare('SELECT uid, kind, trail_found FROM item_dupes WHERE char_id = ?').bind(char),   // COPY-LIFT: how each was found
+  db.prepare('SELECT uid FROM item_dupes WHERE char_id = ?').bind(char),
 ];
-
-/** COPY-LIFT: whether the record's known copy `c` (an item_dupes row) of a key it now shows ONCE, as `fp`, with the ledger's
- *  row `r`, is a copy of its own that is gone - found twice in one record, never called a copier's, the row this record's
- *  (`char`), held and unclaimed, of the same piece. Whether another record holds a copy is asked after (ledgerStep). */
-const ownCopyGone = (/** @type {any} */ c, /** @type {any} */ r, /** @type {string} */ char, /** @type {string} */ fp) =>
-  c?.kind === 'twice' && c.trail_found !== 'copier' && !!r && r.char_id === char && r.state === 'held' && r.claim_char == null && r.fp === fp;
 
 /**
  * THE LEDGER'S STEP for one checkpoint: the pieces the record holds (judge.js ledgerPieces - `{ key, fp }`, repeats kept)
  * against the ledger. Answers `{ steps, copies, forged, charged, locked }` - the statements for the checkpoint's batch;
  * `copies` the keys this record holds twice (each a copy of its own, charged to it); `forged` the keys it shows on another
  * piece than theirs (the verdict's law findings); `charged` how many claims this checkpoint proved copies (locked on their
- * claimants, in `steps`); `locked` the keys of the copies this record shows (LOCKED_SAID_MAX of them), for its player;
- * `lifted` (COPY-LIFT) the copies of its own it showed twice and shows once again, their locks lifted in `steps`.
+ * claimants, in `steps`); `locked` the keys of the copies this record shows (LOCKED_SAID_MAX of them), for its player.
  * SAVE-BATCH (2026-10-16): `known` - the two reads of the character's own rows (ledgerReads) answered already, in the
  * batch that read its record (realm.js checkpointRealm) - or null, and they are asked here.
  * @param {any} db @param {{ player: string, char: string, seq: number, nowS: number }} at @param {{ key: string, fp: string }[]} pieces
@@ -145,9 +130,7 @@ export async function ledgerStep(db, at, pieces, known = null) {
   const [mineRead, dupesRead] = known ? [null, null] : ledgerReads(db, char);
   const mine = known ? known.mine : await mineRead.all();
   for (const r of mine?.results ?? []) rows.set(r.uid, r);
-  /** @type {Map<string, any>} the known copies, each its item_dupes row (COPY-LIFT reads how it was found) */
-  const copyOf = new Map(((known ? known.dupes : await dupesRead.all())?.results ?? []).map((/** @type {any} */ r) => [r.uid, r]));
-  const copiesKnown = new Set(copyOf.keys());
+  const copiesKnown = new Set(((known ? known.dupes : await dupesRead.all())?.results ?? []).map((/** @type {any} */ r) => r.uid));
   for (const part of chunks([...shown.keys()].filter((k) => !rows.has(k) && !copiesKnown.has(k)), UID_CHUNK)) {
     const r = await db.prepare(`SELECT uid, char_id, state, fp, claim_char, claim_at, at FROM item_uids WHERE uid IN (${marks(part.length, 1)})`).bind(...part).all();
     for (const row of r?.results ?? []) rows.set(row.uid, row);
@@ -155,16 +138,13 @@ export async function ledgerStep(db, at, pieces, known = null) {
   /** @type {[string, string][]} */
   const fresh = [];
   /** @type {string[]} */
-  const copies = [], forged = [], claim = [], takeUp = [], letGo = [], moveOn = [], withdraw = [], gone = [];
+  const copies = [], forged = [], claim = [], takeUp = [], letGo = [], moveOn = [], withdraw = [];
   /** @type {[string, string, string][]} AUDIT FB1018f L1-1: the rows a load's repair moved - key, its print now, then */
   const reprint = [];
   /** @type {Map<string, string[]>} the claims proven copies, by claimant */
   const proven = new Map();
   for (const [key, { fp, n }] of shown) {
-    if (copiesKnown.has(key)) {   // a copy already written down: it moves by no route, and is charged once
-      if (n === 1 && gone.length < LEDGER_NEW_MAX && ownCopyGone(copyOf.get(key), rows.get(key), char, fp)) gone.push(key);   // COPY-LIFT
-      continue;
-    }
+    if (copiesKnown.has(key)) continue;   // a copy already written down: it moves by no route, and is charged once
     const r = rows.get(key);
     if (r && r.fp !== fp) {
       if (!rehomedPrint(r.fp, fp)) { forged.push(key); continue; }   // another piece's key: no claim to that piece
@@ -208,19 +188,7 @@ export async function ledgerStep(db, at, pieces, known = null) {
       if (left.length) proven.set(claimant, left); else proven.delete(claimant);
     }
   }
-  // COPY-LIFT: a copy of its own this record shows once again is lifted - unless another record's copy of the piece is known
-  /** @type {string[]} */
-  const lifted = [];
-  if (gone.length) {
-    const elsewhere = new Set();
-    for (const part of chunks(gone, UID_CHUNK)) {
-      const r = await db.prepare(`SELECT DISTINCT uid FROM item_dupes WHERE char_id != ?1 AND uid IN (${marks(part.length, 2)})`).bind(char, ...part).all();
-      for (const row of r?.results ?? []) elsewhere.add(row.uid);
-    }
-    lifted.push(...gone.filter((k) => !elsewhere.has(k)));
-  }
   // the writes - only what changed
-  if (lifted.length) steps.push(...liftSteps(db, char, lifted, nowS));
   steps.push(...insertSteps(db, at, fresh, 'ON CONFLICT (uid) DO NOTHING'));
   for (const [key, fp, was] of reprint) steps.push(db.prepare('UPDATE item_uids SET fp = ?2 WHERE uid = ?1 AND fp = ?3').bind(key, fp, was));   // AUDIT FB1018f L1-1
   // STAFF-PANEL4-CENSUS: each copy written down with the record the ledger had holding it and since when - a piece shown
@@ -251,18 +219,9 @@ export async function ledgerStep(db, at, pieces, known = null) {
   }
   // AUTO-HOLD: THE PIECES LOCKED in this record - its known copies it still shows, and the copies found now - for the
   // checkpoint's answer to name to its player
-  const freed = new Set(lifted);   // COPY-LIFT: a lifted copy is locked no more
-  const locked = [...new Set([...[...shown.keys()].filter((k) => copiesKnown.has(k) && !freed.has(k)), ...copies])].slice(0, LOCKED_SAID_MAX);
-  return { steps, copies, forged, charged, locked, lifted };
+  const locked = [...new Set([...[...shown.keys()].filter((k) => copiesKnown.has(k)), ...copies])].slice(0, LOCKED_SAID_MAX);
+  return { steps, copies, forged, charged, locked };
 }
-
-/** COPY-LIFT: the copies of its own `char` showed twice and shows once again, lifted - written among its findings as a
- *  'dupe' with `lifted`, so the census and staff read when the lock went, as they read when it came (chargeSteps). */
-const liftSteps = (/** @type {any} */ db, /** @type {string} */ char, /** @type {string[]} */ keys, /** @type {number} */ nowS) => [
-  ...overKeys(db, keys, [char], (m) => `DELETE FROM item_dupes WHERE char_id = ?1 AND kind = 'twice' AND uid IN (${m})`),
-  db.prepare("INSERT INTO realm_findings (player, char_id, seq, at, law, kind, detail) SELECT player, id, seq, ?2, ?3, 'dupe', ?4 FROM realm_characters WHERE id = ?1")
-    .bind(char, nowS, JUDGE_VERSION, JSON.stringify({ lifted: keys.slice(0, 40), count: keys.length })),
-];
 
 /** @typedef {{ first: string | null, firstAt: number | null, claimant: string | null, claimAt: number | null, fp: string | null }} CopyWho */
 /** Copies written down: `keys`, each a copy `char` holds - STAFF-PANEL4-CENSUS: found as `kind` (migration 0154), and
@@ -271,6 +230,43 @@ const copyRows = (/** @type {any} */ db, /** @type {string[]} */ keys, /** @type
   /** @type {string | null} */ kind = null, /** @type {(k: string) => CopyWho | null} */ whoOf = () => null) =>
   chunks(keys, DUPE_ROWS).map((part) => db.prepare(`INSERT OR IGNORE INTO item_dupes (uid, char_id, at, kind, first_char, first_at, claimant, claim_at, fp) VALUES ${part.map((_, i) => { const o = 4 + 6 * i; return `(?${o}, ?1, ?2, ?3, ?${o + 1}, ?${o + 2}, ?${o + 3}, ?${o + 4}, ?${o + 5})`; }).join(', ')}`)
     .bind(char, nowS, kind, ...part.flatMap((k) => { const w = whoOf(k); return [k, w?.first ?? null, w?.firstAt ?? null, w?.claimant ?? null, w?.claimAt ?? null, w?.fp ?? null]; })));
+
+/**
+ * FIELD BUGS 2026-10-25b COPY-LIFT (Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
+ * Locked'"): A RECORD'S COPY OF ITS OWN, LIFTED BY THE SERVICE'S OWN HAND. The decorator's Discard wrote a home's chests
+ * back (scenes/decor/decorTool.js CHEST-DRAFT), and every piece stored stood twice in one record - a `twice` copy, both
+ * locked. A copy is lifted ONLY in the batch of a service act that itself leaves the record one of the piece (staff's
+ * purge with `keep` - staffRealm.js): never on a checkpoint's word that the record shows it once, which no service can
+ * tell from a copy moved where the record lists nothing (a deserter revenant's take, a counter, the ground) and brought
+ * back after (AUDIT FB1025b). Of `pieces` (`{ key, fp }`, one of each the act keeps), the keys liftable: a `twice` copy of
+ * `char`'s, no trail check calling it a copier's, its row `char`'s own, held and unclaimed and of that piece, no other
+ * record's copy known. Every other copy stays locked for good.
+ * @param {any} db @param {string} char @param {{ key: string, fp: string }[]} pieces
+ */
+export async function ownCopiesLiftable(db, char, pieces) {
+  const fpOf = new Map(pieces.map((p) => [p.key, p.fp]));
+  /** @type {string[]} */
+  const out = [];
+  for (const part of chunks([...fpOf.keys()], UID_CHUNK)) {
+    const r = await db.prepare(`SELECT d.uid, u.fp FROM item_dupes d JOIN item_uids u ON u.uid = d.uid
+      WHERE d.char_id = ?1 AND ${OWN_COPY_SQL} AND d.uid IN (${marks(part.length, 2)})`).bind(char, ...part).all();
+    for (const row of r?.results ?? []) if (row.fp === fpOf.get(row.uid)) out.push(row.uid);
+  }
+  return out;
+}
+/** COPY-LIFT's law in SQL, over item_dupes `d` and its row item_uids `u` (?1 the record) - asked again by the lift's own
+ *  statement, so a row that moved since the ask is not lifted. */
+const OWN_COPY_SQL = `d.kind = 'twice' AND (d.trail_found IS NULL OR d.trail_found != 'copier')
+  AND u.char_id = ?1 AND u.state = 'held' AND u.claim_char IS NULL
+  AND NOT EXISTS (SELECT 1 FROM item_dupes o WHERE o.uid = d.uid AND o.char_id != ?1)`;
+/** COPY-LIFT: `keys` (ownCopiesLiftable's) lifted on `char`, in the act's own batch - and said among its findings, a
+ *  'dupe' with `lifted`, as the copy was when it came (chargeSteps). */
+export const ownCopyLiftSteps = (/** @type {any} */ db, /** @type {string} */ char, /** @type {string[]} */ keys, /** @type {number} */ nowS) => (!keys.length ? [] : [
+  ...overKeys(db, keys, [char], (m) => `DELETE FROM item_dupes WHERE char_id = ?1 AND uid IN (${m}) AND EXISTS (SELECT 1 FROM item_dupes d JOIN item_uids u ON u.uid = d.uid
+    WHERE d.uid = item_dupes.uid AND d.char_id = ?1 AND ${OWN_COPY_SQL})`),
+  db.prepare("INSERT INTO realm_findings (player, char_id, seq, at, law, kind, detail) SELECT player, id, seq, ?2, ?3, 'dupe', ?4 FROM realm_characters WHERE id = ?1")
+    .bind(char, nowS, JUDGE_VERSION, JSON.stringify({ lifted: keys.slice(0, 40), count: keys.length })),
+]);
 
 /** INT9 (AUDIT): `keys` written down as copies `char` holds - a death's dropped pieces, whose ids the remains carry afresh
  *  (server-account/src/wild.js): never charged, and moved by no route. */
