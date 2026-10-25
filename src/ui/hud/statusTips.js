@@ -10,6 +10,7 @@
 
 import { DISEASE_NAMES, DISEASE_DATA } from '../../systems/diseases.js';
 import { BOON } from '../../systems/survival/needs.js';
+import { t } from '../../systems/textManager.js';   // L10N4: HEARTY-MEAL's line in the player's language
 import { LEVEL_WORDS } from '../../systems/survival/status.js';
 import { STIFF_PENALTY } from '../../systems/survival/rest.js';
 import { WILD_TEXT, zoneWord } from '../../systems/wild/wildZone.js';
@@ -17,7 +18,6 @@ import { madeLevelRule } from '../../systems/madeLevel.js';   // EVENT-RULES: wh
 import { REGEN_HELD_HURT_MS, regenHeldNow } from '../../systems/courtRules.js';
 import { EG_POTIONS_PER_HALL } from '../eliteGates/egHud.js';
 import { SD_REZ_MS } from '../../net/superDungeon/sdLaw.js';   // SD-REZ: the Hour's window for a friend's Resurrect
-import { t } from '../../systems/textManager.js';
 
 /** The attributes as the sheet names them. */
 export const STAT_WORDS = Object.freeze({
@@ -113,6 +113,7 @@ const NEED_LINES = Object.freeze({
 /** A boon's own words (needs.js BOON's numbers, and the hearth's). */
 function boonLines(id) {
   if (id === 'hearth') return ['A lit fire close by gives back fatigue while you are awake.'];
+  if (id === 'meal') return [t('survival.boon.mealTip', 'A hearty tavern meal: you stay fed and your thirst is held while it lasts.')];   // HEARTY-MEAL (survival/needs.js)
   const b = BOON[id];
   if (!b) return [];
   return [`${Object.entries(b).map(([k, n]) => `${n > 0 ? '+' : ''}${n} ${statWord(k)}`).join(', ')}.`];
