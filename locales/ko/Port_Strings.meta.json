@@ -9089,6 +9089,11 @@
   "tr": "9eac4db3657e",
   "by": "claude-in-session"
  },
+ "decor.grants.saving": {
+  "en": "a7a4c5a8657e",
+  "tr": "fe9ab64a9295",
+  "by": "claude-in-session"
+ },
  "decor.grants.shut": {
   "en": "58c210bee165",
   "tr": "ebd41d2c4494",
@@ -10575,8 +10580,8 @@
   "by": "claude-in-session"
  },
  "features.lootRarity.note": {
-  "en": "d1491acb18c4",
-  "tr": "7e465599f87a",
+  "en": "86fb40b04f50",
+  "tr": "6efddefe2b5b",
   "by": "claude-in-session"
  },
  "features.lootRarity.title": {
@@ -15862,6 +15867,16 @@
  "menu.act.begin": {
   "en": "c3651ab2341e",
   "tr": "e89cc866baab",
+  "by": "claude-in-session"
+ },
+ "menu.audio.companionVolume": {
+  "en": "8969b9c3dca8",
+  "tr": "7b070b746dd8",
+  "by": "claude-in-session"
+ },
+ "menu.audio.companionVolumeNote": {
+  "en": "bc23755ffc85",
+  "tr": "c73653a92e2e",
   "by": "claude-in-session"
  },
  "menu.audio.monsterVolume": {
@@ -29389,9 +29404,59 @@
   "tr": "3f784eb61637",
   "by": "claude-in-session"
  },
+ "reforge.imbue.ask": {
+  "en": "3b4d524d18db",
+  "tr": "a8c4c0111a1e",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.confirm": {
+  "en": "2ee73e25e1bc",
+  "tr": "43156dca4920",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.cursed": {
+  "en": "ec3cb0fdc488",
+  "tr": "2042cfc12332",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.done": {
+  "en": "f170c409f54f",
+  "tr": "c93c48bd8f4c",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.gemSet": {
+  "en": "0222ee2f9562",
+  "tr": "a6165145e3cd",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.locked": {
+  "en": "a798882f1c31",
+  "tr": "956f2f42431d",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.none": {
+  "en": "396cb062f4f4",
+  "tr": "eff0608eeb0b",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.refused": {
+  "en": "d74a76ffffe0",
+  "tr": "6829b125911a",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.sub": {
+  "en": "ff8af4b6edfd",
+  "tr": "0ee817223915",
+  "by": "claude-in-session"
+ },
  "reforge.note": {
   "en": "341f6b452635",
   "tr": "ae642bbc517f",
+  "by": "claude-in-session"
+ },
+ "reforge.refusal.cursed": {
+  "en": "183aaeb289f6",
+  "tr": "bdfa9475a3c0",
   "by": "claude-in-session"
  },
  "reforge.refusal.line": {
@@ -34397,6 +34462,16 @@
  "summon.noQuest": {
   "en": "78040ad85087",
   "tr": "3cd1b833b769",
+  "by": "claude-in-session"
+ },
+ "survival.boon.meal": {
+  "en": "de79781f6c72",
+  "tr": "749bd7b4ef95",
+  "by": "claude-in-session"
+ },
+ "survival.boon.mealTip": {
+  "en": "33d0010cf91a",
+  "tr": "125379355e97",
   "by": "claude-in-session"
  },
  "timers.at": {
