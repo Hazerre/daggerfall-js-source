@@ -463,7 +463,8 @@ test('DA13: the shell - the game\'s channel asked first everywhere, served by th
   assert.ok(serve.indexOf('gameStore?.active()') < serve.indexOf('let p = path.normalize(path.join(DIST, rel));'), 'before the install\'s own copy');
   // counted, switched at a document load, proved, given up
   const cw = sliceOf('async function createWindow(', '// ---- the launcher');
-  assert.match(cw, /win\.webContents\.on\('did-start-navigation', \(d\) => \{ if \(d\?\.isMainFrame && !d\.isSameDocument\) playReadyGame\(\); \}\);/);
+  // PIN MOVED (UPDATE-POPUP): only a navigation to the game's own pages switches - one the fence cancels started all the same
+  assert.match(cw, /win\.webContents\.on\('did-start-navigation', \(d\) => \{ if \(d\?\.isMainFrame && !d\.isSameDocument && d\.url\.startsWith\('dagger:\/\/game\/'\)\) playReadyGame\(\); \}\);/);
   assert.match(cw, /gameStore\?\.bootStarting\(\);\s*await win\.loadURL\('dagger:\/\/game\/play\/index\.html'\);/);
   assert.match(cw, /win\.webContents\.on\('did-fail-load', \(_e, code, _text, _url, isMainFrame\) => \{ if \(isMainFrame && code !== -3\) giveUp\('did not load'\); \}\);/);
   // PIN MOVED (FIELD BUGS 2026-10-21b RENDERER-GONE): the stop goes to the trial first, as ever - and a stop the trial does not

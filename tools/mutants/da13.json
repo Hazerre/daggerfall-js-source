@@ -509,5 +509,15 @@
       "test/tooling/da13_gamechannel.test.js"
     ],
     "note": "electron-builder leaves the index out of the shell."
+  },
+  {
+    "name": "DA13-52-a-cancelled-navigation-switches",
+    "file": "app/main.cjs",
+    "old": "if (d?.isMainFrame && !d.isSameDocument && d.url.startsWith('dagger://game/')) playReadyGame();",
+    "new": "if (d?.isMainFrame && !d.isSameDocument) playReadyGame();",
+    "tests": [
+      "test/tooling/da13_gamechannel.test.js"
+    ],
+    "note": "A navigation the fence cancels switches the ready version under the page still running, and the next launch rolls it back."
   }
 ]
