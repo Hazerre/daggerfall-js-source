@@ -12409,6 +12409,126 @@
   "tr": "3e462ced8afc",
   "by": "claude-in-session"
  },
+ "prof.craft.xpFirstBought": {
+  "en": "09224e528df1",
+  "tr": "aceeb244861f",
+  "by": "claude-in-session"
+ },
+ "prof.page.craft.xpBought": {
+  "en": "796b3cae733a",
+  "tr": "77f1cb84b463",
+  "by": "claude-in-session"
+ },
+ "prof.page.craft.xpFirstOwn": {
+  "en": "0cd6f1e210c1",
+  "tr": "ce6449f25791",
+  "by": "claude-in-session"
+ },
+ "prof.page.enchant.cloth": {
+  "en": "5e3a1c7c87e4",
+  "tr": "abc02dc46891",
+  "by": "claude-in-session"
+ },
+ "prof.page.how.outfitting": {
+  "en": "ac56dd54d5ac",
+  "tr": "6b74a0388fff",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.chipped": {
+  "en": "b437eae3da51",
+  "tr": "79b34f828c3e",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.flawed": {
+  "en": "b0de332ef9bc",
+  "tr": "14299d54772e",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.flawless": {
+  "en": "22b9ee43aaa6",
+  "tr": "5b544426be9b",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.perfect": {
+  "en": "241f20a8a1ff",
+  "tr": "a8e747e9ea4a",
+  "by": "claude-in-session"
+ },
+ "prof.page.jewel.grade.plain": {
+  "en": "7fa3b040ed4e",
+  "tr": "b2f3803ced5a",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.noCloth": {
+  "en": "e58a492fe6a1",
+  "tr": "af4d1dd6d779",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spin": {
+  "en": "4a6c11ab8104",
+  "tr": "c6d2b516b4f8",
+  "by": "claude-in-session"
+ },
+ "prof.page.loom.spinning": {
+  "en": "78136208d2fe",
+  "tr": "0f0a9dd7ccaf",
+  "by": "claude-in-session"
+ },
+ "ql.board.head": {
+  "en": "05d05c6f6a06",
+  "tr": "6e0dfe190273",
+  "by": "claude-in-session"
+ },
+ "ql.board.take": {
+  "en": "c689fc7624f3",
+  "tr": "d4e0ae9fee04",
+  "by": "claude-in-session"
+ },
+ "ql.board.takeTitle": {
+  "en": "0bdd5f2c3d5d",
+  "tr": "2f3fe2e29405",
+  "by": "claude-in-session"
+ },
+ "ql.journal.lineOffered": {
+  "en": "07bf16996609",
+  "tr": "188481e04e30",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postBoard": {
+  "en": "b48aa46cc5ca",
+  "tr": "254d36c8f8c0",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postMagery": {
+  "en": "0f27bb922998",
+  "tr": "b2021c2f2f80",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTavern": {
+  "en": "afef99026036",
+  "tr": "75e7db26fc52",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTemple": {
+  "en": "15f1bcb76f3d",
+  "tr": "a7328dbdc299",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUp": {
+  "en": "c1053d9f1913",
+  "tr": "d4e0ae9fee04",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpArmed": {
+  "en": "353746f0aeb1",
+  "tr": "f42cb7f06247",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpTitle": {
+  "en": "52010f457a24",
+  "tr": "5b1c67dec9f0",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "d2519b46d471",
@@ -12422,6 +12542,21 @@
  "ql.line.skyKetch.lead": {
   "en": "95865c449836",
   "tr": "ce9b536b9c47",
+  "by": "claude-in-session"
+ },
+ "ql.offer.noPlace": {
+  "en": "c58adc7df55a",
+  "tr": "baa71a0fdd1a",
+  "by": "claude-in-session"
+ },
+ "ql.offer.notOnOffer": {
+  "en": "ca30bfe9279d",
+  "tr": "ce6d005a3992",
+  "by": "claude-in-session"
+ },
+ "ql.offer.taken": {
+  "en": "5c2c69a3dd8f",
+  "tr": "2569217d609f",
   "by": "claude-in-session"
  },
  "ql.step.QLSK01": {

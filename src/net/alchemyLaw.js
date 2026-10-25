@@ -231,16 +231,17 @@ export const essenceOf = (points, disenchanter = false) => Math.floor(Math.max(0
 /**
  * A DISENCHANT's ENCHANTING XP. DECIDED: 9.3 says Enchanting's XP comes from what the service sees, and names no number:
  * 5 an Essence the piece yields before a Disenchanter's doubling, x THE PIECE's tier - its recipe's, as a craft's XP is
- * (recipeLaw craftXp) - QUARTERED more than two tiers below the rank's top, and NONE for a piece made wholly of goods only a
- * counter sells (recipeLaw firstCraftPays). AUDIT PROF12 E2: it was the RANK's tier, never quartered, so the counter's
+ * (recipeLaw craftXp) - QUARTERED more than two tiers below the rank's top, and NONE for a piece made wholly of goods a
+ * counter sells (recipeLaw firstCraftPays) - CLOTH-GEMS: but where the piece is `own`, made of its maker's own units and
+ * never sold (products.bought_with none - S1 judged by the units). AUDIT PROF12 E2: it was the RANK's tier, never quartered, so the counter's
  * Linen (its robes and cloaks) bought Enchanting to Master for 992 silver - the cheapest track of all; the piece's
  * own tier makes a ring's Essence the jeweller's work it was, and a Master's old Silver Ring the quarter a Master's old
  * craft is. A Gold Ruby Ring's 21 Essence: 315 XP below rank 70, 78 past it.
  * @param {{ tier: number, inputs: readonly { key: string }[] }|null} r the piece's recipe (recipeLaw recipeById)
  */
 export const DISENCHANT_XP = 5;
-export function disenchantXp(r, rank, essence) {
-  if (!firstCraftPays(/** @type {any} */ (r)) || !Number.isSafeInteger(r?.tier)) return 0;
+export function disenchantXp(r, rank, essence, own = false) {
+  if (!firstCraftPays(/** @type {any} */ (r), own) || !Number.isSafeInteger(r?.tier)) return 0;
   const tier = /** @type {number} */ (r?.tier);
   const xp = DISENCHANT_XP * tier * (Number.isSafeInteger(essence) && essence > 0 ? essence : 0);
   return tier < topTierOf(rank) - 2 ? Math.floor(xp / 4) : xp;

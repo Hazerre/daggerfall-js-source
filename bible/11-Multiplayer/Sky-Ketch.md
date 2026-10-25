@@ -535,7 +535,7 @@ A body drops once, only on a fresh fall (`scenes/ketch/ketchFight.js` `fell`). A
 `KT_CONSTRUCT_PELLETS_MAX` (90), so nobody farms the vents. With no deck to lay them on, they go into the pack. This adds
 to the chest's 20 to 40 a share.
 
-**The raid retuned** (`RELAY_VERSION` world257). The live run went in about six minutes solo: the Watch in 24 s, the
+**The raid retuned** (`RELAY_VERSION` world258 - world257 on its branch, renumbered past STAFF-EVENT BOSS at the merge). The live run went in about six minutes solo: the Watch in 24 s, the
 Wardens in 7, the engine in 58, the Warden in 208.
 - **The Boarding Watch:** five waves (`KT_WATCH_WAVES`, `net/ketch/ketchLaw.js`, the brain's and the HUD's one number),
   each fuller than before: spheres; spheres and sentries; more of both; the sentries' wall; the Watch-Captain with
@@ -552,5 +552,5 @@ Wardens in 7, the engine in 58, the Warden in 208.
 
 **PIN MOVED:** `ketch_brain.test.js` (the numbers, the Watch's five waves), `ketch_deck.test.js` (the engine's appetite),
 `ketch_warden.test.js` (the share and the end), `ketch_hud.test.js` (the first wave's spheres), `relayversion.test.js`
-(world257). Re-aimed by content: `ketch_brain.json` (2), `ketch_deck.json` (1), `ketch_warden.json` (1), each run once
+(world258). Re-aimed by content: `ketch_brain.json` (2), `ketch_deck.json` (1), `ketch_warden.json` (1), each run once
 and dead.
