@@ -278,7 +278,8 @@ import { dungeonTier } from '../systems/dungeon/dungeonTier.js';   // SD4a: the 
 import { ENEMY_BASICS, enemyDisplayName, enemyEntityType, isClassEnemyId } from '../characters/enemy/enemyBasics.js';
 import { setupFoeLook } from '../characters/enemy/foeLook.js';   // DEX2: SetupDemoEnemy.cs:129-151, the mobile's renderer
 import { foeTitle } from '../systems/foeTitle.js';   // FOE-TITLE: what a revenant, a champion or an elite is called
-import { bossStrikeAt, bossTakeAt, eliteTraits, giveBossTraits, relayBossTraits, bossTraitWords, bossTraitsMetLine } from '../systems/bossTraits.js';   // BOSS-TRAITS: a hard foe's own rules
+import { bossStrikeAt, bossTakeAt, eliteTraits, giveBossTraits, relayBossTraits, bossTraitWords, bossTraitsMetLine, bossClockS } from '../systems/bossTraits.js';   // BOSS-TRAITS: a hard foe's own rules
+import { traitWire, traitWireKey, readTraitWire, traitsAuthority, hostLordTraits, strikeTraits, traitsFrame } from './foeTraitsHost.js';   // AUDIT WORLD-EVENTS: the room's word on a copy's traits, the Spire's lords'
 import { revenantFleeStep, revenantFleeHealth, revenantDeed, revenantSlain, revenantSay, revenantFleeEvent, revenantCorneredEvent, revenantEscapeEvent, revenantSlainEvent, revenantUnbrokenEvent, revenantFlinch, revenantSignatureEvent, revenantById, applyRevenant, grantRevenantLoot, revenantForLair, releaseRevenantStand, revenantSpawnOptions, revenantTauntEvent, revenantWakeEvent, revenantToReturn, REVENANT_TAUNT_DISTANCE, revenantStale } from '../systems/revenant/revenant.js';   // RVN7d: a revenant in its lair, its taunt, its band, a rest's return
 import { revenantMayYield, beginYield, yieldStep, slipEvent, kneelPose, beginExecution, executionStep, finishExecution, beginSpare, spareDone, fateDissolve, fateModel, dropFateHeld, revenantWillHolds, beginTearAway, revenantLastStandDue, beginLastStand, roarStep, ownersWholeKill } from '../systems/revenant/revenantFate.js';   // REVENANT-FATE: beaten, it yields - kill it or spare it (the open world's law, one home); RVN-OWNERS-CHOICE: a whole blow closes it only as its owner's
 import { setBatchDissolve } from '../systems/dissolve.js';   // DISSOLVE
@@ -4411,12 +4412,13 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const out = [];
     for (const q of list) {
       if (!q?.entity || !Array.isArray(q.feet) || !(q.height > 0) || !(q.radius > 0) || !Number.isInteger(q.i)) continue;
+      hostLordTraits(q, (l) => hudText.add(l));   // AUDIT WORLD-EVENTS L5-4: a Spire lord carries its two traits, as the court's Warden does
       out.push({ host: q.i, m: q.m ?? 0, bloodOf: { maxHealth: q.m > 0 ? q.m : 0 }, dead: false, entity: q.entity, mobileType: q.mobile ?? null, ai: { feet: q.feet, yaw: 0, height: q.height, radius: q.radius, centreOffset: q.height / 2, isHostile: true } });
     }
     return out;
   }
   /** A blow's number on one of his host, out to the relay through the court's door; answers whether it went. */
-  const landOnHost = (hb, damage, r, tick = false) => { damage += takeOwed(hb.entity); return sdRemnant ? sdRemnant.echoHit({ i: hb.host, d: damage, r }) : !!opts.onHostHit?.({ i: hb.host, d: damage, r, tick }); };   // SD8c: an Echo's, to the realm; OPEN-HAND: and the follow-up the blow owes
+  const landOnHost = (hb, damage, r, tick = false) => { damage = (r === HIT_KINDS.Melee || r === HIT_KINDS.Shaft ? bossStrikeAt(hb.entity, damage, r === HIT_KINDS.Shaft ? 'arrow' : 'melee', r === HIT_KINDS.Melee ? playerWeapon.strikingWeapon : null, null, false, (n) => hurtPlayer(n)) : damage) + bossStrikeAt(hb.entity, takeOwed(hb.entity), 'melee', playerWeapon.strikingWeapon, null, false, null); return sdRemnant ? sdRemnant.echoHit({ i: hb.host, d: damage, r }) : !!opts.onHostHit?.({ i: hb.host, d: damage, r, tick }); };   // SD8c: an Echo's, to the realm; OPEN-HAND: and the follow-up the blow owes; AUDIT WORLD-EVENTS L5-4: a lord's traits on my swing and my shaft (a spell's claim is resisted in standInSpell.js onBody); L2-2: and the owed blow
   /** Its middle, where a blow on it sounds and splashes. */
   const hostChest = (hb) => [hb.ai.feet[0], hb.ai.feet[1] + hb.ai.centreOffset, hb.ai.feet[2]];
   /** A swing of mine that met one of his host (resolveHit's own verdict and number): a zero blow's parry as its mobile
@@ -4484,7 +4486,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   function wardTurns(boss) { audio.play3d(SOUND.Parry6, bossChest(boss), ENEMY_HIT_VOLUME, { maxDistance: 24 }); }
   /** A blow's number on him, out to the relay through the court's door; answers whether it went. */
   function landOnBoss(boss, damage, r) {
-    damage += takeOwed(boss.entity);   // FIELD BUGS 2026-10-12g OPEN-HAND: Open Hand's second blow (Many Endings' echo) in the blow's one claim
+    damage += bossStrikeAt(boss.entity, takeOwed(boss.entity), 'melee', playerWeapon.strikingWeapon, null, false, null);   // AUDIT WORLD-EVENTS L2-2: resisted as the swing it follows was; FIELD BUGS 2026-10-12g OPEN-HAND: Open Hand's second blow (Many Endings' echo) in the blow's one claim
     if (boss.warded) { wardTurns(boss); return false; }
     return sdRemnant ? sdRemnant.hit({ d: damage, r }) : !!opts.onBossHit?.({ d: damage, r });   // SD8c: the Remnant's, to the realm
   }
@@ -5172,8 +5174,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (f.dead && f.corpseDestroyed) r.bg = f.corpseDestroyed;   // DEX5b: the body a mod's prefab destroyed (1 risen, 2 burnt) - every copy loses it too
     // FLAGGED (bible/12-Enhanced-AI/Feud-Arc.md 10.1, section 32): this stream carries none of the street record's z, nm, yd, ex or sp - FEUD adds its own fields alone (RVN13: so no band follower's rt either)
     if (!f.dead && f.ai._tac && !f.ai._tac.puppet) Object.assign(r, blowWire(f.ai, tacticsNow()));   // TELL8 (10.1): its wind-up, its stagger, its overreach (the room's own frame) - a foe with a brain
+    Object.assign(r, traitWire(f.entity, seeded));   // AUDIT WORLD-EVENTS L2-3: its wrath, its ward's share (an own lane's elite its mark and traits) - every joiner's copy as mine
     if (f.entity?.revenant) Object.assign(r, feudWire(f.entity.revenant));   // RVN13 (Feud-Arc.md 25): its adaptations, its weakness, its last stand (no name rides here, so no follower's `rt` - the gap the line above names); AUDIT FEUD: a new authority's too
-    const key = `${r.f[0]},${r.f[1]},${r.f[2]},${r.y},${r.h},${r.d},${r.bg ?? 0},${r.a},${r.m},${r.g},${r.c},${r.s},${r.n},${r.j},${r.v},${r.ad ?? 0},${r.wq ?? -1},${r.p2 ?? 0},${r.rb ?? 0}${r.wk !== undefined || r.ws !== undefined ? `,${blowWireKey(r)}` : ''}`;   // TELL8: and the wind-up's (never `wl`); RVN13: and a revenant's own
+    const key = `${r.f[0]},${r.f[1]},${r.f[2]},${r.y},${r.h},${r.d},${r.bg ?? 0},${r.a},${r.m},${r.g},${r.c},${r.s},${r.n},${r.j},${r.v},${r.ad ?? 0},${r.wq ?? -1},${r.p2 ?? 0},${r.rb ?? 0},${traitWireKey(r)}${r.wk !== undefined || r.ws !== undefined ? `,${blowWireKey(r)}` : ''}`;   // TELL8: and the wind-up's (never `wl`); RVN13: and a revenant's own
     // AUDIT SETS M1: the maximum - every full frame owes it again (and pays it, fitMaxima), a delta pays a few owed
     if (full) f._maxSent = undefined;
     const max = foeMaxOf(f);
@@ -5778,6 +5781,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (Array.isArray(r.f) && r.f.length === 3 && r.f.every(Number.isFinite)) { p.feet[0] = r.f[0]; p.feet[1] = r.f[1]; p.feet[2] = r.f[2]; p.tm = appliedOwnerTm(); }   // OWNER-CLOCK: the owner's moment for these feet (net/ownerClock.js) - null for a build landing after its frame
     if (Number.isFinite(r.y)) p.yaw = r.y;
     p.moving = !!r.m;
+    readTraitWire(f.entity, r, (l) => hudText.add(l), () => foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? '');   // AUDIT WORLD-EVENTS L2-3 / L2-7: the host's word on its traits - an own lane's elite, its wrath, its ward
     if (Number.isFinite(r.k)) f.entity.maxHealth = r.k;   // AUDIT SETS M1: the host's maximum - "under half" is its word (the copy was rolled at MY level)
     if (Number.isFinite(r.h)) { if (r.h < f.entity.health) p.hurt = true; f.entity.health = r.h; }
     // RVN13 (Feud-Arc.md 25): the host's revenant's adaptations, weakness and second phase on my copy - stood again only when they change;
@@ -5909,7 +5913,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (hs) {
       magic.applySpellToFoe(hs.spell, hs.level, f, { entity: { level: hs.level } }, { peerCaster: id }, {
         ...foeSinks(f),
-        hurt: (n, o) => damageFoe(f, n, null, null, { fromPlayer: true, peer: true, peerId: id, kind: 'spell', whole: !!o?.whole }),
+        hurt: (n, o) => damageFoe(f, bossStrikeAt(f.entity, n, 'spell', null, o?.element ?? null, !!o?.whole, null), null, null, { fromPlayer: true, peer: true, peerId: id, kind: 'spell', whole: !!o?.whole, element: o?.element ?? null }),   // AUDIT WORLD-EVENTS L2-1: a joiner's strike spell landing here whole - its element resisted here, every round of it too
       });
     }
     return true;
@@ -5943,6 +5947,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     _foesSeqIn = -1;
     for (const f of [...foes.slice(0, _layoutFoes), ..._sharedById.values()]) {   // REST-SYNC: the room's encounters hand over too
       if (!f) continue;
+      traitsAuthority(f.entity, on);   // AUDIT WORLD-EVENTS L2-7: a ward is the stepping client's - a copy I only draw keeps none
       if (on) {
         const p = f._pup;
         if (p) { f.ai.feet[0] = p.feet[0]; f.ai.feet[1] = p.feet[1]; f.ai.feet[2] = p.feet[2]; f.ai.yaw = p.yaw; }
@@ -6736,7 +6741,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // AUDIT PSCALE1 DOORS-1: a KILL is not a blow - a Disintegrate, a stat drained to zero (the sinks' `whole`), the
     // Razor's whole-health strike (its mark on the foe) - and no fighters' toughness divides it, here or at the host
     const _whole = whole || takeWholeBlow(foe.entity);
-    if (fromPlayer && !peer) damage = bossStrikeAt(foe.entity, damage, kind, weapon, element, _whole, (n) => hurtPlayer(n));   // BOSS-TRAITS: MY blow - resisted, its thorns at me - before a puppet's goes to the host
+    if (fromPlayer && !peer) damage = strikeTraits(foe.entity, damage, kind, weapon, element, _whole || bypassShield, (n) => hurtPlayer(n), (l) => hudText.add(l));   // AUDIT WORLD-EVENTS L2-10: a SetHealth(0) a kill; L5-6: each trait's rule told once   // BOSS-TRAITS: MY blow - resisted, its thorns at me - before a puppet's goes to the host
     // TELL8 (10.4): MY blow on a puppet winding up rides to its owner with its class - its K, my feet against its facing;
     // AUDIT FEUD: a blow of its weakness rides winding up or not (RVN13: the host's reveal)
     const _wc = fromPlayer && !peer && foe._ownFrom !== ARENA_PUPPET_OWNER ? blowClassOf(foe.ai, { kind, weapon, claws: !weapon && !!playerEntity?.isInBeastForm, round }, playerFeet, !round && damage > 0 && feudWeakBlow(foe.entity, { kind, weapon, element, attacker: playerEntity })) : null;   // AUDIT TELL: from behind judged from the blow's own feet, as the local door judges it (windupDoor's `from`) - a round with none is never from behind
@@ -6861,7 +6866,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // runs BEFORE DecreaseHealth (WeaponManager.cs:576-596, :627), and
     // HandleAttackFromSource runs after it unconditionally (:630), so
     // a fully absorbed blow still knocks back and still turns the foe.
-    damage = bossTakeAt(foe.entity, damage, _whole, Date.now() / 1000, (l) => hudText.add(l), () => foeTitle(foe.entity, enemyDisplayName(foe.mobileType)) ?? '');   // BOSS-TRAITS: its curb, its ward, its wrath - where its health is
+    damage = bossTakeAt(foe.entity, damage, _whole || bypassShield, bossClockS(), (l) => hudText.add(l), () => foeTitle(foe.entity, enemyDisplayName(foe.mobileType)) ?? '', { blow: fromPlayer || striker != null || kind !== 'melee', mine: fromPlayer });   // AUDIT WORLD-EVENTS L2-5 / L2-10   // BOSS-TRAITS: its curb, its ward, its wrath - where its health is
     const healthDamage = bypassShield ? damage : damageShieldPool(foe.entity, damage);
     // AUDIT PSCALE1 (Mac: "Whoever fights it"): every player's blow names a fighter - mine, and a joiner's through
     // applyHit - here where the host hears them all
@@ -7478,6 +7483,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // (dead included - a corpse's component still runs in DFU, and the
     // kill credit lands the update AFTER health hit zero).
     for (const f of foes) { f.questBehaviour?.update(); if (f._keptTag || (f.questBehaviour && f._ownFrom == null)) keptKillTick(f); }   // DESYNC-ZERO: and my own quest foe's fall is said to the party   // KEPT-KILL: and a foe kept on a partner's word says its fall
+    traitsFrame(foes, _authority, dt, (l) => hudText.add(l), (f) => foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? '');   // AUDIT WORLD-EVENTS L2-5: the traits' clock (drawFoes runs with no window up), and a wrath come due turns on it
     // AUDIT 18 F5: the rest clock USED to tick here, which made it
     // unreachable - drawFoes only runs when NO overlay is up, and the
     // rest window IS an overlay. It ticks from tickOverlay now, called

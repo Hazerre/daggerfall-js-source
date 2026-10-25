@@ -21,7 +21,7 @@ import {
   RAID_KIND_ORDER, STAFF_KIND, raidKindOf, raidWavePlan, raidWaveAt, RAID_WAVES_FOR, RAID_WAVE_BREATHER_S, RAID_LEADER_TRAITS,
   raidLeaderOf, raidLeaderName, raidKindAsk, raidKindName, raidWaveLine, raidLeaderLine, raidBearerFellLine,
   raidRefugeeSafeLine, raidRefugeeLostLine, raidHeldLine, raidObjectiveDetail, alongWay, wayLength, RAID_REFUGEES,
-  RAID_REFUGEE_PACE, RAID_REFUGEE_WAIT_M, RAID_BEARER_HEALTH_X, RAID_BEARER_LEASH_M, RAID_REFUGEE_HEALTH_X, RAID_AIM_MS,
+  RAID_REFUGEE_PACE, RAID_REFUGEE_WAIT_M, RAID_BEARER_HEALTH_X, RAID_BEARER_LEASH_M, RAID_REFUGEE_HEALTH_X, RAID_AIM_TICKS,
 } from '../../src/systems/raidKinds.js';
 import { validRaidObjWords, RAID_WORDS_MAX } from '../../src/world/raidShared.js';
 import { rollRaidSpoils, RAID_HELD_GOLD_X } from '../../src/systems/raidSpoils.js';
@@ -214,7 +214,7 @@ test('RAID5 THE STANDARD, run: its bearer stands at the square first; the raider
   assert.deepEqual(log.bearers[0].ai.feet, SQUARE, 'at the square');
   await run(20, 1, () => log.raiders.length >= 2);
   assert.ok(log.raiders.length >= 2 && log.raiders.length <= 3, 'a pack');
-  assert.ok(log.aims.every(([, g, ms]) => g === log.bearers[0] && ms === RAID_AIM_MS) && log.aims.length === log.raiders.length, 'each sent at the bearer');
+  assert.ok(log.aims.every(([, g, ms]) => g === log.bearers[0] && ms === RAID_AIM_TICKS) && log.aims.length === log.raiders.length, 'each sent at the bearer');
   assert.ok(log.said.includes(raidKindAsk('defend', TOWN)));
   log.bearers[0].entity.health = 5;
   assert.deepEqual(raidTimerList(() => 0).map((r) => [r.kind, r.obj]), [['Siege of the Standard', 'Standard 50%']]);
@@ -360,7 +360,7 @@ test('RAID5 the sites host on a grid of its own: the square the walkable cell ne
   assert.ok(!blocked.has(cell.join()) && Math.max(Math.abs(cell[0] - 10), Math.abs(cell[1] - 10)) === 1, 'the nearest walkable to the middle');
   const north = sites.way(0), west = sites.way(3);
   assert.deepEqual(north.at(-1), sq, 'to the square');
-  assert.ok(north[0][2] < sq[2] - 5 * NAV_CELL && Math.abs(north[0][0] - sq[0]) < 2 * NAV_CELL, 'from the north edge');
+  assert.ok(north[0][2] > sq[2] + 5 * NAV_CELL && Math.abs(north[0][0] - sq[0]) < 2 * NAV_CELL, 'from the north edge');   // PIN MOVED (AUDIT WORLD-EVENTS L4-9): north is +z, the grid's far rows - the near ones were called north
   assert.ok(west[0][0] < sq[0] - 5 * NAV_CELL, 'from the west');
   const g = await sites.standBearer(SQUARE);
   assert.equal(g.entity.maxHealth, 30 * RAID_BEARER_HEALTH_X);
@@ -381,15 +381,15 @@ test('RAID5 the sites host on a grid of its own: the square the walkable cell ne
 
 test('RAID5 the hosts by source: the world host hands the raids its sites - the town\'s, the watch\'s bearer, the pool\'s refugees - says the objective beside the raid\'s word and hears a peer\'s; the pool names its refugees to every reader as allies; the thanks of a town held are richer (mutants: the sites unwired; the word unsent; the refugees hostile at a reader; the held thanks unread)', () => {
   const w = rd('src/scenes/world.js');
-  assert.match(w, /const raidSites = createRaidSites\(\{ townAt: wardenTownAt, feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards\.standBearer, spawnFoe: exteriorFoes\.spawnFoe \}\);/);
+  assert.match(w, /const raidSites = createRaidSites\(\{ townAt: wardenTownAt, townAtPixel: \(px, py\) => wardenTownOfPixel\(built\.values\(\), \(x, y\) => state\.pixelTranslation\(x, y, _wardenT\), px, py\), feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards\.standBearer, spawnFoe: exteriorFoes\.spawnFoe \}\);/);   // PIN MOVED (AUDIT WORLD-EVENTS L4-4): and the raid's own town, off its pixel
   const at = w.indexOf('  setRaidingPartiesHost({');
   assert.match(w.slice(at, w.indexOf('\n  });', at)), /sites: \(\) => raidSites,/);
   assert.match(w, /const rk = raidWireWord\(\), ro = raidObjWord\(\); if \(rk\) frame\.rk = rk; if \(ro\) frame\.ro = ro;/);
   assert.match(w, /exteriorFoes\.setOnRaids\(\(from, rk, at, ro\) => raidPeerWord\(from, rk, at, ro\)\);/);
-  assert.match(w, /raidSpoilsList\(c\.c, level, c\.y, raidWasHeld\(c\.w\)\)/);
+  assert.match(w, /raidSpoilsList\(c\.c, level, c\.y, typeof entry\.hd === 'boolean' \? entry\.hd : raidWasHeld\(c\.w\)\)/);   // PIN MOVED (AUDIT WORLD-EVENTS L3-14): held as the receipt came, for the character that fought
   const x = rd('src/scenes/exteriorFoes.js');
   assert.match(x, /if \(data\.rk !== undefined \|\| data\.ro !== undefined\) _onRaids\?\.\(from, data\.rk, _now\(\), data\.ro\);/);
   assert.match(x, /refugees = validAlliedIds\(data\.rf\)/);
-  assert.match(rd('src/scenes/cityGuards.js'), /standBearer: \(pos, yaw = 0\) => spawnGuardAt\(\[\.\.\.pos\], yaw, null, \{ defender: true \}\)/);
+  assert.match(rd('src/scenes/cityGuards.js'), /standBearer: \(pos, yaw = 0\) => spawnGuardAt\(\[\.\.\.pos\], yaw, null, \{ defender: true, bearer: true \}\)/);   // PIN MOVED (AUDIT WORLD-EVENTS L4-6): and the watch's lifecycle passes him by
   assert.ok(MAX_RAID_ENEMIES >= 3);
 });

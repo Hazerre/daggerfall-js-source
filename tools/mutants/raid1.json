@@ -240,8 +240,8 @@
   {
     "name": "RAID1-leaving-keeps-the-spawn",
     "file": "src/systems/raidingParties.js",
-    "old": "if (!raid) { cancelPending(); _myClaims.clear(); return 'idle'; }",
-    "new": "if (!raid) { _myClaims.clear(); return 'idle'; }",
+    "old": "  if (!raid) { cancelPending(); for (const key of _myClaims.keys()) letGoAllies(key); _myClaims.clear(); return 'idle'; }",
+    "new": "  if (!raid) { for (const key of _myClaims.keys()) letGoAllies(key); _myClaims.clear(); return 'idle'; }",
     "tests": ["test/systems/raid1_raidingParties.test.js"]
   },
   {

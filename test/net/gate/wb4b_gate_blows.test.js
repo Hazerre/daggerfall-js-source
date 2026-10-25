@@ -135,7 +135,7 @@ test('WB4b the seams, by source: the dungeon context meets him as a foe-shaped b
   assert.match(sis, /const went = land\(body, dealt, HIT_KINDS\.Spell\);/);   // PIN MOVED (FIELD BUGS 2026-10-19f BOSS-DOT)
   assert.match(dc, /castAtBoss: opts\.gateBoss \? \(sp, caster\) => spellOnBoss\(sp, caster\) : null,/);   // PIN MOVED (AUDIT SCHOOLS L2 F4): and the cast's wrapper
   // PIN MOVED (FIELD BUGS 2026-10-12g OPEN-HAND): a follow-up the blow owes him rides its one claim, taken first
-  assert.match(dc, /function landOnBoss\(boss, damage, r\) \{\n\s*damage \+= takeOwed\(boss\.entity\);[^\n]*\n\s*if \(boss\.warded\) \{ wardTurns\(boss\); return false; \}\n\s*return sdRemnant \? sdRemnant\.hit\(\{ d: damage, r \}\) : !!opts\.onBossHit\?\.\(\{ d: damage, r \}\);/);   // PIN MOVED (SD8c): the Remnant's in the Hour
+  assert.match(dc, /function landOnBoss\(boss, damage, r\) \{\n\s*damage \+= (?:takeOwed\(boss\.entity\)|bossStrikeAt\(boss\.entity, takeOwed\(boss\.entity\), 'melee', playerWeapon\.strikingWeapon, null, false, null\));[^\n]*\n\s*if \(boss\.warded\) \{ wardTurns\(boss\); return false; \}\n\s*return sdRemnant \? sdRemnant\.hit\(\{ d: damage, r \}\) : !!opts\.onBossHit\?\.\(\{ d: damage, r \}\);/);   // PIN MOVED (SD8c): the Remnant's in the Hour
   const hm = read('src/scenes/hostMagic.js');
   // WBX7: the harmful families - and a Soul Trap, which met nobody before (it passed straight through him)
   assert.match(hm, /function bossMarksFor\(sp\) \{\n\s*if \(!bossMark \|\| !castAtBoss \|\| !sp \|\| !\(duelSpellOf\(sp\) \|\| \(sp\.effects \?\? \[\]\)\.some\(\(e\) => e && isSoulTrapEffect\(e\)\) \|\| spellSways\(sp\)\)\) return \[\];/, 'the harmful families, a soul trap - and WB8a: a sway, refused at him');

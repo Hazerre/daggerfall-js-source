@@ -79,8 +79,8 @@
   {
     "name": "RAID5-the-waves-size-ignored",
     "file": "src/systems/raidingParties.js",
-    "old": "return kindPackStep(raid, Math.min(at.left, MAX_RAID_ENEMIES) - liveRaiders(key).length - puppets,",
-    "new": "return kindPackStep(raid, MAX_RAID_ENEMIES - liveRaiders(key).length - puppets,",
+    "old": ": Math.min(at.left, MAX_RAID_ENEMIES) - standing - puppets.length;",
+    "new": ": MAX_RAID_ENEMIES - standing - puppets.length;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
@@ -107,14 +107,14 @@
   {
     "name": "RAID5-the-wave-said-never",
     "file": "src/systems/raidingParties.js",
-    "old": "was = _objSaid.get(key) ?? [-1, -1, -1];",
-    "new": "was = _objSaid.get(key) ?? [-1, 0, 0];",
+    "old": "  const was = raid.ow ?? [-1, -1, -1];",
+    "new": "  const was = raid.ow ?? [-1, 0, 0];",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
     "name": "RAID5-the-bearer-unstood",
     "file": "src/systems/raidingParties.js",
-    "old": "  if (!raid.sacked && !_live.some((e) => e.key === key && e.kind === 'bearer')) { spawn(raid, 'bearer', null, o.post); return 'bearer'; }",
+    "old": "  if (!raid.sacked && !b) { spawn(raid, 'bearer', null, o.post); return 'bearer'; }\n",
     "new": "",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
@@ -135,15 +135,15 @@
   {
     "name": "RAID5-the-town-held-when-sacked",
     "file": "src/systems/raidingParties.js",
-    "old": "if (kind === 'defend') return !!w && w[2] !== 1 && !raid.sacked;",
-    "new": "if (kind === 'defend') return !!w;",
+    "old": "if (kind === 'defend') return !raid.sacked && raid.stAt != null && localNow() - raid.stAt <= RAID_STANDARD_FRESH_MS;",
+    "new": "if (kind === 'defend') return raid.stAt != null && localNow() - raid.stAt <= RAID_STANDARD_FRESH_MS;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
     "name": "RAID5-a-reader-held-with-no-word",
     "file": "src/systems/raidingParties.js",
-    "old": "if (kind === 'defend') return !!w && w[2] !== 1 && !raid.sacked;",
-    "new": "if (kind === 'defend') return (!w || w[2] !== 1) && !raid.sacked;",
+    "old": "if (kind === 'defend') return !raid.sacked && raid.stAt != null && localNow() - raid.stAt <= RAID_STANDARD_FRESH_MS;",
+    "new": "if (kind === 'defend') return !raid.sacked;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
@@ -156,15 +156,15 @@
   {
     "name": "RAID5-a-fall-saved",
     "file": "src/systems/raidingParties.js",
-    "old": "if (e.foe.dead) { e.done = true; raid.lost = (raid.lost | 0) + 1; }",
-    "new": "if (e.foe.dead) { e.done = true; raid.safe = (raid.safe | 0) + 1; }",
+    "old": "if (e.foe.dead) { e.done = true; if (e.foe.corpse) raid.lost = (raid.lost | 0) + 1; }",
+    "new": "if (e.foe.dead) { e.done = true; if (e.foe.corpse) raid.safe = (raid.safe | 0) + 1; }",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
     "name": "RAID5-the-held-count-off-by-one",
     "file": "src/systems/raidingParties.js",
-    "old": "return Math.max(raid.safe | 0, w?.[1] ?? 0) >= RAID_REFUGEES_HOLD;",
-    "new": "return Math.max(raid.safe | 0, w?.[1] ?? 0) > RAID_REFUGEES_HOLD;",
+    "old": "if (kind === 'escort') return (raid.safe | 0) >= RAID_REFUGEES_HOLD;",
+    "new": "if (kind === 'escort') return (raid.safe | 0) > RAID_REFUGEES_HOLD;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
@@ -191,8 +191,8 @@
   {
     "name": "RAID5-the-takeover-forgetting",
     "file": "src/systems/raidingParties.js",
-    "old": "  if (kindOf(raid) === 'defend' && p.b === 1) raid.sacked = true;",
-    "new": "",
+    "old": "  if (kind === 'defend') { if (w.b === 1) raid.sacked = true; else raid.stAt = t; }",
+    "new": "  if (kind === 'defend') { if (w.b === 2) raid.sacked = true; else raid.stAt = t; }",
     "tests": ["test/systems/raid5_kinds.test.js"]
   },
   {
@@ -240,8 +240,8 @@
   {
     "name": "RAID5-the-way-from-the-wrong-side",
     "file": "src/scenes/raidSitesHost.js",
-    "old": "[((side | 0) % 4 + 4) % 4]",
-    "new": "[0]",
+    "old": "      const k = ((side | 0) % 4 + 4) % 4;",
+    "new": "      const k = 0;",
     "tests": ["test/systems/raid5_kinds.test.js"]
   }
 ]

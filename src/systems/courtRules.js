@@ -22,13 +22,12 @@
 // (systems/arcanePowers.js) and the Firmament's hpRegen (systems/firmamentPowers.js), which healed whole inside the pause.
 // AUDIT WORLD-EVENTS L1-9: each BODY carries its own fractions (the player's, and every foe's its own) - one carry for all
 // the foes handed one foe's halves to the next. L1-10: the pause starts at the player's HURT DOOR (characters/
-// playerEntity.js registerPlayerHurtListener - a blow, a spell, a fall, a poison's round), not off a frame's health: a
-// maximum that fell with its share kept is no hurt, a hit healed in the same frame is one, and a frame of the mode's
-// change that reads no made level ends no pause.
+// playerEntity.js registerPlayerHurtListener - a blow, a spell, a fall, a poison's round; wired by systems/
+// courtRulesDoor.js, the client's own: the account Worker bundles this file), not off a frame's health: a maximum that
+// fell with its share kept is no hurt, a hit healed in the same frame is one, and a frame of the mode's change that reads
+// no made level ends no pause.
 //
 // Offline and outside a made level the switch is off and nothing changes. Not a DFU member. Ledger A (WB; EVENT-RULES).
-import { registerPlayerHurtListener } from '../characters/playerEntity.js';
-
 /** A held regeneration heals this share of its round. */
 export const REGEN_HELD_SHARE = 0.5;
 /** ...and none for this long after the player last lost health (ms). */
@@ -57,7 +56,6 @@ export function setCourtRules(on, nowMs = performance.now()) {
 export function courtRulesHurt(hurt) {
   if (_on && hurt && hurt.after < hurt.before) _hurtAt = _now;
 }
-registerPlayerHurtListener('court-rules', (_e, hurt) => courtRulesHurt(hurt));
 /** The pins' fresh start: off, no pause, nothing carried. */
 export function _resetCourtRulesForTests() { setCourtRules(false, 0); _hurtAt = -Infinity; }
 

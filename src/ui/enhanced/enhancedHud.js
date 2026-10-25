@@ -1199,6 +1199,8 @@ export function drawEnhancedHud(vitals, heading01, dt = 0, opts = {}) {
     put(parts.foeName, 'foeName', t.name);
     const traits = (t.traits ?? []).join(' \u00b7 ');   // BOSS-TRAITS: every trait's word; its ward's share of its health over the bar
     put(parts.foeTraits, 'foeTraits', traits);
+    const rules = (t.rules ?? []).join('\n');   // AUDIT WORLD-EVENTS L5-6: what each trait does, the line's tip
+    if (last.foeRules !== rules) { last.foeRules = rules; parts.foeTraits.title = rules; }
     if (last.foeTraited !== !!traits) { last.foeTraited = !!traits; parts.foe.classList.toggle('traited', !!traits); }
     width(parts.foeWard, 'foeWard', Math.max(0, Math.min(100, ((t.ward ?? 0) / t.maxHealth) * 100)));
     width(parts.foeFill, 'foeFill', foePct);

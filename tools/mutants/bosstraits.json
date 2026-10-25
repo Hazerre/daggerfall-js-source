@@ -85,7 +85,7 @@
   {
     "name": "BOSS-TRAITS-the-ward-never-breaks",
     "file": "src/systems/bossTraits.js",
-    "old": "    broke = w.now > 0 && entity.bossWard.now <= 0;",
+    "old": "    broke = w.now > 0 && entity.bossWard.f <= 0;",
     "new": "    broke = false;",
     "tests": [
       "test/systems/bosstraits.test.js",
@@ -104,8 +104,8 @@
   {
     "name": "BOSS-TRAITS-the-wrath-from-the-last-wound",
     "file": "src/systems/bossTraits.js",
-    "old": "  if (traits.includes('wrathful') && entity.bossWrathFrom == null) entity.bossWrathFrom = nowS;",
-    "new": "  if (traits.includes('wrathful')) entity.bossWrathFrom = nowS;",
+    "old": "if (traits.includes('wrathful') && entity.bossWrathFrom == null) entity.bossWrathFrom = nowS; }",
+    "new": "if (traits.includes('wrathful')) entity.bossWrathFrom = nowS; }",
     "tests": [
       "test/systems/bosstraits.test.js"
     ]
@@ -122,8 +122,8 @@
   {
     "name": "BOSS-TRAITS-the-relay-boss-unseeded",
     "file": "src/systems/bossTraits.js",
-    "old": "rollBossTraits(2, eliteRng(eliteHash('relay-boss', name ?? '', kind ?? '')), RELAY_BOSS_TRAITS)",
-    "new": "rollBossTraits(2, Math.random, RELAY_BOSS_TRAITS)",
+    "old": "  const r = eliteRng(eliteHash('relay-boss', name ?? '', kind ?? ''));",
+    "new": "  const r = Math.random;",
     "tests": [
       "test/systems/bosstraits.test.js"
     ]
@@ -160,7 +160,7 @@
   {
     "name": "BOSS-TRAITS-the-title-bare",
     "file": "src/systems/foeTitle.js",
-    "old": "const traited = typeof entity?.bossTitle === 'string' && entity.bossTitle ? `${entity.bossTitle} ${special}` : special;",
+    "old": "const traited = traits && typeof entity?.bossTitle === 'string' && entity.bossTitle ? _traitTitle(entity.bossTitle, special) : special;",
     "new": "const traited = special;",
     "tests": [
       "test/systems/bosstraits.test.js"
@@ -178,8 +178,8 @@
   {
     "name": "BOSS-TRAITS-the-striker-half-unwired",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "    if (fromPlayer && !peer) damage = bossStrikeAt(f.entity, damage, kind, weapon, element, _whole, (n) => { onPlayerHurt?.(n, null); flashPlayerDamage(n); });",
-    "new": "    void bossStrikeAt;",
+    "old": "    if (fromPlayer && !peer) damage = strikeTraits(f.entity, damage, kind, weapon, element, _whole || bypassShield, (n) => { onPlayerHurt?.(n, null); flashPlayerDamage(n); }, say);",
+    "new": "    void strikeTraits;",
     "tests": [
       "test/scenes/bosstraits_hosts.test.js"
     ]
@@ -187,8 +187,8 @@
   {
     "name": "BOSS-TRAITS-the-owner-half-unwired",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "    damage = bossTakeAt(f.entity, damage, _whole, Date.now() / 1000, say, ",
-    "new": "    void (f.entity, damage, _whole, Date.now() / 1000, say, ",
+    "old": "    damage = bossTakeAt(f.entity, damage, _whole || bypassShield, bossClockS(), say, ",
+    "new": "    void (f.entity, damage, _whole || bypassShield, bossClockS(), say, ",
     "tests": [
       "test/scenes/bosstraits_hosts.test.js"
     ]

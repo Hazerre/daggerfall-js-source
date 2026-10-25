@@ -275,6 +275,7 @@ export function promoteRaidLeader(entity, { own = true, name = '' } = {}) {
   if (!entity) return false;
   promoteEliteFoe(entity, { own, checkLevel: false });
   if (!entity.raidLeader) entity.raidLeader = { name: String(name ?? '') };
+  if (own) grantEliteLoot(entity, entity.level);   // AUDIT WORLD-EVENTS L2-6: an elite's drop - the pool grants it at a stand that rolled the elite, and a leader is promoted after its stand (once, whichever came first)
   return true;
 }
 

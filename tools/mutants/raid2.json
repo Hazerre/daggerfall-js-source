@@ -191,8 +191,8 @@
   {
     "name": "RAID2-election-skipped",
     "file": "src/systems/raidingParties.js",
-    "old": "  if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); return 'standing-by'; }",
-    "new": "  if (sharedClockOn() && false) { cancelPending(); return 'standing-by'; }",
+    "old": "  if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); letGoAllies(raidKey(raid)); return 'standing-by'; }",
+    "new": "  if (sharedClockOn() && false) { cancelPending(); letGoAllies(raidKey(raid)); return 'standing-by'; }",
     "tests": ["test/systems/raid2_raidsOnline.test.js"]
   },
   {
@@ -226,7 +226,7 @@
   {
     "name": "RAID2-taken-raiders-uncounted",
     "file": "src/systems/raidingParties.js",
-    "old": "  for (const f of h.ownRaidFoes?.() ?? []) if (!_live.some((e) => e.foe === f)) _live.push({ foe: f, key: f.raidKey, kind: 'raider', boss: tookStaffBoss(f), routed: false, counted: false });\n",
+    "old": "  for (const f of h.ownRaidFoes?.() ?? []) if (!_live.some((e) => e.foe === f)) _live.push({ foe: f, key: f.raidKey, kind: 'raider', boss: tookStaffBoss(f), leader: !!f.entity?.raidLeader, routed: false, counted: false });   // AUDIT WORLD-EVENTS L3-5: a leader taken over is the leader\n",
     "new": "",
     "tests": ["test/systems/raid2_raidsOnline.test.js"]
   },
@@ -240,8 +240,8 @@
   {
     "name": "RAID2-claim-kept-out-of-town",
     "file": "src/systems/raidingParties.js",
-    "old": "  if (!raid) { cancelPending(); _myClaims.clear(); return 'idle'; }",
-    "new": "  if (!raid) { cancelPending(); return 'idle'; }",
+    "old": "  if (!raid) { cancelPending(); for (const key of _myClaims.keys()) letGoAllies(key); _myClaims.clear(); return 'idle'; }",
+    "new": "  if (!raid) { cancelPending(); for (const key of _myClaims.keys()) letGoAllies(key); return 'idle'; }",
     "tests": ["test/systems/raid2_raidsOnline.test.js"]
   },
   {

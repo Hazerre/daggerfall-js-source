@@ -48,7 +48,9 @@ import { SERPENT_HIT_CAP_X, SERPENT_HAND_REF } from '../../net/serpent/serpentBr
 export const carriedOnStandIn = (a) => a?.kind === 'continuousDamage' && !a.ended && a.roundsRemaining > 0;
 const NO_ROUNDS = Object.freeze([]);
 /** The sinks a stand-in's rounds and casts land through: every hurt summed into `got.n`, every other family nothing. */
-const counting = (got) => ({ hurt: (n) => { got.n += Math.max(0, n); }, heal() {}, drainFatigue() {}, restoreFatigue() {}, drainMagicka() {}, restoreMagicka() {} });
+/** The sinks a count on a stand-in runs through - `resist` its body (AUDIT WORLD-EVENTS L2-2: a carried round is resisted by
+ *  its element as it ticks, as the cast's own claim is in onBody - it went out whole). */
+const counting = (got, resist = null) => ({ hurt: (n, o) => { got.n += Math.max(0, resist && n > 0 ? bossStrike(resist, n, { kind: 'spell', element: o?.element ?? null }).damage : n); }, heal() {}, drainFatigue() {}, restoreFatigue() {}, drainMagicka() {}, restoreMagicka() {} });
 
 /**
  * A HARMFUL SPELL'S FAMILIES ON A STAND-IN, COUNTED: `harm` (duelSpellOf's) landed on `entity` by the one door every spell
@@ -112,7 +114,7 @@ export function createStandInRounds({ now = Date.now, rolls = Math.random } = {}
         let left = NO_ROUNDS;
         e.activeEffects = entries;
         try {
-          for (let k = 0; k < due && e.activeEffects.some(carriedOnStandIn); k++) tickActiveEffects(e, counting(got), rolls);
+          for (let k = 0; k < due && e.activeEffects.some(carriedOnStandIn); k++) tickActiveEffects(e, counting(got, e), rolls);
           left = e.activeEffects.filter(carriedOnStandIn);
         } finally { e.activeEffects = []; }
         if (left.length) kept.set(key, left); else kept.delete(key);

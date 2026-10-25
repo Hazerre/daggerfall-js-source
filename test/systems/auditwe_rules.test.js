@@ -7,6 +7,7 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { setCourtRules, courtRulesHurt, _resetCourtRulesForTests, regenShare, regenPausedMs, REGEN_HELD_HURT_MS, REGEN_HELD_SHARE } from '../../src/systems/courtRules.js';
+import '../../src/systems/courtRulesDoor.js';   // the door, as the world host wires it
 import { hurtPlayer, playerEntity } from '../../src/characters/playerEntity.js';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import * as LR from '../../src/systems/loot/lootRarity.js';
@@ -107,4 +108,7 @@ test('AUDIT WORLD-EVENTS L1-10: the pause starts at the player\'s hurt door - a 
   setCourtRules(true, T + 2000);
   assert.equal(regenPausedMs(), REGEN_HELD_HURT_MS - 2000 + 10, 'the pause runs on');
   setCourtRules(false);
+  // the door is the client's (systems/courtRulesDoor.js, the world host's import): the account Worker bundles courtRules.js
+  assert.match(rd('src/scenes/world.js'), /^import '\.\.\/systems\/courtRulesDoor\.js';/m, 'the world host wires the door');
+  assert.doesNotMatch(rd('src/systems/courtRules.js'), /from '\.\.\/characters\/playerEntity\.js'/, 'never the player\'s entity in the Worker\'s bundle');
 });

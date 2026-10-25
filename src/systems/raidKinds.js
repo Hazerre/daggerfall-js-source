@@ -61,6 +61,12 @@ export const RAID_WAVE_PACK_GAP_S = 6;
  *  for a count the town has not yet heard (s). */
 export const RAID_LEADER_TRAITS = 2;
 export const RAID_LEADER_AGAIN_S = 10;
+/** AUDIT WORLD-EVENTS L3-10: a wave whose count has not moved in this long (s, the kind's clock) stands again past the
+ *  raiders it counts as standing - one it cannot reach held its wave, and the raid, forever (BOSS-CLEAR's 120 s). */
+export const RAID_WAVE_STALL_S = 120;
+/** AUDIT WORLD-EVENTS L4-4: how soon a square or a way not found is asked for again (s) - the town not yet built about
+ *  the player, or the player still on its road. */
+export const RAID_SITE_AGAIN_S = 5;
 /** Each party's leader: its kind (MobileTypes - the knights' Knight, the bandits' Assassin, the orcs' Orc Warlord), and
  *  the word it is called by. */
 export const RAID_LEADER_KINDS = Object.freeze([145, 139, 24]);
@@ -106,8 +112,9 @@ export const RAID_BEARER_LEASH_M = 4;
 export const RAID_DEFEND_PACK_MAX = 3;
 export const RAID_DEFEND_PACK_GAP_S = 9;
 export const RAID_DEFEND_FROM_M = 40;
-/** How long a raider's grudge at the objective it is sent at holds (EnemyAI's give-up ticks - the defenders' own 600). */
-export const RAID_AIM_MS = 600;
+/** How long a raider's grudge at the objective it is sent at holds (EnemyAI's give-up ticks - the defenders' own 600).
+ *  AUDIT WORLD-EVENTS L5-14: ticks, never milliseconds (its name had it so). */
+export const RAID_AIM_TICKS = 600;
 
 // ── the exodus ─────────────────────────────────────────────────────────────────────────────────────────────────────
 /** How many refugees walk, and how many arriving holds the town. */
@@ -118,6 +125,8 @@ export const RAID_REFUGEE_PACE = 2.2;
 export const RAID_REFUGEE_WAIT_M = 5;
 /** A refugee within this of the way's end is safe (m). */
 export const RAID_REFUGEE_SAFE_M = 4;
+/** AUDIT WORLD-EVENTS L4-9: how far behind the one before each refugee stands along the way (m) - never all on one point. */
+export const RAID_REFUGEE_GAP_M = 1.5;
 /** Their health, times their kind's - they are townsfolk, but they must last a street. */
 export const RAID_REFUGEE_HEALTH_X = 4;
 /** The exodus's packs: at most RAID_ESCORT_PACK_MAX at once, RAID_ESCORT_PACK_GAP_S apart, led from RAID_ESCORT_AHEAD_M

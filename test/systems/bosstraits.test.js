@@ -92,7 +92,7 @@ test('BOSS-TRAITS THE OWNER\'S HALF: the curb holds a blow to 5% of its health; 
   assert.equal(bossWardNow(w, 3 + WARD_REGROW_S + WARD_REFILL_S + 5).now, 300, 'whole again');
   const wr = foe(['wrathful']);
   bossTake(wr, 10, { nowS: 100 });
-  bossTake(wr, 10, { nowS: 150 });
+  bossTake(wr, 10, { nowS: 120 });   // PIN MOVED - AUDIT WORLD-EVENTS L2-5: inside WRATH_COOL_S of the first (a fight dropped that long starts again)
   assert.equal(bossWrathDue(wr, 100 + WRATH_AFTER_S - 1), false);
   assert.equal(bossWrathDue(wr, 100 + WRATH_AFTER_S), true, 'from its first wound');
   assert.equal(wr.damageScale, 3 * WRATH_X);
