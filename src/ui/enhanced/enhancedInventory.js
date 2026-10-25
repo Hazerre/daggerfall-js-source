@@ -161,7 +161,7 @@ import { virtualRows } from '../virtualRows.js';   // VIRT: a long list draws th
 import { landingTiles } from './landingTiles.js';   // VIRT: a picture into its tile, not a repaint
 import { overlayAction, eventActions } from '../input.js';   // MAC-C: and the REGISTRY's answer for the two window keys
 import { audio } from '../../systems/audio.js';   // MAC-O6: the pack's own transfer cue - this window carried none at all
-import { dismantleStones, dismantleRefusal, dismantleWare, dismantleAsk, DISMANTLED, DISMANTLE_WORN } from '../../systems/sigil/sigilBroker.js';   // SS5: a Broker ware back into stones
+import { dismantleStones, dismantleRefusal, dismantleWare, dismantleAsk, DISMANTLED, DISMANTLE_WORN, wareName } from '../../systems/sigil/sigilBroker.js';   // SS5: a Broker ware back into stones
 import { salvageShards, salvageRefusal, salvagePiece, salvageMany, salvageable, shardsText } from '../../systems/reforge.js';   // LOOT9: a laddered piece broken into Welkynd Shards
 import { gemsHeld, setGemPiece, unsetGemPiece } from '../../systems/reforge.js';   // GEM1: a gem set in a socket from the pack, and shattered out of one
 import { ALL_GEM_IDS, SOCKET_EMPTY, emptySockets, gemKindOf } from '../../systems/loot/lootRarity.js';   // GEM1: the socket list and the gems
@@ -3727,7 +3727,7 @@ function closeDismantle() { dismantleEl?.remove(); dismantleEl = null; dismantle
  *  button never stands where the card's did, and a second click of a pair never presses it (pairGuard). */
 function askDismantle(item) {
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
-  const name = itemLongName(item, { getQuest: deps.getQuest ?? null });
+  const name = wareName(itemLongName(item, { getQuest: deps.getQuest ?? null }), item);   // AUDIT FB1025b A8: and its set's
   const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'worn' ? DISMANTLE_WORN(name) : null; refresh(); render(); };
   const why = dismantleRefusal(item);
   if (why) { refusedFor(why); return; }

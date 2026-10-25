@@ -518,6 +518,10 @@ export function dismantleWare(item, { items }) {
 }
 /** The dismantle's words: the question (the enhanced pack's), the classic pack's offer where its drop was refused, the
  *  worn piece's refusal, and what was done (BROKER_SOLD's shape). */
+/** AUDIT FB1025b A8: A WARE BY ITS NAME AND ITS SET - a Legendary wears its base record's name, so two days' offers can
+ *  share one ("The Warden" was Malacath's on 2026-10-22 and Mora's on 2026-10-25), and a dismantle asked of "The Warden"
+ *  could not say which. "The Warden (Mora's Mantle)"; a piece of no set, its name. */
+export const wareName = (name, item) => { const set = setById(item?.sigil?.set)?.name; return set ? `${name} (${set})` : name; };
 export const dismantleAsk = (name, n) => [`Dismantle ${name}?`, `You get ${stonesText(n)} back. This cannot be undone.`];   // WB13b: the gain, then the warning
 export const DISMANTLE_INSTEAD = (n) => `Dismantle it for ${stonesText(n)} instead?`;
 export const DISMANTLE_WORN = (name) => `Take off ${name} before dismantling it.`;

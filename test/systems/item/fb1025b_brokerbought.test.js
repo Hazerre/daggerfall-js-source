@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   brokerDay, brokerTurnsIn, brokerStock, brokerOfferState, brokerSale, brokerBought, makeBrokerSale, dismantleWare, spendableStonesIn,
-  stoneCount, offerSetName, stonesText, BROKER_REFUSALS, BROKER_SAVE_VENDOR, _resetBrokerForTests,
+  stoneCount, offerSetName, stonesText, BROKER_REFUSALS, BROKER_SAVE_VENDOR, _resetBrokerForTests, wareName, dismantleAsk,
 } from '../../../src/systems/sigil/sigilBroker.js';
 import { modSaveRecords, restoreModSaveRecords } from '../../../src/systems/modSaveData.js';
 import { sigilStone } from '../../../src/systems/gate/gateSpoils.js';
@@ -53,6 +53,10 @@ test('BOUGHT-YOURS the two Wardens: two offers of one name, each a chest - a sal
   assert.deepEqual([itemLongName(old.item), offerSetName(old), old.item.rarity, old.item.templateIndex], ['The Warden', 'Malacath\'s Bulwark', 'legendary', 102]);
   assert.deepEqual([itemLongName(warden.item), offerSetName(warden), warden.item.rarity, warden.item.templateIndex], ['The Warden', 'Mora\'s Mantle', 'legendary', 102]);
   assert.notEqual(old.id, warden.id, 'two offers');
+  // AUDIT FB1025b A8: and a dismantle asked of either names its set - "The Warden" alone could not say which
+  assert.deepEqual([dismantleAsk(wareName(itemLongName(old.item), old.item), 3)[0], dismantleAsk(wareName(itemLongName(warden.item), warden.item), 3)[0]],
+    ['Dismantle The Warden (Malacath\'s Bulwark)?', 'Dismantle The Warden (Mora\'s Mantle)?']);
+  assert.equal(wareName('Deadlands Ember', sigilStone()), 'Deadlands Ember', 'a piece of no set, its name');
   const pack = [stack(32)];
   const first = makeBrokerSale(old, { items: pack, day: OLD });
   assert.equal(first.ok, true);

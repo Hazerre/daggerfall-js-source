@@ -58,5 +58,36 @@
       "test/systems/item/fb1025b_brokerbought.test.js"
     ],
     "note": "another day's marks read as today's (the ids carry their day, so no offer of today's would match - but the record answers for its own day alone)"
+  },
+  {
+    "name": "WARE-NAME-no-set",
+    "file": "src/systems/sigil/sigilBroker.js",
+    "old": "return set ? `${name} (${set})` : name; };",
+    "new": "return name; };",
+    "tests": [
+      "test/systems/item/fb1025b_brokerbought.test.js",
+      "test/systems/item/ss1_stones.test.js"
+    ],
+    "note": "AUDIT FB1025b A8: the two Wardens asked alike"
+  },
+  {
+    "name": "WARE-NAME-enhanced-unasked",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "  const name = wareName(itemLongName(item, { getQuest: deps.getQuest ?? null }), item);",
+    "new": "  const name = itemLongName(item, { getQuest: deps.getQuest ?? null });",
+    "tests": [
+      "test/systems/item/ss1_stones.test.js"
+    ],
+    "note": "AUDIT FB1025b A8: the enhanced question without the set"
+  },
+  {
+    "name": "WARE-NAME-classic-unasked",
+    "file": "src/ui/native/nativeInventory.js",
+    "old": "    const name = wareName(itemLongName(it, { getQuest: this.hooks.getQuest ?? null }), it);",
+    "new": "    const name = itemLongName(it, { getQuest: this.hooks.getQuest ?? null });",
+    "tests": [
+      "test/systems/item/ss1_stones.test.js"
+    ],
+    "note": "AUDIT FB1025b A8: the classic question without the set"
   }
 ]

@@ -683,12 +683,12 @@
   {
     "name": "AUDIT-GEM-named-by-the-gem",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "  return base == null ? name : nameAround(base, tier, own(now));",
-    "new": "  return base == null ? name : nameAround(base, tier, now);",
+    "old": "nameAround(ladderBase(item) ?? '', tier, item.affixes.filter((a) => a?.gem == null))",
+    "new": "nameAround(ladderBase(item) ?? '', tier, item.affixes)",
     "tests": [
       "test/systems/gem1_sockets.test.js"
     ],
-    "note": "NAME-KEPT (FIELD BUGS 2026-10-25b, PIN MOVED): the reforge's name moves to linesName; re-aimed by content at the own-lines filter."
+    "note": "NAME-KEPT (FIELD BUGS 2026-10-25b, PIN MOVED; reworked by AUDIT FB1025b): the reforge's name is ladderName's; re-aimed by content at its own-lines filter."
   },
   {
     "name": "AUDIT-GEM-an-enchanted-stone",

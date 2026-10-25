@@ -27,17 +27,22 @@ So a name the Item Maker gave was lost; a Masterwork's own name (the maker's mar
 `name` "Silver Ring") took the ladder's words its mint withholds ("Saber's Mule's Ring of the Ward" - the report's
 card); and a crafted jewel lost its metal and gem ("Silver Ring" to "Ring").
 
-FIXED. A reforge swaps the words the old lines gave the name for the words the new lines give, around the rest of it
-(`lootRarity.js:"export function linesName(name, tier, was, now) {"`); a name no line gave is the piece's own and
-stands. A name an older reforge built with a set gem's word is read by every line it had, so the gem's word goes too
-(AUDIT GEM's law, `nameAround` over the piece's own lines).
+FIXED (as AUDIT FB1025b left it - the first cut parsed a name by the lines it had, A1-A5 below). A name is the ladder's
+- at most one of its tier's prefix words and one suffix word around the piece's BASE, read off the piece: a crafted
+jewel's recipe name, a Masterwork's bare template, else the RRI word and the template, and an older save's bare
+template besides (`lootRarity.js:"export function linesName(item, tier, was = item) {"`) - or it is the piece's own and
+stands. A reforge builds the ladder's again from the piece's own lines (never a set gem's - AUDIT GEM), a Masterwork's
+its base alone. The Imbue keeps a name of the piece's own (a questline's named reward), and a load gives a crafted
+piece the old law broke its base's name back (`repairCraftedNames` - the reporter's ring is "Saber's Silver Ring"
+again), never a found one (a curse's line is added after its name by design).
 
-NOT DONE. A name already reverted cannot be given back: nothing kept it.
+NOT DONE. A name already reverted to the ladder's cannot be given back: nothing kept the player's.
 
-PINS: `test/systems/loot/fb1025b_namekept.test.js` (4: the report's ring through the jeweller's mint and the Item
-Maker's window at both doors; a Masterwork's name; a ladder name's words moving round "Silver Ring"; an old gem word).
-Mutants `tools/mutants/fb1025b_namekept.json` (8, all dead). Re-aimed by content: gem1's AUDIT-GEM-named-by-the-gem,
-loot9's LOOT9-name-stays.
+PINS: `test/systems/loot/fb1025b_namekept.test.js` (9: the report's ring through the jeweller's mint and the Item
+Maker's window at both doors; a Masterwork's name; a ladder name's words round "Silver Ring"; an old gem word, set and
+unset; a cursed piece; the old law's damage, at a reforge and on load; renames that keep a ladder word; the Imbue).
+Mutants `tools/mutants/fb1025b_namekept.json` (14: 13 dead, 1 equivalent as recorded - a Masterwork's RRI word, '' with
+the mods off). Re-aimed by content: gem1's AUDIT-GEM-named-by-the-gem, loot9's LOOT9-name-stays.
 
 ## ROAD-SPARE (2) - `src/scenes/livingWorld/roadStrike.js`, `src/scenes/world.js`
 
@@ -84,12 +89,14 @@ frees nothing (SS5), and "Bought" on `20751:3` is a sale of today's Warden on th
 "Bought today", named no buyer, and a player holding the older Warden read it as "you have one already".
 
 FIXED. The refusal reads "You bought this one today. You can buy each piece once a day." - the note a press of Bought
-says, and the button's title and name; the button keeps "Bought".
+says, and the button's title and name; the button keeps "Bought". AUDIT FB1025b A8: a dismantle names the ware's set - "Dismantle
+The Warden (Mora's Mantle)?" (`sigilBroker.js` wareName, both packs), since either reading of "I did dismantle the
+other chest" leaves the screenshot as it is.
 
 NOT DONE. The Broker's words are still English literals (L10N4's count for the file unchanged).
 
-PINS: `test/systems/item/fb1025b_brokerbought.test.js` (3); set7_broker's two pins of the old word moved. Mutants
-`tools/mutants/fb1025b_brokerbought.json` (6, all dead).
+PINS: `test/systems/item/fb1025b_brokerbought.test.js` (3); set7_broker's two pins of the old word moved, and ss1_stones'
+five of the dismantle's words (A8). Mutants `tools/mutants/fb1025b_brokerbought.json` (9, all dead).
 
 ## HEART-TAKEN and QUEST-MARK (4) - `src/systems/questlines/sheets/`, `src/ui/enhanced/enhancedInventory.js`
 
