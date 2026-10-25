@@ -776,9 +776,14 @@ export function createDecorRoom({
   // visit that stood none of them never wipes them ("The offline house keeps working offline").
   let kept = [];
   const keep = (pieces) => { kept = [...(pieces ?? [])]; };
+  // A wagon's Confirm has not been pressed: the save and the relay read the last kept picture, while the
+  // pieces the player is still moving stay standing in the room.
+  let savedList = null;
+  const live = () => [...standing.values()].map((e) => e.piece);
+  const showSaved = (fn) => { savedList = typeof fn === 'function' ? fn : null; };
 
   const pieceOf = (id) => standing.get(id)?.piece ?? null;
-  const list = () => [...standing.values()].map((e) => e.piece);
+  const list = () => (savedList ? savedList() : live());
 
   /** MW-MOUNT: a Morrowind build landed, or went (the host watches fpArm.js mountPictureStamp) - every mount asks
    *  for its picture again and hangs as the answer, where it stood. */
@@ -808,7 +813,7 @@ export function createDecorRoom({
   }
 
   return {
-    put, remove, hold, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, size: () => standing.size,
+    put, remove, hold, set, restand, destroyAll, draw, batches, batchesSeen, figures, drawMounts, lights, pushLights, targets, pieceOf, list, live, showSaved, size: () => standing.size,
     itemsOf, holdsAny, itemsSnapshot, setItems, takeUnserved, keep, kept: () => kept,
     ownOf, keepOwn, takeOwn, ownSnapshot, setOwn, ownIds, refreshMounts, mountPicture, standPicture, onRefresh,
   };
