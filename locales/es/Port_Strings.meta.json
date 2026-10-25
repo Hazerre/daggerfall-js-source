@@ -1394,6 +1394,11 @@
   "tr": "9e342a5e51c0",
   "by": "claude-in-session"
  },
+ "account.refusal.embers": {
+  "en": "e9678673977b",
+  "tr": "cdd8a6990412",
+  "by": "claude-in-session"
+ },
  "account.refusal.escrowCollected": {
   "en": "1667bb71b802",
   "tr": "be3a1c9ac59f",
@@ -2807,6 +2812,11 @@
  "account.refusal.profDye": {
   "en": "4888ddf74668",
   "tr": "ed68a740b414",
+  "by": "claude-in-session"
+ },
+ "account.refusal.profEmbers": {
+  "en": "d2777e4fd91c",
+  "tr": "727ff1fb852a",
   "by": "claude-in-session"
  },
  "account.refusal.profFishCap": {
@@ -22634,6 +22644,71 @@
   "tr": "d5c01a0c7bfe",
   "by": "claude-in-session"
  },
+ "ore.tip.both": {
+  "en": "2eb30f4d244b",
+  "tr": "2eb30f4d244b",
+  "by": "claude-in-session"
+ },
+ "ore.tip.deepOnly": {
+  "en": "806db9dd9302",
+  "tr": "0412a4689314",
+  "by": "claude-in-session"
+ },
+ "ore.tip.deepWitnessed": {
+  "en": "1437a2ed3056",
+  "tr": "488580ffb57e",
+  "by": "claude-in-session"
+ },
+ "ore.tip.dungeons": {
+  "en": "9a59119e6602",
+  "tr": "b288365b15de",
+  "by": "claude-in-session"
+ },
+ "ore.tip.none": {
+  "en": "beffa700b3ee",
+  "tr": "a35caa1393d0",
+  "by": "claude-in-session"
+ },
+ "ore.tip.notYet": {
+  "en": "835972d271b4",
+  "tr": "d1de1506f5bb",
+  "by": "claude-in-session"
+ },
+ "ore.tip.onlyWitnessed": {
+  "en": "0665b170bf06",
+  "tr": "4536d115ae13",
+  "by": "claude-in-session"
+ },
+ "ore.tip.own": {
+  "en": "d67e12d5850d",
+  "tr": "b1da98af655c",
+  "by": "claude-in-session"
+ },
+ "ore.tip.rule": {
+  "en": "3142ad83a3f4",
+  "tr": "e0c5f3f5b120",
+  "by": "claude-in-session"
+ },
+ "ore.tip.thisLand": {
+  "en": "8ba519859ad8",
+  "tr": "d596808f3edf",
+  "by": "claude-in-session"
+ },
+ "ore.tip.title": {
+  "en": "2269e12fa9d9",
+  "tr": "665af3a70d3a",
+  "by": "claude-in-session"
+ },
+ "ore.tip.veins": {
+  "en": "8b2436a6546c",
+  "tr": "216833d2ecd2",
+  "by": "claude-in-session"
+ },
+ "ore.tip.witnessed": {
+  "en": "d7385ac3848d",
+  "tr": "400eb05c7d4f",
+  "by": "claude-in-session"
+ },
  "passage.ask": {
   "en": "28def7dd7c23",
   "tr": "bd388d5d1655",
@@ -25644,6 +25719,26 @@
   "tr": "9ef53a5ede93",
   "by": "claude-in-session"
  },
+ "prof.maker.away": {
+  "en": "06e687439460",
+  "tr": "f05be73d1dce",
+  "by": "claude-in-session"
+ },
+ "prof.maker.fee": {
+  "en": "626f55a19a45",
+  "tr": "1f60d948a521",
+  "by": "claude-in-session"
+ },
+ "prof.maker.rank": {
+  "en": "7a652b7633eb",
+  "tr": "69ea456a5e17",
+  "by": "claude-in-session"
+ },
+ "prof.maker.storedRank": {
+  "en": "cf68f09ccae5",
+  "tr": "07b8b691709b",
+  "by": "claude-in-session"
+ },
  "prof.page.act.strike": {
   "en": "f9ae58aa354c",
   "tr": "385c7711cab0",
@@ -25655,8 +25750,8 @@
   "by": "claude-in-session"
  },
  "prof.page.alchemy.away": {
-  "en": "06dacdc7b30b",
-  "tr": "2333729402be",
+  "en": "947820be3b3a",
+  "tr": "da1b444f90d7",
   "by": "claude-in-session"
  },
  "prof.page.alchemy.brew": {
@@ -25750,8 +25845,8 @@
   "by": "claude-in-session"
  },
  "prof.page.alchemy.xpFirst": {
-  "en": "3db828324f06",
-  "tr": "02ce7475d840",
+  "en": "6453810371ed",
+  "tr": "78acc9eedee1",
   "by": "claude-in-session"
  },
  "prof.page.alchemy.xpShop": {
@@ -25970,8 +26065,8 @@
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirst": {
-  "en": "7fe5e67b17b7",
-  "tr": "2db92c5e929a",
+  "en": "d3e4f24000f6",
+  "tr": "b662899a44aa",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirstOwn": {
@@ -26205,8 +26300,8 @@
   "by": "claude-in-session"
  },
  "prof.page.fire.first": {
-  "en": "4705adf915da",
-  "tr": "0f11acbd3e31",
+  "en": "0d430941abbf",
+  "tr": "3cfa450b3d4c",
   "by": "claude-in-session"
  },
  "prof.page.fire.here": {
@@ -26294,6 +26389,11 @@
   "tr": "be90691c8bde",
   "by": "claude-in-session"
  },
+ "prof.page.forge.daedric": {
+  "en": "403a1fe356fa",
+  "tr": "56edd213b6bd",
+  "by": "claude-in-session"
+ },
  "prof.page.forge.home": {
   "en": "b081623e140e",
   "tr": "27801a6246c9",
@@ -26335,8 +26435,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.alchemy": {
-  "en": "1cfb55c18244",
-  "tr": "9a36feec3c6f",
+  "en": "b38418e7f431",
+  "tr": "613d787ffedc",
   "by": "claude-in-session"
  },
  "prof.page.how.building": {
@@ -26380,8 +26480,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.miningGround": {
-  "en": "4a8c74ff512b",
-  "tr": "1c9f4bf507c4",
+  "en": "09e5de515a92",
+  "tr": "814c8b91c88d",
   "by": "claude-in-session"
  },
  "prof.page.how.miningSurveyor": {
@@ -26745,8 +26845,8 @@
   "by": "claude-in-session"
  },
  "prof.page.mason.worksFirst": {
-  "en": "9b6ec71c7029",
-  "tr": "df210715a30b",
+  "en": "76060c4a21f3",
+  "tr": "75d9d7033a11",
   "by": "claude-in-session"
  },
  "prof.page.master": {
@@ -26872,6 +26972,16 @@
  "prof.page.rankOf": {
   "en": "1b802f8ca71e",
   "tr": "1b802f8ca71e",
+  "by": "claude-in-session"
+ },
+ "prof.page.reforge.how": {
+  "en": "4e31236deeb2",
+  "tr": "896b1f2f7e58",
+  "by": "claude-in-session"
+ },
+ "prof.page.reforge.rank": {
+  "en": "aabdb6820678",
+  "tr": "304296b8b0e5",
   "by": "claude-in-session"
  },
  "prof.page.specs.at": {
@@ -27312,6 +27422,16 @@
  "prof.page.unlocks.smithing6": {
   "en": "8566e87606a9",
   "tr": "29efaf4b11e4",
+  "by": "claude-in-session"
+ },
+ "prof.page.work.ember": {
+  "en": "4492ac548643",
+  "tr": "2873a697d8c8",
+  "by": "claude-in-session"
+ },
+ "prof.page.work.emberHeld": {
+  "en": "8ff6a3c3ff02",
+  "tr": "bc8746e2dbcd",
   "by": "claude-in-session"
  },
  "prof.page.work.input": {
@@ -29267,6 +29387,16 @@
  "realm.locked.trade": {
   "en": "96456d744023",
   "tr": "1ecddb2496cb",
+  "by": "claude-in-session"
+ },
+ "reforge.note": {
+  "en": "341f6b452635",
+  "tr": "8ab16f18a7b8",
+  "by": "claude-in-session"
+ },
+ "reforge.refusal.line": {
+  "en": "4686986101b3",
+  "tr": "e2ff64a52774",
   "by": "claude-in-session"
  },
  "report.again": {
@@ -34585,7 +34715,7 @@
   "by": "claude-in-session"
  },
  "tutorials.crafting.body": {
-  "en": "c5ba22688057",
+  "en": "e05a42c59126",
   "tr": "37f52aeb5305",
   "by": "claude-in-session"
  },
@@ -34600,8 +34730,8 @@
   "by": "claude-in-session"
  },
  "tutorials.crafting.shops2": {
-  "en": "9aec2d589699",
-  "tr": "71cdae69d43e",
+  "en": "dd7130cfdeb7",
+  "tr": "5cfbe7ca6fea",
   "by": "claude-in-session"
  },
  "tutorials.crafting.title": {

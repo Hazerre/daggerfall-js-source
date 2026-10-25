@@ -68,7 +68,7 @@ import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SA
 import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
 import { firmamentStats } from '../../systems/firmamentLive.js';   // CRAFT-LIMIT-SAID: the stars in force
 import {
-  POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstPays, ingredientKeys, DISTILLER, POTENT,
+  POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstXp, ingredientKeys, DISTILLER, POTENT,   // FIRST-BUDGET: a brew's first, Provisioning's first-make share
   enchantDiscountPct, DISENCHANTER, disenchantXp, essenceOf,
   piecePoints, ESSENCE_POINTS,   // DISENCHANT-SAID: the station's list made here, and a piece under one Essence said
 } from '../../net/alchemyLaw.js';   // PROF12: Alchemy's brew, Enchanting's layer and Disenchanting
@@ -84,6 +84,7 @@ import {
 } from '../../net/recipeLaw.js';
 import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
 import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
+import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
 import { createStitchAct } from '../../systems/stitchAct.js';
 import { createChiselAct } from '../../systems/chiselAct.js';   // PROF11
 import { createPanAct } from '../../systems/panAct.js';   // PROF9
@@ -160,7 +161,7 @@ import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../..
  * @property {() => Array<{ item: any, name: string, tier: string, lines: Array<{ index: number, text: string }> }>} [reforgeable]
  *   CRAFT4: the pack's known Magic and Rare pieces an Enchanter reforges with Essence, each line it may roll
  * @property {(offer: { item: any, name: string, tier: string }, index: number) => Promise<{ ok: boolean, text: string }>} [essenceReforge]
- *   CRAFT4: a line rolled again for Arcane Essence
+ *   CRAFT4: a line replaced for Arcane Essence (REFORGE-REPLACE: by another kind)
  * @property {(plan: { material: string, qty: number, order: string }[]) => Promise<{ ok: boolean, text: string, kept?: boolean }[]>} [deposit]   BAG1:
  *   carried units of a material - out of the bag and the pack - into the Stores; FB1020c ONE-SAVE: a plan of put-ins as
  *   one batch (profBook.js depositMany - one save for them all), one answer a put-in, in order
@@ -551,8 +552,10 @@ const gatherHow = (id) => (id === 'herbalism' ? t('prof.page.how.herbalism', GAT
 /** UNWITNESSED-ORE (FIELD BUGS 2026-10-09e, "Mining veins": hundreds of Iron veins in the mountains and not one of
  *  Silver, Gold, Platinum or Mithril, read as a bug): the ground's own law, said on the Mining page - a vein holds its
  *  ground's rarer ores only where three players have gathered (net/nodeLaw.js witnessedFact, UNCONFIRMED_VEIN_TIER).
- *  ORE-MAP: and where to read it for a place - the world map's ore card (ui/oreMapTip.js). */
-export const MINING_GROUND_LINE = 'Veins hold Silver at most until three different players, each with an account at least a week old, have gathered on that ground. Then Gold, Platinum and Mithril in the mountains, and the region\'s own ore, can appear. Deep veins in dungeons hold Silver anywhere. Point at open ground on the world map to see what its veins hold and whether it has been witnessed yet.';
+ *  ORE-MAP: and where to read it for a place - the world map's ore card (ui/oreMapTip.js). DEEP-OPEN (bible/06-Systems/
+ *  Professions-Arc.md section 53): a dungeon's deep veins draw their whole table on anyone's word (nodeLaw.js
+ *  dungeonVein) - only the woods' Moonstone waits (deepClimateOres) - where this line had said "Silver anywhere". */
+export const MINING_GROUND_LINE = 'Veins hold Silver at most until three different players, each with an account at least a week old, have gathered on that ground. Then Gold, Platinum and Mithril in the mountains, and the region\'s own ore, can appear. Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium among them, in any dungeon; only a woodland dungeon\'s Moonstone waits for three players to gather in it. Point at open ground on the world map to see what its veins hold and whether it has been witnessed yet.';
 /** L10N4: MINING_GROUND_LINE in the player's language. */
 const miningGroundLine = () => t('prof.page.how.miningGround', MINING_GROUND_LINE);
 /** AUDIT MINE-PERKS (the cold pass, 8): what the line above means for a Surveyor - the Mining page told them "Silver at
@@ -568,8 +571,9 @@ export const STORES_EMPTY_LINE = 'Your Stores are empty. What you gather online 
 const storesEmptyLine = () => t('prof.page.stores.empty', STORES_EMPTY_LINE);
 const storesEmptyCarryLine = () => t('prof.page.stores.emptyCarry', STORES_EMPTY_CARRY_LINE);
 /** PROF12: how Alchemy is practised, as the Professions page says it. FB1018D CRAFT-HOWTO: with what the bag and the pack
- *  hold too - "with what your Stores hold" stood from before BAG-CRAFT, and the brew reads the station's own (workOf). */
-export const ALCHEMY_HOW = 'Brew at an alchemy station (an Alchemist\'s or your own home) from the Stores page, with what you carry or keep in your Stores. There are 20 recipes, the same as the classic potion maker\'s. Herbs, metals and gems are gathered; the rest are bought from the Apothecaries\' counter. The classic potion maker still works, but it earns no Provisioning experience.';
+ *  hold too - "with what your Stores hold" stood from before BAG-CRAFT, and the brew reads the station's own (workOf).
+ *  POTION-DOOR (Professions-Arc 52): a Mages Guild hall a station, and its potion maker the brew's door there. */
+export const ALCHEMY_HOW = 'Brew at an alchemy station (an Alchemist\'s, a Mages Guild hall or your own home) from the Stores page, with what you carry or keep in your Stores. The potion maker brews at a station too, for the same experience. There are 20 recipes, the same as the classic potion maker\'s. Herbs, metals and gems are gathered; the rest are bought from the Apothecaries\' counter. A potion maker anywhere else, such as a temple\'s, still works, but what it mixes earns no Provisioning experience.';
 const fishingHow = () => t('prof.page.how.fishing', FISHING_HOW);
 const alchemyHow = () => t('prof.page.how.alchemy', ALCHEMY_HOW);
 /**
@@ -601,6 +605,26 @@ export const CRAFT_HOW = Object.freeze({
   outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but only cloth you make yourself earns a first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
   provisioning: () => t('prof.page.how.cooking', 'Cook at any lit fire, such as a campfire, a hearth or a brazier: stand close to its flame and open the Stores page (Holdings > Stores). Dishes are made from the meat you skin, the fish you net, herbs and the food a Basket finds, and go to your pack. Brewing and cooking both earn Provisioning experience.'),   // beside ALCHEMY_HOW: Provisioning's cooking (CRAFT3)
 });
+/**
+ * POTION-DOOR (bible/06-Systems/Professions-Arc.md 52; SaberGGaming's report, 2026-10-25): THE POTION MAKER'S DOOR TO THE
+ * BREW (scenes/potionMakerHost.js) - online, the pages standing: `station` whether the player stands at an alchemy station
+ * (the provider's - an Alchemist's, a Mages Guild hall, a home's), `held` what the Stores alone hold of a material (the
+ * station's read of them; what is carried the maker lists as DFU's own items), the brewer's rank and the station's fee,
+ * and the brew itself - the Stores page's own (its fee, its potions minted on the answer, its words). Null offline or
+ * with the pages shut: DFU's maker as it is.
+ */
+export function potionMakerDoor() {
+  const p = _provider;
+  if (!profPagesShown() || !p) return null;
+  const book = p.book;
+  return Object.freeze({
+    station: typeof p.brew === 'function' && !!p.alchemy?.(),
+    held: (/** @type {string} */ k) => Number(typeof book?.storesWorkable === 'function' ? book.storesWorkable(k) : book?.held?.(k)) || 0,
+    rank: () => book?.track?.('alchemy')?.rank ?? 0,
+    fee: () => p.alchemy?.()?.fee ?? 0,
+    brew: (/** @type {string} */ id, /** @type {string[]} */ keys) => /** @type {NonNullable<typeof p.brew>} */ (p.brew)(id, keys),
+  });
+}
 /** PROF12: how Enchanting is practised, and what its rank takes off the item maker's gold. */
 export const ENCHANTING_HOW = (pct) => t('prof.page.how.enchanting', 'Enchanting improves as you break crafted pieces down into Arcane Essence at an enchanting station, in a Mages Guild hall or your own home, from the Stores page. The item maker works as it always has{off, select, yes {, and your rank takes {pct}% off its prices} other {. From Journeyman on, your rank lowers its prices}}.',
   { off: pct > 0 ? 'yes' : 'no', pct });   // L10N4: one sentence, its rank's share a select
@@ -1160,15 +1184,23 @@ function drawCarryStores(detail, rerender, kit) {
   ]);
 }
 
-/** What the Stores make of a recipe now: the most it can smelt (every input's units over its need), to SMELT_MAX. */
-export function smeltable(r, held) {
+/** What the Stores make of a recipe now: the most it can smelt (every input's units over its need), to SMELT_MAX.
+ *  DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): and over the Deadlands Embers it spends a unit
+ *  (professionLaw workEmbers) where `embers` - the pack's, the book's `embers()` - is known. */
+export function smeltable(r, held, embers = null) {
   let n = SMELT_MAX;
   for (const inp of r.inputs) n = Math.min(n, Math.floor(held(inp.key) / inp.n));
+  if (r.embers > 0 && Number.isSafeInteger(embers)) n = Math.min(n, Math.floor(embers / r.embers));
   return Math.max(0, n);
 }
 
-/** A work's inputs as its row says them: "2 Iron Ore (14) + 1 Coal (3)". */
-const workIns = (r, p, held) => r.inputs.map((inp) => t('prof.page.work.input', '{n} {name} ({held})', { n: inp.n, name: p.name(inp.key), held: held(inp.key) })).join(' + ');
+/** DAEDRIC-SMELT: a work's embers a unit as its row says them beside its inputs - "1 Deadlands Ember (3)", the pack's
+ *  count, or none where the book holds no pack (the service's purse is the bound). */
+const emberIns = (r, embers) => (!(r.embers > 0) ? [] : [Number.isSafeInteger(embers)
+  ? t('prof.page.work.emberHeld', '{n, plural, one {# Deadlands Ember} other {# Deadlands Embers}} ({held})', { n: r.embers, held: embers })
+  : t('prof.page.work.ember', '{n, plural, one {# Deadlands Ember} other {# Deadlands Embers}}', { n: r.embers })]);
+/** A work's inputs as its row says them: "2 Iron Ore (14) + 1 Coal (3)" - DAEDRIC-SMELT: and its embers. */
+const workIns = (r, p, held, embers = null) => [...r.inputs.map((inp) => t('prof.page.work.input', '{n} {name} ({held})', { n: inp.n, name: p.name(inp.key), held: held(inp.key) })), ...emberIns(r, embers)].join(' + ');
 /** A work's yield as its row names it: "Charcoal x2" where a unit makes more than one. */
 const workOut = (name, per) => (per > 1 ? t('prof.page.work.out', '{name} x{n}', { name, n: per }) : name);
 /** "rank 25" - what a recipe or an unlock asks. */
@@ -1196,14 +1228,15 @@ function workRows(detail, rerender, el, recipes, state, verb, busyVerb, go, shor
   const p = /** @type {ProfPagesProvider} */ (_provider);
   const book = p.book;
   const held = (k) => workOf(book, k);
+  const embers = book.embers?.() ?? null;   // DAEDRIC-SMELT: the pack's embers, the Daedric smelt's bound beside its inputs
   const cards = el('div', 'prof-works');   // MENU-ORDER: the works a grid of cards - what it makes, from what, how many, the press
   detail.append(cards);
   for (const r of recipes) {
-    const most = smeltable(r, held);
+    const most = smeltable(r, held, embers);
     const row = el('div', `prof-smelt${most ? '' : ' prof-locked'}`);
     // PROF7: the choice that raises a work is read at its own rank - a Tanner's at 50
     const per = workPer(r, r.more ? { [r.more.profession]: book.track(r.more.profession)?.specs?.[workSpecRank(r)] ?? null } : {});
-    row.append(el('b', null, workOut(p.name(r.out), per)), el('span', 'prof-split', workIns(r, p, held)));
+    row.append(el('b', null, workOut(p.name(r.out), per)), el('span', 'prof-split', workIns(r, p, held, embers)));
     const qty = el('input', 'prof-qty');
     qty.type = 'number'; qty.min = '1'; qty.max = String(Math.max(1, most));
     qty.value = String(Math.max(1, Math.min(state.counts[r.id] ?? 1, Math.max(1, most))));
@@ -1214,7 +1247,7 @@ function workRows(detail, rerender, el, recipes, state, verb, busyVerb, go, shor
     b.onclick = async () => {
       if (state.busy || hold) return;
       state.busy = true; _workingOn = r.id; rerender();
-      const res = await go(r.id, Math.max(1, Math.min(state.counts[r.id] ?? 1, smeltable(r, held))));
+      const res = await go(r.id, Math.max(1, Math.min(state.counts[r.id] ?? 1, smeltable(r, held, book.embers?.() ?? null))));
       state.busy = false; _workingOn = null;
       state.word = res?.text ?? null;
       rerender();
@@ -1269,6 +1302,9 @@ function drawForge(detail, rerender, { el, divider }) {
   const short = purseShort(forge, 'forge');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   workRows(detail, rerender, el, SMELT_RECIPES, _forge, t('prof.page.forge.smelt', 'Smelt'), t('prof.page.forge.smelting', 'Smelting...'), (id, n) => p.smelt(id, n), short);
+  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): where the Daedric smelt's heart and ember come from,
+  // said while the forge cannot smelt one - as the Steel line says the Charcoal (below)
+  if (daedricWaits(book)) detail.append(el('p', 'px-note', daedricWord()));
   // PROF4: the logs a forge burns - those the Stores hold (a log a Charcoal; a Charcoal Burner's two)
   const burns = BURN_RECIPES.filter((r) => workOf(book, r.inputs[0].key) > 0);
   if (burns.length) workRows(detail, rerender, el, burns, _forge, t('prof.page.forge.burn', 'Burn'), t('prof.page.forge.burning', 'Burning...'), (id, n) => p.smelt(id, n), short);
@@ -1287,6 +1323,14 @@ function drawForge(detail, rerender, { el, divider }) {
 }
 /** Whether the Steel line needs its word: no Charcoal held. */
 const r0Charcoal = (book) => workOf(book, 'wood:charcoal') < 1;
+/** DAEDRIC-SMELT: the forge's work that spends embers (the Daedric Ingot's), and whether it cannot be smelted now. */
+const DAEDRIC_SMELT = SMELT_RECIPES.find((r) => r.embers > 0) ?? null;
+const daedricWaits = (book) => !!DAEDRIC_SMELT && smeltable(DAEDRIC_SMELT, (k) => workOf(book, k), book.embers?.() ?? null) < 1;
+/** DAEDRIC-SMELT: the Daedric line - what its smelt takes, and where a heart and an ember are won (systems/loot/lootThemes.js
+ *  CREATURE_INGREDIENT_THEME, the daedra's hearts; systems/riteChest.js RITE_HEART, the Breach's faithful's chest;
+ *  accounts.js EMBERS_EARNED_SQL, the embers the account earned). */
+export const DAEDRIC_LINE = 'A Daedric Ingot takes an Ebony Ingot, a Daedra\'s Heart and a Deadlands Ember. Hearts are carried by the daedra you slay and won at Dagon\'s Breaches; embers are won closing the Breaches, slaying Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won.';
+const daedricWord = () => t('prof.page.forge.daedric', DAEDRIC_LINE);
 
 // ─── PROF3: THE ANVIL (bible/06-Systems/Professions-Arc.md 9, 24) ─────
 
@@ -2775,7 +2819,7 @@ function drawJewellerBench(detail, rerender, { el, divider }) {
 // ─── PROF12: THE ALCHEMY STATION (bible/06-Systems/Professions-Arc.md 9.3, 37) ─────
 
 /** What the station says a potion's cauldron wants, and its word for the Apothecaries'. */
-const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist\'s ({fee} gold a brew), or your own home\'s. Your potions go to your pack.';
+const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist\'s or a Mages Guild hall ({fee} gold a brew), or your own home\'s. Your potions go to your pack.';   // POTION-DOOR: the Mages Guild's hall a station
 export const ALCHEMY_AWAY_LINE = formatMessage(ALCHEMY_AWAY, { fee: ALCHEMY_FEE });   // the English, as the tests compare it
 const alchemyAwayLine = () => t('prof.page.alchemy.away', ALCHEMY_AWAY, { fee: ALCHEMY_FEE });
 /** Tests: the station's state. */
@@ -2850,15 +2894,16 @@ function drawAlchemyStation(detail, rerender, { el, divider }) {
     const gathered = potentAble(potion) ? potion.ingredients.filter((t) => ingredientKeys(t).some((k) => k.startsWith('p'))).length : 0;   // AUDIT PROF-541 B3: a cure's herbs add nothing
     const made = brewCount(rank, specs[50], potion);   // AUDIT PROF-541 R2-S1: the counter's goods alone brew one
     // CRAFT-LIMIT-SAID: the brew's XP as the service pays it (its ?10 the Firmament's percent on brewXp, its ?11 the first's
-    // whole), and the limit's line in its place where the track cannot take it
+    // whole - FIRST-BUDGET: Provisioning's first-make share, brewFirstXp), and the limit's line in its
+    // place where the track cannot take it
     const pay = craftPayOf(book, 'alchemy'), profession = professionName('alchemy');   // CRAFT3: the craft's own name
-    const xp = paidXp(brewXp(potion, rank, false), { pct: pay.pct }), more = brewXp(potion, rank, true) - brewXp(potion, rank, false);
+    const xp = paidXp(brewXp(potion, rank), { pct: pay.pct }), more = brewFirstXp(potion);
     box.append(el('p', 'px-note', [
       t('prof.page.alchemy.made', '{n, plural, one {A potion} other {# potions}} a brew.', { n: made }),
       t('prof.page.alchemy.potentLine', '{potent}{gathered, select, yes { - and +{unbruised}% for each of its herbs you picked unbruised} other {}}.', { potent: potentLine(rank, specs, 0, potion, steps), gathered: gathered ? 'yes' : 'no', unbruised: POTENT.unbruised }),
-      // CRAFT-FIRST-SHOWN: a potion wholly of the Apothecaries' goods says why its first lays on nothing (AUDIT 32 S1's law, brewFirstPays)
-      capLine(profession, pay, xp + (brewFirstPays(potion) ? more : 0))
-        || (brewFirstPays(potion) ? t('prof.page.alchemy.xpFirst', '{xp} {profession} experience, and {more} the first time.', { xp, profession, more }) : t('prof.page.alchemy.xpShop', '{xp} {profession} experience. It is made only from the Apothecaries\' goods, so it earns no first-time bonus.', { xp, profession })),
+      // CRAFT-FIRST-SHOWN: a potion wholly of the Apothecaries' goods says why its first lays on nothing (AUDIT 32 S1's law, brewFirstPays - brewFirstXp 0)
+      capLine(profession, pay, xp + more)
+        || (more > 0 ? t('prof.page.alchemy.xpFirst', '{xp} {profession} experience, and {more, number} the first time.', { xp, profession, more }) : t('prof.page.alchemy.xpShop', '{xp} {profession} experience. It is made only from the Apothecaries\' goods, so it earns no first-time bonus.', { xp, profession })),
     ].join(' ')));
     const ready = rank >= potion.rank && spends.length > 0 && spends.every((i) => held(i.key) >= i.n) && !_alchemy.crafting && !short;
     const go = el('button', 'act primary', _alchemy.crafting ? t('prof.page.alchemy.brewing', 'Brewing...') : t('prof.page.alchemy.go', 'Brew'));
@@ -3061,13 +3106,14 @@ function drawTemper(detail, rerender, { el, divider }, where) {
 }
 
 /** What the Reforge with Essence says it is, and below its rank. */
-export const ESSENCE_REFORGE_HOW = `An Enchanter rolls one line of a Magic piece again for ${REFORGE_ESSENCE.magic} Arcane Essence, or of a Rare piece for ${REFORGE_ESSENCE.rare}. Once a piece is reforged, only that line can be rolled again.`;
-export const ESSENCE_REFORGE_RANK_LINE = `From Enchanting ${REFORGE_RANK}, you can roll one line of a Magic or Rare piece again here for Arcane Essence.`;
+/** REFORGE-REPLACE (the owner: "Replace, price rises"): a line is replaced by another kind, any line, the price doubling. */
+export const ESSENCE_REFORGE_HOW = () => t('prof.page.reforge.how', 'An Enchanter replaces one line of a Magic piece with a line of another kind for {magic} Arcane Essence, or of a Rare piece for {rare}. Any line can be reforged, and each reforge doubles the price of the next on that piece.', { magic: REFORGE_ESSENCE.magic, rare: REFORGE_ESSENCE.rare });
+export const ESSENCE_REFORGE_RANK_LINE = () => t('prof.page.reforge.rank', 'From Enchanting {rank}, you can replace one line of a Magic or Rare piece with a line of another kind here, for Arcane Essence.', { rank: REFORGE_RANK });   // REFORGE-REPLACE: a line replaced, never rolled again
 export const ESSENCE_REFORGE_NONE = 'Nothing in your pack can be reforged. It takes an identified Magic or Rare piece you are not wearing.';
 /**
  * CRAFT4: THE REFORGE WITH ESSENCE - at the enchanting station, an Enchanter of rank 50's: each known Magic and Rare piece
- * of the pack, each line it may roll again (the Loot arc's own Reforge, lootRarity.js reforgeAffix), for 2 or 5 Arcane
- * Essence from the Stores - never gold's units.
+ * of the pack, each line it may replace (the Loot arc's own Reforge, lootRarity.js reforgeAffix), for 2 or 5 Arcane
+ * Essence from the Stores - never gold's units - doubled for every reforge the piece has taken (REFORGE-REPLACE).
  * @param {HTMLElement} detail @param {() => void} rerender @param {{ el: Function, divider: (w: string) => HTMLElement }} kit
  * @param {number} rank @param {string|null} short
  */
@@ -3075,14 +3121,14 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
   const p = _provider;
   if (!p?.reforgeable || !p.essenceReforge) return;
   detail.append(divider('Reforge with Essence'));
-  if (rank < REFORGE_RANK) { detail.append(el('p', 'px-note', ESSENCE_REFORGE_RANK_LINE)); return; }
-  detail.append(el('p', 'px-note', ESSENCE_REFORGE_HOW));
+  if (rank < REFORGE_RANK) { detail.append(el('p', 'px-note', ESSENCE_REFORGE_RANK_LINE())); return; }
+  detail.append(el('p', 'px-note', ESSENCE_REFORGE_HOW()));
   const ess = p.book.store?.(ARCANE_ESSENCE.key) ?? { own: workOf(p.book, ARCANE_ESSENCE.key) };
   const have = (ess.own | 0) + (ess.bought | 0) + (ess.loose | 0);   // never gold's units, as the service spends - FB1020h ESSENCE-LOOSE: a station's, its loose too
   const pieces = p.reforgeable();
   if (!pieces.length) detail.append(el('p', 'px-note', ESSENCE_REFORGE_NONE));
   for (const pc of pieces) {
-    const n = reforgeEssence(pc.tier);
+    const n = reforgeEssence(pc.tier, reforgeCount(pc.item));   // REFORGE-REPLACE: its next reforge's, doubled for each it has taken
     if (!n) continue;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${n} Arcane Essence a line`));
