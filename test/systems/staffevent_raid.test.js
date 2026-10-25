@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import {
   STAFF_PACK_MIN, STAFF_PACK_MAX, STAFF_PACK_FILL_MIN_S, STAFF_PACK_FILL_MAX_S, staffPackGapS, staffPackPaceS, STAFF_PACK_FAR_MIN, STAFF_PACK_FAR_MAX, STAFF_PACK_NEAR, MAX_RAID_ENEMIES, raidSpawnRange, RAID_SPAWN_MIN_DISTANCE, RAID_SPAWN_MAX_DISTANCE,
   raidFrame as frame, raidWireWord, raidRelayWord, setRaidingPartiesHost, restoreRaidSaveData, _resetRaidingParties,
-  STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine, STAFF_BOSS_CLEAR_MAX_MS,
+  STAFF_RAID_TYPE, staffBossLine, staffEndLine, staffAttackLine, STAFF_BOSS_CLEAR_MAX_MS, staffBossSpot, STAFF_BOSS_GROUP_M,
 } from '../../src/systems/raidingParties.js';
 import { staffEventBook, staffRaids, staffRaidHere, staffRaidRoom, staffBossWanted, staffLedgerOf, _resetStaffEvents } from '../../src/systems/staffEvents.js';
 import { validStaffEvent, staffEventKey } from '../../src/net/staffEvent/staffEventLaw.js';
@@ -278,6 +278,20 @@ test('PACK-SPREAD (mob 2026-10-25: "evenly swap them between all player in a cit
   for (let i = 0; i < 200 && solo.log.raiders.length < 10; i++) { frame(0.05); await tick(); }
   assert.ok(solo.log.raiders.every((f) => f.o?.at || f.o?.near == null), 'my own feet');
   assert.ok(rd('src/scenes/world.js').includes('feet: at?.at ?? at?.near ?? enchantFeet()'), 'the host stands a leader around the player it was given');
+});
+
+test('BOSS-SPOT (mob 2026-10-25: "spawn it on the highest lvl player", "or largewst groupoing"; card "Biggest group, ties by level"): the boss stands beside the biggest group, a tie to the higher level, then the lower id; beside me when it is me', () => {
+  assert.equal(STAFF_BOSS_GROUP_M, 30);
+  const P = (id, x, lv) => [id, [x, 0, 0], lv];
+  assert.equal(staffBossSpot([P('me', 0, 50), P('a', 200, 5), P('b', 210, 5), P('c', 220, 5)])[0], 'a', 'three together beat one high level alone');
+  assert.equal(staffBossSpot([P('a', 0, 5), P('b', 10, 5), P('c', 200, 40), P('d', 210, 3)])[0], 'c', 'two and two: the group with the level 40');
+  assert.equal(staffBossSpot([P('b', 0, 7), P('a', 500, 7)])[0], 'a', 'all equal: the lower id');
+  assert.equal(staffBossSpot([P('me', 0, 1), ['x', null, 99]])[0], 'me', 'no feet: left out');
+  assert.equal(staffBossSpot([]), null);
+  const src = rd('src/systems/raidingParties.js');
+  assert.equal(src.split("spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }").length - 1, 2, 'the meter\'s boss and a lost one both');
+  assert.match(src, /return at && at\[0\] !== me \? \{ near: at\[1\] \} : undefined;/);
+  assert.ok(rd('src/scenes/world.js').includes("peerFeetInTown: () => [[online?.id ?? '', player.feetAt(), playerEntity.level ?? 1], ...(peersNear() ?? [])"), 'me first, with my level');
 });
 
 test('STAFF-EVENT PACKS: monsters stood in packs of 3-5 of any of the kinds picked, each led from anywhere around me, its pack around its leader, to the 25 cap in 20-45 s', async () => {

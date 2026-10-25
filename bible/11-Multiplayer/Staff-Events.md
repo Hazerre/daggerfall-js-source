@@ -121,6 +121,20 @@ health - `STAFF_BOSS_MIN_METAL` Silver (a blade below Silver does nothing, `comb
 `dropWeaponIfTargetImmune`; hand-to-hand lands, as DFU's does) and `STAFF_BOSS_ARMOR` 10 (the Troll's ArmorValue 2 x 5,
 EnemyEntity.cs:264-267) as its worst armour on any part. Owner and puppet alike, so a peer's blow is held to it too.
 
+BOSS-BOUND (2026-10-25, mob: "heal was set to 10000 for zombie its wromng", "the event boss had to low of health"):
+FOE-BOUNDS (`net/foeBounds.js`, Spawn-Grants section 19) judged a peer's mini boss as a plain elite of its kind, so every
+copy but its owner's took a boss past that bound - an exact health of 10,000, or a large multiplier - down as impossible.
+A record its frame tags both the event's raider (`rz`) and its boss (`sb`), of an event live in my own book, is held
+instead to that event's health: its `hp`, or its kind's bound times its `bh`, whichever is more
+(`systems/staffEvents.js` `staffBossBound`, read by `scenes/grantHost.js` `statsRefused`). Past it, or of no event I
+hold, the plain bound stands. The relay's strip (`grantStrip`, off) still judges it plain.
+
+BOSS-SPOT (2026-10-25, mob: "spawn it on the highest lvl player in the town or area", "or largewst groupoing"; card:
+"Biggest group, ties by level"): the one who runs the event stands its mini boss beside the player with the most players
+within `STAFF_BOSS_GROUP_M` (30 m) of them, themselves counted - a tie to the group whose highest level is higher, then
+the lower id (`raidingParties.js` `staffBossSpot`, off the host's `peerFeetInTown`: me first, then each player in the
+place's rect, each with their level). Beside me when it is me.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
