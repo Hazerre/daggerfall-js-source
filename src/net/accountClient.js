@@ -346,6 +346,22 @@ const REFUSAL_WORDS = {
   'no-decor': () => t('account.refusal.noDecor', 'That piece is not in your home any more.'),
   'bad-decor': () => t('account.refusal.badDecor', 'The account service could not read that piece.'),
   'decor-figure': () => t('account.refusal.decorFigure', 'That figure has been set back to its normal size. Look at the room again.'),   // AUDIT HOME-VOTE II C2: a stale copy of a figure grown before DECOR-FIGURE
+  'decor-busy': () => t('account.refusal.decorBusy', 'Someone else is using this chest.'),
+  'decor-shut': () => t('account.refusal.decorShut', 'You cannot use that.'),
+  'decor-held': () => t('account.refusal.decorHeld', 'Empty it before it is removed.'),
+  'decor-holds': () => t('account.refusal.decorHolds', 'Empty what a piece holds before you remove it.'),
+  'bad-item': () => t('account.refusal.badItem', 'That cannot be stored.'),
+  'no-item': () => t('account.refusal.noItem', 'That is not in the chest.'),
+  'seat-batch': () => t('account.refusal.seatBatch', 'A charter room is not furnished this way.'),
+  'decor-rev': () => t('account.refusal.decorRev', 'The room changed while you were furnishing it. Look again.'),
+  'decor-ops': () => t('account.refusal.decorOps', 'That is too many changes at once.'),
+  'decor-txn': () => t('account.refusal.decorTxn', 'That furnishing was already sent.'),
+  'home-holds': () => t('account.refusal.homeHolds', 'Take the goods out before the house changes hands.'),
+  'bad-offer': () => t('account.refusal.badOffer', 'That offer could not be read.'),
+  'home-deed': () => t('account.refusal.homeDeed', 'A house given by a knightly order cannot be transferred.'),
+  'offer-open': () => t('account.refusal.offerOpen', 'An offer for this house is already out.'),
+  'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
+  'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
   // GUILD1: the guilds (server-account/src/guilds.js)
   'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Guilds need a username and a password. Give this account one and you can found or join one.'),
   'guild-character': () => t('account.refusal.guildCharacter', 'The account service could not tell which character that is.'),
@@ -2032,6 +2048,7 @@ export function accountHomes({ fetch, storage }) {
     claim: ({ mapId, buildingKey, region, character, price, realm = null, layout = null }) => post('/v1/homes/claim', { mapId, buildingKey, region, character, price, ...(realm ? { realm } : {}), layout: layout || null }),   // REALM P2.2b: a realm character's record pays; WD3: the layout the town stands in, always said (null: Daggerfall's - AUDIT WD3 B2)
     layouts: () => post('/v1/homes/layouts', {}),   // WD3: every town holding a home, and the layout it keeps
     release: (mapId, buildingKey, realm = null) => post('/v1/homes/release', { mapId, buildingKey, ...(realm ? { realm } : {}) }),
+    transfer: (body) => post('/v1/homes/transfer', body),
     entry: (mapId, buildingKey, entry) => post('/v1/homes/entry', { mapId, buildingKey, entry }),
     // HOME-RENT: a home's rooms (server-account/src/rent.js) - read at its door, offered and withdrawn by its owner, rented
     // by another player's realm character on its record, and the rent collected by the owner on theirs
@@ -2073,11 +2090,13 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
   const post = sessionPost({ fetch, storage });
   const waited = waitedPost({ fetch, storage }, listWaitMs);
   return {
-    list: (mapId, buildingKey, seat = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}) }),   // SEAT-HALL: a palace's Charter Room
+    list: (mapId, buildingKey, seat = false, yard = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}), ...(yard && !seat ? { yard: true } : {}) }),   // SEAT-HALL: a palace's Charter Room; HOME-YARD: the street's pieces, for its Confirm
     place: ({ mapId, buildingKey, character, piece, realm = null, yard = false, seat = false }) => post('/v1/homes/decor/place', { mapId, buildingKey, character, piece, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}), ...(seat ? { seat: true } : {}) }),   // REALM P2.2b: and its gold on the record; HOME-YARD: outside
     yards: (mapId) => waited('/v1/homes/yards', { mapId }),   // HOME-YARD: every yard of a town
     move: ({ mapId, buildingKey, character, id, place, realm = null, seat = false }) => post('/v1/homes/decor/move', { mapId, buildingKey, character, id, place, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
     remove: ({ mapId, buildingKey, character, id, realm = null, seat = false }) => post('/v1/homes/decor/remove', { mapId, buildingKey, character, id, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
+    batch: ({ mapId, buildingKey, character, rev, txn, put, drop, realm = null, yard = false }) => post('/v1/homes/decor/batch', { mapId, buildingKey, character, rev, txn, put, drop, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}) }),   // DECOR-BATCH: a home's Confirm
+    use: (body) => post('/v1/homes/decor/use', body),   // DECOR-ACCESS
     // BASE-HIDE: the room's own furniture taken out - the whole list, written by the owner
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
   };
