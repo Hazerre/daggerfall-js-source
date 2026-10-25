@@ -1373,11 +1373,10 @@ export function createDecorTool(deps) {
       if (deps.visit?.() !== visit || roomKey(deps.room?.()) !== key || placing || draftDirty()) return;
       const rev = Number(res?.data?.rev);
       if (!res?.ok || !Number.isSafeInteger(rev) || heardRev === rev) return;
-      const first = heardRev == null;
-      heardRev = rev;
-      if (first || typeof deps.homeDecor?.list !== 'function') return;
+      if (heardRev == null || typeof deps.homeDecor?.list !== 'function') { heardRev = rev; return; }
       return deps.homeDecor.list(r.mapId, r.buildingKey, false, yard).then((full) => {
         if (deps.visit?.() !== visit || roomKey(deps.room?.()) !== key || placing || draftDirty() || !full?.ok) return;
+        heardRev = rev;
         readUse();
         if (typeof pool.set !== 'function') return;
         const pieces = (full.data.pieces ?? []).map((p) => decorPieceOf(p)).filter(Boolean);
@@ -1385,7 +1384,7 @@ export function createDecorTool(deps) {
         const d = liveDraft();
         if (d) d.before = new Map(pieces.map((p) => [p.id, snapPiece(p)]));
         if (d) d.rev = rev;
-      });
+      }, () => {});
     }, () => { hearing = false; });
   }
   /** While a wagon's Confirm is still ahead, the save and the relay keep the last picture. */

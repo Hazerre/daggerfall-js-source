@@ -610,8 +610,9 @@ test('X11b: the potion maker really consumes its ingredients now', () => {
   // passed `list[i]` - the ITEM - to removeOne, which takes a TEMPLATE
   // INDEX. Its findIndex compared a number against an object, matched
   // nothing, and returned false, so brewing never spent a reagent.
-  const s = src('src/scenes/worldModes.js');
-  const hook = s.slice(s.indexOf('takeOne: (templateIndex, where'), s.indexOf('takeOne: (templateIndex, where') + 1100);
+  const s = src('src/scenes/potionMakerHost.js');
+  const at = s.indexOf('takeOne:');
+  const hook = s.slice(at, at + 1100);
   assert.ok(!/removeOne\(list, list\[i\]\)/.test(hook), 'the item is still passed where an index goes');
   // AUDIT 26 F176 grew the call: the group rides along so the walk
   // spends only un-enchanted reagents (GetItem's allowEnchantedItem

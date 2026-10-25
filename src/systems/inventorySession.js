@@ -354,9 +354,21 @@ export function chestSaveVeil(text) {
   const veil = document.createElement('div');
   veil.setAttribute('data-chest-save', '');
   veil.textContent = text || 'Saving...';
-  veil.style.cssText = 'position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#e8dcc0;font:18px serif;pointer-events:all';
+  veil.style.cssText = 'position:fixed;inset:0;z-index:39;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#e8dcc0;font:18px serif;pointer-events:all';
   document.body.append(veil);
   return () => veil.remove();
+}
+
+/** A second close while the chest is saving does nothing. The real close runs once the save has answered. */
+export function holdChestSave(gate, loot, again) {
+  if (gate?.saving) return true;
+  if (gate?.saved) return false;
+  const pending = lootFinish(loot);
+  if (!pending) return false;
+  gate.saving = true;
+  const clear = chestSaveVeil(loot?.busy);
+  pending.finally(() => { clear(); gate.saving = false; gate.saved = true; again(); });
+  return true;
 }
 
 export function closeSession(deps = {}, state = {}) {
