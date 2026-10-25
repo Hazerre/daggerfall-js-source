@@ -72,5 +72,77 @@
     "tests": [
       "test/systems/partyloot.test.js"
     ]
+  },
+  {
+    "name": "FB1025-STALE-memory-locked-on-the-host",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
+    "new": "        if (false) {",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-a-live-word-restarts-too",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
+    "new": "        if (host._authority && !bodyRebuilding(h)) {",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-a-joiner-restarts-too",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "        if (from == null && host._authority && !bodyRebuilding(h)) {",
+    "new": "        if (from == null && !bodyRebuilding(h)) {",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-the-same-generation",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "    _roomNextGen.set(canon, Math.max(_roomNextGen.get(canon) ?? 0, staleGeneration + 1));",
+    "new": "    _roomNextGen.set(canon, Math.max(_roomNextGen.get(canon) ?? 0, staleGeneration));",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-the-seat-forgets",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "      else if (!bodyRebuilding(roomBaseHolder(canon))) restartStaleContainer(canon);",
+    "new": "      else void 0;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-a-body-at-its-death",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "    return Math.max(death, _roomNextGen.get(canon) ?? 0);",
+    "new": "    return death;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-CHAMPBASE-the-bonus-reads-the-build",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "champion: base.champion ?? null,",
+    "new": "champion: f?.entity?.champion ?? null,",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
+  },
+  {
+    "name": "FB1025-STALE-a-rebuilding-body-restarted",
+    "file": "src/scenes/roomLootHost.js",
+    "old": "    return !!holder?.foe && host._retyping.has(foes.indexOf(holder.foe));",
+    "new": "    return false;",
+    "tests": [
+      "test/systems/partyloot.test.js"
+    ]
   }
 ]

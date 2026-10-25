@@ -159,6 +159,7 @@ function relay() {
 function peer(net, { id, level, luck, renown, seed, host, foraging, partners, characterId, seat = { id: host ? id : null }, kind = ORC, career = null, location = ROOM_ID }) {
   const player = { level, gender: 'male', name: id, characterId, stats: { luck, strength: 60 }, activeEffects: [], items: [], goldPieces: 0 };
   const said = [];   // what the mid-screen line said to this player (the refusal's line)
+  const bonusCalls = [];   // CHAMP-BASE: what each personal bonus was rolled with
   const own = lcg(seed);
   const as = (fn) => {
     const realRandom = Math.random;
@@ -178,7 +179,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     addItem, stacksWith, isGoldPieces, addGoldPieces, isEquipped, unequipItem, neverPeerHanded, notCarried,   // AUDIT AUTO-HOLD: the give asks it (offline here: no filter)
     onlineRoom: () => true, _wallNow: () => clock.t, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
-    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus, applyChampion, championTraitFor,   // CHAMP-BASE: the build's champion arm (applyEliteScaling) and the base's
+    spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus: (args) => { bonusCalls.push(args); return rollRoomBonus(args); }, applyChampion, championTraitFor, _retyping: new Set(),   // CHAMP-BASE: the build's champion arm (applyEliteScaling) and the base's
     wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,
     spawnCorpseNow: async (f) => { f.corpsePos = [...f.ai.feet]; }, renderer: { destroyBillboardBatch: () => {} }, billboardBatches: [], renownFoeRevived: () => {},
@@ -211,7 +212,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     const api = { lootContents: ${memberSrc('lootContents')}, takeLoot: ${memberSrc('takeLoot')}, lootFinds: ${memberSrc('lootFinds')}, corpseKeyOf: ${memberSrc('corpseKeyOf')} };
     const buildPile = () => { ${PILE_BUILD}
       return items; };
-    return { api, applyActions, setFoeDead, respawnSweep, rollPileItems, buildPile, publishLoot, applyEliteScaling, setAuthority: typeof setAuthority === 'function' ? setAuthority : null, roomClaimTick: typeof roomClaimTick === 'function' ? roomClaimTick : () => {}, lootBuiltOf: typeof lootBuiltOf === 'function' ? lootBuiltOf : null, bases: typeof _roomBase === 'undefined' ? null : _roomBase };
+    return { api, applyActions, applyLoot, setFoeDead, respawnSweep, rollPileItems, buildPile, publishLoot, applyEliteScaling, setAuthority: typeof setAuthority === 'function' ? setAuthority : null, roomClaimTick: typeof roomClaimTick === 'function' ? roomClaimTick : () => {}, lootBuiltOf: typeof lootBuiltOf === 'function' ? lootBuiltOf : null, bases: typeof _roomBase === 'undefined' ? null : _roomBase };
   `, state);
   // THE BUILD, as dungeonContext builds it: the pile loop's own lines and buildFoeAt's chain, each on THIS peer's dice -
   // CHAMP-BASE: the layout's champions marked by the dungeon's LocationId and stood by the build's own arm, before the loot
@@ -228,7 +229,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
       state.foes.push(f);
     }
   });
-  const p = { id, host: h, state, player, as, said, seat };
+  const p = { id, host: h, state, player, as, said, seat, bonusCalls };
   net.join(p);
   return p;
 }
@@ -678,7 +679,10 @@ test('PARTY-LOOT: THE BASE IS THE ROOM\'S ROLL ALONE - one name and one set of t
   assert.ok([...lists.values()].some((v) => v !== '[]'), 'and it is a real roll');
 });
 
-test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and say theres a \'new version of the game\' when there isn\'t"): a body the layout marks a champion is ONE base for the room, whatever level each player built its foe at - a level-2 joiner\'s copy of a marked class foe stood as no champion (applyChampion\'s level gate, read at its builder\'s level), ran PLAIN-LOOT\'s keep on dice the host\'s champion skips, and read the host\'s word about the body as "from a newer version of the game"', () => {
+test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and say theres a \'new version of the game\' when there isn\'t"): a body the layout marks a champion is ONE base for the room, whatever level each player built its foe at - a level-2 joiner\'s copy of a marked class foe stood as no champion (applyChampion\'s level gate, read at its builder\'s level), ran PLAIN-LOOT\'s keep on dice the host\'s champion skips, and read the host\'s word about the body as "from a newer version of the game"', (t) => {
+  // the suite's one clock is put back: a body's generation is its death, so a later case's rolls must not move with this one
+  const clockAtStart = clock.t;
+  t.after(() => { clock.t = clockAtStart; });
   const layout = { kind: NIGHTBLADE, career: classCareer(), location: CHAMP_ROOM_ID };
   const r = room({ joinerLevel: 2, ...layout });
   // the build's own picture: one pick of the layout's records on both machines, each standing them at its own level
@@ -713,6 +717,13 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and
   assert.deepEqual(champs(r.A), hostChamps, 'the base hands each entity back as its builder stood it - the host\'s champions');
   assert.deepEqual(champs(r.B), Array(FOES).fill(null), 'and the joiner\'s plain copies');
   assert.deepEqual([caps(r.A), caps(r.B)], builtCaps, 'each with the cap its build stamped');
+  // the joiner's own bonus over a champion's base is rolled as over a champion's - the base's judgment, not its plain copy's
+  for (const i of marked(r.B)) {
+    const base = r.B.host.bases.get(`corpse:${i}`);
+    assert.equal(base.champion, hostChamps[i], `corpse:${i}: the base keeps the champion it rolled`);
+    const bonus = r.B.bonusCalls.filter((call) => call.baseItems === base.items);
+    assert.ok(bonus.length > 0 && bonus.every((call) => call.champion === hostChamps[i]), `corpse:${i}: the joiner's bonus rolls over a champion`);
+  }
   // a party under CHAMPION_MIN_LEVEL: the mark is no champion in the room's base either, as at either player's build
   const low = room({ hostLevel: 2, joinerLevel: 1, ...layout });
   assert.ok(RL.roomBaseLevel(2, [1]) < CHAMPION_MIN_LEVEL, 'the room\'s level is under a champion\'s');
@@ -721,12 +732,83 @@ test('CHAMP-BASE (FIELD BUGS 2026-10-25, "Loot will sometime be unobtainable and
   for (const i of marked(low.A)) assert.ok(Number.isInteger(low.A.host.bases.get(`corpse:${i}`)?.lootCap), `corpse:${i}: a plain body's base at the room's level`);
 });
 
+test('CHAMP-BASE (FIELD BUGS 2026-10-25, "This was also happening when solo"): a word the room\'s MEMORY hands back that this build cannot match was the room\'s own - an earlier visit\'s, often on the build before an update - so its host starts the container over one generation on, and every client takes the new mint; a live peer\'s word, or the memory\'s on a client that is not the host, is still another build\'s', (t) => {
+  // the suite's one clock is put back: a body's generation is its death, so a later case's rolls must not move with this one
+  const clockAtStart = clock.t;
+  t.after(() => { clock.t = clockAtStart; });
+  const first = room();
+  fall(first);
+  const said = first.net.sent.flatMap((frame) => frame.data.l ?? []).filter((w) => w.k === 'loot:0' && RL.isRoomWord(w));
+  assert.ok(said.length > 0, 'the first visit said the pile\'s birth');
+  // the earlier visit's word, as a build whose pile roll differed would have signed it
+  const stale = { ...said.at(-1), h: 'stale0' };
+  const sweep = (r, seconds) => {
+    clock.t += seconds * 1000;
+    for (const p of [r.A, r.B]) p.as(() => p.host.respawnSweep(clock.t / 1000));
+    r.net.flush();
+  };
+  // the HOST (a player alone is the room's host): the memory's word starts the pile over, never "Reload to open it"
+  const again = room();
+  again.A.as(() => again.A.host.applyLoot([stale]));
+  assert.ok(!again.A.state._lootUnreadable.has('loot:0'), 'the host reads the memory\'s word as stale, not as another build\'s');
+  // ...and the joiner, which heard the same memory, holds it unread until the host's new mint comes
+  again.B.as(() => again.B.host.applyLoot([stale]));
+  assert.ok(again.B.state._lootUnreadable.has('loot:0'), 'a client that is not the host never starts the room\'s container over');
+  sweep(again, 2);
+  sweep(again, 7);
+  const minted = again.A.host.bases.get('loot:0');
+  assert.ok(minted && minted.terms.g === stale.g + 1, `the host minted the pile one generation on (${minted?.terms.g}, the stale word's ${stale.g})`);
+  assert.ok(!again.B.state._lootUnreadable.has('loot:0'), 'the newer generation reached the joiner, who reads it');
+  assert.deepEqual(baseRows(shown(again.B, 'loot:0')), baseRows(shown(again.A, 'loot:0')), 'one base for both');
+  again.A.said.length = 0;
+  again.A.as(() => again.A.host.api.takeLoot('loot:0'));
+  assert.ok(!again.A.said.includes(LOOT_NEWER_TEXT), 'and the host\'s press takes');
+  // a LIVE peer's word this build cannot match is another build's, as before
+  const live = room();
+  live.B.as(() => live.B.host.applyLoot([stale], 'aaaa'));
+  live.A.as(() => live.A.host.applyLoot([stale], 'bbbb'));
+  assert.ok(live.A.state._lootUnreadable.has('loot:0') && live.B.state._lootUnreadable.has('loot:0'), 'a speaker\'s mismatched word stays unread');
+  // a client that held the memory's word unread and then takes the seat starts it over
+  const seat = room();
+  seat.B.as(() => seat.B.host.applyLoot([stale]));
+  assert.ok(seat.B.state._lootUnreadable.has('loot:0'), 'unread while it is not the host');
+  seat.B.as(() => seat.B.host.setAuthority(true));
+  assert.ok(!seat.B.state._lootUnreadable.has('loot:0'), 'started over once the seat is its own');
+  clock.t += 2000;
+  seat.B.as(() => seat.B.host.respawnSweep(clock.t / 1000));
+  clock.t += 2000;
+  seat.B.as(() => seat.B.host.respawnSweep(clock.t / 1000));
+  assert.equal(seat.B.host.bases.get('loot:0')?.terms.g, stale.g + 1, 'and its sweep mints the pile one generation on');
+  // a BODY the memory laid dead at the stale word's own death: its new mint is past that death too
+  const bodyWord = first.net.sent.flatMap((frame) => frame.data.l ?? []).filter((w) => w.k === 'corpse:0' && RL.isRoomWord(w)).at(-1);
+  assert.ok(bodyWord, 'the first visit said the body\'s birth');
+  const body = room();
+  const fallen = body.B.state.foes[0];
+  body.B.as(() => body.B.host.setFoeDead(fallen, true));
+  fallen._diedAt = bodyWord.g;   // as the memory's record lays it (applyWorld patchFoe: `died`)
+  body.B.as(() => body.B.host.applyLoot([{ ...bodyWord, h: 'stale1' }]));
+  assert.ok(body.B.state._lootUnreadable.has('corpse:0'), 'the body unread while it is not the host');
+  body.B.as(() => body.B.host.setAuthority(true));
+  clock.t += 1000;
+  body.B.as(() => body.B.host.respawnSweep(clock.t / 1000));
+  assert.equal(body.B.host.bases.get('corpse:0')?.terms.g, bodyWord.g + 1, 'the body minted one generation past its death');
+  // ...but never a body still being rebuilt as the memory's species (CORPSE-GOLD lands its word again after the rebuild)
+  const rebuilt = room();
+  const standing = rebuilt.B.state.foes[0];
+  rebuilt.B.as(() => rebuilt.B.host.setFoeDead(standing, true));
+  standing._diedAt = bodyWord.g;
+  rebuilt.B.state._retyping.add(0);
+  rebuilt.B.as(() => rebuilt.B.host.applyLoot([{ ...bodyWord, h: 'stale1' }]));
+  rebuilt.B.as(() => rebuilt.B.host.setAuthority(true));
+  assert.ok(rebuilt.B.state._lootUnreadable.has('corpse:0'), 'held unread through the seat while its body is rebuilt');
+});
+
 test('PARTY-LOOT by source: no Math.random in the room\'s law (systems/roomLoot.js) nor in the dungeon\'s PARTY-LOOT block; the base rolls inside asTheRoom; the readers turn an unborn container away; the kill, the stream and the memory roll nothing of their own onto a room body', () => {
   const strip = (t) => t.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.doesNotMatch(strip(readFileSync(new URL('../../src/systems/roomLoot.js', import.meta.url), 'utf8')), /Math\.random/, 'the room\'s law draws only on its seeded dice');
   assert.ok(BLOCK, 'the dungeon carries the PARTY-LOOT block (PIN MOVED, HOST-SPLIT: constructed from src/scenes/roomLootHost.js)');
   assert.doesNotMatch(strip(BLOCK), /Math\.random/, 'and the block takes no draw of its own');
-  assert.match(modFn('rollRoomBase'), /asTheRoom\(\(\) => \{\s*if \(h\.pile\) items = roomPileBase\(h, terms, rolls, gender\);\s*else \(\{ items, lootCap \} = roomBodyBase\(h\.foe, terms, rolls, gender, rejects\)\);\s*\}\);/);
+  assert.match(modFn('rollRoomBase'), /asTheRoom\(\(\) => \{\s*if \(h\.pile\) items = roomPileBase\(h, terms, rolls, gender\);\s*else \(\{ items, lootCap, champion \} = roomBodyBase\(h\.foe, terms, rolls, gender, rejects\)\);\s*\}\);/);   // PIN MOVED (CHAMP-BASE): the base keeps the champion it rolled a body as, for the bonus
   assert.match(modFn('roomBodyBase'), /spawnEnemyLoot\(e, f\.mobileType, ENEMY_BASICS\[f\.mobileType\], roller, \{ \.\.\.eliteLootOpts\(f\.src\), where: 'dungeon', \.\.\.o, rejects \}\);/);
   assert.match(memberSrc('lootContents'), /if \(\(kind === 'loot' \|\| kind === 'corpse'\) && \(roomUnborn\(key\) \|\| _lootUnreadable\.has\(roomLootKey\(key\)\)\)\) return null;/);   // PIN MOVED (AUDIT GRAVE-PARTY G2): nor a container whose word this build cannot read - a target again, its plaque naming no list (test/systems/fb1016b_graveparty.test.js)
   assert.match(memberSrc('takeLoot'), /if \(\(kind === 'loot' \|\| kind === 'corpse'\) && roomUnborn\(key\)\) return 0;/);

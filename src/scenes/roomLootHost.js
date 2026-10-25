@@ -49,7 +49,9 @@ export function createRoomLoot(host) {
   const _roomComposed = new Map();  // canon -> the base the container's list was last composed from
   const _roomUnbornAt = new Map();  // canon -> when the sweep first found the container born with no terms (its own clock)
   const _roomPending = new Map();   // canon -> a word that came before its body fell here
-  const _roomNextGen = new Map();   // canon -> the generation a pile's respawn rolls next (the room's emptying stamp)
+  const _roomNextGen = new Map();   // canon -> the generation the container's next mint takes at least (a pile's respawn: the room's emptying stamp; a stale memory word: one past its own)
+  /** canon -> the generation of a memory word this build could not match, kept until this client holds the seat. */
+  const staleMemory = new Map();
   const _roomSeen = new Map();      // canon -> { list, at }: the shared pieces its list held at its last compose (a take is read against it)
   const _roomMine = new Map();      // claim id -> this player's own claim or put the host has not answered (or a claim that timed out, still answered late)
   const _roomWon = new Set();       // `canon#g|place` this player's claims were granted - a sibling claim's refusal is then no news
@@ -126,7 +128,8 @@ export function createRoomLoot(host) {
   }
   /** THE BASE: a container's chain on the room's dice and the room's terms, computed here as on every client in the
    *  room (cached for one set of terms). Rolled AS THE ROOM (onlineLane.js asTheRoom): every mod at its shipped
-   *  default. Answers `{ name, terms, items, full, rejects, lootCap, h }`. */
+   *  default. Answers `{ name, terms, items, full, rejects, lootCap, champion, h }` - `champion` the trait id the base
+   *  rolled a body as, or null. */
   function rollRoomBase(canon, terms) {
     if (isCarried(canon)) {   // OUTDOOR-LOOT: a find's base is the searcher's roll, carried with the state - never computed
       const st = _roomState.get(canon);
@@ -145,13 +148,13 @@ export function createRoomLoot(host) {
     const rolls = seededRolls(name);
     const gender = roomBaseGender(name);
     const rejects = [];
-    let items = [], lootCap = null;
+    let items = [], lootCap = null, champion = null;
     asTheRoom(() => {
       if (h.pile) items = roomPileBase(h, terms, rolls, gender);
-      else ({ items, lootCap } = roomBodyBase(h.foe, terms, rolls, gender, rejects));
+      else ({ items, lootCap, champion } = roomBodyBase(h.foe, terms, rolls, gender, rejects));
     });
     if (items.length > ROOM_BASE_MAX) items.length = ROOM_BASE_MAX;
-    const rec = { name, terms: { ...terms }, items, full: items.map((it) => (Number.isInteger(it?.stackCount) ? it.stackCount : null)), rejects, lootCap, h: baseSignature(items) };
+    const rec = { name, terms: { ...terms }, items, full: items.map((it) => (Number.isInteger(it?.stackCount) ? it.stackCount : null)), rejects, lootCap, champion, h: baseSignature(items) };
     _roomBase.set(canon, rec);
     _roomBonus.delete(canon);
     return rec;
@@ -194,7 +197,7 @@ export function createRoomLoot(host) {
       rollCorpseKit(e, o);
       stampWonWeapons(e.items, terms.n ?? 1, { rolls });
       raiseEnemyDeath(e, { ...o, level: terms.lv, room: true });   // `room`: the room's base, every client's - no kill (systems/eliteGates/egFind.js asks at the kill)
-      return { items: e.items, lootCap: Number.isInteger(e.lootCap) ? e.lootCap : null };
+      return { items: e.items, lootCap: Number.isInteger(e.lootCap) ? e.lootCap : null, champion: e.champion ?? null };
     } finally {
       Object.assign(e, saved);
     }
@@ -214,7 +217,7 @@ export function createRoomLoot(host) {
     const f = h?.foe ?? null;
     const pieces = rollRoomBonus({   // hostCombat.js: the knobs' one home, at this player's own stage and Luck
       rolls: seededRolls(key), player: playerEntity, pile: !!h?.pile, deepPile: !!h?.pile && isDeepPileKey(host.lootKey), rejects: base.rejects,
-      basics: f ? ENEMY_BASICS[f.mobileType] : null, mobileType: f?.mobileType ?? null, champion: f?.entity?.champion ?? null,
+      basics: f ? ENEMY_BASICS[f.mobileType] : null, mobileType: f?.mobileType ?? null, champion: base.champion ?? null,
       level: f ? (f.entity.isClass ? base.terms.lv : f.entity.level) : base.terms.lv, lootCap: base.lootCap, baseItems: base.items, fighters: base.terms.n ?? 1,
     });
     for (const it of pieces) markPersonal(it);
@@ -368,7 +371,21 @@ export function createRoomLoot(host) {
     if (!h.search) {
       const base = rollRoomBase(canon, w);
       if (!base) return 0;
-      if (w.h && w.h !== base.h) { host._lootSeen.add(canon); host._lootUnreadable.add(canon); return 0; }   // another build's base: never landed as a list (M2's word)
+      if (w.h && w.h !== base.h) {
+        // A word the room's memory hands back (no speaker) was this room's own: an earlier visit's, often this
+        // player's on the build before an update, or at a level the base no longer reads. Its takes name places in a
+        // list this build does not roll, so the host starts the container over one generation on - a newer
+        // generation beats the old terms on every client - rather than lock it for the visit. A live peer's word,
+        // and the memory's on a client that is not the host, stay another build's word.
+        if (from == null) staleMemory.set(canon, w.g);
+        if (from == null && host._authority && !bodyRebuilding(h)) {
+          restartStaleContainer(canon);
+          return 0;
+        }
+        host._lootSeen.add(canon);
+        host._lootUnreadable.add(canon);
+        return 0;
+      }
     }
     const { state, changed, answered } = mergeRoomWord(st, w);
     const reborn = state !== st;
@@ -656,6 +673,31 @@ export function createRoomLoot(host) {
   function roomTakeSeat() {
     if (!roomLootOn()) return;
     for (const [canon, st] of [..._roomState]) if (st.claims.size) roomJudge(canon, st, roomClaimOrder);
+    // A memory word that landed before the seat was this client's is started over now, unless a readable word
+    // has come for the container since.
+    for (const canon of [...staleMemory.keys()]) {
+      if (_roomState.has(canon)) staleMemory.delete(canon);
+      else if (!bodyRebuilding(roomBaseHolder(canon))) restartStaleContainer(canon);
+    }
+  }
+  /** A body still being rebuilt as the memory's species is the CORPSE-GOLD path (dungeonContext.js applyWorld): its
+   *  word lands again once the rebuild stands, and is judged then - never started over from the copy it replaces. */
+  function bodyRebuilding(holder) {
+    return !!holder?.foe && host._retyping.has(foes.indexOf(holder.foe));
+  }
+  /** Lets go of a stale memory word: the container is unborn again, and its next mint (the sweep's, or a body's
+   *  birth) takes the generation after the stale word's, so the fresh terms beat the old ones wherever they are held. */
+  function restartStaleContainer(canon) {
+    const staleGeneration = staleMemory.get(canon) ?? 0;
+    staleMemory.delete(canon);
+    host._lootUnreadable.delete(canon);
+    _roomUnbornAt.delete(canon);
+    _roomNextGen.set(canon, Math.max(_roomNextGen.get(canon) ?? 0, staleGeneration + 1));
+  }
+  /** A body's generation at its mint: its death, or past a stale memory word's when one was let go. */
+  function bodyGeneration(canon, f) {
+    const death = Number.isFinite(f._diedAt) ? f._diedAt : 0;
+    return Math.max(death, _roomNextGen.get(canon) ?? 0);
   }
   /** THE CLAIMS' FRAME: every room container's takes and puts read (the host's verdicts said, anyone else's claims), a
    *  claim with no verdict past ROOM_CLAIM_TIMEOUT_MS let go - its piece back in the list, its verdict still landed if it
@@ -726,7 +768,7 @@ export function createRoomLoot(host) {
     const pend = _roomPending.get(canon);
     if (pend) { _roomPending.delete(canon); landRoomWord(canon, pend.rec, pend.from); }
     if (_roomState.has(canon)) { composeRoomContainer(canon); return; }
-    if (host._authority && !host._roomMintHold) { mintRoomTerms(canon, Number.isFinite(f._diedAt) ? f._diedAt : 0); return; }
+    if (host._authority && !host._roomMintHold) { mintRoomTerms(canon, bodyGeneration(canon, f)); return; }
     f.entity.items.length = 0;   // UNBORN holds nothing: this copy's own roll is no reader's (LOOT11's light, Hunting's body key, the save); the sweep counts its wait from here (mintUnbornRoom)
   }
   /** OUTDOOR-LOOT: a search find the room lets go at its hour (WORLD8's sweep), once it is emptied. Answers whether `h` (the canon's
@@ -743,6 +785,7 @@ export function createRoomLoot(host) {
     _roomState.delete(canon); _roomBase.delete(canon); _roomBonus.delete(canon); _roomComposed.delete(canon);
     _roomUnbornAt.delete(canon); _roomPending.delete(canon); _roomSeen.delete(canon);
     _roomSees.delete(canon); _roomSearcher.delete(canon); _roomStale.delete(canon);
+    staleMemory.delete(canon);
   }
   /** THE SWEEP'S HALF (once a second, beside WORLD8's): every room container standing here with no terms gets them -
    *  the host's at once for a body, after ROOM_TERMS_WAIT_HOST_MS for a pile (the room's memory comes first); another
@@ -764,7 +807,7 @@ export function createRoomLoot(host) {
       if (!lootableBody(f)) continue;
       const canon = roomCanonOfFoe(f);
       if (!canon || _roomState.has(canon) || host._lootUnreadable.has(canon) || canon === host._lootOpenKey) continue;
-      if (host._authority || due(canon)) mintRoomTerms(canon, Number.isFinite(f._diedAt) ? f._diedAt : 0);
+      if (host._authority || due(canon)) mintRoomTerms(canon, bodyGeneration(canon, f));
     }
   }
   return { _roomBase, _roomMine, _roomNextGen, _roomState, composeRoomContainer, forgetRoomContainer, holderList, isRoomBaseContainer, landRoomWord, letFindGo, lootBuiltOf, mintUnbornRoom, roomBaseHolder, roomBodyBorn, roomCanonOfFoe, roomClaimTick, roomGive, roomLootOn, roomRecordOf, roomRecordsOf, roomSayNow, roomSettle, roomTakeSeat, roomUnborn, searchFound, settleRoomBonus };
