@@ -1,0 +1,254 @@
+[
+  {
+    "name": "DOACTIVE-window-guard",
+    "file": "tools/doActive.mjs",
+    "old": "d < 1 || d > DAYS_MAX) throw",
+    "new": "d < 1 || d > DAYS_MAX + 1) throw",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-window-end",
+    "file": "tools/doActive.mjs",
+    "old": "(today - (days - i) * DAY_S)",
+    "new": "(today - (days - i - 1) * DAY_S)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-price",
+    "file": "tools/doActive.mjs",
+    "old": "(0.125 * DAY_S * 12.5) / 1e6",
+    "new": "(0.128 * DAY_S * 12.5) / 1e6",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-unit-rule",
+    "file": "tools/doActive.mjs",
+    "old": ".filter((r) => r.hours <= 24.5)",
+    "new": ".filter((r) => r.hours <= 1e9)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-edge",
+    "file": "tools/doActive.mjs",
+    "old": "[1, 2, 4, 8, 12, 16, 20, 22, 24]",
+    "new": "[1, 2, 4, 8, 12, 16, 20, 23, 24]",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-unwrap",
+    "file": "tools/doActive.mjs",
+    "old": "while (x && !x.name) x = x.ofType;",
+    "new": "while (x && x.kind === 'NON_NULL') x = x.ofType;",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-object-kind",
+    "file": "tools/doActive.mjs",
+    "old": "parts[f.name] = t?.kind === 'OBJECT' ?",
+    "new": "parts[f.name] = t?.name ?",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-settings-unread",
+    "file": "tools/doActive.mjs",
+    "old": "if (have.length) settings =",
+    "new": "if (false) settings =",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-page-size",
+    "file": "tools/doActive.mjs",
+    "old": "Math.min(PAGE_MAX, Number(schema.settings?.maxPageSize)",
+    "new": "Math.max(PAGE_MAX, Number(schema.settings?.maxPageSize)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-order",
+    "file": "tools/doActive.mjs",
+    "old": "? 'sum_activeTime_DESC' : null",
+    "new": "? 'sum_activeTime_ASC' : null",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-object-dimension",
+    "file": "tools/doActive.mjs",
+    "old": "dimensions { objectId${plan.namespace ? ' namespaceId' : ''} }",
+    "new": "dimensions { objectId }",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-total-through-page",
+    "file": "tools/doActive.mjs",
+    "old": "`${plan.namespace ? 'dimensions { namespaceId } ' : ''}sum { activeTime }`",
+    "new": "`dimensions { objectId${plan.namespace ? ' namespaceId' : ''} } sum { activeTime }`",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-missing-active",
+    "file": "tools/doActive.mjs",
+    "old": "if (!sums.includes('activeTime')) missing.push",
+    "new": "if (false) missing.push",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-short-slice",
+    "file": "tools/doActive.mjs",
+    "old": "maxDuration > 0 && maxDuration < DAY_S) missing.push",
+    "new": "maxDuration > 0 && maxDuration < 0) missing.push",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-kept-days",
+    "file": "tools/doActive.mjs",
+    "old": "Math.floor(notOlder / DAY_S) - 1",
+    "new": "Math.floor(notOlder / DAY_S)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-always-on",
+    "file": "tools/doActive.mjs",
+    "old": "e.n++; if (h(o.raw) > ALWAYS_ON_H) e.on++;",
+    "new": "e.n++; if (h(o.raw) >= 0) e.on++;",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-cut-unsaid",
+    "file": "tools/doActive.mjs",
+    "old": "if (rows.length >= plan.pageSize) cut = true;",
+    "new": "if (rows.length > plan.pageSize) cut = true;",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-namespace-name",
+    "file": "tools/doActive.mjs",
+    "old": "(id == null ? '(all)' : namespaces.get(id) ?? id)",
+    "new": "(id == null ? '(all)' : id)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-histogram",
+    "file": "tools/doActive.mjs",
+    "old": "hist[bucketOf(h(o.raw))]++;",
+    "new": "hist[bucketOf(h(o.raw) / 2)]++;",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-top-order",
+    "file": "tools/doActive.mjs",
+    "old": "sort((a, b) => b[1].hours - a[1].hours",
+    "new": "sort((a, b) => a[1].hours - b[1].hours",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-refusal",
+    "file": "tools/doActive.mjs",
+    "old": "if (res.status === 401 || res.status === 403) throw",
+    "new": "if (res.status === 401) throw",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-account-guard",
+    "file": "tools/doActive.mjs",
+    "old": "if (!/^[0-9a-f]{32}$/.test(s)) throw",
+    "new": "if (!/./.test(s)) throw",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-stop-green",
+    "file": "tools/doActive.mjs",
+    "old": "    process.exit(1);\n  }\n}",
+    "new": "    process.exit(0);\n  }\n}",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-wf-input-spliced",
+    "file": ".github/workflows/do-active.yml",
+    "old": "node tools/doActive.mjs --account \"$acct\" --days \"$DAYS\"",
+    "new": "node tools/doActive.mjs --account \"$acct\" --days \"${{ inputs.days }}\"",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-wf-token-job",
+    "file": ".github/workflows/do-active.yml",
+    "old": "      DAYS: ${{ inputs.days }}\n",
+    "new": "      DAYS: ${{ inputs.days }}\n      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-wf-guard",
+    "file": ".github/workflows/do-active.yml",
+    "old": "          node tools/doActive.mjs --check \"$DAYS\" > /dev/null\n",
+    "new": "          true\n",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-wf-account",
+    "file": ".github/workflows/do-active.yml",
+    "old": "server/wrangler.toml)",
+    "new": "server/wrangler.toml | tr abc cba)",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  },
+  {
+    "name": "DOACTIVE-wf-stop-green",
+    "file": ".github/workflows/do-active.yml",
+    "old": "--days \"$DAYS\" >> \"$GITHUB_STEP_SUMMARY\"",
+    "new": "--days \"$DAYS\" >> \"$GITHUB_STEP_SUMMARY\" || true",
+    "tests": [
+      "test/server/doactive.test.js"
+    ]
+  }
+]
