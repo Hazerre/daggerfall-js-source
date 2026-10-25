@@ -110,6 +110,7 @@ export async function openSharedChest(id) {
   const at = { mapId: d.mapId, buildingKey: d.buildingKey, character: d.character?.() ?? d.character, id };
   const cached = peeked.get(id);
   const goods = [...(Array.isArray(cached?.items) ? cached.items : [])];
+  Object.defineProperty(goods, 'unstacked', { value: true });
   let touched = false;
   const ready = Promise.resolve(d.use({ ...at, op: 'list', hold: true })).then((listed) => {
     if (listed?.ok && !touched) {
@@ -162,24 +163,27 @@ export async function openSharedChest(id) {
     if (!listed?.ok) { chestShut(d, listed?.error); return false; }
     const stack = item?.stackCount ?? 1;
     const n = amount == null ? stack : amount;
-    if (!Number.isInteger(n) || n < 1 || n > stack || typeof go !== 'function') return false;
+    if (!Number.isInteger(n) || n < 1 || n > stack || typeof go !== 'function') { d.say?.(t('decor.grants.whole', 'The chest takes the whole stack.')); return false; }
+    if (!item || typeof item !== 'object') { d.say?.(dir === 'put' ? t('decor.grants.badItem', 'That cannot be stored.') : t('decor.grants.stays', 'It stays in the chest.')); return false; }
     touched = true;
     const before = item?.stackCount ?? 1;
     const moved = go();
     // A gold click pays the purse and answers nothing (itemTransfer.js). The chest row still has to leave.
-    if (!moved && dir === 'take' && coins(item) && ITEM_UID_RE.test(item?.uid)) {
+    if ((!moved || moved === item) && dir === 'take' && coins(item) && ITEM_UID_RE.test(item?.uid)) {
       if (!goods.includes(item)) { note('take', item); return true; }
       const leave = item.stackCount ?? 1;
       if (leave < before && leave >= 1) { cuts.push({ uid: item.uid, leave, give: null }); return true; }
+      if (!moved) return false;
     }
     if (!moved) return false;
-    stampUid(moved);
+    const real = d.items?.() ?? [];
+    const landed = moved === item && dir === 'put' && goods.at(-1) && goods.at(-1) !== item && !real.includes(goods.at(-1)) ? goods.at(-1) : (moved === item && dir === 'take' && draft.at(-1) && draft.at(-1) !== item && (item.stackCount ?? 1) < before ? draft.at(-1) : moved);
+    stampUid(landed);
     if (dir === 'put') {
-      const real = d.items?.() ?? [];
-      if (!real.includes(moved)) real.push(moved);
-      note('put', moved);
-    } else if (moved !== item && ITEM_UID_RE.test(item?.uid)) cuts.push({ uid: item.uid, leave: item.stackCount ?? 1, give: moved });
-    else note('take', moved);
+      if (!real.includes(landed)) real.push(landed);
+      note('put', landed);
+    } else if (landed !== item && ITEM_UID_RE.test(item?.uid)) cuts.push({ uid: item.uid, leave: item.stackCount ?? 1, give: landed });
+    else note('take', landed);
     return true;
   };
   let sent = false;

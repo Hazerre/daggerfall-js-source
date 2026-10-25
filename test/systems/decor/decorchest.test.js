@@ -73,9 +73,9 @@ test('DECOR-ACCESS gold in a chest is written with the other goods and taken bac
 });
 
 test('DECOR-ACCESS a shared chest keeps each stack whole until the settle joins them', () => {
-  const chest = [{ uid: 'aaaaaaaaaaaaaaaa', group: 'Gems', templateIndex: 0, stackCount: 98 }];
+  const chest = Object.assign([{ uid: 'aaaaaaaaaaaaaaaa', group: 'Gems', templateIndex: 0, stackCount: 98 }], { unstacked: true });
   const pile = { uid: 'bbbbbbbbbbbbbbbb', group: 'Gems', templateIndex: 0, stackCount: 54 };
-  applyTransfer(pile, { amount: 54 }, [pile], chest, { stack: false });
+  applyTransfer(pile, { amount: 54 }, [pile], chest);
   assert.equal(chest.length, 2);
   assert.equal(chest[0].stackCount, 98);
   assert.equal(chest[1].stackCount, 54);

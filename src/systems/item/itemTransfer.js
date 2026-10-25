@@ -518,7 +518,7 @@ export function clearLightSourceOnLeave(item, entity, fromLocal) {
  * caller in src/ hands the list the piece is in (swept: the windows' own, quick loot, Physical Items, the naval plunder's
  * one-piece source, a decor take).
  */
-export function applyTransfer(item, plan, from, to, { entity = null, fromLocal = false, toPlayer = false, rolls = Math.random, stolenFrom = null, returnTo = null, stack = true } = {}) {
+export function applyTransfer(item, plan, from, to, { entity = null, fromLocal = false, toPlayer = false, rolls = Math.random, stolenFrom = null, returnTo = null } = {}) {
   if (Array.isArray(from) && !from.includes(item)) return null;
   clearLightSourceOnLeave(item, entity, fromLocal);
   if (toPlayer && isGoldPieces(item)) {
@@ -531,7 +531,7 @@ export function applyTransfer(item, plan, from, to, { entity = null, fromLocal =
   }
   // STOLEN-GOODS AUDIT S1: each asked of the SOURCE (`item`), the record the owner's keeping knows - a split's half is new
   const landed = _applyTransfer(item, plan, from, to, rolls, (moved) => { takenFromKeeping(stolenFrom, item, moved); returnedToKeeping(returnTo, item, moved); },
-    (moved, held) => landedInKeeping(returnTo, item, moved, held), stack);
+    (moved, held) => landedInKeeping(returnTo, item, moved, held));
   if (toPlayer && landed) tellTaken(landed);   // LOOT8: a piece taken into the pack - the loot window's, quick loot's
   return landed;
 }
@@ -567,7 +567,7 @@ function _splitOff(item, plan, from, rolls) {
   item.stackCount = stack - plan.amount;
   return { ...item, stackCount: plan.amount };
 }
-function _applyTransfer(item, plan, from, to, rolls = Math.random, beforeLanding = null, afterLanding = null, stack = true) {
+function _applyTransfer(item, plan, from, to, rolls = Math.random, beforeLanding = null, afterLanding = null) {
   const moved = _splitOff(item, plan, from, rolls);
   const at = from.indexOf(moved);
   if (at >= 0) from.splice(at, 1);
@@ -588,7 +588,7 @@ function _applyTransfer(item, plan, from, to, rolls = Math.random, beforeLanding
   // that collection's front too, and DaggerfallTradeWindow's clicks
   // inherit the same member.
   // A shared chest records each stack on its own. Merging here would add the count onto a pile the settle also stores.
-  const held = stack ? addItem(to, moved, moved?.questItem ? 'front' : 'dontCare') : (to.push(moved), moved);
+  const held = to?.unstacked === true ? (to.push(moved), moved) : addItem(to, moved, moved?.questItem ? 'front' : 'dontCare');
   afterLanding?.(moved, held);   // STOLEN-GOODS AUDIT S1: where the owner's piece came to rest - the record that holds it is theirs
   return moved;
 }
