@@ -4,7 +4,7 @@
 //
 // Two pages over the player's own pack: REFORGE - every piece the Reforge takes (a Magic or Rare piece, an Exalted
 // Legendary), a row each in its tier's frame; a row pressed shows the piece whole beside the list, and each line the
-// Reforge may roll again carries its own press with the price on it (or why not, in a word or two: "Need 2 more
+// Reforge may replace (REFORGE-REPLACE: by another kind) carries its own press with the price on it (or why not, in a word or two: "Need 2 more
 // shards", "Not identified") - and SALVAGE - every laddered piece that will break, what it breaks into, and a press
 // that asks before it breaks it ("Break it" / "Keep"); after them (FB1012d SALVAGE-CLASSIC) every piece that wears
 // Magic the ladder never graded - DFU's own magic - its press "Classic magic", saying why it never breaks. The purse

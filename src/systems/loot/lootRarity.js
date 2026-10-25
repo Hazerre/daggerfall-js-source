@@ -1224,8 +1224,10 @@ export function legendariesFor(item) {
 
 // ── the mint ────────────────────────────────────────────────────────
 /** The item's name for a tier: "Sentinel's Cuirass of the Bear"
- *  (prefix, the template, suffix). A Magic item has one word, a Rare
- *  both, a Legendary its record's name.
+ *  (prefix, the template, suffix) - the words its lines give, the first
+ *  prefix's and the first suffix's (AFFIX-LINES: a Rare as its lines
+ *  fall - one part or both, never a slot forced), a Legendary its
+ *  record's name.
  *
  *  DISC29-B (Julian on Discord: a coloured-tier "iron" helmet his class was refused as leather): "the template" is the
  *  template's name AS THE MINT WROTE IT - Roleplay & Realism: Items puts Brigandine, Fur or Mail before it
@@ -1440,8 +1442,8 @@ export function lastPass(pieces, rolls = Math.random, { on = lootRarityOn() } = 
 // The Loot arc (bible/06-Systems/Loot-Arc.md section 6). LR1's six kinds are numbers a wearer carries; five more DO
 // something (systems/loot/lootPowers.js: a weapon's sear, leech and slayer's edge, armour's thorns, jewellery's focus).
 // A Magic piece one time in five, a Rare a bit over one time in three, takes ONE such line in its door's last pass:
-// a kind its group may carry, from its tier's band. It never names the piece (nameAround), so a Rare's two-part name
-// and a Magic's one word stand as LR1 made them.
+// a kind its group may carry, from its tier's band. It never names the piece (nameAround), so the name its number
+// lines gave stands as they made it.
 /** Per mille that a Magic or a Rare minted at a source takes a line that does something. */
 export const PROC_PER_MILLE = Object.freeze({ magic: 200, rare: 350 });
 let _procPerMille = PROC_PER_MILLE;
@@ -1686,8 +1688,8 @@ const damnable = (item) => item?.rarity === 'legendary' && item.group === 'Weapo
  *  (AFFIX-LINES), its value from the top
  *  half of its tier's band; one drawback, a row of its group's drawn and then its param; the drawback beside its
  *  enchantment (`enchantments`) and named (`cursed`, what the temple lifts); the line's worth on its price (a drawback
- *  is worth nothing, DFU's own law - enchantments.js VALUE_COUNTS_BELOW). It never renames the piece: a Rare's prefix and
- *  suffix are its first lines'. TRUE-CURSE: `damned` damns it as well (the Test Room's; a door's are damnPass's,
+ *  is worth nothing, DFU's own law - enchantments.js VALUE_COUNTS_BELOW). It never renames the piece: a Rare's name is its
+ *  first lines'. TRUE-CURSE: `damned` damns it as well (the Test Room's; a door's are damnPass's,
  *  after every draw it makes). Answers whether it was cursed. */
 export function cursePiece(item, rolls = Math.random, { damned = false } = {}) {
   if ((item?.rarity !== 'rare' && item?.rarity !== 'legendary') || item.exalted === true || isCursed(item) || !Array.isArray(item.affixes)) return false;
@@ -1783,8 +1785,8 @@ export function curseLine(item) {
  *  whose wardrobe pool keeps the fight off the clothes (LOOT14). A gem set in it (systems/reforge.js setGemPiece) gives
  *  its LINE beside the piece's own - one more line in `affixes`, marked with its gem (`gem`), so every reader of a line
  *  reads it (the fold, a weapon's procs and damage, LOOT12's cap, the card's compare) - and no roll made it: it has no
- *  band, is never reforged or honed, and never names the piece (the gems' lines are last, after a Rare's own prefix and
- *  suffix). Unset, the gem shatters.
+ *  band, is never reforged or honed, and never names the piece (the gems' lines are last, after the lines that name a
+ *  Rare). Unset, the gem shatters.
  *  GEM1 (bible/06-Systems/Gem-Sockets.md section 3): A SOCKET LIST. `sockets` - one to three values, each 'empty' or
  *  the gem set in it, a declared item field - where LOOT20 wrote one string (`socket`): a weapon holds as many as its
  *  size (socketMax), and the weapons' own pass (weaponSocketPass) gives the rest. LOOT20's string is still READ wherever

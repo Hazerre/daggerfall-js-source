@@ -234,15 +234,19 @@ test('TECH1 THE DOOR: one roll a piece at its tier\'s chance, the door\'s LAST d
   _resetForTests();
 });
 
-test('TECH1 THE REFORGE AND THE HONE: a technique stays a technique of its family and nothing else becomes one; its value hones to its band\'s top; a Legendary\'s is the find\'s - an Exalted\'s own line stays the Reforge\'s (mutants: the reforge\'s kind guard; the Exalted\'s index)', () => {
+test('TECH1 THE REFORGE AND THE HONE: REFORGE-REPLACE - a technique\'s line is never reforged (only a technique may stand there, and the Reforge never gives a line its own kind back) and nothing else becomes one; its value hones to its band\'s top; a Legendary\'s is the find\'s - an Exalted\'s own line stays the Reforge\'s (mutants: the reforge\'s kind guard; the Exalted\'s index)', () => {
   on();
   for (let seed = 1; seed < 200; seed++) {
     const sword = withTech(() => createWeapon(120, 1), seed % 2 ? 'leap' : 'whirlwind', 18);
     const t = sword.affixes.findIndex(LR.isTechniqueAffix);
-    const line = LR.reforgeAffix(sword, t, lcg(seed));
-    assert.equal(line.id, 'technique');
-    assert.ok(['leap', 'whirlwind'].includes(line.param), 'its family\'s');
-    assert.ok(line.value >= 15 && line.value <= 30);
+    // PIN MOVED (REFORGE-REPLACE, 2026-10-25, the owner: "Replace, price rises"): a technique was rolled again among its
+    // family's; a reforge always puts ANOTHER kind in a line's place, and nothing but a technique may stand in a
+    // technique's (the item law: one, the piece's last own line) - so the line is not offered, and the hone raises it
+    const was = JSON.stringify(sword);
+    assert.ok(!LR.reforgeableLines(sword).includes(t), 'a technique\'s line is not offered');
+    assert.equal(LR.reforgeAffix(sword, t, lcg(seed)), null);
+    assert.equal(JSON.stringify(sword), was, 'nothing changed');
+    assert.ok(LR.reforgeableLines(sword).length > 0 && LR.honeableLines(sword).includes(t), 'its number lines are reforged, and the technique honed');
     const other = withTech(() => createWeapon(120, 1), 'leap', 18);
     const n = LR.reforgeAffix(other, 0, lcg(seed ^ 9));
     assert.ok(n && !LR.isTechniqueAffix(n), 'a number never becomes a technique');

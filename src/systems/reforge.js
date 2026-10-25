@@ -342,6 +342,6 @@ export function reforgePiece(item, index, player, rolls = Math.random) {
   }
   spendShards(player.items, price.shards);
   deductGold(player, price.gold);
-  noteAct('piece-reforged');   // QL11: a piece reforged - paid, its line rolled again
+  noteAct('piece-reforged');   // QL11: a piece reforged - paid, its line replaced
   return { ok: true, line, price };
 }
