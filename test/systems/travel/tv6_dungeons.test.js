@@ -482,7 +482,7 @@ test('AUDIT OW4 D2/D4 host: a spawn is GONE by the feature\'s own test (the ledg
   clock = NaN;
   assert.equal(gone(5, 6), false, 'a clock not yet running expires nothing');
   // what would stand
-  const a = /\n {2}(function tvSpawnAt\(px, py\) \{\n[\s\S]*?\n {2}\})\n/.exec(w);
+  const a = /\n {2}(function tvSpawnAt\(px, py, clocks = true\) \{\n[\s\S]*?\n {2}\})\n/.exec(w);   // PIN MOVED (GROUND-AGREE): the clocks' switch
   assert.ok(a, 'the stand');
   let net = {};
   const cloned = [];
@@ -495,6 +495,11 @@ test('AUDIT OW4 D2/D4 host: a spawn is GONE by the feature\'s own test (the ledg
   net = null;
   assert.deepEqual(at(3, 0), { name: 'S3,0' }, 'before the network lands, as the feature stands it (provisional)');
   assert.deepEqual(cloned, [4, 3]);
+  // GROUND-AGREE (bible/01-Overview/bugs/Field-Bugs-2026-10-24.md): the clocks off, a spent spawn is still the roll's - the
+  // ground's place, alive or dead - and every other gate still answers
+  assert.deepEqual(at(2, 0, false), { name: 'S2,0' }, 'the clocks off: a spent clock stands its clone for the ground');
+  assert.deepEqual([at(1, 0, false), at(5, 0, false)], [null, null], 'and the sea and a wet plateau still stand none');
+  assert.deepEqual(cloned, [4, 3, 2]);
   assert.match(w, /const loc = _spawnCloneAt\(px, py\);\n\s*if \(!loc\) return null;\n\s*_locIndexGen \+= 1;   \/\/ AUDIT OW4 D5\n\s*locationIndex\.set\(key, loc\);/, 'the feature stands the SAME clone');
   // the filed ids
   const f = /\n {2}(const tvFiledSpawns = \(at\) => [\s\S]*?: \[\]\);)\n/.exec(w);

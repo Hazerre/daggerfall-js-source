@@ -752,7 +752,8 @@ inside the rock geometry from world of daggerfall"*. The record is `01-Overview/
   and nothing keeps a gate past its collapse. The rock kept anyone from the fire, so no kill ended it early and it stood
   its whole schedule saying nothing.
 - **GATE-CLEAR** (`world/gate/gateClearance.js`): the gate's spot stays the clock's and the map files'; World of Daggerfall's
-  rock yields - a whole site reaching 24 m of the gate's foot is refused at its pick, any other piece whose mesh box
+  rock yields - a whole site reaching 24 m of the gate's foot stands none of its objects (GATE-AGREE: it keeps its pick and
+  its level ground, `03-World/World-Of-Daggerfall.md`), any other piece whose mesh box
   reaches it is not stood - for the gate the clock is about, the pixels a turn changes built again between builds.
 - **GATE-COLLAPSE** (Mac: *"Count down to collapse"*): the sealed hours count down - `gateCountdown`'s `closed` arm,
   `countdownWords`, the seal line's time (the table above). World125: the words are in the relay's bundle.

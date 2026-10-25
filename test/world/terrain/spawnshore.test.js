@@ -80,6 +80,7 @@ test('SPAWN-SHORE by source: both of the host\'s gates ask the ground - the buil
   assert.match(w, /const _spawnGround = createSpawnGround\(woods\);/);
   const i = w.indexOf('const spawnedDungeonAt = (px, py) => {');
   assert.match(w.slice(i, w.indexOf('\n  };\n', i)), /CLIMATES\.Ocean \|\| !_spawnGround\(px, py\)\) return null;/);
-  const j = w.indexOf('function tvSpawnAt(px, py) {');
-  assert.match(w.slice(j, w.indexOf('\n  }\n', j)), /CLIMATES\.Ocean \|\| !_spawnGround\(px, py\) \|\| tvSpawnGone/);
+  const j = w.indexOf('function tvSpawnAt(px, py, clocks = true) {');   // PIN MOVED (GROUND-AGREE): the clocks' switch
+  assert.ok(j >= 0, 'the Overworld\'s far found spawn');
+  assert.match(w.slice(j, w.indexOf('\n  }\n', j)), /CLIMATES\.Ocean \|\| !_spawnGround\(px, py\) \|\| \(clocks && tvSpawnGone/);
 });
