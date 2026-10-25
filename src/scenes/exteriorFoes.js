@@ -82,7 +82,7 @@ import { rollCorpseKit } from '../systems/foeLootCap.js';   // KIT-ROLL: a plain
 import { floorLanding } from '../player/enterExit.js';   // REVENANT-FATE (the 2026-10-02 audit): a flyer kneels, and its pile lies, on the ground below
 import { renownFoeStruck, renownFoeDied } from '../net/renownTracker.js';   // RENOWN1: a foe the player fought pays its Renown XP when it dies, by any hand
 import { reportPlayerKill } from '../systems/playerKills.js';   // SET2: my own kills, told
-import { partyFoeLoses, partyFoeHits, partyFoeHeals, noteFighter, foeFighters, takeWholeBlow, PARTY_ME } from '../systems/party/partyScale.js';   // PSCALE1: a shared foe weighs whoever fights it
+import { partyFoeLoses, partyFoeHits, partyFoeHeals, noteFighter, foeFighters, foeFightersUpTo, takeWholeBlow, PARTY_ME } from '../systems/party/partyScale.js';   // PSCALE1: a shared foe weighs whoever fights it
 import { stampWonWeapons, lootRarityOn } from '../systems/loot/lootRarity.js';   // SIGIL1: a body's weapons won online; BAL3: the ladder's switch, the wilds' threat's
 import { corpseName, mobileEntityName, liveEntityName } from '../systems/worldTooltips.js'; import { questFoeSubs } from '../systems/quest/questFoeLine.js';   // QUEST-FOE-LINE: a quest's foe says whose it is; WORLD-HOVER: "<who> (dead)", the mod's own word (.cs:526); H2: and a LIVE one's, when it is not hostile (.cs:304-312)
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // the port's own name, the index law in one place (a LIVE one's fallback)
@@ -111,7 +111,7 @@ import { QUARRY_BLOW } from '../systems/livingWorld/quarry.js';
 import { STAR_CIRCLE_SHARE } from '../net/starfall/starfallLaw.js';   // STAR5: a master's circle's ward
 import { createHostNpcBodies, npcBodiesOn } from '../characters/npcBodies.js';   // MWNPC5c: the pool's foes in their Morrowind bodies
 import { isBodyFoe, foeActor, foeFx, foeWireLook, applyWireLook } from '../characters/foeBodies.js';   // WATCH-PROTECTS: a townsperson's one blow
-import { elitesAllowed, promoteEliteFoe, rollOverworldElite, grantEliteLoot, eliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, isStaffBoss, promoteStaffBoss, STAFF_BOSS_SPELL_TAKEN } from '../systems/eliteFoes.js';   // ELITE FOES: 5% of the wilds' foes   // HITFLASH1
+import { elitesAllowed, promoteEliteFoe, rollOverworldElite, grantEliteLoot, eliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, isStaffBoss, promoteStaffBoss, STAFF_BOSS_SPELL_TAKEN, staffBossHit, STAFF_BOSS_FIGHTERS_MAX } from '../systems/eliteFoes.js';   // ELITE FOES: 5% of the wilds' foes   // HITFLASH1
 import { grantKindOf, grantElite } from '../net/grantLaw.js';   // GRANT3-GRANT4: a stand's grant - its kind, its member's elite (bible/11-Multiplayer/Spawn-Grants.md)
 
 // The port's allocation-owner guards (classic self-limits through the
@@ -938,6 +938,13 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const _bossSpell = kind === 'spell' && !f.puppet && !!f.entity?.staffBoss;
     const _whole = whole || takeWholeBlow(f.entity);
     if (_bossSpell && damage > 0) damage = Math.max(1, Math.round(damage * STAFF_BOSS_SPELL_TAKEN));
+    // BOSS-HIT-SHARE: and every hit on it - a blade's, a spell's, a round's - is held to its share of 1% of its maximum,
+    // split among everyone fighting it (this striker counted first); a SetHealth is no hit
+    if (!f.puppet && f.entity?.staffBoss && !bypassShield && damage > 0) {
+      const hitter = fromPlayer ? (peer ? peerId : PARTY_ME) : null;
+      if (hitter != null) noteFighter(f, hitter, _now());
+      damage = staffBossHit(damage, f.entity.maxHealth, foeFightersUpTo(f, _now(), STAFF_BOSS_FIGHTERS_MAX));
+    }
     // WORLD6b: a PEER's blow (applyHit) is the dungeon door's law (WORLD2): no HUD mark and no reveal of this
     // player's - the striker's own rang at the striker
     if (!peer) {
