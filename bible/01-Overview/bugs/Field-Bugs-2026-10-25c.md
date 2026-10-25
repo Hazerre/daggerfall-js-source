@@ -3,7 +3,7 @@
 Found in passing by CHAMP-BASE (Lattymoy/daggerfall-js-source#1230, its record `Field-Bugs-2026-10-25.md`, FOUND IN
 PASSING): a sweep of every honest producer through `validLootList` refused only gold piles of 300,000 to 1,000,000. Read
 on main's `80eafd01ff`. The pins are `test/systems/loot/goldwire.test.js` (4), the mutants `tools/mutants/goldwire.json`
-(9, all dead). The letter is `c`: two open pull requests (#1230 and #1232) each add a `Field-Bugs-2026-10-25.md`.
+(9, all dead). The letter is `c`: `Field-Bugs-2026-10-25.md` is ART-DOLL's on main, and two open pull requests (#1230 and #1232) each add one of that name too.
 
 | | Report | What it was | Done |
 |---|---|---|---|
