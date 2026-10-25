@@ -586,9 +586,8 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
    * DESTROY EVERY COPY MARKED ON THIS CHARACTER (the panel's button): the ledger's `item_dupes` rows for this character,
    * every one of those pieces in the record, and the same uids in chests of homes this account owns. Not kept for Put
    * back, and no trail check - a hundred flagged rares is the case the one-piece Remove cannot clear. A chest in a home
-   * this account does not own keeps its row.
-   * shortcut: a flagged piece that is the furniture itself (decorOwn) is not in a list splice can reach, so its mark
-   * goes and the piece stays - upgrade when a flagged piece is furniture.
+   * this account does not own keeps its row. The record is seized even when the preview found nothing in it: a withdraw
+   * can move a flagged chest row into the save after that read, and the sequence guard is what refuses the purge then.
    */
   async function purgeDupes() {
     const act = 'purge-dupes';
@@ -620,22 +619,15 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     if (!note) return said(act, row.player, detail, { error: 'staff-note' });
     if (!keys.length) return said(act, row.player, detail, { error: 'no-dupes' });
     if (body.seq !== row.seq) return said(act, row.player, detail, { error: 'seq' });
-    const steps = [];
-    /** @type {{ steps: any[], prev: string | null, seq: number, key: string } | null} */
-    let prep = null;
-    let seq = row.seq;
-    if (held > 0) {
-      const seized = await seizeRealmRecord(c, row.player, row.id, (s) => {
-        for (const list of possessedItemLists(s)) {
-          for (let i = list.length - 1; i >= 0; i--) if (keySet.has(ledgerKeyOf(list[i]))) list.splice(i, 1);
-        }
-        return null;
-      }, { escrow: false, take: true });
-      if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
-      prep = seized;
-      steps.push(...seized.steps);
-      seq = seized.seq;
-    }
+    const seized = await seizeRealmRecord(c, row.player, row.id, (s) => {
+      const doomed = [];
+      for (const list of possessedItemLists(s)) for (const it of list) if (keySet.has(ledgerKeyOf(it))) doomed.push(it);
+      for (const it of doomed) takeOut(s, it);   // gear and a room's own piece are not the list the walk handed back
+      return null;
+    }, { escrow: false, take: true });
+    if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
+    const steps = [...seized.steps];
+    const seq = seized.seq;
     for (let i = 0; i < keys.length; i += 80) {
       const part = keys.slice(i, i + 80);
       const m = part.map((_, j) => `?${j + 2}`).join(', ');
@@ -649,11 +641,11 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     try {
       await db.batch(steps);
     } catch {
-      if (prep) await dropIfUnnamed(db, c.bucket, row.player, row.id, prep.key);
+      await dropIfUnnamed(db, c.bucket, row.player, row.id, seized.key);
       return said(act, row.player, detail, { error: 'seq' });
     }
-    if (prep) await dropObjects(c.bucket, [prep.prev]);
-    return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, bins, playing: prep ? false : playing(row) });
+    await dropObjects(c.bucket, [seized.prev]);
+    return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, bins, playing: false });
   }
 
   /**
