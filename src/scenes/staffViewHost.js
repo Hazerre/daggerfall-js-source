@@ -267,6 +267,10 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
    *  (`staffFlagKey`), so a new flag on that player shows again. Kept in this browser alone (nothing is sent: the flag stands
    *  for every other staff member), DISMISSED_FLAGS_MAX at most, the oldest let go first. */
   const dismissed = loadDismissedFlags(win);
+  /** STAFF-VIEW-SWITCH: Your settings' switches - the players' tags and flag lines (`esp`), an Admin's monster lines
+   *  (`lines`); off, the game looks as it does to a player (the travel view's own marks back). */
+  const esp = () => follow.tags()?.esp !== false;
+  const monsterLines = () => admin() && follow.tags()?.lines !== false;
   const flagOf = (/** @type {string|null} */ sub) => {
     const f = sub ? follow.tags()?.flags?.get(sub) ?? null : null;
     return f && dismissed.get(/** @type {string} */ (sub)) === staffFlagKey(f) ? null : f;
@@ -313,7 +317,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
         ow.sort((a, b) => a.r - b.r || (a.m.id < b.m.id ? -1 : a.m.id > b.m.id ? 1 : 0));
         layer.render(crowded(ow.slice(0, STAFF_OW_TAGS_MAX)), Math.max(0, ow.length - STAFF_OW_TAGS_MAX));
         const segs = [];
-        if (admin()) {
+        if (monsterLines()) {
           const owners = new Map();
           for (const d of peers) if (d?.shown) owners.set(d.id, d);
           for (const f of foes?.foes ?? []) {
@@ -329,6 +333,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
         layer.strokes(segs, w, h);
         return;
       }
+      if (!esp()) { layer.render([], 0); layer.strokes([], w, h); return; }
       const dist = follow.tags()?.dist ?? NAMEPLATE_DIST;
       const tv = travellers(), mons = admin() ? monstersBy() : null;
       const near = [], flagged = [];
@@ -363,7 +368,7 @@ export function createStaffViewHost({ follow, glyphs, links, book, foes, overwor
      *  Stranger's too) and the flag, and a crowd is a box with a row a player, each a click. The players the travel view
      *  cut (past NAME_RANGE, concealed, veiled, hidden by the open zone) are tagged as well. @param {any[]} list */
     marks(list) {
-      if (!on()) return list;
+      if (!on() || !esp()) { owTags = []; return list; }
       const peers = source(), tv = travellers(), mons = admin() ? monstersBy() : null;
       const byId = new Map();
       for (const d of peers) if (d?.id) byId.set(d.id, d);

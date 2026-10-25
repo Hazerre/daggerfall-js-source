@@ -246,6 +246,27 @@ test('STAFF-LINES-SEA (mob, 2026-10-25: "not draw line to player from sea creatu
   assert.equal(r.layer.lineSets.at(-1).length, 1, 'the Orc alone lined');
 });
 
+test('STAFF-VIEW-SWITCH (mob, 2026-10-25: "need option in setting to turn of monster lines and player esp to play normal"): Your settings\' esp off - no tags, no flag lines, the travel view\'s marks untouched; lines off - an Admin\'s monster lines gone, the tags kept; an answer that names neither keeps both on (mutants: a switch unread, read the other way, esp off still taking the marks)', () => {
+  assert.deepEqual([validTags({ list: [] }).esp, validTags({ list: [] }).lines], [true, true], 'an older panel: both on');
+  assert.deepEqual([validTags({ list: [], esp: false }).esp, validTags({ list: [], lines: false }).lines], [false, false]);
+  const foes = [{ puppet: 'p1', mobileType: 7, ai: { feet: [0, 0, -31] } }];
+  const list = [{ sub: 'acct-r', level: 'high', why: '2 reports' }];
+  const follow = fakeFollow({ room: [peer('p1', 0, -30, { sub: 'acct-r' })], tags: validTags({ dist: 100, list, lines: false }) });
+  const r = rig({ follow, foes });
+  r.frame();
+  assert.equal(r.layer.members().length, 1, 'lines off: the tag stays');
+  r.state.up = true; r.host.marks([]); r.frame();
+  assert.deepEqual(r.layer.lineSets.at(-1).map((s) => s[4]), [STAFF_LINE.review], 'lines off: the review line alone, no monster line');
+  follow.answer = validTags({ dist: 100, list, esp: false });
+  const marks = [{ key: 'peer:p1', at: [0, 0, -30] }];
+  assert.equal(r.host.marks(marks), marks, 'esp off: the travel view keeps its own marks');
+  r.frame();
+  assert.deepEqual(r.layer.lineSets.at(-1).map((s) => s[4]), [undefined], 'esp off: the monster line alone');
+  r.state.up = false; r.frame();
+  assert.equal(r.layer.members().length, 0, 'esp off: no tag on the ground');
+  assert.deepEqual(r.layer.lineSets.at(-1), [], 'nor a line');
+});
+
 // ── A TAG CLICK ────────────────────────────────────────────────────────────────────────────────────
 
 test('STAFF-VIEW1 a tag click: the account by the socket in order - the room\'s word, the chat links\' rooms, the hub\'s list, the region\'s travellers, then the hub\'s search matched by socket - followed at once, and the panel handed its card to this page\'s own origin only once the follow took (mutants: each door skipped or put first, a search\'s row matched by name, the act to \'*\', the act without a follow)', () => {
