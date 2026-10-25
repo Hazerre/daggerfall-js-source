@@ -3624,6 +3624,16 @@
   "tr": "6d0fba52df61",
   "by": "claude-in-session"
  },
+ "body.beast.noFootwear": {
+  "en": "d46a8065cd6f",
+  "tr": "27fa8bac8978",
+  "by": "claude-in-session"
+ },
+ "body.beast.noHelm": {
+  "en": "48cfe45d7058",
+  "tr": "018f0f5f6244",
+  "by": "claude-in-session"
+ },
  "body.face.curated": {
   "en": "4ca651d7c69a",
   "tr": "3afed10f5b9d",
@@ -9837,6 +9847,46 @@
  "features.banthaJungle.title": {
   "en": "af557fb81d4c",
   "tr": "80e5d31870af",
+  "by": "claude-in-session"
+ },
+ "features.beast.asWorn": {
+  "en": "40e8504e77a2",
+  "tr": "2e7b6779550e",
+  "by": "claude-in-session"
+ },
+ "features.beast.hidden": {
+  "en": "d4c2792a7245",
+  "tr": "c4af1004aba0",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.note": {
+  "en": "397daa6dd5f8",
+  "tr": "6cf834f4affa",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.shafts": {
+  "en": "f7bc5ba3047e",
+  "tr": "61cb0327c11d",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.title": {
+  "en": "eb4eb88aad3d",
+  "tr": "486e96222db3",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.note": {
+  "en": "2d9ad05572f7",
+  "tr": "608d61af150c",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.open": {
+  "en": "37bdf89e17b8",
+  "tr": "f0d497e0766a",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.title": {
+  "en": "bfa995fb5091",
+  "tr": "ea15cad41967",
   "by": "claude-in-session"
  },
  "features.blood.effect": {

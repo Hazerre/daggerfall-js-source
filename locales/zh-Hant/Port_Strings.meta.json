@@ -109,6 +109,16 @@
   "tr": "1d8a206c9e7a",
   "by": "claude-in-session"
  },
+ "body.beast.noFootwear": {
+  "en": "d46a8065cd6f",
+  "tr": "ff7b58f5a8fd",
+  "by": "claude-in-session"
+ },
+ "body.beast.noHelm": {
+  "en": "48cfe45d7058",
+  "tr": "082f4ea44c97",
+  "by": "claude-in-session"
+ },
  "chair.bench": {
   "en": "931fa888a4a9",
   "tr": "42fa20e2ed72",
@@ -1152,6 +1162,46 @@
  "features.banthaJungle.title": {
   "en": "af557fb81d4c",
   "tr": "b2ab3debe079",
+  "by": "claude-in-session"
+ },
+ "features.beast.asWorn": {
+  "en": "40e8504e77a2",
+  "tr": "0b6be14e01d0",
+  "by": "claude-in-session"
+ },
+ "features.beast.hidden": {
+  "en": "d4c2792a7245",
+  "tr": "6993c6bae4a5",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.note": {
+  "en": "397daa6dd5f8",
+  "tr": "9e90e235d7a3",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.shafts": {
+  "en": "f7bc5ba3047e",
+  "tr": "356fe3834658",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.title": {
+  "en": "eb4eb88aad3d",
+  "tr": "a508286b3b35",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.note": {
+  "en": "2d9ad05572f7",
+  "tr": "7c7c4f590060",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.open": {
+  "en": "37bdf89e17b8",
+  "tr": "cfb885b7d1b7",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.title": {
+  "en": "bfa995fb5091",
+  "tr": "de3ad7104c73",
   "by": "claude-in-session"
  },
  "features.calmHud.note": {

@@ -309,8 +309,8 @@ export function npcGarmentPick(n, piece) {
   return { pick: h >>> 8, tier };
 }
 /** The races Morrowind builds on the beast skeleton (fpArm.js tpSkeletonPath `beast`). What a beast of them wears of
- *  its worn list - no closed helm, a boot's shaft over a bare foot - is the item map's call for every look, an NPC's
- *  and a player's alike (mwItemMap.js beastCut, BEAST-BOOTS). */
+ *  its worn list is the item map's call for every look, an NPC's and a player's alike, by the viewer's Beast Footwear
+ *  and Beast Helmets switches (mwItemMap.js beastCut, BEAST-BOOTS). */
 export const WARDROBE_BEAST_RACES = Object.freeze(['Khajiit', 'Argonian']);
 /** The worn list (mwItemMap.js dfWornEquipment's) with each garment's picks - the armour as it was. @param {any[]} worn @param {any} n */
 export function withNpcPicks(worn, n) {
