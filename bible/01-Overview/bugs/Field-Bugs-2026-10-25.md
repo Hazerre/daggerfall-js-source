@@ -34,7 +34,7 @@ Market tab's, which collected only what a read of the road named: the trader's s
 settled nothing.
 
 FIXED.
-- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct177). A record one on from where the tab
+- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct186, acct177 on its branch). A record one on from where the tab
   asked, under its lease, with a sale this id made, is that sale, landed: it is answered as the repeat with the record's
   sequence (`realm.seq`). A DEPARTURE FROM L1-F2, for a buy alone. It is said only to a tab that asks for it (`landed`):
   an older tab reads every repeat as a sale paid before it asked, so its settle would checkpoint its purse unpaid over
@@ -45,8 +45,8 @@ FIXED.
   delivery here is collected on that answer. A delivery collected is off the road the last read named: the stall
   settles with no read behind it, and asked it again (`market-gone`, said to a player who had the piece).
 - **The stall** (`vendorTab.js`, `world.js` openHomeVendorWindow). A trader's stall opened settles the book's kept acts
-  through the window's door, beside its read. `bootWorld` takes 2 logical lines for it, its ceiling 36,287 -> 36,289
-  (`hostceiling.test.js`).
+  through the window's door, beside its read. `bootWorld` takes 2 logical lines for it, its ceiling 36,287 -> 36,289 on the
+  branch and main's 36,386 -> 36,388 at the merge (`hostceiling.test.js`).
 
 NOT CHANGED.
 - The collect (`market.js` collectGood) keeps L1-F2's order: its lost answer still ends the session, with the piece in

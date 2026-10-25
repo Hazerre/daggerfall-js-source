@@ -19,6 +19,7 @@
 import { t } from './textManager.js';   // KG3: a page's words read through the text core when shown
 import { isEnhanced } from './uiSkin.js';   // AUDIT SUGGESTIONS-1019 L6-4: a line only the enhanced skin's Stats page bears out
 import { ROLL_GAIN_DAY_MAX, ROLL_BOOK_RANK_MAX, SEAT_RANK } from '../net/npcChapterLaw.js';   // SEAT-WORDS: the Chapters page's numbers, the law's own
+import { ETHER_WORD } from '../world/ethericSea.js';   // FOE-KEEPS: the open zone's page names the sea by its one home (ELTHERIC)
 
 /** @typedef {{ id: string, group: string, title: string, trigger: string, body: ReadonlyArray<string>, points?: ReadonlyArray<string> }} Tutorial */
 
@@ -126,7 +127,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'spellbook', group: 'combat', title: 'Casting Spells', trigger: 'When you first open your spellbook.',
     body: [
-      '{CastSpell} opens your spellbook. Choose a spell, then aim and cast it with {SwingWeapon}.',
+      '{CastSpell} opens your spellbook. Choose a spell, then aim and cast it with {ActivateCenterObject}. With a one-handed weapon drawn and your other hand empty, the spell waits in that hand and {SwingWeapon} still swings the weapon.',
       '{RecastSpell} casts your last spell again and {AbortSpell} lets it go. The Mages Guild sells spells and lets you make your own.',
     ],
   }),
@@ -547,6 +548,18 @@ export const TUTORIALS = Object.freeze([
     ],
   }),
   page({
+    id: 'sky-ketch', group: 'challenges',
+    // KETCH: the whole page in the player's language (L10N4), as the guilds' is
+    get title() { return t('tutorials.skyKetch.title', 'The Sky-Ketch'); },
+    get trigger() { return t('tutorials.skyKetch.trigger', 'When you first ride the anchor-lift up to the Sky-Ketch.'); },
+    get body() {
+      return [
+        t('tutorials.skyKetch.body1', 'Every ten hours the Rourken sky-ketch keeps station over the fields east of the capital, for seven hours at a time. Ride her anchor-lift up with your party, eight hands at most.'),
+        t('tutorials.skyKetch.body2', 'Carry aether cells from the cradles to the Starved Engine; a blow knocks one loose. Her nets catch a fall; only death wakes you below.'),
+      ];
+    },
+  }),
+  page({
     id: 'ocean-holes', group: 'challenges', title: 'Ocean Holes', trigger: 'When you first dive into an Ocean Hole.',
     body: [
       'Black holes in the seabed beneath purple mist lead down to flooded dungeons. Mind your breath.',
@@ -608,10 +621,15 @@ export const TUTORIALS = Object.freeze([
   }),
   page({
     id: 'wild-zone', group: 'online', title: 'The Open Zone', trigger: 'When you first enter the open zone.',
-    body: [
-      'In the Wrothgarian Mountains players may fight one another. The monsters there are tougher and the spoils richer.',
-      'If you die there, you lose what is in your bag and cart, and your killer may take one item you were wearing.',
-    ],
+    // FOE-KEEPS; AUDIT FOE-KEEPS O4: the page pops in either zone, the sea's too, and said the bag and cart lost whole at
+    // a kill - the cart only goes while it is with them (CART-AWAY), a tenth of the gold with them, and any other death
+    // there costs the usual tenth; through the text core (L10N4), read when shown
+    get body() {
+      return [
+        t('tutorials.wildZone.body1', 'Players may fight one another in the Wrothgarian Mountains and on the open {word} Ocean, where monsters are tougher and spoils richer.', { word: ETHER_WORD }),
+        t('tutorials.wildZone.body2', 'If another player kills you there, your bag drops (your cart too, if with you) with a tenth of your gold, and they may take one worn item. Any other death costs the usual tenth.'),
+      ];
+    },
   }),
   // SEAT-WORDS / STANDING-WORDS (Field-Bugs-2026-10-15g): the guilds online - the Roll's pace and the seats - popped at
   // the first word for a member and at the book's hold (scenes/rollNoticeHost.js)
