@@ -40,4 +40,4 @@ lane's; a Morrowind LIGH mesh on the `torch` animation group pends
 Mac's word. Pins: 19 in `test/systems/ht1_handheldtorches.test.js`. Not
 filmed: a game.
 
-`partyArrival.js` validates party arrival with the real player capsule, retries late boat collision for a bounded interval, and refuses unsupported sea landings.
+`partyArrival.js` validates party arrival with the real player capsule, retries late boat collision for a bounded interval, and refuses unsupported sea landings. Its wait tells the probe which attempt is its last, so a follower waits for a spot beside the leader and takes the place's own arrival only then (PARTY-FOLLOW, `06-Systems/Online-Arc.md`).

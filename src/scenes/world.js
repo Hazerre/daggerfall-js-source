@@ -14897,7 +14897,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }
 
   /** PARTY-TRAVEL: a pick may carry `besideAt` - a follower's journey to the party leader lands beside them, read once
-   *  the core has built the pixel - and `besideText`, the arrival's line when it did. True once the journey arrived;
+   *  the core has built the pixel - and `besideText`, the arrival's line when it did (`besideMissedText` when it took
+   *  the place's own arrival instead). True once the journey arrived;
    *  nothing (falsy) when it never left. */
   let _goLeadBusy = false;   // WAGONS2 (AUDIT): fastTravelTo is waiting out GO_LEAD_MS for my riders' clients to hear `go`
   async function fastTravelTo(pick, opts, computed) {
@@ -15001,14 +15002,18 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
             reposition: REPOSITION.DirectionFromStartMarker,
             travelStart, modEvent: 'travel',
             resolveArrival: partyArrival ? async (fallback) => {
-              const resolved = await waitForPartyArrival(() => {
+              const resolved = await waitForPartyArrival((last) => {
                 csaPeers.frame(0); csaSyncColliders();
                 const target = pick.besideAt();
                 beside = partyBesideLanding(target, pick.besideSeat);
                 if (beside) return beside;
-                // Preserve the ordinary outside/entrance fallback on dry,
-                // supported ground, including a swimming or flying leader.
-                return supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);
+                // A leader who stands there with no spot beside them that holds a
+                // body (mid-jump, knocked back in a fight, on a ledge, swimming) is
+                // waited for until the last attempt: the place's own arrival can be
+                // far from them. With no leader in that pixel's open air there is
+                // nobody to wait for. The fallback is the ordinary outside/entrance
+                // landing, on dry, supported ground.
+                return target && !last ? null : supportedPartyPosition(collider, fallback, tvSeaY() + 0.05);
               }, { onWait: () => { _partyWaitLine = PARTY_ARRIVAL_TEXT.waiting; townTalk.say(PARTY_ARRIVAL_TEXT.waiting); } });
               // Stop/pack a departure helm only after success is certain. Its
               // own position write is replaced by the validated spawn below.
@@ -15166,7 +15171,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // keeps the crime in DFU too.
       setCrimeCommitted(playerEntity, CRIMES.None);
       arrestFlow.crimeCleared();   // DISC28-B: a surrender box a guard raised as the journey committed asks about THIS crime - it goes with it
-      townTalk.say(beside && pick.besideText ? pick.besideText : `You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`);   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
+      // A party arrival that could not stand beside the leader says so, or the player is left wondering where they are
+      townTalk.say(beside && pick.besideText ? pick.besideText : (partyArrival && pick.besideMissedText) || `You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`);   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
       if (warmAshesOn()) warmAshesPostTravel();   // WA1: RaiseOnPostFastTravelEvent (:383) - Warm Ashes' CheckforEncounters arms its 0.05s coroutine
       if (csaRuntime) csaCall(() => csaRuntime.OnPostFastTravel());   // CSA-J (the audit): ComeSailAway.OnPostFastTravel, the same event's - ResetTimeScale(false)
     } finally {

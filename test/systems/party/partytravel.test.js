@@ -589,6 +589,119 @@ test('PARTY-TRAVEL session: a member who said yes and walked away before the par
   assert.equal(window.c('Bran').lines.at(-1), 'The party went on without you. Travel to Ann from the Party tab, or type /leader.', 'AUDIT PARTY-TRAVEL: that line names /leader - the journey is not offered a second time');
 });
 
+/** A member who said yes and is following Ann, with Ann arrived at the destination's open air. */
+function followingArrivedLeader() {
+  const w = partyOf();
+  const ann = w.c('Ann');
+  const bran = w.c('Bran');
+  w.step();
+  ann.pt.propose(PICK, OPTS, FARE);
+  w.step();
+  bran.prompts[0].onYes();
+  w.step();
+  w.step();
+  assert.ok(bran.pt.state.follow);
+  ann.pose = { ...ann.pose, px: 300, py: 150 };
+  ann.feet = feetIn(300, 150);
+  return { w, ann, bran };
+}
+
+test('PARTY-FOLLOW session: a follower the map door refuses as the leader arrives (an enemy reached them where the party set out) keeps following - told once why, and travelling the moment the refusal lifts; a refusal that holds twice TRIP_FOLLOW_MS leaves them behind, and a fare they cannot pay still ends the follow (mutants: the follow dropped on a refusal; the refusal never waited out; the line said every tick)', () => {
+  const enemies = 'You cannot travel with enemies nearby.';
+  const waits = followingArrivedLeader();
+  waits.bran.refusal = enemies;
+  waits.w.step();
+  waits.w.step();
+  waits.w.step();
+  assert.equal(waits.bran.travels.length, 0, 'never through the door\'s refusal');
+  assert.ok(waits.bran.pt.state.follow, 'still following while the refusal stands');
+  assert.equal(waits.bran.lines.filter((line) => line === `${enemies} You will follow Ann once you can.`).length, 1, 'told once why');
+  waits.bran.refusal = null;
+  waits.w.step();
+  assert.equal(waits.bran.travels.length, 1, 'the refusal lifted: the follower goes');
+  assert.deepEqual(waits.bran.travels[0].pick.pixel, { x: 300, y: 150 });
+  assert.equal(waits.bran.pt.state.follow, null);
+
+  const held = followingArrivedLeader();
+  held.bran.refusal = enemies;
+  held.w.step();
+  held.w.step();
+  held.w.step(2 * TRIP_FOLLOW_MS - 3 * PARTY_TRIP_TICK_MS);
+  assert.ok(held.bran.pt.state.follow, 'still following short of the deadline');
+  held.w.step(PARTY_TRIP_TICK_MS);
+  assert.equal(held.bran.pt.state.follow, null, 'twice TRIP_FOLLOW_MS refused: left behind');
+  assert.equal(held.bran.lines.at(-1), 'The party went on without you. Travel to Ann from the Party tab, or type /leader.');
+  assert.equal(held.bran.travels.length, 0);
+
+  const poor = followingArrivedLeader();
+  poor.bran.afford = false;
+  poor.w.step();
+  assert.equal(poor.bran.pt.state.follow, null, 'a fare I cannot pay is no refusal of the moment');
+  assert.equal(poor.bran.travels.length, 0);
+  assert.equal(poor.bran.lines.at(-1), 'You cannot afford the journey (40 gold).');
+
+  const fell = followingArrivedLeader();
+  fell.bran.refusal = PARTY_TRAVEL_TEXT.off;
+  fell.w.step();
+  assert.equal(fell.bran.pt.state.follow, null, 'the door\'s `off` - fallen, or my own journey moving me - still ends the follow');
+  assert.equal(fell.bran.lines.at(-1), PARTY_TRAVEL_TEXT.off, 'said as the door says it, with no promise to follow');
+  fell.bran.refusal = null;
+  fell.w.step();
+  assert.equal(fell.bran.travels.length, 0, 'never carried out after a respawn');
+});
+
+test('PARTY-FOLLOW session: a leader whose journey ended outside the destination\'s pixel (or who walked on before the follower saw them land) is followed to where they stand once the round leaves their pose - never told "did not set out", which is kept for a leader still standing where they set out (mutants: the departure pixel unread; the leader\'s own pixel unread)', async () => {
+  const w = partyOf();
+  const ann = w.c('Ann');
+  const bran = w.c('Bran');
+  w.step();
+  ann.pt.propose(PICK, OPTS, FARE);
+  w.step();
+  bran.prompts[0].onYes();
+  w.step();
+  w.step();
+  assert.ok(bran.pt.state.follow);
+  await flush();   // her journey has arrived - one pixel east of the place she chose
+  ann.pose = { ...ann.pose, px: 301, py: 150 };
+  ann.feet = feetIn(301, 150);
+  w.step();
+  assert.equal(bran.travels.length, 0, 'the round is still on her pose: she may yet be on her way');
+  w.step(TRIP_FOLLOW_MS);
+  assert.equal(ann.pt.poseFields().tv, undefined, 'the round has left her pose');
+  w.step();   // and that pose reaches him
+  assert.ok(!bran.lines.some((line) => line.includes('did not set out')), 'she did set out');
+  assert.equal(bran.travels.length, 1);
+  assert.deepEqual(bran.travels[0].pick.pixel, { x: 301, y: 150 }, 'to where she stands');
+  assert.deepEqual(bran.travels[0].pick.besideAt(), { x: ann.feet.wx, y: ann.feet.wy, z: ann.feet.wz }, 'beside her');
+});
+
+test('PARTY-FOLLOW session: a journey to the leader that never arrived (sent back with no safe landing) leaves the member bound nowhere - the leader\'s place is offered again when they are next there (mutants: the sent-back journey kept as bound)', async () => {
+  const w = partyOf();
+  const ann = w.c('Ann');
+  const bran = w.c('Bran');
+  bran.travelGoes = false;
+  ann.pose = { ...ann.pose, px: 300, py: 150, loc: 'Wayrest' };
+  ann.feet = feetIn(300, 150);
+  w.step();
+  w.step(LEADER_SETTLE_MS);
+  assert.equal(bran.prompts.length, 1);
+  bran.prompts[0].onYes();
+  assert.equal(bran.travels.length, 1);
+  await flush();   // sent back
+  ann.pose = { ...ann.pose, px: 420, py: 90, loc: 'Castle Sentinel' };
+  ann.feet = feetIn(420, 90);
+  w.step();
+  w.step(LEADER_SETTLE_MS);
+  assert.equal(bran.prompts.length, 2);
+  bran.prompts[1].onNo();
+  ann.pose = { ...ann.pose, px: 300, py: 150, loc: 'Wayrest' };
+  ann.feet = feetIn(300, 150);
+  w.step();
+  w.step(LEADER_SETTLE_MS);
+  assert.equal(bran.prompts.length, 3, 'Wayrest offered again: the journey there never arrived');
+  assert.deepEqual(bran.prompts[2].rows[0], 'Travel to Ann at Wayrest?');
+});
+
 test('PARTY-TRAVEL session: TO THE LEADER - a member elsewhere is offered the journey unasked when they first see the leader, once per place; Yes travels to where the leader is THEN, beside them in the open air, at the door of a dungeon they are in; a later journey of the leader\'s is offered again', () => {
   const w = partyOf();
   const ann = w.c('Ann'), bran = w.c('Bran');
@@ -839,7 +952,7 @@ test('AUDIT PARTY-TRAVEL session: the followers of one leader carry their own se
   assert.equal(solo.c('Cyr').travels[0].pick.besideSeat, 1);
 });
 
-test('AUDIT PARTY-TRAVEL session: the leader\'s round stays on their pose until their own journey has ARRIVED - a build slower than TRIP_FOLLOW_MS does not tell the followers the leader "did not set out"; they go to the place, and the round leaves once the leader stands there', async () => {
+test('AUDIT PARTY-TRAVEL session: the leader\'s round stays on their pose until their own journey has ARRIVED - a build slower than TRIP_FOLLOW_MS does not tell the followers the leader "did not set out"; PARTY-FOLLOW: they wait for the leader to land and then go beside them, and the round leaves once the leader stands there (mutants: the follower gives up on a leader whose seat is here)', async () => {
   const w = partyOf();
   const ann = w.c('Ann'), bran = w.c('Bran');
   let arrive = null;
@@ -855,11 +968,18 @@ test('AUDIT PARTY-TRAVEL session: the leader\'s round stays on their pose until 
   w.step(2 * PARTY_TRIP_TICK_MS);   // past TRIP_FOLLOW_MS, the leader still building
   assert.ok(ann.pt.poseFields().tv, 'the round stays on the leader\'s pose while their journey is under way');
   assert.ok(!bran.lines.some((l) => l.includes('did not set out')), 'no follower is told the leader stayed');
-  assert.equal(bran.travels.length, 1, 'the follower goes to the place anyway');
+  assert.equal(bran.travels.length, 0, 'PARTY-FOLLOW: the leader\'s seat is here and carries the round - never to the place\'s own arrival ahead of her');
+  w.step(TRIP_FOLLOW_MS);
+  assert.equal(bran.travels.length, 0, 'however slow her build');
   arrive(true);
+  ann.pose = { ...ann.pose, px: 300, py: 150 };
+  ann.feet = feetIn(300, 150);
   await flush();
   w.step();
   assert.equal(ann.pt.state.trip, null, 'arrived, and TRIP_FOLLOW_MS past setting out: the round leaves');
+  assert.equal(bran.travels.length, 1, 'she landed: the follower goes');
+  assert.deepEqual(bran.travels[0].pick.pixel, { x: 300, y: 150 });
+  assert.deepEqual(bran.travels[0].pick.besideAt(), { x: ann.feet.wx, y: ann.feet.wy, z: ann.feet.wz }, 'beside her');
 });
 
 // ─── THE HEADLESS FARE ──────────────────────────────────────────────────────────────────────────────────────────
@@ -911,7 +1031,7 @@ test('PARTY-TRAVEL host by source: world.js wires the session - the map door\'s 
   assert.match(travel, /resolveArrival: partyArrival \? async \(fallback\)/, 'party landing is validated before the teleport commits');
   const core = w.slice(w.indexOf('async function _teleportToPixel('), w.indexOf('let _teleporting = false;'));
   assert.ok(core.indexOf('await resolveArrival(pos)') > core.indexOf('await awaitedBuild('), 'read after the build');
-  assert.match(travel, /townTalk\.say\(beside && pick\.besideText \? pick\.besideText : `You arrive at \$\{getLocalizedLocationName\(pick\.mapId, pick\.name\)\}\.`\);/);   // L10N3e: the place as shown
+  assert.match(travel, /townTalk\.say\(beside && pick\.besideText \? pick\.besideText : \(partyArrival && pick\.besideMissedText\) \|\| `You arrive at \$\{getLocalizedLocationName\(pick\.mapId, pick\.name\)\}\.`\);/);   // L10N3e: the place as shown; PARTY-FOLLOW: a party arrival not beside the leader says so
   assert.match(w, /return partyArrivalBeside\(\[lx, w\.y \+ state\.compensation\[1\], lz\], collider, seat/, 'capsule support over the destination collider');
   assert.match(travel, /partyBesideLanding\(target, pick\.besideSeat\)/, 'the follower seat reaches the supported landing search');
   assert.match(w, /moving: \(\) => worldMoveBusy\(\) \|\| !!travelControlUI\?\.isShowing,/, 'AUDIT PARTY-TRAVEL: no unasked box over a Travel Options walk the player is steering');
@@ -1174,7 +1294,7 @@ test('AUDIT PARTY-UI2 session: status() asks nobody who is gathered - the leader
   for (let i = 0; i < 6; i++) { bran.near = i % 2 === 0; w.step(); assert.equal(key(), first, 'the same reading, crossing after crossing'); }
 });
 
-test('AUDIT PARTY-UI2 session: a round that set out is HELD for its followers - propose refuses over it until TRIP_FOLLOW_MS past its going (the tab reads `held`), so a follower still under a window follows it to its place and is never told the leader "did not set out" (mutants: a new round over a held one; held never read)', async () => {
+test('AUDIT PARTY-UI2 session: a round that set out is HELD for its followers - propose refuses over it until TRIP_FOLLOW_MS past its going (the tab reads `held`), so a follower still under a window follows the leader and is never told the leader "did not set out" (mutants: a new round over a held one; held never read)', async () => {
   const w = partyOf(['Ann', 'Bran', 'Cyr']);
   const ann = w.c('Ann'), cyr = w.c('Cyr');
   w.step();
@@ -1197,7 +1317,7 @@ test('AUDIT PARTY-UI2 session: a round that set out is HELD for its followers - 
   cyr.busy = false;
   for (let i = 0; i < 2 * TRIP_FOLLOW_MS / PARTY_TRIP_TICK_MS && !cyr.travels.length; i++) w.step();
   assert.ok(!cyr.lines.some((l) => l.includes('did not set out')), 'never told she did not set out - she did');
-  assert.deepEqual(cyr.travels.map((t) => t.pick.pixel), [{ x: 300, y: 150 }], 'he follows the round to its place');
+  assert.deepEqual(cyr.travels.map((t) => t.pick.pixel), [{ x: 420, y: 90 }], 'PARTY-FOLLOW: the round left her pose away from where she set out - he follows her to where she stands, not to a place she has left');
   w.step(TRIP_FOLLOW_MS);
   assert.equal(ann.pt.status().held, false, 'TRIP_FOLLOW_MS past its going: let go');
   assert.equal(ann.pt.propose(PICK, OPTS, FARE), true, 'and a round opens again');

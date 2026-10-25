@@ -41,16 +41,20 @@ export function partyArrivalBeside(at, collider, seat = 0, minimumY = -Infinity)
 }
 
 /** Bounded retries, including when a background tab's clock stalls. The caller
- * samples the leader AND hull on every attempt. Nothing is placed by a retry. */
+ * samples the leader AND hull on every attempt. Nothing is placed by a retry.
+ * `probe(last)` returns a landing, or null to be asked again. `last` is true on
+ * the final attempt: a caller that waits for a better landing than its fallback
+ * (beside the leader, not the place's own arrival) takes the fallback then. */
 export async function waitForPartyArrival(probe, {
   wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = () => performance.now(), onWait = () => {},
 } = {}) {
   const start = now(), attempts = Math.ceil(PARTY_ARRIVAL_WAIT_MS / PARTY_ARRIVAL_POLL_MS);
   for (let i = 0; i <= attempts; i++) {
-    const landing = probe();
+    const last = i === attempts || now() - start >= PARTY_ARRIVAL_WAIT_MS;
+    const landing = probe(last);
     if (landing) return landing;
-    if (i === attempts || now() - start >= PARTY_ARRIVAL_WAIT_MS) break;
+    if (last) break;
     if (i === 0) onWait();
     await wait(PARTY_ARRIVAL_POLL_MS);
   }

@@ -11,7 +11,7 @@ const start = source.indexOf('  async function fastTravelTo(');
 assert.ok(start >= 0);
 const travelSource = source.slice(start, source.indexOf('\n  }\n', start) + 5);
 
-function host({ safe = true, target = true, failBuild = false, boat = false, ownBoat = false, dry = false, preThrows = false, postThrows = false } = {}) {
+function host({ safe = true, target = true, failBuild = false, boat = false, ownBoat = false, dry = false, preThrows = false, postThrows = false, besideAfter = 0 } = {}) {
   const events = [], lines = [], commits = [];
   const state = new StreamingWorldState(); state.init(100, 200);
   const player = { pos: [20, 12, 30], spawn(x, y, z) { this.pos = [x, y, z]; commits.push([...this.pos]); } };
@@ -19,7 +19,7 @@ function host({ safe = true, target = true, failBuild = false, boat = false, own
   const cam = { pos: [...player.pos], yaw: 0.3 };
   const originBoat = boat || ownBoat ? {} : null;
   const destination = { pos: [140, 5, 130], yaw: 1, groundKey: 'csaBoat:1:hull' };
-  let advances = 0, failures = 0, waits = 0;
+  let advances = 0, failures = 0, waits = 0, besideProbes = 0;
   const no = () => {};
   const deps = {
     worldMoveBusy: () => false, _traveling: false, walkMode: true,
@@ -42,7 +42,7 @@ function host({ safe = true, target = true, failBuild = false, boat = false, own
     REPOSITION: { DirectionFromStartMarker: 1 },
     waitForPartyArrival: (probe, opts) => waitForPartyArrival(probe, { ...opts, now: () => waits * 100, wait: async () => { waits++; } }),
     csaPeers: { frame: no }, csaSyncColliders: no,
-    partyBesideLanding: (w) => safe && w ? destination : null,
+    partyBesideLanding: (w) => { besideProbes++; return safe && w && besideProbes > besideAfter ? destination : null; },   // `besideAfter`: the probes on which no spot beside the leader holds a body yet
     supportedPartyPosition: (col, pos) => pos[1] >= 0 ? { pos } : null,
     collider: {}, tvSeaY: () => 0, townTalk: { say: (s) => lines.push(s) }, PARTY_ARRIVAL_TEXT,
     csaWorldOf: () => [22, 15, 34], csaAboard: { board: (b) => events.push(b === originBoat ? 'board-origin' : 'board-target') },
@@ -61,7 +61,7 @@ function host({ safe = true, target = true, failBuild = false, boat = false, own
   };
   // Execute the complete production travel function, with explicit host seams.
   const api = new Function(...Object.keys(deps), travelSource + '\nreturn { run: fastTravelTo, flags: () => [_traveling, _partyArrivalPending, _partyTravelOriginBoat] };')(...Object.values(deps));
-  const pick = { pixel: { x: 300, y: 150 }, name: 'Open sea', besideText: 'Joined leader.', besideAt: () => target ? { x: 1, y: 5, z: 2 } : null, besideSeat: 0 };
+  const pick = { pixel: { x: 300, y: 150 }, name: 'Open sea', besideText: 'Joined leader.', besideMissedText: 'Not beside the leader.', besideAt: () => target ? { x: 1, y: 5, z: 2 } : null, besideSeat: 0 };
   return { ...api, pick, entity, player, cam, events, lines, commits, counts: () => ({ advances, waits }) };
 }
 const fare = { piecesCost: 5, totalCost: 20, minutes: 100 };
@@ -145,6 +145,37 @@ test('TRANSACTION: safe dry fallback preserves travel when the leader cannot be 
   assert.equal(await h.run(h.pick, {}, fare), true);
   assert.deepEqual(h.commits, [[409, 10, 409]]);
   assert.equal(h.entity.goldPieces, 80);
+  assert.equal(h.counts().waits, 40, 'PARTY-FOLLOW: only once the whole wait found no spot beside the leader');
+  assert.equal(h.lines.at(-1), 'Not beside the leader.', 'PARTY-FOLLOW: and the arrival says so');
+});
+
+test('PARTY-FOLLOW TRANSACTION: a leader with no spot beside them for a moment (mid-jump, knocked back in a fight) is waited for - the follower lands beside them, never at the place\'s own arrival, which the first check took (mutants: the fallback on the first check; the fallback never taken)', async () => {
+  const h = host({ dry: true, besideAfter: 3 });
+  assert.equal(await h.run(h.pick, {}, fare), true);
+  assert.deepEqual(h.commits, [[140, 5, 130]], 'beside the leader');
+  assert.equal(h.counts().waits, 3);
+  assert.equal(h.lines.at(-1), 'Joined leader.');
+});
+
+test('PARTY-FOLLOW TRANSACTION: with no leader in the pixel\'s open air there is nobody to wait for - the place\'s own arrival at once, said as not beside them', async () => {
+  const h = host({ target: false, dry: true });
+  assert.equal(await h.run(h.pick, {}, fare), true);
+  assert.deepEqual(h.commits, [[409, 10, 409]]);
+  assert.equal(h.counts().waits, 0);
+  assert.equal(h.lines.at(-1), 'Not beside the leader.');
+});
+
+test('PARTY-FOLLOW RETRY: the probe is told which attempt is its last - on the cap, and on a clock past the wait', async () => {
+  const byCap = [];
+  await assert.rejects(waitForPartyArrival((last) => { byCap.push(last); return null; }, { now: () => 0, wait: async () => {} }), PartyArrivalUnavailable);
+  assert.equal(byCap.length, 41);
+  assert.equal(byCap.filter(Boolean).length, 1);
+  assert.equal(byCap.at(-1), true);
+  let clock = 0;
+  const byClock = [];
+  const landing = await waitForPartyArrival((last) => { byClock.push(last); return last ? { pos: [0, 0, 0] } : null; }, { now: () => clock, wait: async () => { clock += 3000; } });
+  assert.deepEqual(landing, { pos: [0, 0, 0] });
+  assert.deepEqual(byClock, [false, false, true], 'the wait spent after two polls: the third is the last');
 });
 
 test('TRANSACTION: joining a leader on my own departure hull never packs away the arrival floor', async () => {
