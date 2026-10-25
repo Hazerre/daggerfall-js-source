@@ -22019,6 +22019,11 @@
   "tr": "a55d1a6e5548",
   "by": "claude-in-session"
  },
+ "net.staffView.dismissFlag": {
+  "en": "ff5751398267",
+  "tr": "6ebabee6d0f2",
+  "by": "claude-in-session"
+ },
  "net.staffView.more": {
   "en": "8a8f0b6e3349",
   "tr": "789e448ed06a",
@@ -25077,6 +25082,21 @@
  "poi.where.thumb": {
   "en": "78b203f1a581",
   "tr": "bebbaa9d7dfc",
+  "by": "claude-in-session"
+ },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "8ee07305cf56",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "586963daf402",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "5c4e492e4694",
   "by": "claude-in-session"
  },
  "post.claimAll": {
@@ -32847,6 +32867,71 @@
  "spoils.lost.mailed": {
   "en": "53d5716ff137",
   "tr": "b2150576081b",
+  "by": "claude-in-session"
+ },
+ "staffEvent.attackArea": {
+  "en": "ea6594b7f8f5",
+  "tr": "15d0ba6623bc",
+  "by": "claude-in-session"
+ },
+ "staffEvent.attackCity": {
+  "en": "cab2ffdaf40e",
+  "tr": "8cafd0c38926",
+  "by": "claude-in-session"
+ },
+ "staffEvent.board": {
+  "en": "f432a22c5c95",
+  "tr": "fa3365d22503",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardRow": {
+  "en": "8e045d01d311",
+  "tr": "8e045d01d311",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardRowKiller": {
+  "en": "ae1880046d4c",
+  "tr": "cc51280888e9",
+  "by": "claude-in-session"
+ },
+ "staffEvent.boardWho": {
+  "en": "7f8dd8d5af1b",
+  "tr": "58068c2fa5b8",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossArea": {
+  "en": "3b8677660ebb",
+  "tr": "b30a42b39205",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossCity": {
+  "en": "4962e5064878",
+  "tr": "5cf6acfbdf45",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossFellArea": {
+  "en": "8c2df1c3accb",
+  "tr": "a0cae089de3f",
+  "by": "claude-in-session"
+ },
+ "staffEvent.bossFellCity": {
+  "en": "cc20d6a397c1",
+  "tr": "e425ba4fbf8e",
+  "by": "claude-in-session"
+ },
+ "staffEvent.overArea": {
+  "en": "3aab11c228c2",
+  "tr": "9cb8af194288",
+  "by": "claude-in-session"
+ },
+ "staffEvent.overCity": {
+  "en": "bade3fdbd23d",
+  "tr": "514a8b7da40f",
+  "by": "claude-in-session"
+ },
+ "staffEvent.spoils": {
+  "en": "5de07de102b8",
+  "tr": "9241e03851df",
   "by": "claude-in-session"
  },
  "standing.notice.served": {
