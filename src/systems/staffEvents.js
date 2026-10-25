@@ -77,6 +77,19 @@ export const staffLedgerOf = (id) => _ledgers.get(id) ?? null;
 /** The events live here, as raids. @returns {StaffRaid[]} */
 export const staffRaids = () => [..._raids.values()].filter((r) => !r.cleansed);
 /** The events that ended and whose monsters are not yet routed (raidingParties routs each once). */
+/**
+ * BOSS-BOUND (2026-10-25, mob: "heal was set to 10000 for zombie its wromng", "the event boss had to low of health"): the
+ * most health a peer's mini boss of the event `key` may claim - the exact health staff typed (`hp`), or its kind's
+ * normal bound (net/foeBounds.js, `normal`) times the event's multiplier (`bh`), whichever is more. FOE-BOUNDS judged it
+ * as a plain elite, and every copy but its owner's took a boss past that down as impossible. Null when no live event
+ * of my book has that key: the plain bound holds.
+ * @param {string} key @param {number} normal @returns {number|null}
+ */
+export function staffBossBound(key, normal) {
+  const r = staffRaids().find((x) => x.key === key);
+  if (!r) return null;
+  return Math.max(r.staff.hp ?? 0, Math.round(normal * Math.min(100, Math.max(1, r.staff.bh ?? 10))));
+}
 export const staffRaidsEnded = () => [..._raids.values()].filter((r) => r.cleansed && !r.routed);
 /** A key's raid, or null. @param {string} key */
 export const staffRaidOfKey = (key) => { const id = staffEventIdOf(key); return id ? _raids.get(id) ?? null : null; };

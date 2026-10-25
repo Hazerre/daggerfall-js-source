@@ -607,9 +607,9 @@ export function raidFrame(dt = 0) {
   if (raid.staff) {
     const fc = staffBossWanted(raid);
     if (fc >= 0 && !staffBossByHand(raid) && !staffFieldClear(raid, h) && !staffClearLong(raid, localNow())) return 'clearing';   // BOSS-CLEAR: the meter's boss once every monster standing is dead
-    if (fc >= 0) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    if (fc >= 0) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
     const lost = staffBossLost(raid, staffBossStanding(raid, h), localNow());   // BOSS-LOST: stood, then gone without falling
-    if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
     if (staffBossBusy(raid)) return 'idle';   // BOSS-CLEAR: no monster stood while a boss is due or stands
   }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
@@ -821,6 +821,30 @@ function staffPackPlayer() {
   const me = host().selfId?.() ?? '';
   const all = [[me, null], ...(host().peerFeetInTown?.() ?? []).filter(([id, f]) => id !== me && Array.isArray(f))].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return all[_packTurn++ % all.length][1];
+}
+/**
+ * BOSS-SPOT (2026-10-25, mob: "spawn it on the highest lvl player in the town or area", "or largewst groupoing"; card:
+ * "Biggest group, ties by level"): the player a mini boss stands beside - the one with the most players within
+ * STAFF_BOSS_GROUP_M of them (themselves counted), a tie to the group whose highest level is higher, then the lower id.
+ * Pure. @param {[string, number[], number][]} players `[id, feet, level]` @returns {[string, number[], number]|null}
+ */
+export function staffBossSpot(players) {
+  let best = null, bestN = -1, bestLv = -1;
+  for (const p of players) {
+    if (!Array.isArray(p?.[1])) continue;
+    const near = players.filter((q) => Array.isArray(q?.[1]) && Math.hypot(q[1][0] - p[1][0], q[1][2] - p[1][2]) <= STAFF_BOSS_GROUP_M);
+    const lv = Math.max(...near.map((q) => (Number.isFinite(q[2]) ? q[2] : 0)));
+    if (near.length > bestN || (near.length === bestN && (lv > bestLv || (lv === bestLv && p[0] < best[0])))) { best = p; bestN = near.length; bestLv = lv; }
+  }
+  return best;
+}
+/** BOSS-SPOT: how near another player stands to count in a player's group (metres). */
+export const STAFF_BOSS_GROUP_M = 30;
+/** BOSS-SPOT: where my mini boss stands - beside the biggest group's player; mine (undefined: about me) when it is me. */
+function staffBossPlace() {
+  const me = host().selfId?.() ?? '';
+  const at = staffBossSpot(host().peerFeetInTown?.() ?? []);
+  return at && at[0] !== me ? { near: at[1] } : undefined;
 }
 /** PACK-SPREAD's turn: the packs stood so far. */
 let _packTurn = 0;
