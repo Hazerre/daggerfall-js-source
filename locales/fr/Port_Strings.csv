@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Cet objet a bougé entre-temps. Regardez à nouveau
 account.refusal.escrowReturned,"Cette pièce est déjà retournée à celui qui est tombé."
 account.refusal.escrowWait,"Cette pièce est encore gardée pour son tueur. Elle vous reviendra bientôt."
 account.refusal.fallenFrozen,"Ce joueur est retenu par l’équipe. Rien ne peut lui être pris."
+account.refusal.fenced,"Le Courtier a déjà réglé cette vente. Rouvrez la fenêtre du Courtier."
 account.refusal.firmCharacter,"Ce personnage est introuvable pour le Firmament. Réessayez."
 account.refusal.firmClosed,"Le Firmament ne vous est pas accessible pour le moment."
 account.refusal.firmKey,"L'une de ces étoiles est inconnue."

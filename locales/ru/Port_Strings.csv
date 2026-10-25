@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Этот предмет за это время пе
 account.refusal.escrowReturned,"Этот предмет уже вернулся к павшему."
 account.refusal.escrowWait,"Этот предмет всё ещё хранится для убийцы. Скоро он вернётся к вам."
 account.refusal.fallenFrozen,"Этот игрок задержан командой. У него ничего нельзя забрать."
+account.refusal.fenced,"Посредник уже завершил эту сделку. Откройте окно Посредника снова."
 account.refusal.firmCharacter,"Не удалось найти этого персонажа для Небосвода. Попробуйте ещё раз."
 account.refusal.firmClosed,"Небосвод сейчас для вас недоступен."
 account.refusal.firmKey,"Одна из этих звёзд неизвестна."

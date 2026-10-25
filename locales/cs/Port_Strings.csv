@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Ten předmět se mezitím přesunul. Podívej se zn
 account.refusal.escrowReturned,"Ten předmět se už vrátil padlému."
 account.refusal.escrowWait,"Ten předmět je stále uschován pro vraha. Brzy se ti vrátí."
 account.refusal.fallenFrozen,"Tento hráč je zadržen týmem. Nelze mu nic vzít."
+account.refusal.fenced,"Překupník už ten prodej vyřídil. Otevři okno Překupníka znovu."
 account.refusal.firmCharacter,"Tuto postavu se pro Nebeskou klenbu nepodařilo najít. Zkus to znovu."
 account.refusal.firmClosed,"Nebeská klenba ti teď není dostupná."
 account.refusal.firmKey,"Jedna z těch hvězd je neznámá."

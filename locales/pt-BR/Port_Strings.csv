@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Essa peça foi movida nesse meio-tempo. Olhe de nov
 account.refusal.escrowReturned,"Essa peça já voltou para quem caiu."
 account.refusal.escrowWait,"Essa peça ainda está guardada para quem matou. Ela volta para você em breve."
 account.refusal.fallenFrozen,"Esse jogador está retido pela equipe. Nada pode ser tirado dele."
+account.refusal.fenced,"O Corretor já acertou essa venda. Abra a janela do Corretor de novo."
 account.refusal.firmCharacter,"Não foi possível encontrar este personagem para o Firmamento. Tente de novo."
 account.refusal.firmClosed,"O Firmamento não está disponível para você agora."
 account.refusal.firmKey,"Uma dessas estrelas é desconhecida."

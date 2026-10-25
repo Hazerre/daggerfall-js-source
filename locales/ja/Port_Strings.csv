@@ -241,6 +241,7 @@ account.refusal.escrowMoved,"その品はその間に移動しました。もう
 account.refusal.escrowReturned,"その品はすでに倒れた者の元に戻っています。"
 account.refusal.escrowWait,"その品はまだ倒した者のために保管されています。まもなくあなたの元に戻ります。"
 account.refusal.fallenFrozen,"そのプレイヤーはスタッフに保留されています。何も奪うことはできません。"
+account.refusal.fenced,"仲買人はその取引をすでに精算しました。仲買人の画面をもう一度開いてください。"
 account.refusal.foe,"オープンゾーンで敵に倒されても、今は何も落としません。ゲームの更新が必要かもしれません。"
 account.refusal.fortBuilding,"その施設はすでに建設中です。"
 account.refusal.fortMax,"その施設はすでに最終段階です。"

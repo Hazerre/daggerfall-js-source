@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Den gjenstanden ble flyttet i mellomtiden. Se igjen
 account.refusal.escrowReturned,"Den gjenstanden har allerede gått tilbake til den falne."
 account.refusal.escrowWait,"Den gjenstanden holdes fortsatt av til drapsmannen. Den kommer snart tilbake til deg."
 account.refusal.fallenFrozen,"Den spilleren holdes av staben. Ingenting kan tas fra dem."
+account.refusal.fenced,"Megleren har allerede gjort opp den handelen. Åpne Meglerens vindu igjen."
 account.refusal.firmCharacter,"Denne karakteren ble ikke funnet for Firmamentet. Prøv igjen."
 account.refusal.firmClosed,"Firmamentet er ikke tilgjengelig for deg akkurat nå."
 account.refusal.firmKey,"En av de stjernene er ukjent."

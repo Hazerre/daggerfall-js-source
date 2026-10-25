@@ -225,6 +225,7 @@ const REFUSAL_WORDS = {
   'no-name-as': () => t('account.refusal.noNameAs', 'The account service does not know that choice of name. The game may need updating.'),   // NAME-AS
   'no-insignia': () => t('account.refusal.noInsignia', 'The Broker does not sell that any more. The game may need updating.'),
   owned: () => t('account.refusal.owned', 'Your account already owns that.'),
+  fenced: () => t('account.refusal.fenced', 'The Broker already settled that sale. Open her window again.'),   // AUDIT FB1024 (BROKER-RID): a press whose request id a settle fenced first (server-account/src/brokerSales.js)
   bought: () => t('account.refusal.bought', 'You have bought from the Panoply this week. Come back next week.'),   // EG-E1: the Broker's Panoply sink, once a week (server-account/src/egEconomy.js egSink)
   piece: () => t('account.refusal.piece', 'The Broker does not sell that piece. The game may need updating.'),
   short: () => t('account.refusal.short', 'Your account has too few embers for that.'),   // WB12a; WB13b: the card says the rule; AUDIT WB12d (A4): a rite's ember counts, and is no breach closed

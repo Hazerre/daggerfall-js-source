@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Dieses Stück wurde inzwischen bewegt. Sieh noch ei
 account.refusal.escrowReturned,"Dieses Stück ist bereits zum Gefallenen zurückgekehrt."
 account.refusal.escrowWait,"Dieses Stück wird noch für seinen Bezwinger verwahrt. Es kommt bald zu dir zurück."
 account.refusal.fallenFrozen,"Dieser Spieler wird vom Team festgehalten. Ihm kann nichts genommen werden."
+account.refusal.fenced,"Der Makler hat diesen Kauf bereits abgerechnet. Öffne das Fenster des Maklers erneut."
 account.refusal.firmCharacter,"Dieser Charakter konnte für das Firmament nicht gefunden werden. Versuch es noch einmal."
 account.refusal.firmClosed,"Das Firmament ist für dich gerade nicht verfügbar."
 account.refusal.firmKey,"Einer dieser Sterne ist unbekannt."

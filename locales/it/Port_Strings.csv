@@ -275,6 +275,7 @@ account.refusal.escrowMoved,"Quel pezzo si è spostato nel frattempo. Guarda di 
 account.refusal.escrowReturned,"Quel pezzo è già tornato a chi è caduto."
 account.refusal.escrowWait,"Quel pezzo è ancora custodito per il suo uccisore. Tornerà presto a te."
 account.refusal.fallenFrozen,"Quel giocatore è trattenuto dallo staff. Non gli si può prendere nulla."
+account.refusal.fenced,"Il Mediatore ha già concluso quella vendita. Riapri la finestra del Mediatore."
 account.refusal.firmCharacter,"Impossibile trovare questo personaggio per il Firmamento. Riprova."
 account.refusal.firmClosed,"Il Firmamento al momento non è disponibile per te."
 account.refusal.firmKey,"Una di quelle stelle è sconosciuta."

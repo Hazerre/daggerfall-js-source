@@ -2,7 +2,7 @@
 
 Four threads from the Discord, handed over by the owner as phone screenshots: one from #feature-feedback, three from
 #bug-reports. Read on main's `f58525b0a`, each by a cold reader of its own beside this one. The pins are named under each
-fix, the mutants `tools/mutants/fb1024.json` (39, all dead), and five records of other slices re-aimed by content (egeco_pay, serpentset, wb9g).
+fix, the mutants `tools/mutants/fb1024.json` (39, all dead), and six records of other slices re-aimed by content (egeco_pay's three, serpentset, wb9g, audit_wb9).
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -157,6 +157,12 @@ slice was rebuilt on the request id instead (BROKER-RID, above).
 | 21 | D note | NOTE | The record's loose words: "the seam it reads is registered by each" (worldModes registers it for world.js and exterior.js, dungeonContext its own); the DARK-REGEN pins paragraph named no mutants | FIXED |
 
 FINE, PROVEN by the lanes: DFU's darkness (PlayerEnterExit.cs:201, :371 - no weather term, dungeons inside, the day 6 to 18); every mode's seam and its hand-back on a dungeon's destroy; `createEnchantCtx` the only enchant ctx; the career and the ring stacking, both barred in the Burning Court; nothing interactive on the theme's context, the film's audible clock monotone under the longer latency; `egSinkOf`'s query on its primary key; the deploy bundling what the Worker imports; no TDZ in the host's door; two settles at once handing one piece.
+
+THE SUITE AFTER THE FIXES. Two things the suite asked of the rebuilt slice: every refusal word the service can say has a
+sentence (ACC1e) - `fenced` now does, in the twenty languages that carry the account's words, though no client of this
+build sees it (a press's id is never sent twice); and `test/net/gate/wb12d_rite_law.test.js`'s own D1 stand-in answered a
+batch with its writes' counts alone, where D1 answers each statement's rows - `egSink` already read an UPDATE's RETURNING
+out of a batch, and the insignia's sale does now, so the stand-in answers as D1 does.
 
 NOT THIS SLICE'S. `test/server/founder5.test.js` (FOUNDER5 the live link, a cloud save) fails on the frozen snapshot and on main's code alike since 2026-10-25: an account registered "today" in the fixture is stamped with today's first play (1792886400 is 2026-10-25 00:00 UTC). A clock in a fixture, not this change - named for its own fix.
 

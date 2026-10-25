@@ -241,6 +241,7 @@ account.refusal.escrowMoved,"Ten przedmiot został w międzyczasie przeniesiony.
 account.refusal.escrowReturned,"Ten przedmiot wrócił już do poległego."
 account.refusal.escrowWait,"Ten przedmiot jest wciąż przechowywany dla zabójcy. Wkrótce wróci do ciebie."
 account.refusal.fallenFrozen,"Ten gracz jest zatrzymany przez obsługę. Nic nie można mu zabrać."
+account.refusal.fenced,"Pośrednik już rozliczył tę sprzedaż. Otwórz ponownie okno Pośrednika."
 account.refusal.foe,"Śmierć z ręki wroga w otwartej strefie nie powoduje już utraty niczego. Gra może wymagać aktualizacji."
 account.refusal.fortBuilding,"Ta budowla już powstaje."
 account.refusal.fortMax,"Ta budowla ma już ostatni stopień."
