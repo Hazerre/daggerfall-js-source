@@ -15292,7 +15292,7 @@ gold can now change hands the way a guild deposit or a house's price does - in t
   first (realmActFirst, AUDIT REALM L1-F2), the exact cost - the price and the courier, a Drake's worth of gold a Drake -
   paid off it (purse, letters, then the board region's account: realmGoldLaw payFromSave) in the batch that decides the
   sale, GUARDED (mustChange): a sale that does not land rolls the record back. VENDOR-LOST (FIELD BUGS 2026-10-25,
-  `01-Overview/bugs/Field-Bugs-2026-10-25.md`), a departure from L1-F2 for a buy alone: a record one on from where the
+  `01-Overview/bugs/Field-Bugs-2026-10-25b.md`), a departure from L1-F2 for a buy alone: a record one on from where the
   tab asked, with a sale this id made, is that sale, landed - answered as the repeat with the record's sequence, to a
   tab that asks for it (`landed`), never `seq`, which ended the buyer's session. The seller's share is held on the service
   for its character (`market_gold`, at most 100,000,000) until its own record collects it into the bank account of the

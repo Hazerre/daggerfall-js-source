@@ -1,71 +1,68 @@
-# FIELD BUGS 2026-10-25 - a trader's two pieces bought: the gold gone, the pieces never come
+# FIELD BUGS 2026-10-25 - an artifact's doll layer, and the company's word
 
-One report, handed over in a session: "I just tried purchasing two items from another users store. The game took a
-while to process the trade, but crashed before or as it happened and on BOTH occasions it took ALL my gold and BOTH the
-items I tried purchasing." Read on main's `df1a2f8d8c`. The pins are `test/net/fb1025_vendorlost.test.js`, the mutants
-`tools/mutants/fb1025_vendorlost.json`.
+Two Discord threads, handed over by the owner as two phone screenshots. In #general, Andink: "My Daggerfall fashion is
+broken because artifacts like Spellbreaker looks like a typical Dwarven Tower Dorito instead of the unique texture (like
+in the thumbnail). I feel like all the artifacts may be using the wrong texture, the thumbnails are correct but not on
+the paper doll." In #suggestions, Grost's "Increase perk selection time for Elite Breaches": "Having only 10 seconds to
+read over potentially 16 different options, with a total of 5 different categories, is not enough for time to think for
+perk/boss/hall decisions ... At the very least, increase it to 20 seconds, maybe even 30", six thumbs under it; SeQueL:
+"10 seconds is far to short. 20 seconds minimum". Read on main's `175f4ff48`, with the freeware's data
+(`tools/fetch-data.sh`). The pins are `test/ui/fb1025_artifactdoll.test.js` and
+`test/net/eliteGates/fb1025_asklonger.test.js`, the mutants `tools/mutants/fb1025_artifactdoll.json` (9) and
+`tools/mutants/fb1025_asklonger.json` (3), all dead.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | "crashed before or as it happened and on BOTH occasions it took ALL my gold and BOTH the items" | A gold buy at a home's trader (HOME-VENDOR) landed on the service - the buyer's record paid, the listing sold, the piece a delivery - and its answer was lost. Asked again, the service said `seq` before it looked the sale up, the realm session ended, and nothing collected the piece | VENDOR-LOST |
+| 1 | "artifacts like Spellbreaker looks like a typical Dwarven Tower Dorito ... the thumbnails are correct but not on the paper doll" | The doll resolved an artifact as its base template: Spell Breaker's Tower Shield record from the body's armor archive, dyed by its plate band's Dwarven. The list took DFU's artifact carve-out; the doll never did | ART-DOLL |
+| 2 | "only 10 seconds to read over potentially 16 different options" | The company's word (`EG_ASK_MS`, Elite-Gates.md 16.4) was open 10 s; FIELD BUGS 2026-10-18d item 5 had named it tight and left its length to the owner | ASK-LONGER |
 
-## VENDOR-LOST (1) - `server-account/src/market.js`, `src/net/marketBook.js`, `src/ui/vendor/vendorTab.js`
+## ART-DOLL (1) - `src/ui/paperDoll.js`
 
-FOUND. Reproduced through the real Worker before the fix: a trader's buy that landed, asked again with the same body
-(realmGoldAct's retry: the same id, the same `where`), was answered 409 `{ error: 'seq', seq: 2 }`. The buyer's record
-held 950 of its 1,000 gold and no piece, the delivery stood uncollected, the listing `sold`. Through the market book
-over the real realmGoldAct: the session ended `unknown`, and the settle after the join let the kept buy go on its repeat
-and asked to collect nothing.
+WHAT DFU DOES. PaperDollRenderer.BlitItems asks GetItemImage(item, true, true), and GetItemImage reads the item's
+InventoryTextureArchive and InventoryTextureRecord (`ItemHelper.cs:405-406`) - the same two virtuals the inventory list
+reads. For an artifact those are what SetArtifact wrote: the archive from GetArtifactTextureIndices (432 male, 433
+female) and the record from MAGIC.DEF (GetInventoryTextureRecord's carve-out, `DaggerfallUnityItem.cs:1745-1747`), with
+the dye left Unchanged (`:611`). So DFU's doll and list draw one picture of an artifact, from TEXTURE.432.
 
-WHAT THE PLAYER SAW. A trader's buy is two realm acts: the buy, then the collect of its delivery (vendorBuy, `src/scenes/vendorHost.js` since this fix).
-realmGoldAct takes the price out of the purse as the service is asked. The answer did not come - the door's 15 s
-(ACCOUNT_ACT_WAIT_MS), or a 503 after the batch had landed, under the account database's overloads of 2026-10-13 and
-2026-10-19; which one is not measured. The retry was told `seq`, and the player was sent to the title with "The realm
-did not answer about a trade in progress. Join again to see how it ended." - the crash. After the join: the record paid,
-no piece in the pack, the piece gone from the stall. The gold taken is the two prices and no more: payFromSave and the
-wallet's payUndoable each take the amount (the purse, its letters, then that region's account), so a price past what
-the purse held emptied it.
+WHAT THE PORT DID. `inventoryItemImage` (systems/item/itemTemplates.js) took the carve-out at AUDIT 63 F21 - the
+thumbnails. `paperdollItemImage` resolved by group alone: an artifact shield went down the Armor arm, the base
+template's record (the Tower Shield) in the body's armor archive (249/245 + morphology), dyed by its material - Spell
+Breaker is `0x204`, Dwarven, so a yellow Tower Shield. Every armor and weapon artifact drew its base the same way: Lord's
+Mail and Ebony Mail a plate cuirass, the Ebony Blade a katana, Auriel's Shield a kite shield.
 
-WHY. AUDIT REALM L1-F2 answers where the record stands before any other word, so a lost answer asked again reads "one
-on" as its act, landed - realmGoldAct's reading, for an act that needs no answer. A buy needs its answer
-(`needsAnswer`: the piece, the delivery), so "one on" ended its session instead. The sale's own row (`market_sales`, by
-buyer and id) said it had landed, and a retry never reached it. And the one settle that asked a kept buy again was the
-Market tab's, which collected only what a read of the road named: the trader's stall, where its buyer comes back,
-settled nothing.
+Measured on the player's TEXTURE.432: 27 records. Spell Breaker is artifact 20, mapped to record 22, 57 x 112 at screen
+(260, 72) - its own shield, on the doll's left arm. The four records no artifact maps to - 4, 6, 11 and 14 - follow 3, 5,
+10 and 13, the Chrysamere's, the Ebony Blade's, the Mace of Molag Bal's and the Mehrunes Razor's: the right-hand
+records GetItemImage's Either-hand bump (`ItemHelper.cs:412-414`) reaches, so the bump applies to artifacts as to
+any weapon (the Chrysamere is two-handed, so its 4 stays unread).
 
-FIXED.
-- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct187, acct177 on its branch). A record one on from where the tab
-  asked, under its lease, with a sale this id made, is that sale, landed: it is answered as the repeat with the record's
-  sequence (`realm.seq`). A DEPARTURE FROM L1-F2, for a buy alone. It is said only to a tab that asks for it (`landed`):
-  an older tab reads every repeat as a sale paid before it asked, so its settle would checkpoint its purse unpaid over
-  the record. One on with no sale of the id, or two on, is `seq` as before. A retry whose own batch is refused because
-  the first asking's batch landed while it ran is answered with that sale the same way.
-- **The book** (`marketBook.js`). A gold buy asks with `landed`. A settle's ask pays for a repeat that names the record's
-  sequence (its own sale, its first answer lost) and never for one made before it. A kept buy whose answer names a
-  delivery here is collected on that answer. A delivery collected is off the road the last read named: the stall
-  settles with no read behind it, and asked it again (`market-gone`, said to a player who had the piece).
-- **The stall** (`vendorTab.js`, `vendorHost.js` openHomeVendorWindow). A trader's stall opened settles the book's kept acts
-  through the window's door, beside its read. HOST-SPLIT: the home traders' block (the stall, the board's Vendors tab,
-  the Vendor page's helpers) moved verbatim out of `bootWorld` to `src/scenes/vendorHost.js` createVendorHost by
-  `tools/hostMove.mjs`, so the wiring lives there and `bootWorld` loses 138 logical lines net, its ceiling 36,250
-  (`hostceiling.test.js`).
+FIXED. An artifact's armor or weapon draws its own record in the artifact archive, undyed, bumped by one when an
+Either-hand artifact weapon is worn right (`paperDoll.js:"if (item.artifact && Number.isFinite(item.playerTextureRecord) && (item.group === 'Armor' || item.group === 'Weapons')) {"`).
+One departure, named in Port-Ledger section A: the archive is the WEARER's gender, not the minter's - an item here
+changes hands between players, and a woman wearing a man's Ebony Mail would draw his cuirass (433's record 7 is 37 x 54,
+432's 38 x 50). The item keeps the minter's fields, so the list's icon and Open.CheckCastByItem's Skeleton's Key law
+are unmoved.
 
-NOT CHANGED.
-- The collect (`market.js` collectGood) keeps L1-F2's order: its lost answer still ends the session, with the piece in
-  the record, where the join reads it. The book abandons the session on a collect's repeat (`marketBook.js`
-  collectGood's `apply`), so answering one the same way would send the player to the title all the same - its own change.
-- Collecting a trader's takings (marketGoldCollect): a lost answer ends the session too, and the gold is in the record
-  at the join.
-- vendorBuy says "Bought" when the buy answered and its collect did not; the piece waits for the next settle (the
-  stall's now, or the Market tab's).
+NOT DONE. A peer's doll still draws an artifact as its base: the look carries six fields of an item
+(`wire.js:"export const LOOK_ITEM_FIELDS = Object.freeze(['templateIndex', 'group', 'material', 'dye', 'variant', 'equipSlot']);"`),
+and neither the artifact mark nor its record is one of them. Carrying them is a change to the relay's look, its own
+slice.
 
-DEPLOY. The service and the client in either order. An old service ignores `landed`: a lost answer ends the session, as
-before. An old client beside the new service sends no `landed` and is told `seq`, as before.
+## ASK-LONGER (2) - `src/net/eliteGates/egRun.js`
 
-NOT VERIFIED. In the running game: the stall's settle, and the report's two pieces coming back. On the service they are
-`market_deliveries` rows with `item IS NOT NULL`, `collected = 0` and the buyer's character's `char_id`. The Market
-tab's settle collects them as it did (its read names the road); the stall's settle collects them through the kept buy,
-which is kept on the device that pressed Buy.
+WHAT IT WAS. At a Redoubt the rest's window opens 6 s after the fall with the Vestige offer, the next circle's decrees
+(up to four families, two cards each), the Ready and the respite together, and every question was open 10 s
+(`egRun.js:"export const EG_ASK_MS = 30_000;"`, then 10_000). A decree nobody answered took the first shown. The Ready was
+read when its ask closed, so a solo Ready ended the rest about 13 s after the window.
 
-PINNED. `test/net/fb1025_vendorlost.test.js` (7); mutants `tools/mutants/fb1025_vendorlost.json` (16, all dead).
-`goldmarket_client.test.js`'s repeat after a join names no sequence, as the service answers one.
+CHANGED. The word is open 30 s - the top of what the thread asked, and well inside the rest's 90 s (`EG_REST_S`), so
+every question closes before the rest can end. It is one constant for every ask (Elite-Gates.md 16.4): the decrees, a
+Dagon's Bargain at its shrine, the respite and the Ready alike. The screens count from the relay's `until`, so no client
+changes. egRun.js rides the relay's bundle, so the law is a new relay: `world259` (`wire.js` RELAY_VERSION, its row in
+`test/net/relayversion.test.js`; no frame changes, so a page needs no minimum), NOT YET DEPLOYED. What moves with it: a Ready voted at once now ends the rest 33 s after the window, not 13 s - the time to read
+is the point, and it is the same for every company on the season's boards.
+
+NOT DONE. SeQueL's longer answer (its end is cut off in the screenshot) reaches for "a 'ready' button"; the Ready vote
+already ends a rest early, read when its word closes. Closing a word early once every member has answered alike is a
+change to 16.4's law, left to the owner. FIELD BUGS 2026-10-18d item 5's key clash (Y is FreeMouse and the Ready vote)
+stands as that record left it.
