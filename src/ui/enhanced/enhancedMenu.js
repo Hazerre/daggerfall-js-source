@@ -93,6 +93,7 @@ import { fpArm, hasDaggerfallArrows } from '../../combat/fpArm.js';
 import { dressStanding } from '../../systems/clothingStanding.js';   // DRESS1 (2026-09-30, Discord): the Standing page's Dress line
 import { questRail, shelvedRail, unloggedRail, journalLines, questTitleOf, QUEST_URGENT_SECONDS, remainWords } from '../quest/questRail.js';   // MAC-K2: the ONE quest walk, shared with the chronicle
 import { qlObjectivesBlock, qlOfferDetail, offerRowWords, qlLineDetail, lineStateWords, qlLadderDetail } from '../questlines/qlJournal.js';   // QL2: a stamped quest's objectives, choices and outcome; the rewards waiting
+import { lineStepOf } from '../../systems/questlines/qlLines.js';   // QL-OFFERED: a questline's step drawn under its line, never as a side quest
 import { TITLE_TEXT } from '../playerBadge.js';   // QL12: the title a questline earns, in the badge's own words
 import { filedOutcome } from '../../systems/notebook.js';   // AUDIT QUESTLINES UI-5: an archived quest's outcome, the archive's alone to draw
 import { entryTarget, targetWords, WHERE_TEXT } from '../quest/questLens.js';   // GUIDE2: where a quest points, and the way there
@@ -108,7 +109,7 @@ import { dfWornEquipment } from '../../formats/morrowind/mwItemMap.js';
 import { ARMOR_ENUM } from '../../combat/enemyEquipment.js';
 import { morrowindDataCount, morrowindDataCounted, countMorrowindArchives, assetPickerOpen, textureStoreRegistered, textureStoreSettled } from '../../scenes/dataSource.js';   // MAC1: the boot door counts the store itself; AUDIT 65 XL-6: by NAME - it never reads a stored file   // MW-IMPORT: the attach door; MWFIX: and the modal it opens owns the keyboard
 import { CATEGORIES, keysOf, isSettingItem, optionPath, whereIs } from '../settings/settingsMap.js';   // ORG2: the one map of every option
-import { GRAPHICS_PRESETS, PRESET_ROWS, presetNow } from '../../systems/graphicsPresets.js';   // ORG2
+import { GRAPHICS_PRESETS, PRESET_ROWS, PRESET_PARTS, presetNow } from '../../systems/graphicsPresets.js';   // ORG2; MEM-AUDIT: and its parts
 import { widgetFor, blockedReason, formatValue, stepValue, COLOUR_KEYS, ENUM_LAW, enumWords } from '../settings/settingsLaw.js';   // FT14: the enum's own values are the bar's segments
 import { labelOf, helpOf, INSTEAD, TIER_TEXT } from '../settings/settingsCopy.js';
 import {
@@ -134,7 +135,7 @@ import { getPref, setPref, isOpen, setOpen, PREF_DEFAULTS } from '../../systems/
 import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS } from '../eliteGates/egAccess.js';   // EG-G1: the Spire's danger palettes, named once
 import { TOUCH_BUTTON_SLOTS, touchButtonSlots, nextTouchButton, touchButtonChoices } from '../touch/touchButtons.js';   // TOUCH-BUTTONS: the corner's three slots
 import { DEFAULT_SERVER } from '../../net/online.js';   // ONLINE1: the relay this port hosts, the field's placeholder   // R7: the port's own switches; SO1: the folded tiers' memory
-import { GATE_CROWD_TIERS } from '../../net/gate/gateCrowd.js';   // GATE-CROWD: how many other players a gate's court draws
+import { GATE_CROWD_TIERS } from '../../net/gate/gateCrowd.js';   // GATE-CROWD: how many other players are drawn at once (CROWD-WIDE: everywhere, not a gate's court alone)
 import { PEER_RANGE_TIERS, peerRangeOf } from '../../net/peer/peerRange.js';
 import { YARD_RANGE_TIERS, yardRangeOf } from '../../net/yardRange.js';   // YARD-RANGE: how far other players' yards are drawn   // PEER-RANGE: how far out other players are drawn, and the distance a stored value stands for
 import { replacementCount } from '../../systems/musicReplacement.js';   // M-EXT: the packs card reports what the pick covers
@@ -164,8 +165,7 @@ import { vendorPageShown, VENDOR_PAGE_SECTIONS, drawVendorPage } from '../vendor
 import { REVENANT_PAGE_SECTIONS, revenantPageShown, drawRevenantsPage } from '../revenant/revenantPage.js';
 import { COMPANION_PAGE_SECTIONS, companionPageShown, drawCompanionsPage, resetCompanionRoster } from '../companionRoster.js';   // COMPANION-ROSTER: the sworn and the slots
 import { STABLE_PAGE_SECTIONS, stablePageShown, drawStablePage, resetHoldingsPages, holdingsProvider } from '../holdingsPages.js';   // HOLDINGS: the horse and the wagon - GROWTH1: and the captain's sky's deps
-import { FAMILY_PAGE_SECTIONS, drawTreePage, drawHousePage, drawHallPage, drawGuidePage, resetFamilyPages, disarmFamilyPages, sheetHouse } from '../familyPages.js';   // LEGACY3: Project Legacy's Family tab; LEGACY-SHEET: the house on the Stats page
-import { legacyOn } from '../../systems/legacy/settings.js';   // LEGACY3: ...drawn while the mod is on
+import { FAMILY_PAGE_SECTIONS, drawTreePage, drawHousePage, drawHallPage, drawGuidePage, resetFamilyPages, disarmFamilyPages, sheetHouse, familyTabShown } from '../familyPages.js';   // LEGACY3: Project Legacy's Family tab; LEGACY-SHEET: the house on the Stats page; FAMILY-TAB: drawn while the game is played with it
 import { FLEET_PAGE_SECTIONS, fleetPageShown, drawFleetPage, resetFleetPage } from '../fleetPage.js';   // HOLDINGS: the ships
 import { CAPTAIN_PAGE_SECTIONS, captainPageShown, drawCaptainPage } from '../captainPage.js';   // CAPT-LOG: the captain's standing and log
 import { drawGrowthTab, resetGrowthTab, releaseGrowthTab, growthBack, growthAsks, growthPageAt, setGrowthSection, growthDue } from '../growth/growthTab.js';   // GROWTH1: the Growth tab - the level, the specialisations, the skies
@@ -237,6 +237,7 @@ import { saveTile, cloudStateOf, saveFromCard, newerBackup } from '../saveTile.j
 import { loadFace } from '../facePortrait.js';
 import { timersMark, timersWindow, anchorBeside } from './enhancedTimers.js';   // TIMERS1: the hourglass beside the profile mark, and its window
 import { postMark, postWindow, watchPostMark, anchorPost } from './enhancedPost.js';   // SERVER-POST: the mailbox beside the hourglass, and its window
+import { seasonMark, seasonWindow, seasonSource, anchorSeason } from './enhancedSeason.js';   // SEASON-BOOK: the laurel beside the envelope, and its window
 import { profileBadge, portraitSave, liveCharacter, characterLine } from '../profileBadge.js';   // PROFILE1: the mark is the last character's portrait   // TILE1: the character's face, the one home chargen also reads
 import { profileIconNode } from '../profileIcons.js';   // WITCH1: a profile icon worn, in the mark's portrait
 import { ownIcon } from '../../systems/ownGlyphs.js';   // WITCH1: the icon the stored session says this device's player wears
@@ -363,14 +364,27 @@ let timersOpen = false;
 let timersView = null;
 let timersAnchor = null;      // AUDIT TIMERS1 UI-3: the hourglass's re-placing, disconnected with the face it stands in
 let timersFocusBack = false;  // AUDIT TIMERS1 UI-5: a closed window hands the focus back to the hourglass
+let timersFocusIn = false;    // AUDIT SEASON-BOOK U3: the window just opened - the focus goes into it, once
 const stopTimers = () => { timersView?.stop(); timersView = null; timersAnchor?.(); timersAnchor = null; };
 /** EG-ZM (Elite-Gates.md section 20): a timers row's door (the Elite rows' Boards) is a handoff, as the sheet's doors are -
  *  the pause face down first, the door's window in the slot it frees, and a door that opened nothing a resume. */
 // AUDIT GROWTH LANE2-3: a Growth face under it asked first (GROWTH5) - the timers window shut so the ask is seen
 const timersDoor = (fn) => {
   if (pauseTab === 'growth' && growthAsks()) { timersOpen = false; timersFocusBack = true; render(); return; }
-  onAction('handoff'); if (!fn()) onAction('resume');
+  handoff(fn, (r) => !!r);
 };
+/** AUDIT SEASON-BOOK S3: A DOOR HANDED THE SLOT - the pause face down, the door asked, and a door that opened nothing
+ *  (`opened` false of its answer) a resume. The handler is read BEFORE the handoff: the handoff unmounts the face, and the
+ *  unmount empties `onAction` - a resume asked of it after was a no-op, the pointer left free under a running game (AUDIT
+ *  27h A4's law, at every door that leaves the face: the sheet's, the hourglass's, the Fleet's, the Captain's, a Growth
+ *  page's, the season's). */
+function handoff(fn, opened = (r) => r !== false) {
+  const act = onAction;   // AUDIT SEASON-BOOK S3: the handler as it stood - the handoff can unmount the face, which empties it
+  onAction('handoff');
+  const r = fn();
+  if (!opened(r)) act('resume');
+  return r;
+}
 /** SERVER-POST: the mailbox's window over the pause face, its live view, the envelope's count kept live and its placing. */
 let postOpen = false;
 let postView = null;
@@ -391,6 +405,28 @@ function postEnvelope(home, glass) {
   postWatch = watchPostMark(envelope, () => hooks.post?.() ?? null);
   if (postFocusBack && !postOpen) { postFocusBack = false; globalThis.requestAnimationFrame?.(() => envelope.focus?.()); }
   return envelope;
+}
+/** SEASON-BOOK: the season window over the pause face, its live view and the laurel's placing - the hourglass's way. */
+let seasonOpen = false;
+let seasonView = null;
+let seasonAnchor = null;
+let seasonFocusBack = false;   // a closed window hands the focus back to the laurel
+let seasonFocusIn = false;     // AUDIT SEASON-BOOK U3: the window just opened - the focus goes into it, once
+const stopSeason = () => { seasonView?.stop(); seasonView = null; seasonAnchor?.(); seasonAnchor = null; };
+const closeSeason = () => { seasonOpen = false; seasonFocusBack = true; render(); };
+/** A season row's door - the hourglass's handoff (timersDoor), the season window shut first where a Growth face under it
+ *  asks (AUDIT GROWTH LANE2-3's law: the ask seen, never a press that does nothing). */
+const seasonDoor = (fn) => { if (pauseTab === 'growth' && growthAsks()) { closeSeason(); return; } timersDoor(fn); };
+/** SEASON-BOOK (the owner: "a new pause menu icon, like we did for the timers and mail. A condensed place to see season
+ *  related content and descriptions"): THE LAUREL on the pause face - online, where the hourglass stands (its clock is
+ *  the hourglass's), at the end of the row of marks `chain`. Answers the laurel, or null with no clock. */
+function seasonLaurel(home, chain) {
+  if (!hooks.timers?.()) return null;
+  const laurel = seasonMark(document, { open: seasonOpen, onOpen: () => { seasonOpen = true; seasonFocusIn = true; render(); } });
+  home.append(laurel);
+  seasonAnchor = anchorSeason(laurel, chain, home.querySelector?.('.px-profile'), home);
+  if (seasonFocusBack && !seasonOpen) { seasonFocusBack = false; globalThis.requestAnimationFrame?.(() => laurel.focus?.()); }
+  return laurel;
 }
 let accountOffered = false;
 // ═══ TILE2/ACC2: WHAT THE CLOUD HOLDS, ASKED ONCE PER VISIT ═══════
@@ -1082,11 +1118,13 @@ function paneTest(body) {
 // written it down" is the one way off the `code` stage.
 let acctFlow = null;
 let acctPaint = null;
+let acctOff = null;   // MEM-AUDIT: the drawn card's focus listener, let go with the card (enhancedAccount.js accountCard `off`)
 const accountMayClose = () => !acctFlow || (acctFlow.stage !== 'code' && !acctFlow.busy);
 function closeAccount() {
   if (!accountMayClose()) return;
   accountOpen = false;
   acctFlow = null;
+  acctOff?.(); acctOff = null;
   acctPaint = null;
   rereadCollectionsAccount();   // AUDIT COLLECTIONS-II (lane 2): what the card did, the Collections page reads again
   render();
@@ -1107,6 +1145,7 @@ function accountBody() {
     character: save ? `Playing ${characterLine(save)}` : null,
   });
   acctPaint = card.paint;
+  acctOff?.(); acctOff = card.off ?? null;
   host.append(card.root);
   // Not awaited: the door must be on screen before the service is
   // asked anything, and `start` catches its own refusals. The guard is
@@ -1318,7 +1357,7 @@ function realmCard(who) {
           // never landed is UNDONE, never deleted - its delete took the home customs had carried, and it could never come
           // in again. The undo gives back its home, its guild place and its customs (realm.js undoRealm).
           row.customs && save.unfinished ? { label: t('menu.realm.undo', 'Undo bringing in'), disabled: realmBusy, onClick: () => ask(t('menu.realm.undoAsk', 'Undo bringing {name} in?', { name: row.name }), t('menu.realm.undoBody', '{name} didn\u2019t finish coming online because its first save never arrived. Undo removes it and gives back its home and guild place, so you can bring the offline character online again. To finish instead, click Bring online on it below.', { name: row.name }), t('menu.realm.undoYes', 'Undo'), () => realmAct(() => realmUndo(realmIoNow(), row.id), () => [t('menu.realm.undone', '{name} is no longer online. Its home and guild place are back with the offline character. Bring it online again when you are ready.', { name: row.name })])) }
-            : { label: t('menu.realm.delete', 'Delete character'), disabled: realmBusy, onClick: () => ask(t('menu.realm.deleteAsk', 'Delete {name}?', { name: row.name }), t('menu.realm.deleteBody', 'Deleting an online character is permanent. Its Renown, professions, Stores, home and guild place are lost. Any offline copy you made stays.'), t('menu.realm.deleteYes', 'Delete'), () => realmAct(() => realmDelete(realmIoNow(), row.id), () => [t('menu.realm.deleted', '{name} is gone from the realm.', { name: row.name })])) },
+            : { label: t('menu.realm.delete', 'Delete character'), disabled: realmBusy, onClick: () => ask(t('menu.realm.deleteAsk', 'Delete {name}?', { name: row.name }), t('menu.realm.deleteBody', 'Deleting an online character is permanent. Its Renown, professions, Stores, the homes it bought and its guild place are lost. Homes belong to your account, so your other characters lose them too. Any offline copy you made stays.'), t('menu.realm.deleteYes', 'Delete'), () => realmAct(() => realmDelete(realmIoNow(), row.id), () => [t('menu.realm.deleted', '{name} is gone from the realm.', { name: row.name })])) },
         ],
       }));
     }
@@ -1747,7 +1786,7 @@ function featureValue(id) {
 
 /** ORG2: whether an item stands away from how the game ships - a DFU key off its default, a Features row off its
  *  default segment, a port row's pref off the shelf's default. The Changed filter and the row's mark read it. */
-function itemChanged(item, pool) {
+export function itemChanged(item, pool) {   // AUDIT MEM-AUDIT G1: exported for the pins
   if (isSettingItem(item)) {
     const [sec, k] = item.split('/');
     const d = defaultOf(sec, k);
@@ -1758,7 +1797,10 @@ function itemChanged(item, pool) {
     const st = f && tileStates(f);
     if (!st || st.locked) return false;
     const d = defaultSegment(f, st);
-    return d >= 0 && d !== st.at;
+    if (d >= 0 && d !== st.at) return true;
+    // AUDIT MEM-AUDIT G1: and a part of its drawer off its default (featuresDefaults' own walk) - the preset reads Steady
+    // shadows, and a part turned off read Custom on a tab that said nothing was changed
+    return (resolveControl(f)?.parts ?? []).some((pt) => Object.hasOwn(PREF_DEFAULTS, pt.key) && onlineForcedPref(pt.key) === undefined && String(getPref(pt.key)) !== String(PREF_DEFAULTS[pt.key]));
   }
   if (item.startsWith('port:')) {
     const pref = pool?.get(item.slice(5))?.dataset?.pref;
@@ -1782,7 +1824,7 @@ function itemText(item, pool) {
   if (isSettingItem(item)) return `${labelOf(item)} ${helpOf(item)} ${item}`;
   if (item.startsWith('feat:')) { const f = FEATURES.find((x) => x.id === item.slice(5)); return f ? featureSearchText(f) : ''; }
   if (item.startsWith('port:')) return pool.get(item.slice(5))?.textContent ?? '';
-  if (item === 'preset:graphics') return 'quality preset graphics low medium high ultra performance';
+  if (item === 'preset:graphics') return presetSearchText();
   if (item === 'link:overhauls') return 'overhauls looks textures vanilla enhanced sounds interface';
   if (item === 'bindings') return 'key bindings keys keyboard rebind controls';
   if (item.startsWith('card:')) return { morrowind: 'morrowind files data body 3d attach', packs: 'packs textures music replacement folder',
@@ -2099,29 +2141,48 @@ function categoryCard({ pool = portPool(), pause = false } = {}) {
 
 // ── ORG2: THE SCREEN'S OWN PIECES ────────────────────────────────
 
-/** ORG2: THE GRAPHICS PRESET - one bar over the five rows that cost the most (systems/graphicsPresets.js), reading
+/** AUDIT MEM-AUDIT G4/G5/G6: the preset row's words, one home and in the player's language - its note names what it
+ *  sets, its effect when, and its search finds it by either (in English too) and by the rows' own titles: a fixed list
+ *  of English words did not know its own note, and the row was the one on the tab no language reached. */
+const PRESET_WORDS = {
+  name: () => t('menu.settings.preset.name', 'Quality preset'),
+  note: () => t('menu.settings.preset.note', 'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.'),
+  effect: () => t('menu.settings.preset.effect', 'Steady shadows and the windows change at once; the rest when the world next loads.'),
+  custom: () => t('menu.settings.preset.custom', 'Custom'),
+};
+const PRESET_LABELS = {
+  low: () => t('menu.settings.preset.low', 'Low'), medium: () => t('menu.settings.preset.medium', 'Medium'),
+  high: () => t('menu.settings.preset.high', 'High'), ultra: () => t('menu.settings.preset.ultra', 'Ultra'),
+};
+export const presetSearchText = () => ['quality preset graphics low medium high ultra performance frame rate slow',
+  'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.', PRESET_WORDS.name(), PRESET_WORDS.note(), PRESET_WORDS.effect(),
+  ...GRAPHICS_PRESETS.map((p) => PRESET_LABELS[p.id]?.() ?? p.label),
+  ...PRESET_ROWS.map((id) => FEATURES.find((f) => f.id === id)?.title ?? ''),
+  ...PRESET_PARTS.map((k) => FEATURES.flatMap((f) => resolveControl(f)?.parts ?? []).find((pt) => pt.key === k)?.label ?? k)].join(' ');
+/** ORG2: THE GRAPHICS PRESET - one bar over the six rows that cost the most and its parts (systems/graphicsPresets.js), reading
  *  the preset they stand at or Custom. A press writes each row through its own door, so a lane's second store moves
  *  with it and a row the room decides is left as it is. */
-function graphicsPresetRow() {
-  const now = presetNow(featureValue);
+export function graphicsPresetRow() {   // AUDIT MEM-AUDIT G3: exported for the pins - the bar as drawn
+  const now = presetNow(featureValue, getPref);
   const row = el('div', 'row opt-preset');
   row.dataset.opt = 'graphicsPreset';
   const main = el('div', 'row-main');
-  main.append(el('div', 'row-name', 'Quality preset'));
-  main.append(el('div', 'row-note', 'View distance, grass, clouds, ground sharpness, water and windows.'));   // RW1: and the real windows
+  main.append(el('div', 'row-name', PRESET_WORDS.name()));
+  main.append(el('div', 'row-note', PRESET_WORDS.note()));   // RW1: and the real windows; MEM-AUDIT: and Steady shadows
+  main.append(el('div', 'row-sub', PRESET_WORDS.effect()));   // AUDIT MEM-AUDIT G6: when it takes effect, as every other row says
   row.append(main);
   const ctl = el('div', 'ctl');
   const seg = el('div', 'ft-seg');
   seg.setAttribute('role', 'group');
-  seg.setAttribute('aria-label', 'Quality preset');
+  seg.setAttribute('aria-label', PRESET_WORDS.name());
   for (const p of GRAPHICS_PRESETS) {
-    const b = el('button', 'ft-segb', p.label);
+    const b = el('button', 'ft-segb', PRESET_LABELS[p.id]?.() ?? p.label);
     b.type = 'button';
     b.setAttribute('aria-pressed', String(now?.id === p.id));
     b.onclick = (e) => { e.stopPropagation(); applyGraphicsPreset(p); render(); };
     seg.append(b);
   }
-  if (!now) { const c = el('span', 'ft-segb custom', 'Custom'); c.setAttribute('aria-current', 'true'); seg.append(c); }
+  if (!now) { const c = el('span', 'ft-segb custom', PRESET_WORDS.custom()); c.setAttribute('aria-current', 'true'); seg.append(c); }
   ctl.append(seg);
   row.append(ctl);
   return row;
@@ -2134,8 +2195,10 @@ export function applyGraphicsPreset(p) {
     const st = f && tileStates(f);
     if (!st || st.locked || !c?.tiers) continue;
     const i = c.tiers.findIndex(([v]) => String(v) === String(p.values[id]));
-    if (i >= 0 && i !== st.at) st.set(i);
+    if (i >= 0 && (i !== st.at || c.write)) st.set(i);   // AUDIT MEM-AUDIT G2: a lane's row written whole - its bar reads one store (land view off the enhanced outdoors: DFU's 1..4), and Low left the other at 5
   }
+  // MEM-AUDIT: and its parts, each written straight as its drawer writes it - one the room decides is left as it is
+  for (const k of PRESET_PARTS) if (onlineForcedPref(k) === undefined && String(getPref(k)) !== String(p.parts[k])) setPref(k, p.parts[k]);
 }
 
 /** ORG2: the Overhauls page's door, on the Graphics tab - the whole looks are chosen there. */
@@ -3161,9 +3224,11 @@ function peerSpritesCard() {
   c.append(choiceRow('yardRange', t('menu.peers.yards', 'Yard decorations'),
     t('menu.peers.yardsNote', 'How far away other players\u2019 yard decorations are drawn. Your own yard always shows. Nearer is faster in busy towns.'),
     YARD_RANGE_TIERS.map((m) => [m, m ? t('menu.peers.metres', '{m} m', { m }) : t('menu.toggle.off', 'Off')]), { home: true, read: () => yardRangeOf(getPref('yardRange')) }));
-  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): a crowded court, thinned
-  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Crowd in the Burning Court'),
-    t('menu.peers.crowdNote', 'How many players the Burning Court draws. Your party always shows.'),
+  // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): a crowd, thinned - CROWD-WIDE
+  // (2026-10-23, the owner: "into the entire game"): everywhere, not the Burning Court alone, but never where a stranger can
+  // fight you; AUDIT CROWD-WIDE D1: the note says what the count does - the Draw distance row above still hides the far
+  c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),
+    t('menu.peers.crowdNote', 'How many other players are drawn at once, the nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal Tourney and the Arena, but not in the Burning Court.'),
     GATE_CROWD_TIERS.map((n) => [n, n ? t('menu.peers.nearest', 'Nearest {n}', { n }) : t('menu.peers.everyone', 'Everyone')]), { home: true }));
   // SPELL-GIFT (2026-09-27, Tabitha: "Allow casting of buffs on players outside party"): the receiver's say
   c.append(prefRow('acceptStrangerSpells', t('menu.peers.spells', 'Spells from strangers'),
@@ -4346,30 +4411,38 @@ function renderHome() {
     // where the host hands the clock and what it holds (hooks.timers); its window counts every shared moment down
     let mark = null;
     if (hooks.timers?.()) {
-      mark = timersMark(document, { open: timersOpen, onOpen: () => { timersOpen = true; render(); } });
+      mark = timersMark(document, { open: timersOpen, onOpen: () => { timersOpen = true; timersFocusIn = true; render(); } });
       home.append(mark);
       timersAnchor = anchorBeside(mark, home.querySelector?.('.px-profile'), home);   // AUDIT TIMERS1 UI-3: placed again on every resize
       if (timersFocusBack && !timersOpen) { timersFocusBack = false; globalThis.requestAnimationFrame?.(() => mark.focus?.()); }   // UI-5: back where the press was
     }
     const envelope = postEnvelope(home, mark);   // SERVER-POST: the mailbox beside the hourglass, online - its count kept live
+    const laurel = seasonLaurel(home, [mark, envelope]);   // SEASON-BOOK: the laurel beside the envelope, online
+    // AUDIT SEASON-BOOK S4: a window whose mark is gone (the clock lost, the box gone) is closed - never kept to come back
+    // over whatever the player moved on to when the mark returns
+    if (timersOpen && !mark) timersOpen = false;
+    if (postOpen && !envelope) { postOpen = false; postKeep = {}; }
+    if (seasonOpen && !laurel) seasonOpen = false;
     if (accountOpen) {
       const acct = el('div', 'px-stage px-acctstage');
       acct.append(accountWindow());
       home.append(acct);
       closeOnOutsideTap(home, '.px-acctwin', closeAccount);   // AUDIT RECOVERY-SET B1: not over codes
-      for (const n of [stage, mark, envelope]) n?.setAttribute?.('inert', '');   // AUDIT SERVER-POST: the face under the account window out of reach, as under the timers'
+      for (const n of [stage, mark, envelope, laurel]) n?.setAttribute?.('inert', '');   // AUDIT SERVER-POST: the face under the account window out of reach, as under the timers' - SEASON-BOOK: the laurel too
     }
     else if (timersOpen && hooks.timers?.()) {
       const tstage = el('div', 'px-stage px-timersstage');
       // AUDIT TIMERS1 UI-9: the window's read is the one that asks the service (the seats list); the hourglass's test does not
-      timersView = timersWindow(document, { read: () => hooks.timers?.({ ask: true }) ?? null, onClose: () => { timersOpen = false; timersFocusBack = true; render(); }, door: timersDoor });   // EG-ZM: a row's door
+      timersView = timersWindow(document, { read: () => hooks.timers?.({ ask: true }) ?? null, onClose: () => { timersOpen = false; timersFocusBack = true; render(); }, door: timersDoor, focus: timersFocusIn });   // EG-ZM: a row's door
+      timersFocusIn = false;
       tstage.append(timersView.root);
       home.append(tstage);
-      closeOnOutsideTap(home, '.px-timerswin', () => { timersOpen = false; timersFocusBack = true; render(); });
+      closeOnOutsideTap(home, '.px-timerswin', () => { timersOpen = false; timersFocusBack = true; render(); }, { swallow: true });   // AUDIT SEASON-BOOK U1: the tap's release never lands on the face drawn under it
       // AUDIT TIMERS1 UI-5/UI-7: the pause face under the window is out of reach - no Tab into it, no Enter on its
       // Resume, no bumper turning its tabs (plusPad's tab strips skip what is not visible to it), no profile window
       for (const n of [stage, home.querySelector?.('.px-profile'), mark]) n?.setAttribute?.('inert', '');
       envelope?.setAttribute?.('inert', '');   // SERVER-POST: and the envelope beside it
+      laurel?.setAttribute?.('inert', '');   // SEASON-BOOK: and the laurel
     }
     else if (postOpen && hooks.post?.()) {
       // SERVER-POST: the mailbox's window, on the hourglass's own stage (centred, its own padding - enhancedStyle.js)
@@ -4377,14 +4450,24 @@ function renderHome() {
       postView = postWindow(document, { box: () => hooks.post?.() ?? null, keep: postKeep, onClose: () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); } });
       pstage.append(postView.root);
       home.append(pstage);
-      closeOnOutsideTap(home, '.px-postwin', () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); });
-      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope]) n?.setAttribute?.('inert', '');
+      closeOnOutsideTap(home, '.px-postwin', () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); }, { swallow: true });
+      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
+    }
+    else if (seasonOpen && laurel) {
+      // SEASON-BOOK: the season window, on the hourglass's own stage; its read asks the boards (the laurel's test does not)
+      const sstage = el('div', 'px-stage px-timersstage px-seasonstage');
+      seasonView = seasonWindow(document, { read: (opening) => seasonSource(hooks, { opening }), onClose: closeSeason, door: seasonDoor, focus: seasonFocusIn });   // a row's door is a handoff, as the hourglass's
+      seasonFocusIn = false;
+      sstage.append(seasonView.root);
+      home.append(sstage);
+      closeOnOutsideTap(home, '.px-seasonwin', closeSeason, { swallow: true });
+      for (const n of [stage, home.querySelector?.('.px-profile'), mark, envelope, laurel]) n?.setAttribute?.('inert', '');
     }
     // OT1 (Mac: "tapping outside of any UI closes the UI"): a tap on the
     // scrim - outside the window, the clock and the foot - resumes,
     // the way Escape does; the front door has no scrim and no resume.
     // PROFILE2: the mark is inside too (a press on it opens the window), and with the window open the tap is its.
-    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark', () => { if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
+    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark, .px-seasonmark', () => { if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
     // PX4 (Mac): NO FOOT AT PAUSE - no skin toggle, no About plaque;
     // About is a System-tab row instead, and the skin switch stays on
     // the boot face and the settings shell.
@@ -4589,8 +4672,9 @@ let footObs = /** @type {ResizeObserver|null} */ (null);
 const PAUSE_TABS = Object.freeze([['quests', 'Quests'], ['stats', 'Stats'], ['growth', 'Growth'], ['holdings', 'Holdings'], ['family', 'Family'], ['tutorials', 'Tutorials'], ['system', 'System']]);
 /** HOLDINGS: every tab a landing may name (mountEnhancedMenu's `at`). */
 export const PAUSE_TAB_IDS = Object.freeze(PAUSE_TABS.map(([id]) => id));
-/** LEGACY3: a tab drawn now - the Family tab while Project Legacy is on (a landing on it with the mod off lands on System). */
-const pauseTabShown = (id) => id !== 'family' || legacyOn();
+/** LEGACY3: a tab drawn now - the Family tab while the game is played with Project Legacy (FAMILY-TAB: the mod on AND a
+ *  house for the game played - ui/familyPages.js familyTabShown); a landing on it otherwise lands on System. */
+const pauseTabShown = (id) => id !== 'family' || familyTabShown();
 /** L10N4: the pause window's tab and page words in the player's language, by id - the tables keep the English ids'
  *  labels; a page another module adds (the professions', the revenants', the companions') shows its own label. */
 const PAUSE_TEXT = Object.freeze({
@@ -4672,8 +4756,8 @@ function pauseHoldings(body) {
     stable: (d) => drawStablePage(d, render, kit),
     // a door the page opens over the world (the shipwright's window, the water's placing click): the pause goes down
     // first, as the sheet's doors do (PX25/ESC-BOOK), and comes back if the door opened nothing (AUDIT 27h A4)
-    fleet: (d) => drawFleetPage(d, render, { ...kit, door: (fn) => { onAction('handoff'); if (fn() === false) onAction('resume'); } }),
-    captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { onAction('handoff'); if (fn() === false) onAction('resume'); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
+    fleet: (d) => drawFleetPage(d, render, { ...kit, door: (fn) => { handoff(fn); } }),   // AUDIT SEASON-BOOK S3: the handoff's one home
+    captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { handoff(fn); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
     companions: (d) => drawCompanionsPage(d, render, { ...kit, kindName: enemyDisplayName, here: swornBodyOf, stars: typeof hooks.openRevenantStars === 'function' ? hooks.openRevenantStars : null }),   // COMPANION-ROSTER - RVN-STARS: a sworn one's stars, over this window
     revenants: (d) => drawRevenantsPage(d, render, { ...kit, player: playerEntity, kindName: enemyDisplayName }),   // REVENANT-PAGE
     stores: (d) => drawStoresPage(d, render, kit),   // PROF1
@@ -4703,7 +4787,7 @@ function pauseFamily(body) {
   // first, as the Fleet's doors do, and comes back if the act did nothing
   // AUDIT LEGACY U4: a refused act is refused on the card before the press (switchRefusal, mantleRefusal); one refused
   // after it (a save that would not take) is said on the HUD by the host, and the world resumes under it
-  const kit = { el, divider: pxDivider, door: (fn) => { onAction('handoff'); const r = fn(); if (!r?.ok) onAction('resume'); return r; },
+  const kit = { el, divider: pxDivider, door: (fn) => handoff(fn, (r) => !!r?.ok),   // AUDIT SEASON-BOOK S3
     goto: (id) => { famSec = id; disarmFamilyPages(); render(); } };   // AUDIT PLAIN-UI U8: the tree's way to How it works
   ({ tree: drawTreePage, house: drawHousePage, hall: drawHallPage, guide: drawGuidePage })[famSec](detail, render, kit);   // PLAIN-UI: How it works
   wrap.append(detail);
@@ -4892,7 +4976,7 @@ function pauseStats(body) {
       // refused pack, a journal whose art has not landed): then it IS
       // a resume, inside this same click - no page and no window up,
       // and the pointer left free under a running game, was the hole.
-      b.onclick = () => { onAction('handoff'); if (fn() === false) onAction('resume'); };
+      b.onclick = () => { handoff(fn); };   // AUDIT SEASON-BOOK S3: the handler read before the handoff unmounts the face
       row.append(b);
     }
     detail.append(row);
@@ -5449,7 +5533,7 @@ function questWhere(message, cls, { wayOnly = false, skip = null } = {}) {
     go.title = WHERE_TEXT.showLabel(said.where);
     go.setAttribute('aria-label', WHERE_TEXT.showLabel(said.where));
     const find = said.find;
-    go.onclick = () => { onAction('handoff'); if (door(find) === false) onAction('resume'); };
+    go.onclick = () => { handoff(() => door(find)); };   // AUDIT SEASON-BOOK S3
     box.append(go);
   }
   if (said.note) box.append(el('span', `${cls}-note`, said.note));
@@ -5493,20 +5577,28 @@ function pauseQuests(body) {
   // pieces, its own rail section above the quests, one press from the Take (key `r:<id>`)
   const offers = (clean?.offers?.() ?? []).map((o) => ({ key: `r:${o.id}`, name: offerRowWords(o), offer: o }));
   // QL12 (Questlines-Arc.md section 6, the owner's fifth: "One unified place to view questlines"): THE QUESTLINES - every
-  // line, begun or not, under its own heading (key `l:<id>`): the ones under way first, then those still to begin, the
-  // finished last. None while the questlines are off (the bridge hands none).
-  const LINE_ORDER = { running: 0, retry: 1, shelved: 1, waiting: 1, locked: 2, done: 3 };   // AUDIT QUESTLINES UI-7: retry, shelved
+  // line begun or on offer, under its own heading (key `l:<id>`): the ones under way first, then those on offer, the
+  // finished last. None while the questlines are off (the bridge hands none). QL-OFFERED: a line its gate shuts is no row
+  // (the runner draws none - UI-Calm's law, nothing drawn that cannot be taken)
+  const LINE_ORDER = { running: 0, retry: 1, shelved: 1, waiting: 1, offered: 2, done: 3 };   // AUDIT QUESTLINES UI-7: retry, shelved
   const lines = (log.lines ?? []).map((l) => ({ key: `l:${l.id}`, name: l.title, line: l }))
     .sort((a, b) => (LINE_ORDER[a.line.state] ?? 9) - (LINE_ORDER[b.line.state] ?? 9));
   // QL12 (section 4.4): and each guild the player is a member of, as its own ladder (key `g:<guild>`)
   const ladderRows = (log.ladders ?? []).map((g) => ({ key: `g:${g.key}`, name: g.name, ladder: g }));
   lines.push(...ladderRows);
-  if (!active.length && !finished.length && !hidden.length && !shelved.length && !offers.length && !lines.length) {
+  // STORY-AGAIN (#982): a step of the main story that failed, under Main Quests (key `st:<quest>`), one press (twice)
+  // from starting again - the host's door (scenes/quest/questBridge.js journalClean.storyAgain)
+  const story = (clean?.storyAgain?.() ?? []).map((s) => ({ key: `st:${s.questName}`, name: s.title, story: s }));
+  if (!active.length && !finished.length && !hidden.length && !shelved.length && !offers.length && !lines.length && !story.length) {
     body.append(el('p', 'px-note', t('pause.journal.none', 'No active quests.')));
+    if (questShelfSaid) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }   // AUDIT QA3 F6: said, the tab empty or not
     return;
   }
   const shown = questShowHidden ? hidden : [];
-  const rows = [...offers, ...active, ...shown, ...shelved, ...finished, ...lines];
+  const rows = [...offers, ...active, ...story, ...shown, ...shelved, ...finished, ...lines];
+  // AUDIT QA3 B9: the words of a press whose quest has no row yet (a step started again waits for its questor, no entry)
+  // are said at the tab's head - under the detail they landed at the foot of whichever quest the selection fell to
+  if (questShelfSaid && !rows.some((r) => r.key === questSel)) { body.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   // GUIDE4: THE JOURNAL OPENS ON THE QUEST THE HUD SHOWS - the tracker's (the one tracked, else the one the journal
   // last changed) - and only then on the first row.
   if (!rows.some((r) => r.key === questSel)) {
@@ -5543,7 +5635,11 @@ function pauseQuests(body) {
   // questName main/side is gone by the time a quest is filed
   // (notebook.js:"AddFinishedQuest(messages)"). Three sections is the shape the DATA has.
   const mains = active.filter((q) => q.main);
-  const sides = active.filter((q) => !q.main);
+  // QL-OFFERED (2026-10-25, Lord Rumpkin: "My quest log ... has become congested"): a questline's step is its
+  // line's - drawn under the line's row in Questlines, never a second time as a side quest (while the line is drawn)
+  const drawnLines = new Set(lines.filter((r) => r.line).map((r) => r.line.id));
+  const lineOfStep = (q) => { const at = lineStepOf(q.questName); return at && drawnLines.has(at.line.id) ? at.line.id : null; };
+  const sides = active.filter((q) => !q.main && !lineOfStep(q));
   const section = (label, items, cls, first = false) => {
     rail.append(el('div', `px-qarch${first ? ' px-qfirst' : ''}`, label));
     if (items.length) railList(items, cls);
@@ -5551,7 +5647,7 @@ function pauseQuests(body) {
   };
   // QL3: a section only while a reward waits - a quest's choice of gear, the first thing the journal has to ask
   if (offers.length) { rail.append(el('div', 'px-qarch px-qfirst', t('ql.journal.rewards', 'Rewards waiting'))); railList(offers, ' px-qreward'); }
-  section(t('pause.journal.main', 'Main Quests'), mains, '', !offers.length);
+  section(t('pause.journal.main', 'Main Quests'), [...mains, ...story], '', !offers.length);
   section(t('pause.journal.side', 'Side Quests'), sides, '');
   // QL12: the questlines - each row tagged with where it stands, a finished one dimmed as the archive is
   if (lines.length) {
@@ -5559,13 +5655,15 @@ function pauseQuests(body) {
     for (const q of lines) {
       const state = q.line?.state ?? 'running';
       const cls = ['px-qrow', 'px-qlinerow'];
-      if (state === 'done' || state === 'locked') cls.push('done');
+      if (state === 'done') cls.push('done');
       if (q.key === questSel) cls.push('on');
       const b = el('button', cls.join(' '));
       b.append(el('span', 'px-c', '\u25c6'), document.createTextNode(questTitleOf(q.name)));
       b.title = q.ladder ? t('ql.journal.ladderRow', 'Your guild\u2019s quests, rank by rank') : lineStateWords(state);
       b.onclick = () => { questSel = q.key; questReveal = true; render(); };   // AUDIT QUESTLINES UI-14
       rail.append(b);
+      // QL-OFFERED: the line's step under way, under its line - its own quest's page, one press away
+      if (q.line) railList(active.filter((s) => lineOfStep(s) === q.line.id), ' px-qstep');
     }
   }
   // JOURNAL-CLEAN: the hidden quests, drawn only when asked for, under their own heading - and the toggle that asks,
@@ -5620,6 +5718,43 @@ function pauseQuests(body) {
     const head2 = el('div', 'px-qname');
     head2.append(el('span', 'px-qwing'), el('h3', null, questTitleOf(sel.line.title)), el('span', 'px-qwing px-flip'));
     detail.append(head2, qlLineDetail(document, sel.line, { titleText: (k) => TITLE_TEXT[k] ?? k }));
+    // QL-OFFERED (the owner: a questline is TAKEN, never SENT): a line on offer - its Take up, arming on its first press
+    // as Abandon, Remove and Take it up again do (the host's door - scenes/quest/questBridge.js journalClean.takeLine)
+    if (sel.line.state === 'offered' && clean?.takeLine) {
+      const acts = el('div', 'px-qacts');
+      acts.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin:6px 0 8px';
+      const armed = journalCleanArmed === sel.key;
+      const go = el('button', 'act', armed ? t('ql.journal.takeUpArmed', 'Click again to take it up') : t('ql.journal.takeUp', 'Take it up'));
+      go.title = t('ql.journal.takeUpTitle', 'Begin this questline: its first step starts now');
+      go.onclick = () => {
+        if (journalCleanArmed !== sel.key) { journalCleanArmed = sel.key; render(); return; }
+        journalCleanArmed = null;
+        questShelfSaid = clean.takeLine(sel.line.id)?.text ?? null;
+        render();
+      };
+      acts.append(go);
+      detail.append(acts);
+    }
+  } else if (sel?.story) {
+    // STORY-AGAIN: the step that failed - what happened, and its one press (twice, BOUNTY1's arming)
+    const head2 = el('div', 'px-qname');
+    head2.append(el('span', 'px-qwing'), el('h3', null, questTitleOf(sel.name)), el('span', 'px-qwing px-flip'));
+    detail.append(head2, el('p', 'px-note', t('quest.story.stalled', 'This step of the main story ended before the story could go on.')));
+    const acts = el('div', 'px-qacts');
+    acts.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin:6px 0 8px';
+    const armed = journalCleanArmed === sel.key;
+    const go = el('button', 'act', armed ? t('quest.story.againArmed', 'Click again to take it up') : t('quest.story.again', 'Take it up again'));
+    go.title = t('quest.story.againTitle', 'Start this step of the main story again from the beginning, so the story can go on');
+    go.onclick = () => {
+      if (journalCleanArmed !== sel.key) { journalCleanArmed = sel.key; render(); return; }
+      journalCleanArmed = null;
+      const out = clean.startStoryAgain(sel.story.questName);
+      questShelfSaid = out?.text ?? null;
+      if (out?.ok) questSel = `a:${out.uid}`;
+      render();
+    };
+    acts.append(go);
+    detail.append(acts);
   } else if (sel?.ladder) {
     // QL12 (section 4.4): a guild's ladder - its quests by the rank that opens them
     const head2 = el('div', 'px-qname');
@@ -5686,7 +5821,7 @@ function pauseQuests(body) {
       const acts = el('div', 'px-qacts');
       acts.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;margin:6px 0 8px';
       const armed = bountyAbandonArmed === sel.id;
-      const ab = el('button', 'act', armed ? 'Click again to abandon' : 'Abandon hunt');
+      const ab = el('button', 'act', armed ? t('pause.journal.abandonArmed', 'Click again to abandon') : t('pause.journal.abandonHunt', 'Abandon hunt'));   // QUEST-AUDIT III SHELF-WORDS
       ab.onclick = () => {
         if (bountyAbandonArmed !== sel.id) { bountyAbandonArmed = sel.id; render(); return; }
         bountyAbandonArmed = null;
@@ -5706,7 +5841,7 @@ function pauseQuests(body) {
       // QUEST-SHELF: a running quest ABANDONS - twice, BOUNTY1's arming (its clocks stop and its questor is free the moment
       // it goes) - where the quest may be set aside (scenes/quest/questBridge.js canAbandon); one set aside RECLAIMS in one press
       if (isShelvedRow && sel.id != null && clean.reclaim) {
-        const rc = el('button', 'act', 'Reclaim quest');
+        const rc = el('button', 'act', t('pause.journal.reclaim', 'Reclaim quest'));   // QUEST-AUDIT III SHELF-WORDS
         // its audit: the selection follows the quest only where it went - a refusal is said under the quest it refused
         rc.onclick = () => { const out = clean.reclaim(sel.id); questShelfSaid = out?.text ?? null; if (out?.ok) questSel = `a:${sel.id}`; render(); };
         acts.append(rc);
@@ -5714,7 +5849,7 @@ function pauseQuests(body) {
       // lists a quest set aside by its entries), so no Reclaim could reach it
       } else if (sel.entries?.length && sel.id != null && clean.abandon && clean.canAbandon?.(sel.id)) {
         const armed = journalCleanArmed === `ab:${sel.id}`;
-        const ab = el('button', 'act', armed ? 'Click again to abandon' : 'Abandon quest');
+        const ab = el('button', 'act', armed ? t('pause.journal.abandonArmed', 'Click again to abandon') : t('pause.journal.abandonQuest', 'Abandon quest'));   // QUEST-AUDIT III SHELF-WORDS
         ab.onclick = () => {
           if (journalCleanArmed !== `ab:${sel.id}`) { journalCleanArmed = `ab:${sel.id}`; render(); return; }
           journalCleanArmed = null;
@@ -5810,6 +5945,8 @@ function pauseQuests(body) {
       detail.append(desc);
     }
   }
+  // QUEST-SHELF: the words of a press, under the quest they speak of
+  if (questShelfSaid) { detail.append(el('p', 'px-note', questShelfSaid)); questShelfSaid = null; }
   wrap.append(detail);
   body.append(wrap);
   // AUDIT QUESTLINES UI-14: on a phone the journal stacks (enhancedStyle.js PX4: the rail a strip over the page, at 480px),
@@ -5839,6 +5976,7 @@ function renderInto() {
   if (questTimer) { clearInterval(questTimer); questTimer = null; }
   stopTimers();   // TIMERS1: a rebuild builds the window again, with its own tick
   stopPost();   // SERVER-POST: and the mailbox's, and the envelope's count
+  stopSeason();   // SEASON-BOOK: and the season window's
   app.innerHTML = '';
   // PX1/PX2: both doors open on the pixel home; every section keeps
   // its shell.
@@ -6040,6 +6178,7 @@ function onKey(e) {
   const back = accountOpen ? () => closeAccount()   // AUDIT RECOVERY-SET B1: Escape is held while the window shows codes
     : timersOpen && timersView ? () => { timersOpen = false; timersFocusBack = true; render(); }   // TIMERS1: the window first, ahead of the pause face's resume (AUDIT UI-11: a window that is drawn)
     : postOpen && postView ? () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); }   // SERVER-POST: the mailbox's window, as the timers'
+    : seasonOpen && seasonView ? () => closeSeason()   // SEASON-BOOK: the season window, as the timers'
     // AUDIT 32 P12: an act under way on the Stores page is set down first (nothing spent, said) - never the window
     : profActUnderWay() ? () => { setDownProfAct(); render(); }
     : confirming ? () => { confirming = null; render(); }
@@ -6193,6 +6332,8 @@ export function mountEnhancedMenu(host, {
   optFilter = 'all';
   pickedFeature = null;
   discardControlsStaging();   // FIX-F: a second visit never inherits the first one's staged binds
+  seasonOpen = false;   // SEASON-BOOK: and the season window's (a visit's, as the timers' and the mailbox's above)
+  seasonFocusBack = false;
   // PROF2: a landing on a professions page - the Stats tab at it (a home forge's press opens the Stores' forge); the
   // draw falls back to the character's own page when the professions are not the account's
   // HOLDINGS: the Professions page is the Stats rail's, the Stores page the Holdings rail's
@@ -6202,6 +6343,7 @@ export function mountEnhancedMenu(host, {
   else if (growthPageAt(at)) pauseTab = 'growth';   // GROWTH1: a Growth page by name (its rail set by resetGrowthTab, above)
   else if (at === 'mailbox') postOpen = true;   // SERVER-POST: the mailbox's door (/mail, either skin) - the pause face with its window open
   else if (at === 'report') { postOpen = true; postKeep = { view: 'report' }; }   // PRIVATE-REPORT: `/bug` - the mailbox's window on its report form
+  else if (at === 'season') { seasonOpen = true; seasonFocusIn = true; }   // SEASON-BOOK: `/season` - the pause face with the season window open
   else if (at === 'collections' || COLLECTION_PARTS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = 'collections'; if (at !== 'collections') setCollectionsPart(at); }   // AUDIT CARDS-5 D14: the Collections page by name, or one of its parts - AUDIT COLLECTIONS-II (lanes 2, 5): every part, the wardrobe's four too
   else if (at === 'companions') { pauseTab = 'holdings'; holdSec = 'companions'; }   // RVN-STARS: back from a sworn one's stars
   _eff = null;
@@ -6246,12 +6388,17 @@ export function mountEnhancedMenu(host, {
       releaseShotsPane();   // LOAD1: the gallery's pictures and its listener
       stopPost();   // SERVER-POST: and the mailbox's ticks
       releaseTutorialsPane();   // TUT1: the next visit opens on the first page
+      stopSeason();   // SEASON-BOOK: and the season window's
       releaseGrowthTab();   // GROWTH3: a face on the Growth stage goes with the window (full screen too)
       askUp?.();   // AUDIT GROWTH LANE3-9: and a Yes/No card standing over it
       // FIX-F: and the rebind pane's own capture listener, which is on
       // the DOCUMENT and would outlive this screen exactly as the one
       // above would.
       discardControlsStaging();
+      // MEM-AUDIT (2026-10-23): and what still watched the last screen - the foot's observer (its reserve keeps the home's
+      // whole tree, the sky's canvas with it) and the account card's paint and focus listener
+      footObs?.disconnect?.(); footObs = null;
+      acctPaint = null; acctOff?.(); acctOff = null;
       keyHandler = null;
       lockHandler = null;
       resizeHandler = null;

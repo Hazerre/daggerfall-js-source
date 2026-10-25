@@ -134,7 +134,7 @@ import { CityNavigation } from '../world/city/cityNavigation.js';   // T1 towns
 import { TownPopulation } from '../systems/town/townPopulation.js';
 import { GUARD_TEXTURE, MobilePerson, PERSON_TEXTURES, personWantsToStop, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { createTownTalk, rayPersonDistance, nearestPerson } from './townTalk.js';   // T3b   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
-import { createPlayerMagic } from './hostMagic.js';   // M2: spellcasting above ground
+import { createPlayerMagic, CAST_PRESS, liveCollider } from './hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { preloadSpellbookArt, spellbookArtLoaded } from '../ui/spellbookWindow.js';   // U42: the classic art window (retires M2's keyed stand-in)
 import { createSpellbookWindow } from '../ui/spellbookDoor.js';   // PX23: the book's one door
 import { worldMinutes, skyMinutes, setWorldMinutes, ownMinutes, sharedClockOn, trustedWorldMinutes, raisedMinutes } from '../systems/worldTick.js';   // AUDIT 23 (C2): the ONE clock; AUDIT WORLD5 C10 / WORLD7: the quest clocks' played step, this host's word too
@@ -156,7 +156,7 @@ import { toggleStatusReadout } from '../ui/statusBox.js';   // STATUS-LIVE: the 
 import { statusReadoutTakesAction } from '../systems/statusReadout.js';   // STATUS-LIVE: ...and the yield this host's own key ladder owes, which never reaches routeAction
 import { liveStat } from '../systems/statMods.js';
 import { maxFatigue, clampFatigue } from '../systems/statMods.js';   // AUDIT 23 (C5); AUDIT C&C N5: SetFatigue's clamp
-import { FootstepMachine, pickFootstepSet } from '../systems/footsteps.js';   // FS-slice
+import { FootstepMachine, pickFootstepSet, pickFootstepKind } from '../systems/footsteps.js';   // FS-slice; HORSE-VOICE: the kind the hooves read
 import { immersiveFootsteps } from '../systems/immersiveFootsteps.js';
 import { betterAmbience, classicFootstepAllowed } from '../systems/betterAmbience.js';   // BA1: Better Ambience - the shake, the dungeon's fog and light, the reverb, the indoor rain, its own stride   // IF1: Immersive Footsteps owns the stride and the three landing sounds once its clips are in (DisableVanillaFootsteps)
 import { calculateCastCost } from '../systems/spellcost.js';   // M2
@@ -444,6 +444,7 @@ export async function bootExterior(canvas, renderer, params, status) {
   const _locPixel = longitudeLatitudeToMapPixel(dfLocation.mapTableData.longitude, dfLocation.mapTableData.latitude);
   const locClimateIndex = maps.getClimateIndex(_locPixel.x, _locPixel.y);
   const footsteps = new FootstepMachine();
+  let _townFootstepKind = 0;   // HORSE-VOICE: the stride's kind (the set's own ctx, below), the hooves' ground - world.js's PEER-FS1 cache, here
   const groundArchive = getTerrainGroundArchive(dfLocation.climate, season);   // the TERRAIN member, Desert winter-guarded (TerrainMaterialProvider.cs:126-133)
   const natureArchive = getNatureArchive(dfLocation.climate.natureArchive, season);
   const texRemap = new Map();
@@ -1529,6 +1530,8 @@ export async function bootExterior(canvas, renderer, params, status) {
     lookPitch: () => cam.pitch, lookYaw: () => cam.yaw, groundHeightAt: (x, z) => collider.heightAt(x, z),
     enhancedRiding: () => (rrRidingOn() ? { terrainFollowing: rrRidingSetting('followTerrainEnabled') === true, softenFollow: rrRidingSetting('followTerrainSoftenFactor') ?? 8 } : null),
     horseCart: () => hccRuntimeOn(),   // HCC: TrailingWagonTransportWindow's gate and route (declared below; read at open)
+    // HORSE-VOICE (systems/horse/horseVoice.js): world.js's three - the ground under the rider, foes in sight, horse care's breath
+    surfaceKind: () => _townFootstepKind, foesNear: () => areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]), horseBreath: () => upkeep.bar(player.transportMode),
   });
   preloadCharSheetArt({ renderer, fetchBytes, palette });   // U8a: INFO00I0 warms at boot
   warmLevelUpWindow();   // LV1's audit: the level-up window opens because the GAME decided, so its chunk warms at boot rather than inside a pause nobody asked for
@@ -2897,7 +2900,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       }
     },
     renderer, audio, getTexture, uploadRecord, uploadRecordFrame,
-    collider: { raycast: (o, d, m) => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider).raycast(o, d, m) },
+    collider: liveCollider(() => ((modes?.mode === 'interior' && modes?.interiorCollider) ? modes?.interiorCollider : collider)),   // GROUND-BOLT: the mesh ray and the ground - a missile meets the terrain
     playerEntity,
     now: () => playerTicker.ownMinutes,   // V2a: MorphSelf's once-a-day clock
     playerSinks: playerSpellSinks,
@@ -4026,6 +4029,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     }),
     getBlock: (name) => blocks.getBlockByName(name),
     flatCaption: (archive, record) => pipeline.flatCaption(archive, record),   // NPC1: the =symbol_ macro's caption
+    getRandomText: (id) => townTalk.randomText?.(id) ?? null,   // QUEST-AUDIT III: %oth and %jok's TEXT.RSC pool, as world.js's quest world reads it
     // AUDIT 39 (#23) / QX1 review: EVERY faction read below goes
     // through `_questStore()` - PlayerEntity.FactionData, the MUTABLE
     // clone factionRep owns - and never the raw FACTION.TXT dictionary
@@ -5444,6 +5448,12 @@ export async function bootExterior(canvas, renderer, params, status) {
         // player is walking on or swimming in exterior water".
         const _onWater = _surf.water !== ON_EXTERIOR_WATER.None;
         _townOnWater = _onWater;   // AUDIT WATER-NEXT m12: the ripple field's stir reads the same answer
+        const _fsCtx = {
+          inside: false, winter: season === SEASON.Winter, climateIndex: locClimateIndex,
+          onExteriorWater: _onWater,
+          onExteriorPath: _surf.path,               // OnPathTile: records 46, 47, 55
+          onStaticGeometry: _surf.staticGeometry,
+        };
         const _step = footsteps.update(player.pos, {
           grounded: player.grounded, swimming: player.swimming, levitating: player.levitating,
           spriteStep: mwViewFootstep(),   // AUDIT-EOTB2: SyncFootsteps - the sprite's stride while it is on screen
@@ -5460,12 +5470,8 @@ export async function bootExterior(canvas, renderer, params, status) {
           halfSpeed: player.movingLessThanHalfSpeed,
           onFoot: isOnFoot(player.transportMode),   // :221-227, the mounted gate's water exception
           onExteriorWater: _onWater,
-        }, pickFootstepSet({
-          inside: false, winter: season === SEASON.Winter, climateIndex: locClimateIndex,
-          onExteriorWater: _onWater,
-          onExteriorPath: _surf.path,               // OnPathTile: records 46, 47, 55
-          onStaticGeometry: _surf.staticGeometry,
-        }));
+        }, pickFootstepSet(_fsCtx));
+        _townFootstepKind = pickFootstepKind(_fsCtx);   // HORSE-VOICE: the same ctx's kind, for the hooves
         if (_step) hitEffects?.footfall?.(player.pos, [Math.sin(cam.yaw), 0, Math.cos(cam.yaw)]);   // BLOOD2d: a foot came down - treading in blood tracks it
         if (_step && classicFootstepAllowed(_step.clip)) audio.playOneShot(_step.clip, _step.volume);   // IF1: DisableVanillaFootsteps - every classic clip is None while the mod owns the stride; BA1: Better Ambience nulls all but Dungeon2 and Outside2 (DisableBuiltInFootsteps' slip)
         // IF1: ImmersiveFootstepsObject.FixedUpdate - the exterior arm off this host's climate and the tile the classic set reads.
@@ -5512,12 +5518,12 @@ export async function bootExterior(canvas, renderer, params, status) {
 
       const _act = activateFrame((latch.activate ??= createActivateGate()), {
         down: held(keys, 'ActivateCenterObject') || _tapArmed > 0,   // AUDIT 62 F8: the touch tap is the ACTION, not a synthesized 'Mouse0' - a rebind off Mouse0 must not kill the finger, and no key code can honestly stand for a mouse binding
-        hasReadySpell: magic.spellArmed(),
+        hasReadySpell: magic.spellArmed() && !_tapLockOnly,   // AUDIT SPELL-HAND L4-9: the stick-half tap is the lock pick and nothing below it (TS1) - never a cast, a spell readied or not
         touchSpell: magic.readied()?.rangeType === 1,   // rangeType 1 is ByTouch (spellcast.js:"ClassicTargetIndexToTargetType")
         hudBlocked: activeMouseOverLargeHUD(),
         paused: _overlayHeld,
       });
-      if (_act.cast) magic.interceptAttack(true);   // the frame's firePending sends it down the live look
+      if (_act.cast) magic.interceptAttack(true, CAST_PRESS);   // the frame's firePending sends it down the live look (SPELL-HAND: the cast's own press)
       const useEdge = pressed(latch.edge, keys, 'Interact');   // KB1: the Interact ACTION (E by default, Mac's call) - it was a raw `KeyE` beside DFU's E-AbortSpell, and one press did both
       if ((_act.activate || useEdge) && !modes.transitioning) {
         // T3b: a townsperson under the ray wins the activation (the
@@ -6274,7 +6280,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       // fly through this host's world every walk frame.
       if ((modes?.mode ?? 'exterior') === 'exterior') {
         const _mfwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
-        magic.firePending([...cam.pos], _mfwd);
+        magic.firePending([...cam.pos], _mfwd, gamePaused());   // AUDIT SPELL-HAND L4-6: a kept press never leaves under a window
         magic.update(dt, player.pos, _mfwd, player.height, player.feetAt());   // X11: the candle hangs off the look direction; DISC13-A off the render feet
         { const mv = lycanthropeMoveSound(playerEntity, dt); if (mv != null) audio.playOneShot(mv, 1); }   // LM1: the beast's own noise while transformed (real time)
       }
