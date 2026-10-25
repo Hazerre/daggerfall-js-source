@@ -287,13 +287,13 @@ export function staffReactAsk(room, ws, a, gr, now) {
 
 /**
  * A POSE TAKEN (index.js _poseFrame) from a socket with an open episode: what moved since its last, timed from the ask -
- * each first once. A pose past the episode's length closes it unread.
+ * each first once. A pose past the episode's length closes it unread. A due window posts on any pose: the timer that
+ * posted it is gone, and a room still playing after its last episode would otherwise keep the rows until it drained.
  * @param {any} room @param {any} ws @param {any} p the pose as the door took it (net/wire.js validPose) @param {number} now
  */
 export function staffReactPose(room, ws, p, now) {
   const mine = room._staffReact?.open.get(ws);
-  if (!mine) return;
-  for (const e of [...mine]) {
+  if (mine) for (const e of [...mine]) {
     const t = now - e.t0;
     if (t > REACT_EPISODE_MS) { reactClose(room, ws, e, now); continue; }
     const q = e.last, at = e.at;

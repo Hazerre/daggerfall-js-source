@@ -358,6 +358,24 @@ test('STAFF-PANEL5-FEEDS-FIX ONE ROW NEVER TAKES ITS BATCH: a modded client swin
   assert.deepEqual([b.net.map((r) => r.a), b.foe], [['acct-sock-mac-01'], []]);
 });
 
+test('HIBERNATE A FINISHED REACTION WINDOW POSTS ON THE NEXT POSE: the episode already closed, a pose inside the window posts nothing, and the pose once it is due posts the rows - no open episode and no timer to do it (mutant: the pose returning before the window is read)', async (t) => {
+  const R = await relay(t, { REACTION_FEED_URL: REACT_URL });
+  const C = R.room(CELL);
+  const mac = await R.join(C, 'sock-mac-01', P0);
+  await mac.ask({ k: 'mint', kind: 'enc', n: 1 });
+  R.tick(200);
+  await C.pose(mac.ws, { ...P0, dd: 1 });
+  assert.equal(C.room._staffReact.openN, 0, 'the episode closed');
+  R.tick(REACT_FEED_MS - 1);
+  await C.pose(mac.ws, { ...P0, x: P0.x + 40 });
+  assert.equal(R.posts.length, 0, 'inside the window: nothing posted');
+  R.tick(1);
+  await C.pose(mac.ws, { ...P0, x: P0.x + 80 });
+  for (let i = 0; i < 50 && !R.posts.length; i++) await new Promise((r) => setTimeout(r, 5));
+  assert.equal(R.posts.length, 1, 'a pose with nothing open posts a due window');
+  assert.equal((await R.open(0, REACT_FEED_V)).rows.length, 1);
+});
+
 test('STAFF-PANEL5-FEEDS-FIX A FAILED REACTION BATCH IS SENT AGAIN BY THE TICK ALONE: with no new episode, a window after it failed and never sooner; one that keeps failing is let go at its age, and the room\'s tick stops so the room can sleep (mutants: the retry left to a new episode; the retry asked every minute)', async (t) => {
   const R = await relay(t, { REACTION_FEED_URL: REACT_URL });
   const C = R.room(CELL);

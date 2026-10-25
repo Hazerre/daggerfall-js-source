@@ -152,22 +152,40 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
   // ── the owner's grants ───────────────────────────────────────────────────────────────────────────────────────────
   const live = new Set();   // grants with my members standing
   const queue = new Map();   // kind -> the stands waiting on this turn's ask
-  const owed = [];   // GRANT-SLEEP: kinds stood while nobody else was here - asked when someone arrives, not attached to the foe that already stood
-  /** Asks owed while this cell was empty of everyone but me. One mint a kind, up to its max. */
+  const owed = [];   // GRANT-SLEEP: { kind, f } stood while nobody else was here - asked and attached when someone arrives
+  /** Asks owed while this cell was empty of everyone but me, and puts each grant on the foe that is still standing. */
   function flushOwed() {
     if (!owed.length || session()?.othersHere === 0) return;
-    const counts = new Map();
-    for (const k of owed.splice(0)) counts.set(k, (counts.get(k) ?? 0) + 1);
-    for (const [kind, n] of counts) {
-      const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;
-      for (let at = 0; at < n; at += max) void ask({ k: 'mint', kind, n: Math.min(max, n - at) });
+    const byKind = new Map();
+    for (const o of owed.splice(0)) {
+      if (!o.f || o.f.dead || o.f.puppet || o.f._grant || o.f._gone) continue;
+      const list = byKind.get(o.kind) ?? [];
+      list.push(o.f);
+      byKind.set(o.kind, list);
     }
+    for (const [kind, foes] of byKind) {
+      const max = GRANT_KINDS[/** @type {keyof typeof GRANT_KINDS} */ (kind)].max;
+      for (let at = 0; at < foes.length; at += max) {
+        const chunk = foes.slice(at, at + max);
+        ask({ k: 'mint', kind, n: chunk.length }).then((a) => {
+          if (a?.k !== 'ok') return;
+          const gr = { ...a.gr, _members: 0 };
+          chunk.forEach((f, i) => { if (!f.dead && !f.puppet && !f._grant && !f._gone) stood(gr, i, f); });
+        });
+      }
+    }
+  }
+  /** The foe `f` stood while this cell was empty of everyone but me. Asked and attached when someone arrives. */
+  function owedStand(kind, f) {
+    if (!f || f._grant || f.dead || f.puppet || f._gone || session()?.othersHere !== 0) return;
+    if (!(open() || unsaid()) || !Object.hasOwn(GRANT_KINDS, kind) || owed.some((o) => o.f === f)) return;
+    owed.push({ kind, f });
   }
   /** A MEMBER FOR A STAND of `kind`: a promise of `{ gr, i }`, `{ refused }` (the law enforcing) or null (no grant came) -
    *  or null at once when no law is on. GRANT6: while the socket's welcome is owed, the stand waits on it (`wait` at most). */
   function memberFor(kind) {
     if (!(open() || unsaid()) || !Object.hasOwn(GRANT_KINDS, kind)) return null;
-    if (session()?.othersHere === 0) { owed.push(kind); return null; }   // GRANT-SLEEP: nobody here to read the foe, so the cell is not woken. shortcut: the foe that stood keeps no grant; the ask goes when someone joins.
+    if (session()?.othersHere === 0) return null;   // GRANT-SLEEP: the stand proceeds, the cell stays asleep. owedStand keeps the foe for flushOwed.
     return new Promise((resolve) => {
       const q = queue.get(kind);
       if (q) { q.push(resolve); return; }
@@ -490,7 +508,7 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (g._grantDone && now() - g._grantAt >= GRANT_WATCH_REASK_MS) { g._grantAt = undefined; g._grantDone = false; }   // AUDIT GRANT A12: refused or never come - asked again at the watch's pace
     if (g._grantAt === undefined) {
       const m = memberFor('watch');
-      if (!m) return true;
+      if (!m) { owedStand('watch', g); return true; }
       g._grantAt = now();
       void m.then((a) => { g._grantDone = true; if (a && 'gr' in a && !g._grant && !g._gone) { stood(a.gr, a.i, g); watchmen.set(g, pool); } });
       return false;
@@ -506,5 +524,5 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     for (const [g, p] of watchmen) if (p === pool && (!here.has(g) || g._gone)) { watchmen.delete(g); ended(g); }
   }
 
-  return { memberFor, stood, ended, handed, tick, frameGrants, adopted, heard, check, downed, statsRefused, answer, enforcing, standsDown, watchReady, watchSweep, speciesOf, tallied: () => new Map(tallies), live: () => [...live] };
+  return { memberFor, owedStand, stood, ended, handed, tick, frameGrants, adopted, heard, check, downed, statsRefused, answer, enforcing, standsDown, watchReady, watchSweep, speciesOf, tallied: () => new Map(tallies), live: () => [...live] };
 }

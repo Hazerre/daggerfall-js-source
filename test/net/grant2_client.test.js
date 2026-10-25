@@ -72,16 +72,22 @@ test('GRANT2-GRANT3 THE HOST WIRED: world.js makes one grants\' host, hands it t
   assert.equal(typeof createGrantHost, 'function');
 });
 
-test('GRANT-SLEEP: alone, a stand asks the cell nothing; once someone is here, that kind is asked once', async () => {
+test('GRANT-SLEEP: alone, a stand asks the cell nothing; once someone is here, the foe still standing is asked once and keeps that grant', async () => {
   let others = 0;
   const asks = [];
   const session = () => ({ room: CELL, status: 'open', grantMode: 'measure', othersHere: others, sendGrant(a) { asks.push(a); return true; } });
   const h = createGrantHost({ session, now: () => 1_000, climateAt: () => 231 });
+  const foe = {}, dead = { dead: true };
   assert.equal(h.memberFor('enc'), null, 'the stand proceeds with no ask');
+  h.owedStand('enc', foe);
+  h.owedStand('enc', dead);
   h.tick();
   assert.equal(asks.length, 0, 'still alone: nothing on the wire');
   others = 1;
   h.tick();
+  assert.deepEqual(asks.map((a) => [a.k, a.kind, a.n]), [['mint', 'enc', 1]], 'the one still standing is asked once');
+  h.answer({ k: 'ok', id: asks[0].id, gr: { g: 7, k: 'enc', n: 1 } });
   await Promise.resolve();
-  assert.deepEqual(asks.map((a) => [a.k, a.kind, a.n]), [['mint', 'enc', 1]], 'one ask when someone arrives');
+  assert.equal(foe._grant.g, 7, 'and that grant is its own');
+  assert.equal(dead._grant, undefined, 'a foe already dead is not minted');
 });
