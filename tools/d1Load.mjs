@@ -40,7 +40,7 @@ const W = {
   stmts: 'SUM(double3 * _sample_interval)',
   read: 'SUM(double6 * _sample_interval)',
   written: 'SUM(double4 * _sample_interval)',
-  // SCALE4h's hot rows (metrics.js HOT_TABLES), each table's own double
+  // the hot tables' rows written (metrics.js HOT_TABLES), each table's own double
   players: 'SUM(double8 * _sample_interval)',
   sessions: 'SUM(double9 * _sample_interval)',
   renown: 'SUM(double10 * _sample_interval)',
@@ -54,10 +54,10 @@ const W = {
  * - minutes: the window minute by minute - requests, D1 wait, statements - so a once-a-minute spike shows as a row;
  * - cron: the clock's own jobs (`CRON` points), each its firings, failures, statements and wait;
  * - errors: every answer that was not a 2xx, by route, status and its one word (an `overloaded` 500 among them);
- * - written (COST-0, 2026-10-24: D1 rows written were $11 of a ~$90 day, some 11 million rows, and nothing said whose):
- *   the rows written by route and by the tables its requests wrote (blob5, metrics.js tablesBlob - "table:rows", most
- *   first; the SQL API cannot split it, so a route's rows are grouped by the set of tables it wrote), beside the four hot
- *   tables' exact sums (double8-11), the most rows first.
+ * - written: the rows written by route and by the tables its requests wrote (blob5, metrics.js tablesBlob -
+ *   "table:rows", most first; the SQL API cannot split it, so a route's rows are grouped by the set of tables it wrote),
+ *   beside the four hot tables' exact sums (double8-11), the most rows first. D1 rows written were $11 of a ~$90 day on
+ *   the owner's bill of 2026-10-24, some 11 million rows, and nothing said whose (Scale-Arc.md COST-0).
  */
 export const QUESTIONS = Object.freeze([
   ['routes', 'D1 wait by route (the database\'s time, most first)', ['route', 'method', 'requests', 'd1_wait_s', 'statements', 'rows_read', 'rows_written', 'p95_ms'],

@@ -2,8 +2,8 @@
   {
     "name": "DOACTIVE-window-guard",
     "file": "tools/doActive.mjs",
-    "old": "d < 1 || d > DAYS_MAX) throw",
-    "new": "d < 1 || d > DAYS_MAX + 1) throw",
+    "old": "days < 1 || days > DAYS_MAX) throw",
+    "new": "days < 1 || days > DAYS_MAX + 1) throw",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -11,8 +11,8 @@
   {
     "name": "DOACTIVE-window-end",
     "file": "tools/doActive.mjs",
-    "old": "(today - (days - i) * DAY_S)",
-    "new": "(today - (days - i - 1) * DAY_S)",
+    "old": "(today - (days - index) * DAY_S)",
+    "new": "(today - (days - index - 1) * DAY_S)",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -29,8 +29,8 @@
   {
     "name": "DOACTIVE-unit-rule",
     "file": "tools/doActive.mjs",
-    "old": ".filter((r) => r.hours <= 24.5)",
-    "new": ".filter((r) => r.hours <= 1e9)",
+    "old": ".filter((candidate) => candidate.hours <= 24.5)",
+    "new": ".filter((candidate) => candidate.hours <= 1e9)",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -47,8 +47,8 @@
   {
     "name": "DOACTIVE-unwrap",
     "file": "tools/doActive.mjs",
-    "old": "while (x && !x.name) x = x.ofType;",
-    "new": "while (x && x.kind === 'NON_NULL') x = x.ofType;",
+    "old": "while (inner && !inner.name) inner = inner.ofType;",
+    "new": "while (inner && inner.kind === 'NON_NULL') inner = inner.ofType;",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -56,8 +56,8 @@
   {
     "name": "DOACTIVE-object-kind",
     "file": "tools/doActive.mjs",
-    "old": "parts[f.name] = t?.kind === 'OBJECT' ?",
-    "new": "parts[f.name] = t?.name ?",
+    "old": "parts[field.name] = typeRef?.kind === 'OBJECT' ?",
+    "new": "parts[field.name] = typeRef?.name ?",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -65,7 +65,7 @@
   {
     "name": "DOACTIVE-settings-unread",
     "file": "tools/doActive.mjs",
-    "old": "if (have.length) settings =",
+    "old": "if (asked.length) settings =",
     "new": "if (false) settings =",
     "tests": [
       "test/server/doactive.test.js"
@@ -128,8 +128,8 @@
   {
     "name": "DOACTIVE-kept-days",
     "file": "tools/doActive.mjs",
-    "old": "Math.floor(notOlder / DAY_S) - 1",
-    "new": "Math.floor(notOlder / DAY_S)",
+    "old": "Math.floor(notOlderThan / DAY_S) - 1",
+    "new": "Math.floor(notOlderThan / DAY_S)",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -137,8 +137,8 @@
   {
     "name": "DOACTIVE-always-on",
     "file": "tools/doActive.mjs",
-    "old": "e.n++; if (h(o.raw) > ALWAYS_ON_H) e.on++;",
-    "new": "e.n++; if (h(o.raw) >= 0) e.on++;",
+    "old": "entry.n++;\n      if (hoursOf(object.raw) > ALWAYS_ON_H) entry.on++;",
+    "new": "entry.n++;\n      if (hoursOf(object.raw) >= 0) entry.on++;",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -164,8 +164,8 @@
   {
     "name": "DOACTIVE-histogram",
     "file": "tools/doActive.mjs",
-    "old": "hist[bucketOf(h(o.raw))]++;",
-    "new": "hist[bucketOf(h(o.raw) / 2)]++;",
+    "old": "histogram[bucketOf(hoursOf(object.raw))]++;",
+    "new": "histogram[bucketOf(hoursOf(object.raw) / 2)]++;",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -173,8 +173,8 @@
   {
     "name": "DOACTIVE-top-order",
     "file": "tools/doActive.mjs",
-    "old": "sort((a, b) => b[1].hours - a[1].hours",
-    "new": "sort((a, b) => a[1].hours - b[1].hours",
+    "old": "sort((left, right) => right[1].hours - left[1].hours",
+    "new": "sort((left, right) => left[1].hours - right[1].hours",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -182,8 +182,8 @@
   {
     "name": "DOACTIVE-refusal",
     "file": "tools/doActive.mjs",
-    "old": "if (res.status === 401 || res.status === 403) throw",
-    "new": "if (res.status === 401) throw",
+    "old": "if (response.status === 401 || response.status === 403) throw",
+    "new": "if (response.status === 401) throw",
     "tests": [
       "test/server/doactive.test.js"
     ]
@@ -191,8 +191,8 @@
   {
     "name": "DOACTIVE-account-guard",
     "file": "tools/doActive.mjs",
-    "old": "if (!/^[0-9a-f]{32}$/.test(s)) throw",
-    "new": "if (!/./.test(s)) throw",
+    "old": "if (!/^[0-9a-f]{32}$/.test(text)) throw",
+    "new": "if (!/./.test(text)) throw",
     "tests": [
       "test/server/doactive.test.js"
     ]
