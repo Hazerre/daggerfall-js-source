@@ -225,7 +225,7 @@ function withHubFound(base, session) {
   const have = new Set(base.map((r) => r.id));
   const more = [];
   for (const p of f.l) {
-    if (!p || typeof p.id !== 'string' || have.has(p.id)) continue;   // my own row is in `base` already
+    if (!p || typeof p.id !== 'string' || have.has(p.id)) continue;   // my own row is in `base` already - or, hidden, nowhere: the hub's search names neither its asker nor a hidden socket (AUDIT HIDDEN-UNCOUNTED N2)
     have.add(p.id);
     more.push(freezeRow({ id: p.id, name: sanitizeName(p.name), tag: tagOf(p.id), me: false, ...readBadge(p), gt: readGuildTag(p) }));
   }
@@ -244,7 +244,8 @@ export const rosterTitle = (total, label = 'Online') => `${label} — ${total}`;
  * CHAT-CHAN: THE PARTY TAB'S LIST - the party is not a room, so its roster is composed: my own row (the hub link's,
  * wearing my badge), and each party mate who is online, by the first tab they stand as - the peer id the hub names
  * them by, so the row's badge and its menu are the same peer the World roster offers. A mate the hub knows no badge
- * for is drawn by name alone. Null party: a list of one (the strip under the chat says why).
+ * for is drawn by name alone. Null party: a list of one (the strip under the chat says why) - of none while my link is
+ * hidden (HIDDEN-UNCOUNTED: no row of mine, `hidden` carried).
  * @param {{ members?: { acct: string, name?: string, online?: boolean, peers?: string[] }[] }|null|undefined} party
  * @param {RosterSource|null|undefined} hub   the World tab's link
  * @param {string|null} acct   my account
@@ -266,7 +267,7 @@ export function partyRosterSource(party, hub, acct) {
  * wearing my badge), and every peer the hub link knows wearing my guild's TAG - the World roster's own peers, so a row's
  * badge and its menu are the same peer the World tab offers (a tag is one guild's: the service holds tags unique). The
  * hub introduces at most CHAT_ROSTER_MAX to a welcome, so a member it never introduced is not listed - their lines still
- * arrive. No tag: a list of one (the strip under the chat says why). SCALE5c: and every member the hub says is online on
+ * arrive. No tag: a list of one (the strip under the chat says why), of none while hidden (HIDDEN-UNCOUNTED). SCALE5c: and every member the hub says is online on
  * another of its shards (`guildOnline`, the session's ask - its own shard's peers are all the link knows of the rest).
  * @param {RosterSource|null|undefined} hub   the World tab's link
  * @param {string|null} tag   my guild's tag
