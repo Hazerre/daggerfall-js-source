@@ -19944,8 +19944,8 @@ option under audio for it called Monster Volume with 0 - 100%".
   pointsLeft); a press opens the Growth tab's Firmament page (`setHudPauseAt`, wired by `scenes/world.js`). Each is a
   buff's own tile with a 16px glyph (`hudStatus.js` STATUS_GLYPHS `skillup`, `firmstar`), on the bar's line and past the
   hotbar's ends where the hotbar is wider (CLEAR-HOTBAR, `advanceReach`). Each is its own piece of the movable HUD
-  (Alt+U: `skillsReady`, `starsUnspent`). The book is read once, again when the Renown rises, and again after
-  `BOOK_RETRY_MS` when a read found no sky. The level strip no longer draws the skills' standing line; the level's own row
+  (Alt+U: `skillsReady`, `starsUnspent`). The book is read once and again when the Renown rises; a read the service
+  never answered the book asks again itself, on every HUD (FIRM-RETRY, `06-Systems/Firmament.md` section 6). The level strip no longer draws the skills' standing line; the level's own row
   stays, and under DFO Grimoire its words are in the page's full ink (LEVEL-INK).
 - **The status tiles' hover card** (`ui/hud/statusTips.js`, `ui/hud/hudTip.js`): with the mouse freed every tile shows
   the pack's hover card - a spell's effects from its live entries, a disease's daily losses, a need's meaning and what
