@@ -23,7 +23,8 @@ import { ARTIFACTS, SPECIAL_ARTIFACT_HANDLERS, onPlayerStruckByEnemy, registerFo
 import { ENCHANTMENT_TYPES as T } from '../../src/formats/magicDef.js';
 import { MOBILE_TYPES } from '../../src/characters/mobile/mobileTypes.js';
 import { killIfAnyLiveStatZero } from '../../src/systems/statMods.js';
-import { isPrivateQuestFoe } from '../../src/scenes/quest/questFoeHost.js';   // CURSE-SYNC: the handover's word for a quest's foe
+import { isPrivateQuestFoe } from '../../src/scenes/quest/questFoeHost.js';
+import { promoteStaffBoss } from '../../src/systems/eliteFoes.js';   // BOSS-EXACT: a staff event's mini boss   // CURSE-SYNC: the handover's word for a quest's foe
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
@@ -178,6 +179,18 @@ test('AUDIT PSCALE1 outdoors, driven - WHOEVER FIGHTS IT: my foe is as tough as 
   blowFrom(owner, troll, 'me', 0);
   owner.healFoe(troll, 20);
   assert.equal(troll.entity.health, 58, 'twenty against four is eight');
+  // BOSS-EXACT (mob 2026-10-25: "the rat isnt takeing any dmage"): a staff event's mini boss keeps the exact health staff
+  // typed - four fighting it, every blow and heal lands whole (its blows at me still weigh by them: partyHit)
+  const boss = await owner.spawnFoe(0, [20, 0, 20], { feetGiven: true });
+  promoteStaffBoss(boss.entity, { hp: 10000 });
+  for (const p of peers) blowFrom(owner, boss, p.id, 0);
+  blowFrom(owner, boss, 'me', 20);
+  assert.equal(boss.entity.health, 9980, 'four fighting the mini boss: a blow of twenty takes twenty');
+  owner.applyHit('bob-0002', { i: boss.seq, dmg: 30, kind: 'spell', k: 'world:3,12' });
+  assert.equal(boss.entity.health, 9950, 'and a peer\'s spell its thirty');
+  owner.healFoe(boss, 10);
+  assert.equal(boss.entity.health, 9960, 'a heal its own ten');
+  assert.equal(owner.partyHit(10, boss), 13, 'its blow at me still four fighters\'');
   // DOORS-2: Namira's reflection through the foe's own door - its death, its fighters
   const wearer = { ...playerEntity(), equip: { slots: { Ring0: { name: 'Artifact', currentCondition: 800, maxCondition: 800, enchantments: [{ type: T.SpecialArtifactEffect, param: ARTIFACTS.RingOfNamira }] } } } };
   const zombie = await owner.spawnFoe(0, [18, 0, 18], { feetGiven: true });

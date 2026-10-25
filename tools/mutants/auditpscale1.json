@@ -133,7 +133,7 @@
   {
     "name": "AUDIT-PSCALE1-outdoor-heal-unweighed",
     "file": "src/scenes/exteriorFoes.js",
-    "old": "    const h = !f.puppet && _sharedFoe(f) ? partyFoeHeals(f, n, fightN(f)) : n;",
+    "old": "    const h = !f.puppet && _toughFoe(f) ? partyFoeHeals(f, n, fightN(f)) : n;",
     "new": "    const h = n;",
     "tests": [
       "test/systems/party/pscale1.test.js",
@@ -379,6 +379,15 @@
     "new": "  if (r.n !== undefined) out.n = r.n;",
     "tests": [
       "test/systems/party/pscale1.test.js",
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-EXACT-boss-weighed",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "  const _toughFoe = (f) => _sharedFoe(f) && !f.entity?.staffBoss;",
+    "new": "  const _toughFoe = (f) => _sharedFoe(f);",
+    "tests": [
       "test/systems/auditpscale1.test.js"
     ]
   }

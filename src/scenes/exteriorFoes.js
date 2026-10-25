@@ -907,6 +907,10 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
   /** AUDIT PSCALE1 (Mac: "Whoever fights it"): how many players fight `f` - my own foe's, counted at this door from
    *  every blow it takes (systems/party/partyScale.js foeFighters); another player's puppet's, its owner's word on its record
    *  (`n`). Kept on the foe (`_fightN`) for the readers outside this pool (the Renown bonus, the sigil's forge). */
+  /** BOSS-EXACT (mob 2026-10-25: "the rat isnt takeing any dmage"): a shared foe whose health its fighters' toughness weighs -
+   *  never a staff event's mini boss, whose health is the exact number staff typed (BOSS-HP); over eight fighters' 4.5 a
+   *  Daedric blow on a 10,000-health boss took four. Its blows at me still weigh by them (partyHit). */
+  const _toughFoe = (f) => _sharedFoe(f) && !f.entity?.staffBoss;
   const fightN = (f) => (f.puppet ? (f._fightN ?? 1) : (f._fightN = foeFighters(f, _now())));
   /** PSCALE1: a shared foe's weapon or arrow hit on me, weighed by the players fighting it (partyFoeHits), the
    *  remainder carried on me (AUDIT PSCALE1 DOORS-4). */
@@ -915,7 +919,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
    *  puppet's copy is its owner's to heal (the next record says so) and keeps the heal unweighed until then. */
   function healFoe(f, n) {
     if (!(n > 0) || !f?.entity || f.dead) return;
-    const h = !f.puppet && _sharedFoe(f) ? partyFoeHeals(f, n, fightN(f)) : n;
+    const h = !f.puppet && _toughFoe(f) ? partyFoeHeals(f, n, fightN(f)) : n;
     f.entity.health = Math.min(f.entity.maxHealth ?? Infinity, f.entity.health + h);
   }
 
@@ -1000,7 +1004,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (fromPlayer) noteFighter(f, peer ? peerId : PARTY_ME, _now());
     // PSCALE1: a shared foe fights its fighters with more health - its damage over their toughness, here where the
     // owner applies every blow (a SetHealth(0) and a kill are no blows, and stand as they were)
-    f.entity.health -= !bypassShield && !_whole && _sharedFoe(f) ? partyFoeLoses(f, healthDamage, fightN(f)) : healthDamage;
+    f.entity.health -= !bypassShield && !_whole && _toughFoe(f) ? partyFoeLoses(f, healthDamage, fightN(f)) : healthDamage;
     if (bout && healthDamage > 0) bout.hooks?.hurt?.(f, healthDamage, { fromPlayer: fromPlayer && !peer, striker });   // ARENA2: the blow, to the bout's law
     if (f.entity.health <= 0) {
       // ARENA2: THE FOE YIELD FLOOR - nobody dies on the arena's sand. A bout fighter reaching the floor is held at the

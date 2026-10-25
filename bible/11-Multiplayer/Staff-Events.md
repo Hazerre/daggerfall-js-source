@@ -121,6 +121,12 @@ health - `STAFF_BOSS_MIN_METAL` Silver (a blade below Silver does nothing, `comb
 `dropWeaponIfTargetImmune`; hand-to-hand lands, as DFU's does) and `STAFF_BOSS_ARMOR` 10 (the Troll's ArmorValue 2 x 5,
 EnemyEntity.cs:264-267) as its worst armour on any part. Owner and puppet alike, so a peer's blow is held to it too.
 
+BOSS-EXACT (2026-10-25, mob: "the rat isnt takeing any dmage", "i have daedric", "and no players magic was working"): a
+mini boss's health is the exact number staff typed, so the players fighting it never make it tougher - its owner's
+damage door and heal skip PSCALE1's toughness (`scenes/exteriorFoes.js` `_toughFoe`). Eight fighting a 10,000-health
+boss divided every blow by 4.5: a Daedric blow of about 20 took 4, and the bar did not move. Its blows at the players
+still weigh by how many fight it (`partyHit`). A departure from PSCALE1 for this one foe alone.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the
