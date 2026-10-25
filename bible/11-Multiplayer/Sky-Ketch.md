@@ -515,3 +515,42 @@ the fore rail, all stopped at the house's wall, none under her deck), the strips
 open alone; the stairs' undersides; the lid's cast-back and its shaft; the share flown over the real collider from six
 places to stand at six seeds, all on the cabin's floor and out of the chest, the door and the lift, and the keep
 handed to the pool. `tools/mutants/ketch_panels.json`: 10, each run once and dead.
+
+## 19. KETCH-PELLETS and KETCH-LONGER - more shot, a longer and harder raid (2026-10-25)
+
+The owner: *"We need more aquireable sources of deeamer pellets"*, and from players: *"the raid is too short and too
+easy"*. The owner picked from the options: the constructs drop Pellets; about fifteen minutes solo and twenty for a crew.
+
+**Her constructs drop Pellets** (`systems/ketch/ketchSpoils.js` `KT_CONSTRUCT_PELLETS`, `ketchConstructPellets`). Every
+construct downed lays a pile where it fell, on the dungeon's own dropped loot, for each hand aboard. Each screen gets
+its own pile, as the share does. The amounts:
+- a Sphere 2 to 4;
+- a Sentry 3 to 5;
+- a Hammer Warden 8 to 12;
+- the Watch-Captain 10 to 15;
+- the Tonal Warden 15 to 25;
+- a vent spider one, at a 35% chance.
+
+A body drops once, only on a fresh fall (`scenes/ketch/ketchFight.js` `fell`). A voyage's construct Pellets stop at
+`KT_CONSTRUCT_PELLETS_MAX` (90), so nobody farms the vents. With no deck to lay them on, they go into the pack. This adds
+to the chest's 20 to 40 a share.
+
+**The raid retuned** (`RELAY_VERSION` world257). The live run went in about six minutes solo: the Watch in 24 s, the
+Wardens in 7, the engine in 58, the Warden in 208.
+- **The Boarding Watch:** five waves (`KT_WATCH_WAVES`, `net/ketch/ketchLaw.js`, the brain's and the HUD's one number),
+  each fuller than before: spheres; spheres and sentries; more of both; the sentries' wall; the Watch-Captain with
+  spheres and a sentry. The wire takes a wave to five, and the HUD says "wave {w} of {n}". A new line covers waves
+  three and four, drafted in every language.
+- **The constructs:** health about two and a half times (`hpS`: a Sphere 16, a Sentry 24, a spider 5, a Hammer Warden
+  72, the Captain 100), and every blow a third again as hard (`p` ×1.35).
+- **The Starved Engine:** it eats five cells and one for each two aboard, up to its seven sockets (`engineNeeds`). Its
+  cradles charge in 28 s (20 before), and its spiders come every 6 s (9 before), five and the crew at once (three and
+  the crew before).
+- **The Tonal Warden:** a fighter's share is 600 s of reference damage (`KW_TTK_S`, 300 before). Its Keel-Strike,
+  Steam Lash and Tonal Ring hit a quarter harder. The Ketch turns west at twenty-two minutes (`KW_ENDS_MS`, fourteen
+  before), because the fight is twice as long.
+
+**PIN MOVED:** `ketch_brain.test.js` (the numbers, the Watch's five waves), `ketch_deck.test.js` (the engine's appetite),
+`ketch_warden.test.js` (the share and the end), `ketch_hud.test.js` (the first wave's spheres), `relayversion.test.js`
+(world257). Re-aimed by content: `ketch_brain.json` (2), `ketch_deck.json` (1), `ketch_warden.json` (1), each run once
+and dead.
