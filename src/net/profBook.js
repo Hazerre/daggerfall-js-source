@@ -134,7 +134,7 @@ const dayOf = (ms) => Math.floor(ms / 86_400_000);
  *   units the service handed over, every one minted (what finds no room into the pack past its weight - B5's law);
  *   `stamped`/`unstamp`/`stamps` a deposit's stamp in the save (takeCarried's `stamp` - its id, material, units and
  *   order); `flush` a checkpoint that LANDED (the save holding the take is the realm's before the deposit is asked).
- *   DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): `embers` the pack's Deadlands Embers - how many it
+ *   DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): `embers` the pack's Deadlands Embers - how many it
  *   holds unlocked, and a take of them with its undo (systems/sigil/sigilBroker.js emberHands) - the pack's half of a
  *   work that spends them, as the Broker's sale takes its price.
  */
@@ -460,7 +460,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BAG1: whether this book carries (a host handed it the bag and the pack) - every harvest and withdrawal is then
      *  the bag's or the pack's, never the Stores'. */
     carrying() { return !!carry; },
-    /** DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): the Deadlands Embers the pack holds unlocked - what a
+    /** DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): the Deadlands Embers the pack holds unlocked - what a
      *  work that spends them may take (`carry`'s embers) - or null where this book holds no pack (the Forge bounds by the
      *  service's purse alone, its refusal `prof-embers`). */
     embers() { return carry?.embers ? carry.embers.held() : null; },
@@ -1091,7 +1091,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       m.promise = (async () => {
         // BAG1: the work's inputs the Stores lack, from the bag and the pack first
         const work = smeltRecipe(recipe);
-        // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): THE EMBERS A WORK SPENDS - the pack's half (`carry`'s
+        // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): THE EMBERS A WORK SPENDS - the pack's half (`carry`'s
         // embers, the insignia's own law: systems/sigil/sigilBroker.js insigniaSale), the account's purse the service's.
         // Asked before anything moves: a pack short of them puts nothing in the Stores
         const embers = workEmbers(work, count), pack = carry?.embers ?? null;

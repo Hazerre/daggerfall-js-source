@@ -59,7 +59,7 @@ test('AUDIT 30 L5 + L6: a worn piece never reads "worn to 100%"; the tax is take
 
 test('AUDIT 30 L7 + L2 + L8: the catalogue holds what something yields; a piece is listable by its crafted family; a listing\'s worth is a balance\'s', () => {
   // PROF7 moved it: Hunting yields the Bear Hide; PIN MOVED (AUDIT-SEATS): the sieges' Spoils yield the Warforged ingot and
-  // the silk; PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 52): the forge smelts the Daedric Ingot, and the heart it
+  // the silk; PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 53): the forge smelts the Daedric Ingot, and the heart it
   // takes - loose alone, never counted by the service - is the loose door's, as CLOTH-GEMS' graded gems are
   // (professionLaw.js LOOSE_ONLY_KEYS): nothing waits on a yield
   assert.deepEqual([...UNYIELDED], []);

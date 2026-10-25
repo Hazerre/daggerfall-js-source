@@ -1,4 +1,4 @@
-// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 52) - THE DAEDRIC INGOT, MADE. The report
+// DAEDRIC-SMELT (2026-10-25; bible/06-Systems/Professions-Arc.md section 53) - THE DAEDRIC INGOT, MADE. The report
 // (SaberGGaming): no Daedric ingot could be had - the transmutation stops at Platinum (as intended), and the forge's
 // table ended at Orichalcum ("Daedric waits on its heart and its stone") while 27 anvil recipes spent the ingot. The
 // owner: "No band aids", and "the heart may come FROM LOOT OR THE GATE". PROF0 4.1's recipe, built: an Ebony Ingot, a
@@ -22,7 +22,7 @@ import { looseOrder, DEPOSIT_ORDERS } from '../../src/net/bagLaw.js';
 import { CHAIN_WORKS, chainWorkOk, chainPlan } from '../../src/net/chainLaw.js';
 import { WRIT_KITS } from '../../src/net/craftWritLaw.js';
 import { commissionable } from '../../src/net/writLaw.js';
-import { RECIPES, recipeOpen } from '../../src/net/recipeLaw.js';
+import { RECIPES, recipeOpen, workFirstXp, FIRST_MAKE_SHARE } from '../../src/net/recipeLaw.js';
 import { accountRefusalText } from '../../src/net/accountClient.js';
 import { createProfBook } from '../../src/net/profBook.js';
 import { emberHands, stoneCount } from '../../src/systems/sigil/sigilBroker.js';
@@ -46,6 +46,9 @@ test('DAEDRIC-SMELT law: the forge\'s last smelt - an Ebony Ingot and a Daedra\'
   });
   assert.equal(SMELT_RECIPES.at(-1), DAEDRIC, 'the forge\'s table, its last row');
   assert.equal(DAEDRIC_EMBERS, 1, 'PROF0 4.1: a Sigil Stone a unit');
+  // FIRST-BUDGET: a smelt pays no first-make - Smithing's share (FIRST_MAKE_SHARE) is the crafts', the Daedric smelt's
+  // first time pays its tier's XP alone, as every ingot's
+  assert.deepEqual([workFirstXp(DAEDRIC), workFirstXp(smeltRecipe('ingot:ebony')), FIRST_MAKE_SHARE.smithing > 0], [0, 0, true]);
   // every other work spends none and carries neither field
   for (const r of WORK_RECIPES) if (r !== DAEDRIC) assert.ok(!('embers' in r) && r.inputs.every((i) => !('catalyst' in i)), r.id);
   assert.deepEqual([workEmbers(DAEDRIC, 1), workEmbers(DAEDRIC, 7), workEmbers(DAEDRIC, 0), workEmbers(DAEDRIC, 1.5), workEmbers(smeltRecipe('ingot:ebony'), 5), workEmbers(null, 3)], [1, 7, 0, 0, 0, 0]);

@@ -66,7 +66,7 @@ test('CRAFT1 law: the works a chain may plan - every work of the forge, the work
     'cut:stone', 'mix:mortar',
   ]);
   const left = WORK_RECIPES.filter((r) => !CHAIN_WORKS.includes(r)).map((r) => r.id);
-  // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 52): the Daedric smelt stands at the forge now, and a chain never
+  // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 53): the Daedric smelt stands at the forge now, and a chain never
   // plans it - the ember it spends is the player's own press to make (chainLaw.js chainWorkOk)
   assert.deepEqual(left, ['ingot:daedric', 'burn:oak', 'burn:cherry', 'burn:teak', 'burn:mahogany', 'burn:ironwood', 'burn:ghostwood', 'cure:tiger', 'cure:dragonling',
     'spin:tiger',   // PIN MOVED (CLOTH-GEMS): a Tiger Pelt is a tier above the Wool it spins

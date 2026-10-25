@@ -167,7 +167,7 @@ test('PROF2 law: the boulders - the climate\'s count a day, tier 1, Rough Stone;
   assert.ok(mats.has('ore:dwarven') && mats.has('ore:adamantium'), 'Dwarven Scrap and Adamantium are found here');
   assert.deepEqual([...DUNGEON_VEINS], ['metal:silver', 'metal:gold', 'ore:dwarven', 'metal:platinum', 'ore:adamantium']);
   assert.ok(dungeonVeinTable(C.Woodlands).includes('ore:moonstone') && dungeonVeinTable(C.HauntedWoodlands).includes('ore:moonstone'));
-  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 52; the owner: "FULL ORE TABLE"): a dungeon nobody has vouched for
+  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 53; the owner: "FULL ORE TABLE"): a dungeon nobody has vouched for
   // draws the deep veins' WHOLE table - it was held to tier 3, Silver - and never its climate's Moonstone, which waits on
   // the witnesses; where the climate adds no ore the draw is the confirmed dungeon's, vein for vein
   const unTiers = new Set(), unMats = new Set();
@@ -230,7 +230,7 @@ test('PROF2 law: smelting (PROF0 4.1) - two of a raw metal an ingot, Steel and B
     ['ingot:adamantium', 'ingot:adamantium', '2 ore:adamantium'],
     ['ingot:ebony', 'ingot:ebony', '2 ore:ebony'],
     ['ingot:orichalcum', 'ingot:orichalcum', '2 ore:orichalcum'],
-    ['ingot:daedric', 'ingot:daedric', '1 ingot:ebony + 1 part:daedra-heart'],   // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 52): PROF0 4.1's recipe, built
+    ['ingot:daedric', 'ingot:daedric', '1 ingot:ebony + 1 part:daedra-heart'],   // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 53): PROF0 4.1's recipe, built
   ]);
   assert.deepEqual([smeltRecipe('ingot:daedric').embers, smeltRecipe('ingot:daedric').inputs[1].catalyst], [1, true], 'PIN MOVED (DAEDRIC-SMELT): its Sigil Stone the account\'s ember, its heart a catalyst - where it waited on both');
   assert.deepEqual([SMELT_MAX, FORGE_FEE], [100, 50]);

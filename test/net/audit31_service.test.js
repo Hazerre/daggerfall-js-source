@@ -385,7 +385,7 @@ test('AUDIT 31 L2: a piece of a material nothing yields yet is never commissione
   await s.registered('Silverthorn');
   const pia = await s.registered('Pia');
   s.seedMarks(pia, 10_000);
-  // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 52): the Daedric Longsword was refused `commission-unyielded` - the
+  // PIN MOVED (DAEDRIC-SMELT, Professions-Arc.md section 53): the Daedric Longsword was refused `commission-unyielded` - the
   // forge smelts its ingot now, and nothing waits on a yield (UNYIELDED stands empty; the heart is the loose door's)
   const r = await s.commission(pia, 'Silverthorn', { recipe: 'longsword:daedric' });
   assert.equal(r.status, 200, JSON.stringify(r.body));

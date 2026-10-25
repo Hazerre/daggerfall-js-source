@@ -65,7 +65,7 @@ const DAY = utcDayOfMs(NOON_MS);
 /** Nothing of any kind within 50 m of here. */
 const CLEARING = Object.freeze([400, 0, 400]);
 /** The dungeon of 29h's report: nobody confirmed it, its first vein Silver, tier 3 (VEIN-NEED's). PIN MOVED (DEEP-OPEN,
- *  Professions-Arc.md section 52): such a dungeon draws its whole deep table now - every vein was its least, Silver - so
+ *  Professions-Arc.md section 53): such a dungeon draws its whole deep table now - every vein was its least, Silver - so
  *  it is the first from 88 whose first vein is the report's. */
 const DUNGEON = (() => {
   for (let id = 88; id < 4000; id++) if (dungeonVeins({ dungeon: id, day: DAY, climate: WOODS, confirmed: false })[0]?.material === 'metal:silver') return id;

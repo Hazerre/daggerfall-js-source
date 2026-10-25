@@ -226,7 +226,7 @@ export function spendStones(items, price) {
 }
 
 /**
- * DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): THE PACK'S HALF OF A WORK THAT SPENDS EMBERS - the
+ * DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): THE PACK'S HALF OF A WORK THAT SPENDS EMBERS - the
  * Daedric smelt's (net/professionLaw.js workEmbers) - on the insignia's own law (insigniaSale): `held()` the unlocked
  * embers the pack (`entity()`'s items) holds, `take(n)` n of them out, all of them or none (spendStones), with the
  * `back` that puts them back as one stack (the service refused the work, or its answer never came - net/profBook.js

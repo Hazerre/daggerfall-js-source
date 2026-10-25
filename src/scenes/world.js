@@ -2220,7 +2220,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  pack, the home's things, the purse or the Bank's accounts, on the service's answer - asks ONE checkpoint on the next
    *  task, as a trade saves at once; the checkpoint (onlineCheckpoint) is handed in once it is built (REALM P0.5). */
   const saveSoon = createSaveSoon();
-  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 52): AND THE BOOK'S HANDS ON THE PACK'S DEADLANDS EMBERS - the
+  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): AND THE BOOK'S HANDS ON THE PACK'S DEADLANDS EMBERS - the
   // pack's half of the Daedric smelt (systems/sigil/sigilBroker.js emberHands, the Broker's own law), each take saved
   carryHands.embers = emberHands(playerEntity, saveSoon.changed);
   /** BAG1: a deposit whose answer did not come - its goods stay out of the bag until the counting-house answers.

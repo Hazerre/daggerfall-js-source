@@ -31,7 +31,7 @@ const memStorage = () => { const m = new Map(); return { getItem: (k) => m.get(k
 const WOODS = 231, GLENUMBRA = 59;
 const NOON = 20500 * 86_400 + 43_200;
 /** A dungeon nobody has confirmed whose first vein is Silver, tier 3 (PROF0 23), as the report's. PIN MOVED (DEEP-OPEN,
- *  Professions-Arc.md section 52): such a dungeon draws its whole deep table now - every vein was Silver there, and 88's
+ *  Professions-Arc.md section 53): such a dungeon draws its whole deep table now - every vein was Silver there, and 88's
  *  first is no longer - so the dungeon is the first from 88 whose first vein the report's is. */
 const DUNGEON = (() => {
   for (let id = 88; id < 4000; id++) if (dungeonVeins({ dungeon: id, day: utcDayOfMs(NOON * 1000), climate: WOODS, confirmed: false })[0]?.material === 'metal:silver') return id;

@@ -91,7 +91,7 @@ export const CRAFT_GUILDS = Object.freeze({
 export const WRIT_POTIONS = Object.freeze(POTIONS.filter((p) => brewFirstPays(p)));
 /** The Repair Kits a writ may ask - every metal's (recipeLaw `kit:<metal>`) that can be made: AUDIT CRAFT-WRITS E4 - never
  *  one of a metal nothing yields (marketLaw UNYIELDED), a writ no smith could fill. DAEDRIC-SMELT (Professions-Arc.md
- *  section 52): nor one of a metal only the ember makes (professionLaw EMBER_MADE, the Daedric ingot - smelted now, where
+ *  section 53): nor one of a metal only the ember makes (professionLaw EMBER_MADE, the Daedric ingot - smelted now, where
  *  E4 found it unmade): a writ pays its inputs' worth (costOf), and the ember spent is the account's purse, no Stores good
  *  it could price - so the Fighters Guild asks the Daedric kit of no one, as before. */
 export const WRIT_KITS = Object.freeze(RECIPES.filter((r) => r.product === 'kit' && !r.inputs.some((i) => UNYIELDED.includes(i.key) || EMBER_MADE.includes(i.key))));

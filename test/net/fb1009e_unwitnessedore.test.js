@@ -45,7 +45,7 @@ test('UNWITNESSED-ORE law: a vein on ground nobody has vouched for is held to ti
 });
 
 test('UNWITNESSED-ORE law: the one cap is the surface\'s alone - DEEP-OPEN: an unconfirmed deep vein draws its whole table, where it was Silver; the herbs and the trees keep theirs (2); the Court asks what the ground stands', () => {
-  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 52): the deep vein was held to the cap - Silver - in every dungeon
+  // PIN MOVED (DEEP-OPEN, Professions-Arc.md section 53): the deep vein was held to the cap - Silver - in every dungeon
   // nobody had vouched for, and Dwarven Scrap stood in none; a Mountain dungeon's draw is the confirmed one's now
   for (let id = 1; id < 60; id++) assert.deepEqual(dungeonVeins({ dungeon: id, day: DAY, climate: C.Mountain, confirmed: false }), dungeonVeins({ dungeon: id, day: DAY, climate: C.Mountain, confirmed: true }));
   assert.ok([...Array(60).keys()].some((id) => dungeonVeins({ dungeon: id + 1, day: DAY, climate: C.Mountain, confirmed: false }).some((v) => v.tier > UNCONFIRMED_VEIN_TIER)), 'past the surface\'s cap');

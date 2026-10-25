@@ -28,7 +28,7 @@ test('AUDIT 31 L2: a listable piece of a material nothing yields yet is never co
   // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): and every jewel of a graded gem - the loose door's alone, so its piece fills
   // no Drakes commission (32 gems in twelve gemmed pieces and bases: 384). PIN MOVED (AUDIT-SEATS): the sieges' Spoils
   // yield the Warforged ingot (26 pieces) and Standard-bearer's Silk (76 garments) now. PIN MOVED (DAEDRIC-SMELT,
-  // Professions-Arc.md section 52): the forge smelts the Daedric ingot - its 27 pieces no longer wait
+  // Professions-Arc.md section 53): the forge smelts the Daedric ingot - its 27 pieces no longer wait
   assert.equal(unmade.length, 384);
   assert.deepEqual(unmade.filter((r) => r.kind !== 'jewel'), [], 'no piece of a metal waits');
   assert.ok(unmade.every((r) => looseOnly(r.gem)) && unmade.length === 384);

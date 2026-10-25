@@ -286,7 +286,7 @@ export const medianText = (m) => (m == null ? '-' : Number.isInteger(m) ? String
 
 /** AUDIT 30 L7: the materials nothing yields yet - an order for one could only hold its Marks for a week. PROF7: Hunting
  *  yields the Bear Hide now; AUDIT-SEATS: a siege's Spoils (SEAT2a, townSeatLaw.js SIEGE_SPOILS) yield the Warforged
- *  Steel Ingot and Standard-bearer's Silk now. DAEDRIC-SMELT (Professions-Arc.md section 52): the forge smelts the Daedric
+ *  Steel Ingot and Standard-bearer's Silk now. DAEDRIC-SMELT (Professions-Arc.md section 53): the forge smelts the Daedric
  *  Ingot now (professionLaw.js SMELT_RECIPES), so nothing waits on a yield today. Its heart is loot's and the Gate's,
  *  and no door of the service counts one - it is the loose door's, as CLOTH-GEMS' graded gems are (professionLaw.js
  *  LOOSE_ONLY_KEYS: no catalogue, order, listing, writ or commission). The guards that read this list stand for the next. */

@@ -294,7 +294,7 @@ export function specsAt(row, nowS) {   // CRAFT3: a merged craft's track stands 
 /** AUDIT 29 A5: the veins an account may work a UTC day in dungeons nobody has vouched for - one dungeon's most. A
  *  dungeon's id is the client's word, and an unconfirmed dungeon's least (Silver, tier 3, at any hour) was worth more
  *  than any unconfirmed pixel; a confirmed dungeon is bounded by its own veins (1-4 a day, each once a character).
- *  DEEP-OPEN (Professions-Arc.md section 52; the owner: "FULL ORE TABLE"): such a dungeon draws its whole deep table now
+ *  DEEP-OPEN (Professions-Arc.md section 53; the owner: "FULL ORE TABLE"): such a dungeon draws its whole deep table now
  *  (nodeLaw.js dungeonVein - all but the climate's own Moonstone), and these four are the whole of the bound - the trade
  *  the owner accepted: a modified client that invents dungeon ids mines four full-table deep veins a day, no more. */
 export const DEEP_UNCONFIRMED_PER_DAY = 4;
@@ -476,7 +476,7 @@ export const GRADED_GEMS = Object.freeze(GEM_ROW_GRADES.flatMap((grade) => GEM_I
   name: GEM_NAMES[gemId(kind, grade)],
 }))));
 /**
- * DAEDRIC-SMELT (Professions-Arc.md section 52; the owner: "the heart may come FROM LOOT OR THE GATE"): DFU'S DAEDRA'S
+ * DAEDRIC-SMELT (Professions-Arc.md section 53; the owner: "the heart may come FROM LOOT OR THE GATE"): DFU'S DAEDRA'S
  * HEART as the Stores keep it - its own ingredient (CreatureIngredients1 53, 500 gold: itemTemplates.json), at its price's
  * tier as a body's part is (6) - the Daedric Ingot's heart (PROF0 4.1). No door of the service counts one: no body is
  * skinned of it and no counter sells it. It enters the Stores only as a station's loose unit (bagLaw.js looseOrder - the
@@ -488,7 +488,7 @@ export const GRADED_GEMS = Object.freeze(GEM_ROW_GRADES.flatMap((grade) => GEM_I
  */
 export const DAEDRA_HEART = dfu('part:daedra-heart', 'hides', gemTierOfPrice(500), 'CreatureIngredients1', 53);
 /** CLOTH-GEMS: the materials only the loose door brings in - the graded gems' keys. DAEDRIC-SMELT (Professions-Arc.md
- *  section 52): and the Daedra's Heart - no door of the service counts one either. */
+ *  section 53): and the Daedra's Heart - no door of the service counts one either. */
 export const LOOSE_ONLY_KEYS = Object.freeze([...GRADED_GEMS, DAEDRA_HEART].map((g) => g.key));
 export const looseOnly = (key) => LOOSE_ONLY_KEYS.includes(key);
 /** CLOTH-GEMS: a gem's grade by its material key - 'chipped' to 'perfect' for the graded rows, 'plain' for DFU's eight and
@@ -807,6 +807,32 @@ export const APOTHECARY_STOCK = Object.freeze(REAGENTS.map((r) => Object.freeze(
  *  the character's own cloth pays, the counter's (bought) never does. The smith's stock is not among them: every one of
  *  its goods is gathered too. A counter that sells what nothing gathers adds its goods here. */
 export const COUNTER_ONLY = Object.freeze([LINEN.key, WOOL.key, ...REAGENTS.map((r) => r.key)]);   // PROF12: the Apothecaries' sixteen, never gathered
+/** PROF12 (Professions-Arc 37): the Stores' rows that are DFU ingredients, by template - the metals, the gems, the sea's
+ *  Pearl, a body's parts and the Apothecaries' sixteen (an herb is its group's - PLANT_GROUP_TEMPLATES). FIRST-BUDGET
+ *  (Professions-Arc 52) moved these three here from alchemyLaw.js, which re-exports them: the Stores' keys are this law's,
+ *  and recipeLaw.js reads them to count a brew's first-makes - it cannot import alchemyLaw.js, which imports it. */
+const DFU_ROWS = new Map([...METALS, ...GEMS, PEARL, ...PARTS, ...REAGENTS].map((m) => [m.templateIndex, m]));
+/** THE STORES' KEYS A DFU INGREDIENT IS HELD UNDER: an herb its northern and its southern (`p1:16`, `p2:16`) where its
+ *  plant grows in both of DFU's groups, every other ingredient its one row's. Empty for a template the Stores never hold. */
+export function ingredientKeys(templateIndex) {
+  const herbs = ['p1', 'p2'].filter((g) => PLANT_GROUP_TEMPLATES[g].includes(templateIndex)).map((g) => `${g}:${templateIndex}`);
+  if (herbs.length) return herbs;
+  const row = DFU_ROWS.get(templateIndex);
+  return row ? [row.key] : [];
+}
+/** POTION-DOOR (Professions-Arc 52): every Stores key that holds a DFU ingredient - each group's herbs, then the rows -
+ *  the keys the potion maker lists at an alchemy station (scenes/potionMakerHost.js). */
+export const INGREDIENT_KEYS = Object.freeze([
+  ...['p1', 'p2'].flatMap((g) => PLANT_GROUP_TEMPLATES[/** @type {'p1'|'p2'} */ (g)].map((t) => `${g}:${t}`)), ...[...DFU_ROWS.values()].map((m) => m.key),
+]);
+/** The DFU template a Stores key holds (an herb's, a metal's, a gem's, a part's, a reagent's), or null. */
+export function keyTemplate(key) {
+  if (typeof key !== 'string') return null;
+  const m = /^(p1|p2):(0|[1-9]\d{0,2})$/.exec(key);
+  if (m) return PLANT_GROUP_TEMPLATES[m[1]].includes(Number(m[2])) ? Number(m[2]) : null;
+  for (const row of DFU_ROWS.values()) if (row.key === key) return row.templateIndex;
+  return null;
+}
 /** Every counter's goods. The service cannot see a counter (as it cannot see the forge): it sells any of them wherever
  *  it is asked, and the client asks at the counter's shop - a lie buys the same goods at the same price. */
 export const STOCKS = Object.freeze([...SMITH_STOCK, ...FURNISHER_STOCK, ...WEAVERS_STOCK, ...APOTHECARY_STOCK]);   // PROF12: the Apothecaries'
@@ -976,7 +1002,7 @@ const recipe = (id, out, inputs, { station = 'forge', per = 1, more = null, xp =
 const QUARTERMASTER = Object.freeze({ profession: 'smithing', spec: 'quartermaster', per: 2 });
 const ingot = (id, inputs, opts = {}) => recipe(id, id, inputs, { more: QUARTERMASTER, ...opts });
 /**
- * DAEDRIC-SMELT (Professions-Arc.md section 52; PROF0 4.1: "Ebony Ingot + Daedra's Heart (DFU 53) + a Sigil Stone (570)
+ * DAEDRIC-SMELT (Professions-Arc.md section 53; PROF0 4.1: "Ebony Ingot + Daedra's Heart (DFU 53) + a Sigil Stone (570)
  * ... smelted only - the Oblivion Gate's gift"): THE DEADLANDS EMBERS A UNIT OF THE DAEDRIC SMELT SPENDS - the Sigil
  * Stone's name since WB12a (systems/gate/gateSpoils.js SIGIL_STONE). Spent as the Sigil Broker spends them: out of the
  * account's purse on the service, in the smelt's own decision (server-account/src/accounts.js insigniaPurse - the gates'
@@ -1052,7 +1078,8 @@ const QUARRYMAN = Object.freeze({ profession: 'masonry', spec: 'quarryman', per:
 /**
  * A MASON'S WORK (PROF11): the forge's work's shape at the mason's bench (`station: 'mason'`), raising Masonry - and
  * unlike every other work, a CRAFT's law: `tier` the rank it asks (TIER_RANKS - `rank`, read by workOpen), its XP the
- * craft's (recipeLaw masonXp: 20 a tier a unit, +500 the first, 3.2) and its act the chisel (`act`, 9.4). DECIDED: the
+ * craft's (recipeLaw masonXp: 20 a tier a unit, and the first Building's first-make share - workFirstXp,
+ * FIRST-BUDGET; 3.2's +500 until then) and its act the chisel (`act`, 9.4). DECIDED: the
  * cut's tier is its stone's - Rough Stone's 1, as a smith's recipe is its ingot's and a carpenter's its wood's (PROF3,
  * PROF4), so a Novice mason has work at rank 0 as every other craft does; Mortar's its own 2 (4.5), at rank 10.
  */
@@ -1092,7 +1119,7 @@ export const workSpecOk = (r, specs) => !r?.spec || specs?.[r.spec.rank] === r.s
  *  transmutations - by its id. */
 export const WORK_RECIPES = Object.freeze([...SMELT_RECIPES, ...BURN_RECIPES, ...SAW_RECIPES, ...CURE_RECIPES, ...WEAVE_RECIPES, ...SPIN_RECIPES, ...MASON_RECIPES, ...TRANSMUTE_RECIPES]);   // CLOTH-GEMS: the loom's Linen and Wool
 export const smeltRecipe = (id) => WORK_RECIPES.find((r) => r.id === id) ?? null;
-/** DAEDRIC-SMELT (Professions-Arc.md section 52): THE MATERIALS ONLY A WORK THAT SPENDS EMBERS MAKES - the Daedric Ingot.
+/** DAEDRIC-SMELT (Professions-Arc.md section 53): THE MATERIALS ONLY A WORK THAT SPENDS EMBERS MAKES - the Daedric Ingot.
  *  Reachable, so the market lists it and a buyer may commission its pieces; never a guild's ask (craftWritLaw.js
  *  WRIT_KITS: a writ pays its inputs' worth, and the ember is the account's purse, no Stores good) nor a chain's
  *  (chainLaw.js chainWorkOk: the player's own press at the forge spends it). */

@@ -23,7 +23,7 @@
 //   bench (professionLaw WORK_RECIPES) - never a transmutation: that
 //   is a Transmuter's choice of what to spend, and its ladder trades
 //   a metal for another the craft may also want. DAEDRIC-SMELT
-//   (Professions-Arc.md section 52): nor a work that spends Deadlands
+//   (Professions-Arc.md section 53): nor a work that spends Deadlands
 //   Embers (the Daedric smelt's, professionLaw workEmbers) - the gate's
 //   currency, the Broker's too, spent by the player's own press at the
 //   forge, never by a craft on its way to the anvil.
