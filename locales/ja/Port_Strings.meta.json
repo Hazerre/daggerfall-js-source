@@ -11719,6 +11719,21 @@
   "tr": "fb3a3ef67179",
   "by": "claude-in-session"
  },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "8cceee076c5d",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "318634cd10de",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "fe54b033ec38",
+  "by": "claude-in-session"
+ },
  "prof.page.act.strike": {
   "en": "f9ae58aa354c",
   "tr": "7944b4cc6625",

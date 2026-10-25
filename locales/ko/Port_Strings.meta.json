@@ -25019,6 +25019,21 @@
   "tr": "70cbd6c8047f",
   "by": "claude-in-session"
  },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "0423f8a33f4f",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "ff80a2336086",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "52932d62326f",
+  "by": "claude-in-session"
+ },
  "post.claimAll": {
   "en": "aa103d36fc93",
   "tr": "da0574688e27",

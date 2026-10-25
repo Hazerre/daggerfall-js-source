@@ -3374,6 +3374,21 @@
   "tr": "9e6ecd59558f",
   "by": "claude-in-session"
  },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "cbc11b6696fb",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "b846ad027a06",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "e056191bb7af",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "5ecde2fceb82",

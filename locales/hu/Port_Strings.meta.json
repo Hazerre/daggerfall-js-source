@@ -12384,6 +12384,21 @@
   "tr": "5085b5965bd3",
   "by": "claude-in-session"
  },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "c841f59c6ef0",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "90d6b76837d5",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "3e462ced8afc",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "d2519b46d471",

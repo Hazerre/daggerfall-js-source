@@ -10279,6 +10279,21 @@
   "tr": "afdea9bc0ae6",
   "by": "claude-in-session"
  },
+ "portal.buy.ask": {
+  "en": "da8ce194bdac",
+  "tr": "0e3c2f5218f4",
+  "by": "claude-in-session"
+ },
+ "portal.buy.bought": {
+  "en": "18df77b041d7",
+  "tr": "92fd09dc62be",
+  "by": "claude-in-session"
+ },
+ "portal.buy.full": {
+  "en": "1e5fd5bbf70a",
+  "tr": "7ba358f57a1e",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "6da8216fa7e6",
