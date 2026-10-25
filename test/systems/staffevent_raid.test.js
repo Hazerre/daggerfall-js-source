@@ -246,6 +246,14 @@ test('BOSS-CLEAR: Spawn mini boss now is at once, monsters standing or not; the 
   assert.equal(frame(0.1), 'boss');
 });
 
+test('BOSS-UNSHAKEN (mob 2026-10-25: "he got stun locked lets stop him from getting stunned"): a mini boss\'s wind-up holds under any blow, an overreach too; its kind\'s takes no shove', async () => {
+  const { windupStruck } = await import('../../src/ai/tactics.js');
+  const ai = { _tac: { blow: { guard: 'plain', poise: 1, taken: 0 } } };
+  assert.equal(windupStruck(ai, { staffBoss: { size: 2 } }, 1, 999), null, 'no wind-up open: nothing to break, never a stagger');
+  assert.match(rd('src/ai/tactics.js'), /if \(ent\?\.staffBoss\) return overreachOpen\(ai\) \|\| windupHolds\(ai\) \? 'hold' : null;/);
+  assert.match(rd('src/scenes/exteriorFoes.js'), /if \(knockDir && !f\.entity\?\.staffBoss && weaponKnockbackApplies\(/, 'no shove, so no Hurt: the boss is never stun-locked');
+});
+
 test('PACK-SPREAD (mob 2026-10-25: "evenly swap them between all player in a city"): each pack led from around the next player in the town in turn - me, then each peer in its rect', async () => {
   const { at, log, h } = rig();
   restoreRaidSaveData({ lastSelectedDay: DAY, raids: [] });
