@@ -29569,6 +29569,21 @@
   "tr": "126fc4e6dfb1",
   "by": "claude-in-session"
  },
+ "realm.stranded": {
+  "en": "0c41402dad0b",
+  "tr": "cc41d9f7120b",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.reachedAgain": {
+  "en": "353bb0bc3f8c",
+  "tr": "f3e97e18688b",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.warning": {
+  "en": "e500f6e7323b",
+  "tr": "574b324d60fc",
+  "by": "claude-in-session"
+ },
  "reforge.imbue.ask": {
   "en": "3b4d524d18db",
   "tr": "172a8ac04871",

@@ -861,7 +861,7 @@ import { GROUP_ROLL_RADIUS } from '../systems/campEncounters.js';   // PSCALE1: 
 import {
   realmIo, openRealmBoot, createRealmSession, realmSummaryOf, setRealmNotice, realmCreate, realmPut, realmBootSearch, realmRefusalText,
   sayRealmSave, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, realmDoorShut,
-  REALM_RESTORED_TEXT, realmSaveWithHeld, realmList, realmUnions,
+  REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList, realmUnions,
   realmFetch,   // PERMADEATH-HOUSES: a fallen member's record read, for their home's cupboards
 } from '../systems/realmSaves.js';   // REALM P1.3: an online character is the realm's - joined, loaded and checkpointed through the service
 import { createRealmLine } from '../systems/legacy/realmLine.js';   // LEGACY7: online, Project Legacy's lines are the realm's
@@ -931,7 +931,8 @@ import { allyCastSpell, allyCastable, strangerCastable, allyReachFor, allyCastTa
 import { composePartyFx } from '../net/partyBuffs.js';   // PARTY-BUFFS: my effects on the party pose   // ALLY-CAST: a beneficial spell at a party mate; SPELL-GIFT: and the stranger's list
 import { stampItemIds, tradeHeldNotice } from '../systems/item/itemIds.js';   // INT4: a valuable piece's id, minted at a realm checkpoint; INT3: the hold, said
 import { wireRealmHolds } from './realmHoldHost.js';   // INT3 + AUTO-HOLD: the hold and the locked pieces, said to the player
-import { checkpointAllowed, checkpointDue, checkpointedTradePack, createSaveSoon } from '../systems/online/onlineCheckpoint.js';   // REALM P0.5: the character saved as it plays online; PROF-SAVE: and at once after a professions act
+import { checkpointAllowed, checkpointWhenDue, checkpointedTradePack, createSaveSoon } from '../systems/online/onlineCheckpoint.js';   // REALM P0.5: the character saved as it plays online; PROF-SAVE: and at once after a professions act
+import { watchRealmUnsaved } from '../systems/online/realmUnsavedNotice.js';   // the player told while their saves do not reach the realm
 import { createTradeManager, TRADE_RANGE_M, inTradeRange, tradeDistance } from '../net/tradeSession.js';   // TRADE1: the player-to-player trade's state machine (pure)
 import { createTradePack, tradeRefusal, packTradeRefusal, createMarketGoods } from '../systems/tradePack.js';   // TRADE1: the trade's door into the real pack; PROF5: what may not be sold; MARKET-ANY: the pack's side of a piece from the pack
 import { isLocked } from '../systems/item/itemLock.js';   // PROF5: a locked piece is not listed
@@ -1282,6 +1283,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  checkpoint (the composers' sink, scenes/shared.js realmSaveSink), and its end - another tab joined it, it was
    *  deleted, the account signed out - takes the player to the door with the reason. */
   const realmSession = realmBoot ? createRealmSession({ io: realmIoNow(), id: params.get('realm'), lease: realmBoot.lease, seq: realmBoot.seq, gzip: realmBoot.gzip, onLost: (why) => realmLost(why) }) : null;   // REALM-GZIP: packed when the join said so
+  if (realmSession) watchRealmUnsaved(realmSession, { say: (text) => townTalk.say(text) });   // the session's own clock, Date.now
   // LEGACY7 (bible/06-Systems/Legacy-Arc.md section 9): ONLINE, PROJECT LEGACY'S LINES ARE THE REALM'S - read into the
   // device's store before any save is restored (a death another device wrote stands here), written after each of the
   // device's writes; and the account's living realm characters, the question "is there a save of this member?" online
@@ -17894,8 +17896,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  makes to the pack (checkpointedTradePack). Refused where the exit save is, and while a duel is in play. Answers
    *  whether it wrote. */
   let _checkpointAt = -Infinity;
+  /** The checkpoint gate as it stands now - its inputs built once, so the periodic checkpoint and the zone's death
+   *  checkpoint below ask the same question and a new input reaches both (Home.md, THE ONE CONSTRUCTION SEAM). */
+  const checkpointGateOpen = () => checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity), realm: !!realmSession });
   const onlineCheckpoint = ({ sink = null } = {}) => {   // AUDIT PRE-MERGE 1003 O10: `sink` a realm save's sink of the caller's (onlineCheckpointLanded)
-    if (!checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity) })) return false;   // AUDIT LIVED1b S1
+    if (!checkpointGateOpen()) return false;   // AUDIT LIVED1b S1
     _checkpointAt = performance.now();
     try {
       // REALM P1.3: a realm character's checkpoint is ONE, the service's - the composer's sink sends it, no slot is written
@@ -23139,7 +23144,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  come back with them (a copy in the pack and on the ground). The character is saved AS IT WILL RISE: one health,
    *  where it fell, without what it dropped. Answers whether a save was handed over. */
   const wildDeathCheckpoint = () => {
-    const allowed = checkpointAllowed({ online: !!online, spawned: playerSpawned, seatOut: seatOut(), duel: !!duelMgr?.duel, walkWaiting: ownWalkWaiting(playerEntity) });   // the periodic checkpoint's own gate
+    const allowed = checkpointGateOpen();   // the periodic checkpoint's own gate
     if (!allowed) return false;
     const hp = playerEntity.health;
     if (!(hp > 0)) playerEntity.health = 1;
@@ -28741,6 +28746,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         chatNotice(SEAT_NOTICE);
         setMidScreenText(SEAT_MID_TEXT);
       }
+      // out of the seat a realm character still saves as it plays: the service's lease, not the seat, decides whose save lands
+      checkpointWhenDue(now, _checkpointAt, realmSession, () => onlineCheckpoint());
       peerBodies.destroy(); remotePlayers.sync([], onlineToScene); peerRiders?.destroy(); peerWalkers?.destroy(); peerCandlesFrame([], dt); return;
     }
     // AUDIT ONLINE D12: the dead broadcast nothing and see no one
@@ -28776,7 +28783,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       peerBodies.destroy(); remotePlayers.sync([], onlineToScene); peerRiders?.destroy(); peerWalkers?.destroy(); peerCandlesFrame([], dt); return;   // PEERLIGHT2: and no candle hangs over the dead; AUDIT RIDE: and no rider stands frozen over it either
     }   // AUDIT WORLD B6: the dungeon's and the building's death screens stand in the mode's slot   // AUDIT MWBODY B7: and no body stands frozen over the death screen
     _rezSeen = null;   // AUDIT CONTRIB A6: alive - the next death takes its own snapshot of what the party's poses say
-    if (checkpointDue(now, _checkpointAt)) { if (realmSession?.idle) realmSession.idle(() => onlineCheckpoint()); else onlineCheckpoint(); }   // SCALE2b: the periodic one may be answered by the save the service holds (realmSaves.js idle)   // REALM P0.5: every ONLINE_CHECKPOINT_MS (five real minutes, CHECKPOINT-5), alive and in the seat (the first such frame persists the join's call-in)
+    checkpointWhenDue(now, _checkpointAt, realmSession, () => onlineCheckpoint());   // SCALE2b: the periodic one may be answered by the save the service holds (realmSaves.js idle)   // REALM P0.5: every ONLINE_CHECKPOINT_MS (five real minutes, CHECKPOINT-5), alive and in the seat (the first such frame persists the join's call-in)
     if (instanceDoor.refused(online)) modes?.forceExitToExterior?.();   // INSTANCES (the audit): alive, an instance's door shut on me (not of its owner's party - a kick, a lapse) - out, as the realm's door does, never left inside it alone
     const mode = modes?.mode ?? 'exterior';   // audit24_wave37: guarded on the OBJECT above its own declaration (the frame runs after it)
     const cabin = modes?.sailingCabin;
@@ -30275,6 +30282,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   _bootLoaded = true; if (testRoomOffline) townTalk.say(TEST_ROOM_OFFLINE_TEXT);   // HOTFIX 1003d: the boot's character loaded (moveArenaHomesOnline waits for it)   // AUDIT SET D4: said once the world stands, the character loaded
   if (realmRefused) townTalk.say(REALM_OFFLINE_TEXT);   // REALM P1.3: an online boot with no realm character plays offline, and says so
   if (realmBoot?.restored && realmBoot.missed) townTalk.say(REALM_RESTORED_TEXT);   // RESCUE-SAVE: the device's copy of a save the realm refused or never answered, played on (AUDIT A8: an ordinary close's, silently)
+  if (realmBoot?.stranded) townTalk.say(realmStrandedText());   // STRANDED: a copy behind the record, set aside rather than deleted (realmSaves.js)
   if (releveled) townTalk.say(LEVELING_CROSS_LINE.switched);   // LEVEL-ONLINE-3: the switch, said once the world stands
   for (const line of reclaimLines(realmGiven)) townTalk.say(line);   // RESTORE: what came back, said once the world stands
   for (const line of loanAmnestyLines(loansForgiven)) townTalk.say(line);   // LOAN-AMNESTY: said once the world stands
