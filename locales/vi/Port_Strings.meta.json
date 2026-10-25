@@ -2864,6 +2864,61 @@
   "tr": "22b384d66095",
   "by": "claude-in-session"
  },
+ "ql.board.head": {
+  "en": "05d05c6f6a06",
+  "tr": "0c07b9aa9f72",
+  "by": "claude-in-session"
+ },
+ "ql.board.take": {
+  "en": "c689fc7624f3",
+  "tr": "f7b357518e57",
+  "by": "claude-in-session"
+ },
+ "ql.board.takeTitle": {
+  "en": "0bdd5f2c3d5d",
+  "tr": "4404e6e8cd8b",
+  "by": "claude-in-session"
+ },
+ "ql.journal.lineOffered": {
+  "en": "07bf16996609",
+  "tr": "662ef84a7c46",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postBoard": {
+  "en": "b48aa46cc5ca",
+  "tr": "75e4fc2450e4",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postMagery": {
+  "en": "0f27bb922998",
+  "tr": "29e32df00b1e",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTavern": {
+  "en": "afef99026036",
+  "tr": "b8aeca7348b3",
+  "by": "claude-in-session"
+ },
+ "ql.journal.postTemple": {
+  "en": "15f1bcb76f3d",
+  "tr": "a8a6f7838197",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUp": {
+  "en": "c1053d9f1913",
+  "tr": "f7b357518e57",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpArmed": {
+  "en": "353746f0aeb1",
+  "tr": "c936e769d8b3",
+  "by": "claude-in-session"
+ },
+ "ql.journal.takeUpTitle": {
+  "en": "52010f457a24",
+  "tr": "3b5f1e708a41",
+  "by": "claude-in-session"
+ },
  "ql.line.skyKetch": {
   "en": "c7f38b5bca74",
   "tr": "8868d327090f",
@@ -2877,6 +2932,21 @@
  "ql.line.skyKetch.lead": {
   "en": "95865c449836",
   "tr": "b572117b0213",
+  "by": "claude-in-session"
+ },
+ "ql.offer.noPlace": {
+  "en": "c58adc7df55a",
+  "tr": "922168ef74cb",
+  "by": "claude-in-session"
+ },
+ "ql.offer.notOnOffer": {
+  "en": "ca30bfe9279d",
+  "tr": "141ade91e7ae",
+  "by": "claude-in-session"
+ },
+ "ql.offer.taken": {
+  "en": "5c2c69a3dd8f",
+  "tr": "9660e4b76c4b",
   "by": "claude-in-session"
  },
  "ql.step.QLSK01": {
