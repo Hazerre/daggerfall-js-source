@@ -94,7 +94,7 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossBusy, staffBossByHand, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
 import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLaw.js';
 import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss } from './eliteFoes.js';   // STAFF-EVENT: its mini boss
@@ -606,9 +606,11 @@ export function raidFrame(dt = 0) {
   // STAFF-EVENT: its mini boss, once the cell calls it - before any raider, and no defenders (staff set the fight)
   if (raid.staff) {
     const fc = staffBossWanted(raid);
-    if (fc >= 0) { raid.bossFc = fc; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    if (fc >= 0 && !staffBossByHand(raid) && !staffFieldClear(raid, h) && !staffClearLong(raid, localNow())) return 'clearing';   // BOSS-CLEAR: the meter's boss once every monster standing is dead
+    if (fc >= 0) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
     const lost = staffBossLost(raid, staffBossStanding(raid, h), localNow());   // BOSS-LOST: stood, then gone without falling
     if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b); return 'boss'; }
+    if (staffBossBusy(raid)) return 'idle';   // BOSS-CLEAR: no monster stood while a boss is due or stands
   }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
   if (!raid.staff && _nextDefenderIn <= 0) {
@@ -835,6 +837,18 @@ function staffPuppetKills(puppets, now) {
 }
 /** The puppets counted as my kills (THE REWARD). */
 let _pupKilled = new WeakSet();
+/** BOSS-CLEAR: one the players cannot reach (in a wall, on a roof) never holds the boss back past STAFF_BOSS_CLEAR_MAX_MS. @param {any} raid @param {number} t */
+function staffClearLong(raid, t) {
+  raid.clearSince ??= t;
+  return t - raid.clearSince >= STAFF_BOSS_CLEAR_MAX_MS;
+}
+export const STAFF_BOSS_CLEAR_MAX_MS = 120000;
+/** BOSS-CLEAR: does no monster of it stand - none of mine, no puppet of another's (its boss aside)? @param {any} raid @param {any} h */
+function staffFieldClear(raid, h) {
+  const key = raidKey(raid);
+  if (liveRaiders(key).length) return false;
+  return !(h.raidPuppets?.() ?? []).some((pup) => pup._pupRaid === key && !pup.dead && !pup.entity?.staffBoss);
+}
 /** BOSS-LOST: does its boss stand anywhere I can see - mine, or a puppet of another's? @param {any} raid @param {any} h */
 function staffBossStanding(raid, h) {
   const key = raidKey(raid);

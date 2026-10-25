@@ -102,6 +102,12 @@ nowhere now - not fallen, not mine, no puppet of it - for `STAFF_BOSS_LOST_MS` (
 gone) is stood again by the one who runs the event, for the same call (`staffEvents.js` `staffBossLost`). The wait lets
 a fallen runner's boss come over first.
 
+BOSS-CLEAR (2026-10-25, mob: "make sure all those mob are dead not spawned befor the bosss"): while a boss is due or
+stands, no monster is stood; the meter's boss waits until every monster of the event standing is dead - mine and the
+puppets of it - or `STAFF_BOSS_CLEAR_MAX_MS` (2 min) for one nobody can reach. Staff's **Spawn mini boss now** stands
+at once (`staffBossByHand`: the book's `fb` past the last I stood). Its line is said once it stands (`bu`), not at its
+call.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the

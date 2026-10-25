@@ -14,11 +14,13 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, clearSince?: number }} StaffRaid
  *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
  *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced;
- *   `bossLostAt` BOSS-LOST's: when its stood boss was first seen standing nowhere.
+ *   `bossLostAt` BOSS-LOST's: when its stood boss was first seen standing nowhere; `handSeen` BOSS-CLEAR's: the book's
+ *   hand calls (`fb`) as of the last boss I stood - one past it is staff's Spawn mini boss now, stood at once; `clearSince`
+ *   when its boss first waited for the field clear (raidingParties.js STAFF_BOSS_CLEAR_MAX_MS).
  */
 
 /** @type {Map<string, StaffRaid>} */
@@ -33,7 +35,7 @@ const ENDED_KEPT = 32;
 const raidOf = (e) => ({
   staff: e, key: staffEventKey(e.id), regionIndex: e.rg, locationIndex: e.loc, locationName: e.nm, px: e.px, py: e.py,
   startMinute: -Infinity, endMinute: Infinity, attackAmount: e.n, type: 9, killed: 0, struck: false, announced: false,
-  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0, fillS: undefined,
+  cleansed: false, routed: false, bossFc: -1, bossUp: 0, bossDown: 0, bossSaid: -1, mine: 0, fillS: undefined, handSeen: e.fb,
 });
 
 const endOne = (/** @type {string} */ id) => {
@@ -109,6 +111,17 @@ export function staffBossWanted(r) {
   return r.bossFc === led.fc ? -1 : led.fc;
 }
 /**
+ * BOSS-CLEAR (mob 2026-10-25: "make sure all those mob are dead not spawned befor the bosss"): is a boss due or standing -
+ * no monster is stood while one is - and is the call due a hand's (staff's Spawn mini boss now, at once) rather than the
+ * meter's (once every monster standing is dead)? @param {StaffRaid} r
+ */
+export function staffBossBusy(r) {
+  const led = _ledgers.get(r.staff.id);
+  return !!led && !!led.bd && !led.bk;
+}
+/** @param {StaffRaid} r */
+export const staffBossByHand = (r) => (r.staff.fb ?? 0) > (r.handSeen ?? 0);
+/**
  * BOSS-LOST (mob 2026-10-25: "boss seems to not spawn every time"): the call whose boss stood but stands nowhere now -
  * not fallen, not mine, no puppet of it - for STAFF_BOSS_LOST_MS, or -1. A jump's sweep, a removal or a runner gone took
  * it, and the cell, told it stood, would never call it again: the one who runs the event stands it again, for the same
@@ -127,7 +140,7 @@ export const STAFF_BOSS_LOST_MS = 8000;
 /** The boss line, once a call, where the player stands in the event: the call whose boss is due, or -1. @param {StaffRaid} r */
 export function staffBossToSay(r) {
   const led = _ledgers.get(r.staff.id);
-  if (!led || !led.bd || r.bossSaid === led.fc) return -1;
+  if (!led || !led.bd || !led.bu || r.bossSaid === led.fc) return -1;   // BOSS-CLEAR: said once it stands, not at its call
   r.bossSaid = led.fc;
   return led.fc;
 }
