@@ -304,6 +304,8 @@ holdings.horse.boons.starving,"Виснажений голодом - не ска
 holdings.wagon.boons.failing,"Розвалюється, але досі котиться на повній швидкості."
 holdings.wagon.boons.rickety,"Розхитаний, але досі котиться на повній швидкості."
 holdings.wagon.boons.sound,"Міцний - тому котиться швидше."
+items.gold.sharedFull,"Більше золота сюди не вміститься. Цим сховищем тут користуються всі, і одна купка золота в ньому вміщує не більше {max, number}."
+items.gold.sharedRoom,"Сюди вміститься ще лише {n, number} золота. Цим сховищем тут користуються всі, і одна купка золота в ньому вміщує не більше {max, number}."
 ketch.arrived,"Небесна шхуна клану Rourken «Mzunthar» стоїть над Daggerfall. Її якірний підйомник чекає в полях за міськими мурами."
 ketch.bar.endsIn,"Шхуна поверне на захід за {left}"
 ketch.bar.felled,"Повалений"

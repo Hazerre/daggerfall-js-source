@@ -43,6 +43,7 @@ import { markDungeonChampions, applyChampion, championTraitFor, CHAMPION_MIN_LEV
 import { ClassFile } from '../../src/formats/classFile.js';   // CHAMP-BASE: a class foe's career, through the real reader
 import { wildPileMore } from '../../src/systems/wild/wildZone.js';
 import { seaPileMore } from '../../src/systems/sea/seaSpoils.js';   // PIN MOVED (SEA-SET): the room's base rolls the deep's Tidemail last (roomLootHost.js)
+import { markRoomCarried } from '../../src/systems/loot/roomCarriedList.js';   // PIN MOVED (GOLD-WIRE): the room block marks the list it composes (roomLootHost.js)
 import { quickLootTake, foldQuickLoot, resetQuickLoot, quickLootWheel } from '../../src/systems/quickLoot.js';
 import { hoverLines } from '../../src/systems/worldHover.js';
 import { asTheRoom, rollingAsTheRoom } from '../../src/systems/online/onlineLane.js';
@@ -183,7 +184,7 @@ function peer(net, { id, level, luck, renown, seed, host, foraging, partners, ch
     onlineRoom: () => true, _wallNow: () => clock.t, respawnDue, validLootList, peerHanded, LOOT_LIST_MAX, LOOT_NEWER_TEXT, ENEMY_BASICS, corpseTextureOf,   // AUDIT DEX A1: the corpse mints read it
     generateLootItems: generateItems, addPileLootExtras, rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons,
     spawnEnemyLoot, wildLootAfter, grantEliteLoot, rollCorpseKit, raiseEnemyDeath, capFoeLoot, rollRoomBonus: (args) => { bonusCalls.push(args); return rollRoomBonus(args); }, applyChampion, championTraitFor, promoteEliteFoe, _retyping: new Set(),   // CHAMP-BASE: the build's champion and elite arms (applyEliteScaling) and the base's
-    wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, withRollerLevel, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
+    wildPileMore, seaPileMore, isDeepPileKey, effectiveLevel, liveStat, asTheRoom, withRollerLevel, markRoomCarried, CLAIM_KEEP_MS, CLAIMS_KEPT_MAX, SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX, sharedClassicMinutes, ...RL,
     eliteLootOpts: () => ({}), searchHeard: () => {}, settleLootFlat: () => {}, _sharedFoe: () => false, fightN: () => 1,
     spawnCorpseNow: async (f) => { f.corpsePos = [...f.ai.feet]; }, renderer: { destroyBillboardBatch: () => {} }, billboardBatches: [], renownFoeRevived: () => {},
     respawnFoe: () => false, camps: { applyOwner: () => {}, activate: () => false }, roomEncounterAsked: () => false, actions: { applyRemote: () => 0 },

@@ -13899,6 +13899,16 @@
   "tr": "946b95b32a92",
   "by": "claude-in-session"
  },
+ "items.gold.sharedFull": {
+  "en": "7eb608a65f56",
+  "tr": "574df080899f",
+  "by": "claude-in-session"
+ },
+ "items.gold.sharedRoom": {
+  "en": "8b7260715010",
+  "tr": "d26148c59370",
+  "by": "claude-in-session"
+ },
  "items.refusal.questTwin": {
   "en": "b58d5ec569b8",
   "tr": "71571c1e929b",

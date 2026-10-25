@@ -1152,6 +1152,8 @@ holdings.horse.boons.starving,"Utsvulten - ingen galopp förrän den ätit. Ge d
 holdings.wagon.boons.failing,"Faller isär, men rullar fortfarande i full fart."
 holdings.wagon.boons.rickety,"Skranglig, men rullar fortfarande i full fart."
 holdings.wagon.boons.sound,"Stadig - därför rullar den snabbare."
+items.gold.sharedFull,"Det får inte plats mer guld här. Alla här delar på den här behållaren, och en hög guld i den rymmer högst {max, number}."
+items.gold.sharedRoom,"Det får bara plats {n, number} guldmynt till här. Alla här delar på den här behållaren, och en hög guld i den rymmer högst {max, number}."
 ketch.arrived,"Himmelsketchen Mzunthar från Rourken håller position över Daggerfall. Hennes ankarhiss väntar på fälten utanför murarna."
 ketch.bar.endsIn,"Ketchen vänder västerut om {left}"
 ketch.bar.felled,"Fälld"

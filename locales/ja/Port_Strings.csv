@@ -1154,6 +1154,8 @@ holdings.horse.boons.starving,"飢餓 - 食べるまで駆けません。餌を�
 holdings.wagon.boons.failing,"壊れかけていますが、まだ全速で進みます。"
 holdings.wagon.boons.rickety,"がたついていますが、まだ全速で進みます。"
 holdings.wagon.boons.sound,"頑丈 - そのぶん速く進みます。"
+items.gold.sharedFull,"ここにはもう金貨が入りません。この入れ物はここにいる全員で共有しており、中の金貨の山ひとつは{max, number}枚までです。"
+items.gold.sharedRoom,"ここにはあと{n, number}枚の金貨しか入りません。この入れ物はここにいる全員で共有しており、中の金貨の山ひとつは{max, number}枚までです。"
 ketch.arrived,"Rourken のスカイケッチ Mzunthar 号がダガーフォールの上空に停泊している。錨リフトが城壁の外の野で待っている。"
 ketch.bar.endsIn,"ケッチが西へ去るまで {left}"
 ketch.bar.felled,"撃破"

@@ -410,6 +410,8 @@ holdings.horse.boons.starving,"Açlıktan bitkin - yiyene kadar dörtnala koşma
 holdings.wagon.boons.failing,"Dağılmak üzere, ama hâlâ tam hızla gider."
 holdings.wagon.boons.rickety,"Köhne, ama hâlâ tam hızla gider."
 holdings.wagon.boons.sound,"Sağlam - bu yüzden daha hızlı gider."
+items.gold.sharedFull,"Buraya daha fazla altın sığmaz. Buradaki herkes bu kabı paylaşıyor ve içindeki bir altın yığını en fazla {max, number} alır."
+items.gold.sharedRoom,"Buraya yalnızca {n, number} altın daha sığar. Buradaki herkes bu kabı paylaşıyor ve içindeki bir altın yığını en fazla {max, number} alır."
 ketch.arrived,"Rourken klanının Gök Gemisi Mzunthar, Daggerfall üzerinde sabit duruyor. Çapa asansörü surların dışındaki tarlalarda bekliyor."
 ketch.bar.endsIn,"Gök Gemisi {left} sonra batıya dönüyor"
 ketch.bar.felled,"Düştü"

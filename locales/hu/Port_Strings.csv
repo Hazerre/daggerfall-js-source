@@ -1152,6 +1152,8 @@ holdings.horse.boons.starving,"Éhezik - nem vágtázik, amíg nem eszik. Etesd 
 holdings.wagon.boons.failing,"Szétesőben, de még teljes tempóban gurul."
 holdings.wagon.boons.rickety,"Rozoga, de még teljes tempóban gurul."
 holdings.wagon.boons.sound,"Szilárd - ezért gyorsabban gurul."
+items.gold.sharedFull,"Ide már nem fér több arany. Ezen a tárolón itt mindenki osztozik, és egy aranykupac benne legfeljebb {max, number} érmét bír el."
+items.gold.sharedRoom,"Ide már csak {n, number} aranyérme fér. Ezen a tárolón itt mindenki osztozik, és egy aranykupac benne legfeljebb {max, number} érmét bír el."
 ketch.arrived,"A Rourken klán égi bárkája, a Mzunthar, Daggerfall fölött vesztegel. A horgonyfelvonója a falakon kívüli mezőkön vár."
 ketch.bar.endsIn,"A Bárka {left} múlva nyugatnak fordul"
 ketch.bar.felled,"Legyőzve"

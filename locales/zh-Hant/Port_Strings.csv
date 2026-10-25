@@ -304,6 +304,8 @@ holdings.horse.boons.starving,"飢腸轆轆 - 進食前無法疾馳。餵餵牠�
 holdings.wagon.boons.failing,"快散架了，但仍全速前行。"
 holdings.wagon.boons.rickety,"搖搖晃晃，但仍全速前行。"
 holdings.wagon.boons.sound,"堅固 - 因此行駛得更快。"
+items.gold.sharedFull,"這裡放不下更多金幣了。這裡的所有人共用這個容器，其中一堆金幣最多 {max, number} 枚。"
+items.gold.sharedRoom,"這裡只能再放 {n, number} 枚金幣。這裡的所有人共用這個容器，其中一堆金幣最多 {max, number} 枚。"
 ketch.arrived,"Rourken 的天空帆船 Mzunthar 號停駐在 Daggerfall 上空。它的錨升降台在城牆外的田野上等候。"
 ketch.bar.endsIn,"天空帆船 {left} 後西去"
 ketch.bar.felled,"已擊倒"

@@ -1524,6 +1524,16 @@
   "tr": "8c6ccf371e82",
   "by": "claude-in-session"
  },
+ "items.gold.sharedFull": {
+  "en": "7eb608a65f56",
+  "tr": "f38b31785799",
+  "by": "claude-in-session"
+ },
+ "items.gold.sharedRoom": {
+  "en": "8b7260715010",
+  "tr": "3988ff3a2393",
+  "by": "claude-in-session"
+ },
  "ketch.arrived": {
   "en": "02f0980285e7",
   "tr": "c739586bc0a9",

@@ -12,6 +12,7 @@ import { isDeepPileKey } from '../systems/rest/restItems.js';
 import { isEquipped, unequipItem } from '../systems/equip.js';
 import { CLAIM_KEEP_MS, CLAIMS_KEPT_MAX } from '../systems/loot/claimLedger.js';
 import { LOOT_LIST_MAX, validLootList } from '../systems/loot/loot.js';
+import { markRoomCarried } from '../systems/loot/roomCarriedList.js';
 import { SEARCH_COOLDOWN_MINUTES, SEARCH_LOOT_MAX } from '../systems/searchables.js';
 import { SEARCH_FOREIGN_PER_OBJECT } from './searchRoom.js';
 import { sharedClassicMinutes } from '../net/wire.js';
@@ -255,6 +256,7 @@ export function createRoomLoot(host) {
     const { list: out, seen } = composeRoomView(base.items, base.full, st, bonus.pieces.filter((_, i) => !spent.has(i)), pending);
     list.length = 0;
     list.push(...out);
+    markRoomCarried(list);   // GOLD-WIRE: a gold drop into it stops at the most one stack rides the room's word in
     bonus.composed = true;
     bonus.list = list;
     _roomComposed.set(canon, { base, list });
