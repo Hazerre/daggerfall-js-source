@@ -131,6 +131,7 @@ export function fakeRoom(key, { now = () => Date.now(), ROOMS = null, poll = 'dr
   const store = new Map();
   const alarm = { at: null };
   const state = {
+    id: key,   // COST-2 part two: the object's id, as fakeRooms' idFromName names it (server/src/cellMoves.js isCellDirectory)
     getWebSockets: () => sockets.slice(),
     acceptWebSocket: (ws) => sockets.push(ws),
     storage: {
