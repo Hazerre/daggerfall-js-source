@@ -7,7 +7,8 @@
 // hosts, which hand it their seams (`deps`, below) and a presentation (scenes/horseCartPool.js) that draws what
 // the machine says and answers its physics. The pure arithmetic is systems/horse/horseCartLaw.js and
 // systems/horse/horseFollow.js; this file is the STATE - the save record and the hundred-odd transient fields - and the
-// mod's ORDER of operations, frame by frame.
+// mod's ORDER of operations, frame by frame. The trailing wagon's cached pose, which a dismount parks from, is
+// systems/horse/trailingPoseCache.js's (STALE-PARK); this file says when it is cached and when it is forgotten.
 //
 // The five modes of the wagon and the five of the horse (horseCartLaw WAGON_MODE / HORSE_MODE) are the whole
 // story: with the player (the classic game), deployed (parked where it was left, a physical thing in the world),
@@ -55,7 +56,7 @@ import {
   isHorseCommandMode, isHorseNamingMode, resolveInteriorEntryMode, isCartInteriorDeployment, shouldDeployIndependentHorseForInterior,
   horseTravelsWithFastTravel, resolveFastTravelDepartureModes, shouldReconcileAfterTravelOptions, clampHorseFollowDistance, clampInteriorWagonAccessDistance,
   isWithinInteriorEntranceDistance, formatHorseSubject, formatHorseAndWagonSubject, horseTargetLabel, HCC_TEXT, pickGround, angleBetween,
-  WAGON_FOLLOW_DISTANCE, DEPLOY_CLEARANCE, HORSE_NAME_MAX, TELEPORT_DISTANCE, DEPLOYED_SPAWN_RETRY_SECONDS, DIRECT_CART_AUDIO_REFRESH_DELAY, HORSE_MENU_MOUNT_DISTANCE, HORSE_WAGON_HITCH_DISTANCE,
+  WAGON_FOLLOW_DISTANCE, DEPLOY_CLEARANCE, HORSE_NAME_MAX, DEPLOYED_SPAWN_RETRY_SECONDS, DIRECT_CART_AUDIO_REFRESH_DELAY, HORSE_MENU_MOUNT_DISTANCE, HORSE_WAGON_HITCH_DISTANCE,
   WAGON_INVENTORY_DISTANCE, DEFAULT_HORSE_FOLLOW_DISTANCE, DEFAULT_INTERIOR_ACCESS_DISTANCE, HORSE_DISMOUNT_REAR_OFFSET,
   HITCHED_HORSE_LOCAL_X, HITCHED_HORSE_LOCAL_Z, ACTIVATION_REACH, WAGON_SAVE_VERSION, TOO_FAR_SECONDS, STATIONARY_PROBE_HEIGHT, STATIONARY_PROBE_DISTANCE,
   GROUND_RETRY_SECONDS, POSE_POSITION_TOLERANCE_SQ, POSE_ANGLE_TOLERANCE_DEG, signedLongitudinalTravel, wheelRotationDegrees, wrapWheelAngle, cargoTier,
@@ -63,6 +64,7 @@ import {
 } from './horseCartLaw.js';
 import { HorseFollowController, WagonHitch, hitchedPoseStep, hitchJumpReach, tryFindGround } from './horseFollow.js';
 import { thrownTo, horseThrownWith } from '../wagon/wagonWarden.js';   // WARDEN1: where a thrown wagon's save goes, and the horse that goes with it   // WAGON-HITCH: the moving wagon on its shafts (the IL's WagonTrail / groundedPoseStep stay in horseFollow.js as the record)
+import { createTrailingPoseCache } from './trailingPoseCache.js';   // STALE-PARK: the trailing wagon's cached pose, which a dismount parks from
 import { yawed } from './horseFollow.js';   // WAGONS2: the bogie's turn
 import { quatLookRotation, quatForward, quatFromBasis, quatRotate, UNITY_QUAT_IDENTITY } from '../../world/quat.js';
 import { noteFirstUse } from '../tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
@@ -287,7 +289,7 @@ export function createHorseCartRuntime(deps) {
   let hitchSeed = null;   // WAGON-HITCH: where a parked or following wagon stood when the team was driven off - the moving one swings from there
   let hitchSeedForward = null;   // WAGONS2 (AUDIT): and the way its body faced - a four-wheeler's bogie driven off at its rest steer
   const horseFollower = new HorseFollowController();
-  let movingWorldHeading = [...V_FORWARD], pendingInteriorHeading = [...V_FORWARD], pendingInteriorHorseHeading = [...V_FORWARD];
+  let pendingInteriorHeading = [...V_FORWARD], pendingInteriorHorseHeading = [...V_FORWARD];
   let pendingInteriorEntranceDistance = Infinity;
   let physicalPersistenceEnabled = true, showTrailingWagon = true, horseFollowDistance = DEFAULT_HORSE_FOLLOW_DISTANCE, avoidCombat = true;
   let interiorWagonAccessDistance = DEFAULT_INTERIOR_ACCESS_DISTANCE, followingTransportFastTravels = true;
@@ -296,8 +298,6 @@ export function createHorseCartRuntime(deps) {
   let wagonVisual = null;   // { pose, wheel, cargoTier, interaction } - the port's stand-in for the Unity object
   let restWheels = null;   // WAGONS2: { angle, angles, steer } - where the last moving wagon's wheels and bogie stood, kept for it parked and driven off again
   let hasLastValidGroundState = false;
-  let movingWorldX = 0, movingWorldZ = 0, hasMovingWorldPose = false;
-  let movingWorldPoseAt = 0;   // STALE-PARK: when the moving pose was cached (now()) - the far-park warning says its age
   let followingWagonFailureLogged = false, nextFollowingWagonSpawnRetryTime = 0, horseRecoveredThisFrame = false;
   let spawnFailureLogged = false, cargoFailureLogged = false;
   // the parked wagon and the standing horse
@@ -327,6 +327,8 @@ export function createHorseCartRuntime(deps) {
   const toWorld = (scenePos) => sceneToWorld(scenePos, gps().scenePosition(), gps().worldX(), gps().worldZ(), ratio());
   const toScene = (wx, wz) => { const p = gps().scenePosition(); const [sx, sz] = worldToScene(wx, wz, gps().worldX(), gps().worldZ(), p, ratio()); return [sx, p[1], sz]; };
   const changed = () => deps.presentation?.onChanged?.();
+  /** STALE-PARK: the trailing wagon's cached pose (systems/horse/trailingPoseCache.js) - cached and forgotten here, parked from there. */
+  const trailingPose = createTrailingPoseCache({ now, log, playerWorld: () => [gps().worldX(), gps().worldZ()], ratio });
 
   // ── properties [IL_452a-IL_4586]
   const horseName = () => normalizeHorseName(wagonState.HorseName);
@@ -511,31 +513,16 @@ export function createHorseCartRuntime(deps) {
     if (deployedHorseMode !== HORSE_MODE.LooseStationary && deployedHorseMode !== HORSE_MODE.FollowingPlayer) { wagonState.HorseWorldX = 0; wagonState.HorseWorldZ = 0; wagonState.HorseHeadingX = 0; wagonState.HorseHeadingZ = 1; }
     wagonState.WagonStabled = false;   // WAGON-STABLED: parked in the world - and its horse with it, unless the horse stays with the player (at the stable still, or ridden)
     if (deployedHorseMode !== HORSE_MODE.WithPlayer) wagonState.HorseStabled = false;
-    clearPendingInteriorState(); hasMovingWorldPose = false; clearMovingPresentation(); destroyDeployedWagonPresentation();
+    clearPendingInteriorState(); trailingPose.forget(); clearMovingPresentation(); destroyDeployedWagonPresentation();
   }
-  /** CaptureBestAvailableDeploymentPose [IL_7820]: the trailing wagon's last cached world pose, else 2.5 m behind the
-   *  player - WAGONS3: a wagon's own setback behind them (deploySetback). */
-  function captureBestAvailableDeploymentPose() {
-    if (hasMovingWorldPose) return { wx: movingWorldX, wz: movingWorldZ, heading: [...movingWorldHeading] };
+  /** CaptureBestAvailableDeploymentPose's second arm [IL_7820] (its first, the cached pose, is trailingPoseCache.js's):
+   *  2.5 m behind the player - WAGONS3: a wagon's own setback behind them (deploySetback). */
+  function deploymentPoseBehindPlayer() {
     const heading = horizontalForward(deps.player.forward());
     const [wx, wz] = toWorld(vsub(playerPosition(), vscale(heading, deploySetback())));
     return { wx, wz, heading };
   }
-  function deployFromBestAvailablePose(horseMode) {
-    const cachedAt = hasMovingWorldPose ? movingWorldPoseAt : null;
-    const p = captureBestAvailableDeploymentPose();
-    warnIfParkedFar(p, cachedAt);
-    commitDeployment(p.wx, p.wz, p.heading, horseMode);
-  }
-  /** STALE-PARK (the port's own, no IL twin): a dismount parks the wagon at most a hitch and a setback from the player,
-   *  so a park past the mod's own jump distance (TELEPORT_DISTANCE) came from a pose that no longer stood behind them.
-   *  The log names where the pose came from, so a report of a wagon gone missing can be traced. */
-  function warnIfParkedFar(p, cachedAt) {
-    const metres = Math.hypot(p.wx - gps().worldX(), p.wz - gps().worldZ()) / ratio();
-    if (!(metres > TELEPORT_DISTANCE)) return;
-    const from = cachedAt === null ? 'behind the player' : `at the trailing pose cached ${(now() - cachedAt).toFixed(1)} s earlier`;
-    log.warn?.(`[TrailingWagon] A dismount parked the wagon ${metres.toFixed(1)} m from the player, ${from}.`);
-  }
+  function deployFromBestAvailablePose(horseMode) { const p = trailingPose.dismountPose(deploymentPoseBehindPlayer); commitDeployment(p.wx, p.wz, p.heading, horseMode); }
   function captureHorseBehindPlayerPose() { const heading = horizontalForward(deps.player.forward()); const [wx, wz] = toWorld(vsub(playerPosition(), vscale(heading, HORSE_DISMOUNT_REAR_OFFSET))); return { wx, wz, heading }; }
   function deployHorseBehindPlayer() { const p = captureHorseBehindPlayerPose(); setHorseLoose(p.wx, p.wz, p.heading); }
   function deployWagonBeforeHorseTravel() { if (wagonState.Mode === WAGON_MODE.WithPlayer && tm().hasCart() && !pee().isPlayerInside() && !hasPendingInteriorDeployment && !wagonState.WagonStabled) deployFromBestAvailablePose(HORSE_MODE.WithPlayer); }   // WAGON-STABLED: a horse mounted leaves a stabled wagon at the stable
@@ -583,7 +570,7 @@ export function createHorseCartRuntime(deps) {
     const seedForward = gp ? [...gp.forward] : (wagonVisual && wagonActive() ? wagonForward() : (tryGetRelevantDeployedScene()?.heading ?? null));   // WAGONS2 (AUDIT)
     resetWagonState(WAGON_MODE.WithPlayer);
     wagonState.HorseMode = HORSE_MODE.HitchedToWagon; wagonState.HorseWorldX = 0; wagonState.HorseWorldZ = 0; wagonState.HorseHeadingX = 0; wagonState.HorseHeadingZ = 1;
-    clearPendingInteriorState(); hasMovingWorldPose = false; clearMovingPresentation(); destroyAllStationaryPresentations();
+    clearPendingInteriorState(); trailingPose.forget(); clearMovingPresentation(); destroyAllStationaryPresentations();
     hitchSeed = seed; hitchSeedForward = seed ? seedForward : null;
     setTransportMode(TRANSPORT.Cart); scheduleDirectCartTransportRefresh();
   }
@@ -642,9 +629,7 @@ export function createHorseCartRuntime(deps) {
   // ── caches [IL_7748, IL_53f4, IL_7d4c]
   function cacheMovingWorldPose() {
     if (!wagonVisual || !wagonActive() || !hasLastValidGroundState || pee().isPlayerInside()) return;
-    const heading = horizontalForward(wagonForward());
-    [movingWorldX, movingWorldZ] = toWorld(wagonAxle());
-    movingWorldHeading = heading; hasMovingWorldPose = true; movingWorldPoseAt = now();
+    trailingPose.store(toWorld(wagonAxle()), horizontalForward(wagonForward()));
   }
   function cacheFollowingWagonWorldPose() {
     if (!wagonVisual || !wagonActive() || !hasLastValidGroundState || !isTeamFollowing()) return;
@@ -663,7 +648,7 @@ export function createHorseCartRuntime(deps) {
   function clearPhysicalPersistenceTransientState() {
     destroyAllStationaryPresentations(); clearPendingInteriorState(); clearInteriorAccess(); clearPendingTransportModeRefresh();
     selectWagonOnNextInventoryOpen = false; followingTransitionSuspended = false; fastTravelFollowingSuspended = false; pendingFastTravelHorseRelocation = false;
-    travelOptionsWasActive = false; horseFollower.resetTransient(); hasMovingWorldPose = false;
+    travelOptionsWasActive = false; horseFollower.resetTransient(); trailingPose.forget();
   }
   function applyPersistenceResolution(r, force) {
     if (force || wagonState.Mode !== r.WagonMode) resetWagonState(r.WagonMode); else clearInteriorAccess();
@@ -711,7 +696,7 @@ export function createHorseCartRuntime(deps) {
     if (hasHorse && isTeamFollowing()) { cacheFollowingHorseWorldPose(); wagonState.HorseMode = HORSE_MODE.FollowingPlayer; horseFollower.resetTransient(); }
     else if (hasHorse && wagonState.HorseMode === HORSE_MODE.HitchedToWagon) { if (wagonState.Mode === WAGON_MODE.Deployed) setHorseLooseAtWagonHitch(); else setHorseWithPlayer(); }
     else if (!hasHorse) setHorseNone();
-    resetWagonState(WAGON_MODE.None); clearPendingInteriorState(); hasMovingWorldPose = false; clearMovingPresentation(); destroyDeployedWagonPresentation();
+    resetWagonState(WAGON_MODE.None); clearPendingInteriorState(); trailingPose.forget(); clearMovingPresentation(); destroyDeployedWagonPresentation();
     if (tm().get() === TRANSPORT.Cart) setTransportMode(TRANSPORT.Foot);
   }
   function reconcileHorseOwnership(hasHorse) {
@@ -937,7 +922,7 @@ export function createHorseCartRuntime(deps) {
     resetWagonState(r.WagonMode);
     zeroHorse(r.HorseMode);
     wagonState.WagonStabled = hasCart; wagonState.HorseStabled = hasHorse;   // WAGON-STABLED
-    clearPendingInteriorState(); hasMovingWorldPose = false; followingTransitionSuspended = false;
+    clearPendingInteriorState(); trailingPose.forget(); followingTransitionSuspended = false;
     clearMovingPresentation(); destroyAllStationaryPresentations(); horseFollower.resetTransient();
     changed();
     return { ok: true, text: hasCart && hasHorse ? HCC_TEXT.sentBoth : hasCart ? HCC_TEXT.sentWagon : HCC_TEXT.sentHorse };
@@ -1020,7 +1005,7 @@ export function createHorseCartRuntime(deps) {
     pendingInteriorTransportMode = resolveInteriorEntryMode(tm().get(), hasObservedTransportMode, previousTransportMode, wagonState.Mode === WAGON_MODE.WithPlayer, tm().hasCart(), tm().hasHorse(), wagonState.HorseMode);
     leaveStable(pendingInteriorTransportMode);
     if (wagonState.Mode === WAGON_MODE.WithPlayer && tm().hasCart() && !wagonState.WagonStabled) {
-      const p = captureBestAvailableDeploymentPose();
+      const p = trailingPose.captureBestAvailableDeploymentPose(deploymentPoseBehindPlayer);
       pendingInteriorWorldX = p.wx; pendingInteriorWorldZ = p.wz; pendingInteriorHeading = p.heading; hasPendingInteriorDeployment = true;
     }
     if (!wagonState.HorseStabled && shouldDeployIndependentHorseForInterior(hasPendingInteriorDeployment, pendingInteriorTransportMode, wagonState.HorseMode, tm().hasHorse())) {
@@ -1297,7 +1282,7 @@ export function createHorseCartRuntime(deps) {
     const r = resolveFastTravelDepartureModes(wagonState.Mode, wagonState.HorseMode, false);
     wagonState.Version = WAGON_SAVE_VERSION; wagonState.Mode = r.wagonMode; wagonState.HorseMode = r.horseMode;
     if (isTeam) { wagonState.HorseWorldX = 0; wagonState.HorseWorldZ = 0; wagonState.HorseHeadingX = 0; wagonState.HorseHeadingZ = 1; }
-    clearInteriorAccess(); followingTransitionSuspended = false; fastTravelFollowingSuspended = false; pendingFastTravelHorseRelocation = false; hasMovingWorldPose = false;
+    clearInteriorAccess(); followingTransitionSuspended = false; fastTravelFollowingSuspended = false; pendingFastTravelHorseRelocation = false; trailingPose.forget();
     horseFollower.resetTransient(); destroyStationaryHorsePresentation();
     if (isTeam) clearMovingPresentation();
   }
@@ -1371,7 +1356,7 @@ export function createHorseCartRuntime(deps) {
    *  wagon snapped back to the old ground and a dismount parked it 200 m away), the moving world pose, the wheels - and
    *  the wagon hidden until it grounds again. The next pose is laid fresh behind the team. */
   function relayHitch() {
-    hasLastValidGroundState = false; hasMovingWorldPose = false; resetWheelMotionState();
+    hasLastValidGroundState = false; trailingPose.forget(); resetWheelMotionState();
     if (wagonVisual) { wagonVisual.pose.active = false; wagonVisual.pose.hasLastValid = false; }
   }
   /** UpdateMovingPresentation [IL_4ff8]: the trailing wagon behind the cart - WAGON-HITCH: on its shafts from the rider
@@ -1501,7 +1486,7 @@ export function createHorseCartRuntime(deps) {
     // host's ready() is also false through a teleport and a fast travel, which carry a driven wagon with the player, and
     // ObserveTransportMode runs before the presentation that would forget the pose: a dismount seen on the first ready
     // frame parked the wagon where it last trailed, hundreds of metres back.
-    if (!ready()) { clearPendingTransportModeRefresh(); clearMovingPresentation(); hasMovingWorldPose = false; destroyAllStationaryPresentations(); return; }
+    if (!ready()) { clearPendingTransportModeRefresh(); clearMovingPresentation(); trailingPose.forget(); destroyAllStationaryPresentations(); return; }
     refreshHorseNameInputState();
     applyPendingPersistenceWork();
     const ownsCart = tm().hasCart(), ownsHorse = tm().hasHorse();
@@ -1521,7 +1506,7 @@ export function createHorseCartRuntime(deps) {
       // STALE-PARK: a wagon still driven but not drawn (ShowTrailingWagon turned off mid-drive) goes on
       // with the player, so its last drawn pose is no place to park it. A dismount - no longer the cart - keeps the pose
       // for the next frame's ObserveTransportMode.
-      if (!shouldShowMovingWagon()) { clearMovingPresentation(); if (tm().get() === TRANSPORT.Cart) hasMovingWorldPose = false; }
+      if (!shouldShowMovingWagon()) { clearMovingPresentation(); if (tm().get() === TRANSPORT.Cart) trailingPose.forget(); }
       else updateMovingPresentation(weight, limit, dt);
     }
     if (physicalPersistenceEnabled) updateStationaryHorsePresentation(dt); else destroyStationaryHorsePresentation();
@@ -1530,7 +1515,7 @@ export function createHorseCartRuntime(deps) {
   // ── lifecycle [IL_9898, IL_98c0, IL_9354, IL_93ac, IL_a714]
   function clearAllTransientState() {
     closeHorseNameInput(); clearMovingPresentation(); destroyAllStationaryPresentations(); clearPendingInteriorState();
-    hasMovingWorldPose = false; hasObservedTransportMode = false; previousTransportMode = TRANSPORT.Foot; lastValidNonCartTransportMode = TRANSPORT.Foot;
+    trailingPose.forget(); hasObservedTransportMode = false; previousTransportMode = TRANSPORT.Foot; lastValidNonCartTransportMode = TRANSPORT.Foot;
     clearPendingTransportModeRefresh(); selectWagonOnNextInventoryOpen = false; followingTransitionSuspended = false; fastTravelFollowingSuspended = false;
     pendingFastTravelHorseRelocation = false; travelOptionsWasActive = false; horseFollower.resetTransient();
     restWheels = null;   // WAGONS2: a load, a new game, the switch off - no wheel stands where it stood

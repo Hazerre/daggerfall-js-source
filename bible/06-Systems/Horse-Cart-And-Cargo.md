@@ -102,6 +102,9 @@ WithPlayer, None, FollowingPlayer):
   state and order of operations, `DeployedWagonVisual` and
   `StationaryHorseVisual` as pure state, over a `deps` bag the hosts fill
   (its header lists every seam).
+- `src/systems/horse/trailingPoseCache.js` - the trailing wagon's cached pose, which a dismount
+  parks from: `CaptureBestAvailableDeploymentPose` and STALE-PARK's far-park warning (below). The runtime
+  says when the pose is cached and when it is forgotten.
 - `src/systems/horse/horseCartWire.js` - HCC-ONLINE's record (below).
 - `src/scenes/horseCartPool.js` - THE PRESENTATION: the part meshes and
   the cargo meshes through the host's pipeline, the horse batches off the
@@ -807,8 +810,13 @@ wagon where its wheels stood. Both stale cases take the mod's own fallback, 2.5 
 
 **The warning.** A park further from the player than TELEPORT_DISTANCE (the mod's 20 m jump) is said in the console -
 `[TrailingWagon] A dismount parked the wagon N m from the player, ...`, with the cached pose's age or "behind the
-player" (`horseCart.js` `warnIfParkedFar`) - so the next report of a missing wagon names its path.
+player" (`trailingPoseCache.js` `warnIfParkedFar`) - so the next report of a missing wagon names its path.
 
-**Verification.** `hcc_stale_park.test.js` (the two stale cases, the hotkey dismount unchanged, the warning) and
-`tools/mutants/stalepark.json` (five mutants, all dead). THE FOUR HOSTS: none changed - `world.js` and `exterior.js` run
+**The module.** The cached pose - the IL's four fields, CaptureBestAvailableDeploymentPose's cached arm and the warning -
+is `systems/horse/trailingPoseCache.js`, moved out of `horseCart.js` unchanged so a change to it selects its own tests,
+not the runtime's. The runtime keeps CacheMovingWorldPose's guard, the fallback 2.5 m behind the player
+(`deploymentPoseBehindPlayer`) and every place the pose is forgotten.
+
+**Verification.** `hcc_stale_park.test.js` (the two stale cases, the hotkey dismount unchanged, the warning),
+`trailing_pose_cache.test.js` (the module alone) and `tools/mutants/stalepark.json` (six mutants, all dead). THE FOUR HOSTS: none changed - `world.js` and `exterior.js` run
 this runtime; `worldModes.js` and `dungeonContext.js` reach it only through its transition handlers.
