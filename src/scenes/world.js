@@ -399,7 +399,7 @@ import { egStartPanelDoors } from '../ui/eliteGates/egStartPanel.js';   // EG-PL
 import { egRecapsKept } from '../ui/eliteGates/egHud.js';   // AUDIT EG V (c, L7-19): the last runs this device kept, on the boards' own tab
 import { registerEgFind, egFindThrow } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find
 import { setSetPowersAllies, setSpireRecovery, spireRedoubtTaken } from '../systems/sigil/sigilSetPowers.js';   // EG15: the Reprieve's allies, the death saves held to a Redoubt in a breach
-import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks
+import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, insigniaSale, stonesText, panoplySale, emberHands } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks
 import { drawGateBanner } from '../ui/gate/gateBanner.js';
 import { drawGateGround } from '../ui/gate/gateGroundView.js';   // WB9d: his ground's rim and warning - hidden with a held frame (the court draws it); SD15: and the Hour's
 import { drawGateDamageChart } from '../ui/gate/gateDamageChart.js';   // GATE-UX: the kill's damage chart (the court draws it - scenes/gate/gateCourt.js); a held frame hides it with the rest
@@ -614,7 +614,7 @@ import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jew
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
 import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
 import { QUALITY_NAMES } from '../net/recipeLaw.js';   // CRAFT4: a temper's word
-import { reforgeableLines, affixLine } from '../systems/loot/lootRarity.js';   // CRAFT4: the lines an Enchanter reforges
+import { reforgeableLines, affixLine, reforgeCount } from '../systems/loot/lootRarity.js';   // CRAFT4: the lines an Enchanter reforges; REFORGE-REPLACE: the reforges a piece has taken
 import { trackOf } from '../net/professionLaw.js';   // CRAFT4: the craft a piece's temper is
 import { brewItems, brewedText, BREW_KEPT_TEXT } from '../systems/alchemyItems.js';   // PROF12: a brew's potions, DFU's own, into the pack
 import { facetBand } from '../net/recipeLaw.js';   // PROF10: the facet's attribute band
@@ -2220,6 +2220,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  pack, the home's things, the purse or the Bank's accounts, on the service's answer - asks ONE checkpoint on the next
    *  task, as a trade saves at once; the checkpoint (onlineCheckpoint) is handed in once it is built (REALM P0.5). */
   const saveSoon = createSaveSoon();
+  // DAEDRIC-SMELT (bible/06-Systems/Professions-Arc.md section 53): AND THE BOOK'S HANDS ON THE PACK'S DEADLANDS EMBERS - the
+  // pack's half of the Daedric smelt (systems/sigil/sigilBroker.js emberHands, the Broker's own law), each take saved
+  carryHands.embers = emberHands(playerEntity, saveSoon.changed);
   /** BAG1: a deposit whose answer did not come - its goods stay out of the bag until the counting-house answers.
    *  FB1020c ONE-SAVE: the Stores page's own words (profPages.js BAG_PAGE_WORDS.kept), one home. */
   const BAG_DEPOSIT_KEPT_TEXT = BAG_PAGE_WORDS.kept;
@@ -11886,7 +11889,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           return { ok: true, text: `${name} is ${QUALITY_NAMES[r.data.quality]} now (+${r.data.xp} ${professionName(r0.profession)} experience)${f.fee > 0 ? `, and paid the ${who} ${f.fee} gold` : ''}.` };
         },
         // CRAFT4: THE REFORGE WITH ESSENCE at the enchanting station - the pack's known Magic and Rare pieces, not worn, each
-        // line the Loot arc's own Reforge may roll (once reforged, that line alone); the line rolled on the service's seed
+        // line the Loot arc's own Reforge may replace (REFORGE-REPLACE: any line another kind can take, the price doubling
+        // with the piece's reforges); the line replaced on the service's seed
         reforgeable: () => (playerEntity.items ?? []).filter((it) => it && reforgeEssence(it.rarity) && !essenceReforgeRefusal(it, reforgeableLines(it)[0]))
           .map((it) => ({ item: it, name: itemLongName(it), tier: it.rarity, lines: reforgeableLines(it).map((index) => ({ index, text: affixLine(it, index) })) })),
         essenceReforge: async (offer, index) => {
@@ -11895,7 +11899,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The enchanter asks ${f.fee} gold to reforge a piece.` };
           const pack = playerEntity.items, it = offer.item;
           if (!pack?.includes(it) || essenceReforgeRefusal(it, index) || it.rarity !== offer.tier) return { ok: false, text: TEMPER_MOVED_TEXT };
-          const r = await profBook.reforge(offer.tier);
+          const r = await profBook.reforge(offer.tier, reforgeCount(it));   // REFORGE-REPLACE: the piece's count, its price
           if (r?.elsewhere || pack !== playerEntity.items) return { ok: false, text: 'Your character changed while reforging. Check its Stores when you return.' };
           if (!r?.ok) return { ok: false, text: accountRefusalText(r?.error) };
           if (f.fee > 0) deductGold(playerEntity, Math.min(f.fee, totalGoldAmount(playerEntity)));
