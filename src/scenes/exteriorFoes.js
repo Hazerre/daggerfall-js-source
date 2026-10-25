@@ -2703,7 +2703,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       const site = tags.get(r.i) ?? null;
       const key = pupKey(from, r.i);
       const f = _pupIndex.get(key) ?? null;
-      if (_net.grants?.statsRefused?.(from, r, { camp: campTags.has(r.i), ally: comp.has(r.i) || allied.has(r.i) || crew.has(r.i) })) { if (f) removePuppet(f); _pupPending.delete(key); continue; }   // FOE-BOUNDS (Spawn-Grants section 19): provably impossible - refused, never rescaled: never built, updated or ADOPTED (its hand-off refused before it is mine), a standing copy taken down silently
+      if (_net.grants?.statsRefused?.(from, r, { camp: campTags.has(r.i), ally: comp.has(r.i) || allied.has(r.i) || crew.has(r.i), boss: r.sb ? raidTags.get(r.i) : null })) { if (f) removePuppet(f); _pupPending.delete(key); continue; }   // FOE-BOUNDS (Spawn-Grants section 19): provably impossible - refused, never rescaled: never built, updated or ADOPTED (its hand-off refused before it is mine), a standing copy taken down silently
       const qt = questTags.get(r.i) ?? null;
       // AUDIT DISC28 QS-J: a record that names ME its heir is taken on party membership (partyPeer, the pre-J law) - the
       // owner has let it go, and a copy with no link to its quest stands none of its puppets, so refused here it was
