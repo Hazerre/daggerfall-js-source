@@ -175,7 +175,7 @@ test('PROF11 law: the Sculptor\'s four (9.3) - a column, a bench, a font, a stat
     ['font:stone', 'font', 'Stone Font', 'furniture', 'stonework', 'masonry', 698, 0, 2, 10, 'sculptor', '10 stone:cut,3 stone:mortar'],
     ['plinth:stone', 'plinth', 'Statue Plinth', 'furniture', 'stonework', 'masonry', 699, 0, 2, 10, 'sculptor', '6 stone:cut,2 stone:mortar'],
   ]);
-  assert.deepEqual(RECIPES.slice(-4 - 7 - 120, -7 - 120), [...MASONRY_RECIPES]);   // PIN MOVED (PROF9): the fire's seven dishes come after the Sculptor's four; PIN MOVED (PROF10): and the jeweller's 120 pieces after them
+  assert.deepEqual(RECIPES.slice(-4 - 7 - 504, -7 - 504), [...MASONRY_RECIPES]);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem   // PIN MOVED (PROF9): the fire's seven dishes come after the Sculptor's four; PIN MOVED (PROF10): and the jeweller's 120 pieces after them
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   assert.equal(recipeById('font:stone'), MASONRY_RECIPES[2]);
   assert.deepEqual(STONE_DECOR_ROWS.map((r) => [r.index, r.name, r.baseWeight, r.basePrice, r.hitPoints, r.stackable, r.rarity, r.worldTextureArchive, r.worldTextureRecord]), [
