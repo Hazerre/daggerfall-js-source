@@ -568,6 +568,7 @@ net.staffTp.noteMismatch,"Телепортовано до точної пози�
 net.staffTp.noteMissing,"Телепортовано до точної позиції гравця {name} — довелося запитати його гру, бо нотатки про позицію не було (гравець це бачить)."
 net.staffTp.viaNote,"Телепортовано до гравця {name} за нотаткою про позицію — його грі нічого не повідомлено, але гравець може помітити вашу появу."
 net.staffView.close,"Закрити"
+net.staffView.dismissFlag,"Приховати позначку"
 ql.line.skyKetch,"Небесна шхуна"
 ql.line.skyKetch.giver,"Imrah Bel-Tavir, антикварка із Sentinel"
 ql.line.skyKetch.lead,"Щодесять годин латунний корабель клану Rourken стає над Daggerfall. Антикварка із Sentinel хоче дізнатися, що змусило його спуститися."

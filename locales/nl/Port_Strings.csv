@@ -2010,6 +2010,7 @@ net.staffTp.noteMismatch,"Geteleporteerd naar de exacte positie van {name} - het
 net.staffTp.noteMissing,"Geteleporteerd naar de exacte positie van {name} - het spel van de speler is erom gevraagd, omdat de positienotitie ontbrak (de speler ziet dit)."
 net.staffTp.viaNote,"Geteleporteerd naar {name} via de positienotitie - er is niets aan het spel van de speler gevraagd, maar de speler ziet je wel aankomen."
 net.staffView.close,"Sluiten"
+net.staffView.dismissFlag,"Markering negeren"
 ql.line.skyKetch,"De Luchtkits"
 ql.line.skyKetch.giver,"Imrah Bel-Tavir, oudheidkundige uit Sentinel"
 ql.line.skyKetch.lead,"Elke tien uur houdt een koperen schip van de Rourken positie boven Daggerfall. Een oudheidkundige uit Sentinel wil weten wat haar deed neerdalen."

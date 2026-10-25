@@ -568,6 +568,7 @@ net.staffTp.noteMismatch,"已傳送至 {name} 的精確位置——因其位置�
 net.staffTp.noteMissing,"已傳送至 {name} 的精確位置——因其位置紀錄缺失，已向其遊戲詢問（玩家能看到此操作）。"
 net.staffTp.viaNote,"已依位置紀錄傳送至 {name}——其遊戲未收到任何通知，但玩家能看到你出現。"
 net.staffView.close,"關閉"
+net.staffView.dismissFlag,"忽略標記"
 ql.line.skyKetch,"天空帆船"
 ql.line.skyKetch.giver,"Sentinel 的古物學者 Imrah Bel-Tavir"
 ql.line.skyKetch.lead,"每隔十小時，一艘 Rourken 的黃銅之船都會停駐在 Daggerfall 上空。一位來自 Sentinel 的古物學者想知道是什麼讓它降臨此地。"
