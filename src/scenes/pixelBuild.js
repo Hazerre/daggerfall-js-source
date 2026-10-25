@@ -25,6 +25,7 @@ import { collectExteriorNpcs, exteriorNpcRecord } from '../characters/exteriorNp
 import { coverProxies, coverProxy, FELLED, isCoverFlat } from '../ai/cover.js';
 import { flatBodies, jungleBody } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
 import { DOOR_TYPE, GLOBAL_SCALE } from '../world/meshReader.js';
+import { isHouseSign } from '../world/houseSigns.js';   // HOUSE-SIGN: a shop's sign at a house's door does not stand
 import { doorCornersOf, doorNormalOf } from './hallBanners.js';
 import { drawnFlat } from '../characters/nudeFlats.js';
 import { dungeonEntranceLanding } from '../player/enterExit.js';
@@ -519,6 +520,7 @@ export function createPixelBuild(host) {
           // WM2f: the mill's companion building is part of an enhanced-skin
           // departure; the 1:1 lane must not see it.
           if (placed.enhancedOnly && !isEnhanced()) continue;
+          if (isHouseSign(placed, b, (id) => cpuModels.get(id)?.doors)) continue;   // HOUSE-SIGN: a shop's sign at a house's door does not stand
           const gpu = await getGpuMesh(placed.modelIdNum, () => breather.breathe());   // AUDIT PRE-MERGE 1003 W6: a model built here breathes with the pixel (the colosseum's seal)
           if (!gpu) continue;
           const climateFree = isClimateFreeModel(placed.modelIdNum);   // ARENA1: the colosseum - never swapped, nor a key of the pixel's table
