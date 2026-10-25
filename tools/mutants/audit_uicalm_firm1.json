@@ -480,8 +480,8 @@
   {
     "name": "AUF-L5H5-regen-tenfold",
     "file": "src/systems/firmamentPowers.js",
-    "old": "healMine(entity, (entity.maxHealth * c.hpRegen) / 1000);",
-    "new": "healMine(entity, (entity.maxHealth * c.hpRegen) / 100);",
+    "old": "regenShare((entity.maxHealth * c.hpRegen) / 1000, ",
+    "new": "regenShare((entity.maxHealth * c.hpRegen) / 100, ",
     "tests": [
       "test/systems/audit_uicalm_firm1.test.js"
     ]

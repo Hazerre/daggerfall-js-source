@@ -38,7 +38,7 @@
 import { isDayFromMinutes } from './gameDate.js';
 import { SPECIAL_ABILITY_BITS, REGENERATION_FLAGS } from './specialAdvantages.js';
 import { onlineMpOf } from './renownLayer.js';   // AUDIT RENOWN1 GAME-5: the magery's third is of Daggerfall's own maximum, never the online layer (EG15: nor the folds' magicka)
-import { regenBarred } from './courtRules.js';   // WBX6: the Burning Court keeps no regeneration
+import { regenShare } from './courtRules.js';   // WBX6 / EVENT-RULES: a made level holds regeneration
 import { cloakState } from './survival/temperature.js';   // HOOD-CAREER: the ONE "is the hood up" - the felt temperature's, never a second list
 
 // PassiveSpecialsEffect.cs:35-40, verbatim.
@@ -127,7 +127,8 @@ export function passiveSpecialsMagicRound(entity, { nowMinutes = 0, clockMinutes
     else if (career.regeneration === REGENERATION_FLAGS.inDarkness) regenerate = !day || dungeon;
     else if (career.regeneration === REGENERATION_FLAGS.inLight) regenerate = day && !dungeon;
     else if (career.regeneration === REGENERATION_FLAGS.whileImmersed) regenerate = !!(_host?.isSwimming?.() ?? false);
-    if (regenerate && !regenBarred()) sinks?.heal?.(REGENERATE_AMOUNT);   // WBX6: not in the Burning Court
+    const held = regenerate ? regenShare(REGENERATE_AMOUNT, 'career', entity) : 0;   // WBX6 / EVENT-RULES: held in a made level
+    if (held > 0) sinks?.heal?.(held);
   }
 
   // DamageFromSunlight (:107-121): the career flag, every 4th round in
