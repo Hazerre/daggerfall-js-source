@@ -25,6 +25,7 @@ import { BUILDING_TYPES } from '../../src/world/buildingNames.js';
 import { setPref } from '../../src/systems/uiPrefs.js';
 import { uiSkin, setUiSkin } from '../../src/systems/uiSkin.js';
 import { _resetSoundscapeSounds } from '../../src/systems/soundscape/soundscapeSfx.js';
+import { seededRng } from '../../src/systems/wind/wind.js';
 
 const W = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
 
@@ -63,7 +64,7 @@ test('SOUNDSCAPE THE MAP\'S WORD: land near a map pixel - one within GULL_RING t
 /** A door at (x, z) facing +z, of record `recordIndex` of `block` - a door's own centre and normal in its model, placed. */
 const doorOf = (block, x, z, recordIndex) => ({ dfBlock: block, recordIndex, door: { matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, 0, z, 1], centre: { x: 0, y: 0, z: 0 }, normal: { x: 0, y: 0, z: 1 } } });
 /** The fakes: an engine that records, a music service that records, a deck, a helm and every door the test moves. */
-function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [], people = false, aboard = false, sea = () => true, bow = null } = {}) {
+function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [], people = false, aboard = false, sea = () => true, bow = null, rand } = {}) {
   const calls = { beds: new Map(), beds3d: new Map(), shots: [], music: [], registered: new Set() };
   const audio = {
     listenerPose: () => ({ pos: [0, 0, 0], fwd: [0, 0, 1] }),
@@ -81,7 +82,7 @@ function rig({ boat = null, helm = null, depth = null, inTown = false, doors = [
     audio, music, boat: () => state.boat, aboard: () => state.aboard, bow: bow ?? undefined,
     csa: { helmPanelState: () => state.helm, IsNearPort: () => state.port }, fight: () => state.fight,
     pixel: () => ({ x: 100, y: 100 }), seaPixel: (x, y) => state.sea(x, y), dw: depth ? { rawColumnAt: (x, z) => depth(x, z) } : null,
-    inTown: () => state.inTown, towns: () => new Map([[100 * 1000 + 100, { blocks: 9 }]]), doors, doorAt: (e) => e.door,
+    inTown: () => state.inTown, towns: () => new Map([[100 * 1000 + 100, { blocks: 9 }]]), doors, doorAt: (e) => e.door, rand,
   });
   return { host, calls, state, music };
 }
@@ -212,7 +213,8 @@ test('SOUNDSCAPE THE HOST ON LAND (AUDIT SOUNDSCAPE W1, W2): the shore found on 
   const quiet = rig({ depth: sea, inTown: true, doors });
   frames(quiet, 60, { ...F, minute: 11 * 60 });
   assert.equal(quiet.calls.beds3d.get('town:tavern'), undefined, 'the town\'s beds wait on the people (no archive)');
-  const r = rig({ depth: sea, inTown: true, doors, people: true });
+  // seeded: the smith's bouts and rests are the air's dice, and Math.random's gave 3 blows in these 400 frames on CI
+  const r = rig({ depth: sea, inTown: true, doors, people: true, rand: seededRng(3) });
   frames(r, 400, { ...F, minute: 11 * 60 });
   const surf = r.calls.beds3d.get('shore:surf');
   assert.ok(surf && Math.abs(surf.pos[0] - 40) < 1 && surf.pos[1] === -2, `the surf at the edge, at the sea's surface: ${surf?.pos}`);
