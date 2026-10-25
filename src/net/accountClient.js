@@ -305,7 +305,7 @@ const REFUSAL_WORDS = {
   'home-update': () => t('account.refusal.homeUpdate', 'This game is out of date. Reload it to buy a home.'),   // WD3 (AUDIT WD3 B2): a build from before the town mods
   'home-towns': () => t('account.refusal.homeTowns', 'This town did not load the way other players see it. Reload the game to buy a home.'),   // WD3 (AUDIT WD3 B1): a town mod's pack did not load
   'home-layout': () => t('account.refusal.homeLayout', 'This town is still loading. Try again in a moment.'),   // WD3: the town is built again as the room's (scenes/world.js hearHomeLayouts)
-  'home-cap': () => t('account.refusal.homeCap', 'A character can own at most {max} homes. Sell one to buy another.', { max: HOME_CAP }),
+  'home-cap': () => t('account.refusal.homeCap', 'A character can buy at most {max} homes. Sell one it bought to buy another.', { max: HOME_CAP }),   // ACCOUNT-HOMES: the account owns them all; the cap counts what each character bought
   'home-rate': () => t('account.refusal.homeRate', 'You have bought and sold a lot of homes this hour. Try again later.'),
   'no-home': () => t('account.refusal.noHome', 'That home is not yours any more.'),
   'not-heir': () => t('account.refusal.notHeir', 'Only a living character of the same line as its fallen owner can take up that home.'),   // PERMADEATH-HOUSES: server-account/src/homes.js inheritHome
@@ -346,6 +346,22 @@ const REFUSAL_WORDS = {
   'no-decor': () => t('account.refusal.noDecor', 'That piece is not in your home any more.'),
   'bad-decor': () => t('account.refusal.badDecor', 'The account service could not read that piece.'),
   'decor-figure': () => t('account.refusal.decorFigure', 'That figure has been set back to its normal size. Look at the room again.'),   // AUDIT HOME-VOTE II C2: a stale copy of a figure grown before DECOR-FIGURE
+  'decor-busy': () => t('account.refusal.decorBusy', 'Someone else is using this chest.'),
+  'decor-shut': () => t('account.refusal.decorShut', 'You cannot use that.'),
+  'decor-held': () => t('account.refusal.decorHeld', 'Empty it before it is removed.'),
+  'decor-holds': () => t('account.refusal.decorHolds', 'Empty what a piece holds before you remove it.'),
+  'bad-item': () => t('account.refusal.badItem', 'That cannot be stored.'),
+  'no-item': () => t('account.refusal.noItem', 'That is not in the chest.'),
+  'seat-batch': () => t('account.refusal.seatBatch', 'A charter room is not furnished this way.'),
+  'decor-rev': () => t('account.refusal.decorRev', 'The room changed while you were furnishing it. Look again.'),
+  'decor-ops': () => t('account.refusal.decorOps', 'That is too many changes at once.'),
+  'decor-txn': () => t('account.refusal.decorTxn', 'That furnishing was already sent.'),
+  'home-holds': () => t('account.refusal.homeHolds', 'Take the goods out before the house changes hands.'),
+  'bad-offer': () => t('account.refusal.badOffer', 'That offer could not be read.'),
+  'home-deed': () => t('account.refusal.homeDeed', 'A house given by a knightly order cannot be transferred.'),
+  'offer-open': () => t('account.refusal.offerOpen', 'An offer for this house is already out.'),
+  'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
+  'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
   // GUILD1: the guilds (server-account/src/guilds.js)
   'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Guilds need a username and a password. Give this account one and you can found or join one.'),
   'guild-character': () => t('account.refusal.guildCharacter', 'The account service could not tell which character that is.'),
@@ -383,6 +399,8 @@ const REFUSAL_WORDS = {
   grace: () => t('account.refusal.grace', 'The fallen player still has a moment to settle their own death. This will be tried again shortly.'),
   nonce: () => t('account.refusal.nonce', 'That fall could not be read. Try again.'),
   room: () => t('account.refusal.room', 'That death gave no place for the remains. Try again.'),
+  // FOE-KEEPS: a foe's fall asked by a tab from before the word (no receipt) - a death to a foe drops nothing now
+  foe: () => t('account.refusal.foe', 'A death to a foe in the open zone drops nothing now. The game may need updating.'),
   // PVP-ESCROW (FIELD BUGS 2026-10-14, the two-phase handoff - server-account/src/wild.js wildCollect, wildReclaim,
   // wildEscrows): the world host's collect and reclaim say nothing of these to the player - it keeps what they do not
   // settle and lets go of what they do - but a word the service can say is a word with a sentence (ACC1e)
@@ -1532,6 +1550,9 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   let held = null;
   /** @type {Promise<string|null> | null} */
   let minting = null;
+  /** STAFF-HIDE-TOGGLE: how many times `forget` let go - a mint that flew across one is handed to its own asker and held
+   *  for no other room (its token was signed before the word that made the forget). */
+  let forgets = 0;
   /** STORM-SHED: the mints held off after a failure - one sign-in's (its secret), until `until` on now()'s clock, the
    *  failures in a row counted and the last one's word kept to answer with. */
   let cool = { secret: /** @type {string|null} */ (null), fails: 0, until: -Infinity, why: /** @type {string|null} */ (null) };
@@ -1549,9 +1570,10 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
   /** One mint on the wire for this sign-in, shared by every room asking while it flies (`minting`), its answer held or
    *  its failure's hold set (STORM-SHED) - the one door the minter and DOOR-TOKEN's `ahead` both mint through. */
   const start = (/** @type {any} */ session, /** @type {string|null} */ named) => {
+    const era = forgets;
     const p = mintFresh(session, named).then((token) => {
       if (token) {
-        held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
+        if (era === forgets) held = { token, secret: session.secret, character: named, at: now(), rooms: new Set() };   // STORM-SHED: opened by a hello (`opened`), never by the mint
         cool = { secret: null, fails: 0, until: -Infinity, why: null };
       } else if (minter.lastWhy === 'queue') {
         // AUDIT SCALE II L4a: the line's own wait, its failures in a row left where they stood
@@ -1621,8 +1643,12 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
     },
     /** AUDIT SAFE CLIENT-2 (2026-10-17): THE HELD TOKEN LET GO - the relay said this account is banned
      *  (scenes/chatSafetyHost.js), and a token minted a moment before the ban opened every room a rejoin asked within
-     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it. */
-    forget: () => { held = null; },
+     *  TOKEN_REUSE_MS. The next room mints, and the service refuses it.
+     *  STAFF-HIDE-TOGGLE (2026-10-23, mob: "need hide to be a toggle"): and Hide me or Show myself pressed
+     *  (scenes/staffFollowHost.js relinkGame) - a token signed before the press would open a room as the game was, so it
+     *  goes, and so does any mint still on its way (`forgets`): the next room asks the service, which reads the switch as
+     *  it stands now. */
+    forget: () => { held = null; forgets++; },
     /** DOOR-TOKEN: does this minter hold a token `room` would be handed now, nothing on the wire (the reuse law) - a
      *  session whose hello went without one asks again the moment it does (net/online.js). */
     holds: (/** @type {string|null} */ room) => {
@@ -1663,7 +1689,11 @@ export function accountTokenMinter({ fetch, storage, onIssued = null, character 
           // AUDIT SAFE CLIENT-1 (2026-10-17): SAFE7's word - whether this account has agreed to the code of conduct as it
           // stands. Built field by field, `who` dropped it, so the code's card never stood for anyone: every first line
           // went unread-code. Absent from a service before acct150, which says nothing (heard as yes - chatSafetyHost adopt)
-          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}) };
+          ...('conduct' in answer.data ? { conduct: answer.data.conduct === true } : {}),
+          // STAFF-CHAT-RED (mob, 2026-10-23: "give me a option next to chat to chat as /red or myself at all times"): the
+          // service's word that this token is a hidden staff member's (server-account/src/staffHidden.js hiddenToken,
+          // `hidden: 1`), so the chat's switch knows Me says nothing to players (net/chatVoice.js) - absent for everyone else
+          ...(answer.data.hidden === 1 ? { hidden: true } : {}) };
         // AUDIT B4: into the session that asked. NAME-AS: the stored session is the ACCOUNT's picture (the profile mark's
         // name), so it keeps the account's name - the room's, which may be my character's, goes to the live sessions
         adoptIdentity(storage, { ...who, name: who.accountName ?? who.name, secret: session.secret });
@@ -1748,7 +1778,7 @@ export function accountStaffChat({ fetch, storage }) {
 
 /** INT9: A DEATH IN THE OPEN ZONE'S DROP, taken off the realm record by the service (server-account/src/wild.js) - `body`
  *  `{ receipt, realm, room }` (the fallen's, its record's `at`), `{ receipt, room }` (the killer's, after the grace) or
- *  `{ n, realm, room }` (a death to a foe: the tab's nonce) - `room` where the remains will lie (AUDIT INT9: the order names
+ *  `{ n, realm, room }` (a death to a foe: the tab's nonce - refused `foe` since FOE-KEEPS, never asked by this game) - `room` where the remains will lie (AUDIT INT9: the order names
  *  it). Answers `{ r, order, items, kept, took, gold, wi, burnt?, realm? }`. */
 export const wildFallAsk = (io, body) => call(io, '/v1/wild/fall', body);
 /** MAC (2026-10-14, the two-phase handoff - server-account/src/wild.js): the killer's collect of its piece in escrow
@@ -1855,6 +1885,24 @@ export function accountSds({ fetch, storage }) {
   return {
     claim: async (receipt) => { const i = io(); return i ? claimSdReceipt(i, receipt) : { ok: false, error: 'no-session' }; },
     /** The signed-in account's id - the receipts this device may offer are its alone (AUDIT WB A9's law). */
+    me: () => storedSession(storage)?.id ?? null,
+  };
+}
+
+/** KETCH (bible/11-Multiplayer/Sky-Ketch.md section 9): a Tonal Warden's receipt the relay signed for this account, carried
+ *  to the service - `{ recorded: true, voyage, share: true, sailed }`, or `{ recorded: false, why, share, sailed }` (`claimed`
+ *  - this ship's kill again; `taken` - another crew's ship this voyage), `guest` beside either for a guest. */
+export const claimKetchReceipt = (io, receipt, cid) => call(io, '/v1/ketch/claim', { receipt, cid });   // AUDIT KETCH L2-1: the device's claim id
+/**
+ * KETCH: THE KETCHMASTER'S HOLD'S ONE CALL, bound to this device's stored session (the Hours' own shape). With no session
+ * there is no account to claim for: `{ ok: false, error: 'no-session' }`, never a knock - and net/ketch/ketchClaims.js keeps
+ * the receipt for when there is one.
+ */
+export function accountKetch({ fetch, storage }) {
+  const io = () => { const s = storedSession(storage); return s ? { fetch, base: serviceBase(storage), secret: s.secret } : null; };
+  return {
+    claim: async (receipt, cid) => { const i = io(); return i ? claimKetchReceipt(i, receipt, cid) : { ok: false, error: 'no-session' }; },
+    /** The signed-in account's id - the receipts this device may offer are its alone. */
     me: () => storedSession(storage)?.id ?? null,
   };
 }
@@ -2000,6 +2048,7 @@ export function accountHomes({ fetch, storage }) {
     claim: ({ mapId, buildingKey, region, character, price, realm = null, layout = null }) => post('/v1/homes/claim', { mapId, buildingKey, region, character, price, ...(realm ? { realm } : {}), layout: layout || null }),   // REALM P2.2b: a realm character's record pays; WD3: the layout the town stands in, always said (null: Daggerfall's - AUDIT WD3 B2)
     layouts: () => post('/v1/homes/layouts', {}),   // WD3: every town holding a home, and the layout it keeps
     release: (mapId, buildingKey, realm = null) => post('/v1/homes/release', { mapId, buildingKey, ...(realm ? { realm } : {}) }),
+    transfer: (body) => post('/v1/homes/transfer', body),
     entry: (mapId, buildingKey, entry) => post('/v1/homes/entry', { mapId, buildingKey, entry }),
     // HOME-RENT: a home's rooms (server-account/src/rent.js) - read at its door, offered and withdrawn by its owner, rented
     // by another player's realm character on its record, and the rent collected by the owner on theirs
@@ -2041,11 +2090,13 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
   const post = sessionPost({ fetch, storage });
   const waited = waitedPost({ fetch, storage }, listWaitMs);
   return {
-    list: (mapId, buildingKey, seat = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}) }),   // SEAT-HALL: a palace's Charter Room
+    list: (mapId, buildingKey, seat = false, yard = false) => waited('/v1/homes/decor', { mapId, buildingKey, ...(seat ? { seat: true } : {}), ...(yard && !seat ? { yard: true } : {}) }),   // SEAT-HALL: a palace's Charter Room; HOME-YARD: the street's pieces, for its Confirm
     place: ({ mapId, buildingKey, character, piece, realm = null, yard = false, seat = false }) => post('/v1/homes/decor/place', { mapId, buildingKey, character, piece, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}), ...(seat ? { seat: true } : {}) }),   // REALM P2.2b: and its gold on the record; HOME-YARD: outside
     yards: (mapId) => waited('/v1/homes/yards', { mapId }),   // HOME-YARD: every yard of a town
     move: ({ mapId, buildingKey, character, id, place, realm = null, seat = false }) => post('/v1/homes/decor/move', { mapId, buildingKey, character, id, place, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
     remove: ({ mapId, buildingKey, character, id, realm = null, seat = false }) => post('/v1/homes/decor/remove', { mapId, buildingKey, character, id, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
+    batch: ({ mapId, buildingKey, character, rev, txn, put, drop, realm = null, yard = false }) => post('/v1/homes/decor/batch', { mapId, buildingKey, character, rev, txn, put, drop, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}) }),   // DECOR-BATCH: a home's Confirm
+    use: (body) => post('/v1/homes/decor/use', body),   // DECOR-ACCESS
     // BASE-HIDE: the room's own furniture taken out - the whole list, written by the owner
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
   };
@@ -2076,7 +2127,7 @@ export function accountGuilds({ fetch, storage }) {
     // after the first burns Drakes, and a change asked twice is one line)
     // AUDIT PRE-MERGE 1003 WD1: a hall is a home - the layout its town stands in, always said (null: Daggerfall's), as a claim
     hallBuy: ({ character, mapId, buildingKey, region, price, layout = null }) => post('/v1/guilds/hall/buy', { character, mapId, buildingKey, region, price, layout: layout || null }),
-    hallSell: (character) => post('/v1/guilds/hall/sell', { character }),
+    hallSell: (character, at = null) => post('/v1/guilds/hall/sell', { character, ...(at ? { mapId: at.mapId, buildingKey: at.buildingKey } : {}) }),   // GUILD-HALL-SALE: at its door, the door's building
     hallEntry: (character, entry) => post('/v1/guilds/hall/entry', { character, entry }),
     heraldry: (character, heraldry, rid = null) => post('/v1/guilds/heraldry', { character, heraldry, ...(rid ? { rid } : {}) }),
     // GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): a new name for a price; the vault - read, a piece put in and taken
