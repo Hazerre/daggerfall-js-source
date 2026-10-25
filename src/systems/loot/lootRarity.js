@@ -1244,16 +1244,41 @@ export function rarityName(item, tier, affixes) {
   const template = templateByIndex(item.templateIndex)?.name;
   return nameAround(template != null ? rriVariantWord(item) + template : (item.name ?? ''), tier, affixes);
 }
-const nameAround = (base, tier, affixes) => {
+/** The words a piece's lines put around its name - `{ pre, suf }`, each null where no line names that slot. */
+const nameWords = (tier, affixes) => {
   const names = (a, slot) => AFFIX_KINDS[a?.id]?.slot === slot && !AFFIX_KINDS[a.id].proc;   // LOOT4: a line that does something never names a piece
   const pre = affixes.find((a) => names(a, 'prefix'));
   const suf = affixes.find((a) => names(a, 'suffix'));
+  return { pre: pre ? affixWord(pre, tier) : null, suf: suf ? affixWord(suf, tier) : null };
+};
+const nameAround = (base, tier, affixes) => {
+  const { pre, suf } = nameWords(tier, affixes);
   const parts = [];
-  if (pre) parts.push(affixWord(pre, tier));
+  if (pre != null) parts.push(pre);
   parts.push(base);
-  if (suf) parts.push(affixWord(suf, tier));
+  if (suf != null) parts.push(suf);
   return parts.join(' ');
 };
+/** NAME-KEPT: the rest of a name its lines' words were put around (nameAround's base - a found piece's template, a crafted
+ *  jewel's "Silver Ruby Ring"), or null for a name those lines did not give. */
+function nameBase(name, tier, affixes) {
+  const { pre, suf } = nameWords(tier, affixes);
+  if (typeof name !== 'string') return null;
+  let base = name;
+  if (pre != null) { if (!base.startsWith(`${pre} `)) return null; base = base.slice(pre.length + 1); }
+  if (suf != null) { if (!base.endsWith(` ${suf}`)) return null; base = base.slice(0, base.length - suf.length - 1); }
+  return base;
+}
+/** FIELD BUGS 2026-10-25b NAME-KEPT (SaberGGaming: "if you've renamed your item it will revert it back into its original
+ *  name"): A NAME AS ITS LINES MOVE - the words the old lines (`was`) gave it swapped for the words the new lines (`now`)
+ *  give, around the rest of it. The piece's own lines name it, never a set gem's (AUDIT GEM); a name an older reforge
+ *  built with a gem's word is read by every line it had, so the gem's word goes too. A name no line gave - one the Item Maker wrote (RenameItem), a
+ *  Masterwork's, which its maker's mark names (smithItems.js mintPiece) - is the piece's own, and stands. */
+export function linesName(name, tier, was, now) {
+  const own = (list) => list.filter((a) => a?.gem == null);
+  const base = nameBase(name, tier, was) ?? nameBase(name, tier, own(was));   // every line first: a gem's word an older reforge put in is cut out with the rest
+  return base == null ? name : nameAround(base, tier, own(now));
+}
 
 /** DISC29-B: THE NAMES A SAVE KEPT. A Magic or Rare piece of Roleplay & Realism: Items armour rolled before the fix
  *  carries the name built from the bare template; on load it is given the word its mint wrote ("Sentinel's Helmet of
@@ -2059,7 +2084,8 @@ export const reforgeCount = (item) => (Number.isInteger(item?.reforges) && item.
  *  lines as the roll draws (AFFIX-LINES, pickByLines), its value from its tier's band - an Exalted Legendary's line from
  *  the top half of the Legendary band, as its exalting rolled it - and its param on the roll's own leans (a skill to the
  *  item's own, LOOT1; a garment's standing to its dress, LOOT14). The name (a Magic's or a Rare's, which may gain or lose
- *  a part as the line crosses a slot - a Legendary keeps its record's) and the price follow, and the piece counts the
+ *  a part as the line crosses a slot - a Legendary keeps its record's; NAME-KEPT: only the words its lines gave, and a
+ *  name no line gave not at all - linesName) and the price follow, and the piece counts the
  *  reforge (`reforges` - what the next costs; an old piece's `reforged` mark folded into it). Answers the new line, or
  *  null (a line the Reforge may not take; nothing changed). */
 export function reforgeAffix(item, index, rolls = Math.random) {
@@ -2074,10 +2100,11 @@ export function reforgeAffix(item, index, rolls = Math.random) {
   const leaned = id === 'skill' ? pickSkill : id === 'standing' ? pickStanding : null;   // LOOT1's lean, LOOT14's
   const line = k.params ? { id, param: leaned ? leaned(item, freeParams(id), rolls) : pick(freeParams(id), rolls), value } : { id, value };
   const count = Math.min(REFORGES_MAX, reforgeCount(item) + 1);
+  const was = item.affixes;
   item.affixes = item.affixes.map((a, i) => (i === index ? line : a));
   item.reforges = count;
   delete item.reforged;   // the old law's lock, counted now (reforgeCount)
-  if (tier !== 'legendary') item.name = rarityName(item, tier, item.affixes.filter((a) => a?.gem == null));   // AUDIT GEM: named by the piece's own lines - never a set gem's word ("Soldier's" off a Diamond), which outlived the gem's unsetting
+  if (tier !== 'legendary') item.name = linesName(item.name, tier, was, item.affixes);   // NAME-KEPT: the lines' words moved, the rest of the name kept - a name no line gave is the piece's own
   item.value = (Number.isFinite(item.value) ? item.value : itemBaseValue(item)) - affixesWorth([old], item) + affixesWorth([line], item);
   return line;
 }

@@ -752,6 +752,15 @@ doubling price, every line's press), `tech1_roster` (a technique's line not offe
 aimed at the new one; LOOT9-carried-kind-again equivalent as recorded - its guard is belt-and-braces beside the draw's
 weights); AUDIT LOOT II A4 pinned from its other side (a gem's kind free for the piece's own lines).
 
+**NAME-KEPT (FIELD BUGS 2026-10-25b item 1; SaberGGaming again: "if you've renamed your item it will revert it back
+into its original name")**: the reforge named a Magic or Rare piece again from its TEMPLATE (`rarityName`), so a name
+the Item Maker gave (RenameItem) was lost, a Masterwork's own name ("Silver Ring" under its maker's mark) took the
+ladder's words its mint withholds, and a crafted jewel lost its metal and gem. `lootRarity.js` linesName: a reforge
+swaps the words the old lines gave the name for the words the new lines give, around the rest of it; a name the lines
+did not give is the piece's own and stands. A name an older reforge built with a set gem's word is read by every line
+it had, so the gem's word goes too (AUDIT GEM). `test/systems/loot/fb1025b_namekept.test.js`,
+`tools/mutants/fb1025b_namekept.json` (8, all dead).
+
 ### LOOT10 - the codex, and the imprint (2026-10-01)
 
 **`systems/loot/lootCodex.js`** (new): the character's CODEX - every Legendary record and every Aetheric piece taken, with
