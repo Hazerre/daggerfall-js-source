@@ -1105,7 +1105,8 @@ export async function depositStores(ctx, player, env, { character, material: key
  * PURSE, as the Sigil Broker spends it (accounts.js buyInsignia, insigniaPurse; egEconomy.js egSink): the decision asks
  * that the account's gates, serpents and Redoubts earned the embers its insignia, the Panoply and the forge have not yet
  * taken, and the same batch adds them to `insignia_spent` - so two smelts pressed at once never spend one ember twice;
- * refused `prof-embers` (with the purse left) where the inputs are held and the purse is short. The heart is a CATALYST:
+ * refused `prof-embers` where the inputs are held and the purse is short (the answer of a smelt made says the purse
+ * left, `purse`; a refusal is its word alone, as every route's - index.js). The heart is a CATALYST:
  * it enters only loose (bagLaw.js looseOrder), and its origin never reaches the ingot - an ingot is own, bought or loose
  * as its Ebony Ingot was, its bound the ember the service counts.
  */
@@ -1217,10 +1218,7 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
     const st = await storeOf(db, player.id, character, inp.key);
     if (workHeld(st) < inp.n * count) return { error: workHeld(st) + (st.gold ?? 0) >= inp.n * count ? 'stores-gold' : 'stores-short', material: inp.key };   // GOLD-MARKET: short only of what gold bought
   }
-  if (embers > 0) {   // DAEDRIC-SMELT: the purse short of the embers - said with what it holds
-    const purse = await emberPurse(db, player.id);
-    if (purse < embers) return { error: 'prof-embers', purse, need: embers };
-  }
+  if (embers > 0 && (await emberPurse(db, player.id)) < embers) return { error: 'prof-embers' };   // DAEDRIC-SMELT: the purse short of the embers
   return { error: 'stores-full', material: r.out };
 }
 /** DAEDRIC-SMELT: the Deadlands Embers account `id`'s purse holds now - accounts.js insigniaPurse's reading, off the row as

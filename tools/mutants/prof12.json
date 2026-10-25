@@ -584,8 +584,8 @@
   {
     "name": "PROF12-reagents-unregistered",
     "file": "src/net/professionLaw.js",
-    "old": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE].map((m) => [m.key, m]));",
-    "new": "RAM_KIT, ARCANE_ESSENCE].map((m) => [m.key, m]));",
+    "old": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE, DAEDRA_HEART].map((m) => [m.key, m]));",
+    "new": "RAM_KIT, ARCANE_ESSENCE, DAEDRA_HEART].map((m) => [m.key, m]));",
     "tests": [
       "test/systems/prof12_law.test.js",
       "test/net/prof12_service.test.js",
@@ -595,8 +595,8 @@
   {
     "name": "PROF12-essence-unregistered",
     "file": "src/net/professionLaw.js",
-    "old": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE].map((m) => [m.key, m]));",
-    "new": "RAM_KIT, ...REAGENTS].map((m) => [m.key, m]));",
+    "old": "RAM_KIT, ...REAGENTS, ARCANE_ESSENCE, DAEDRA_HEART].map((m) => [m.key, m]));",
+    "new": "RAM_KIT, ...REAGENTS, DAEDRA_HEART].map((m) => [m.key, m]));",
     "tests": [
       "test/systems/prof12_law.test.js",
       "test/net/prof12_service.test.js",
