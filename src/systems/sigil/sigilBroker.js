@@ -523,8 +523,12 @@ export const DISMANTLE_INSTEAD = (n) => `Dismantle it for ${stonesText(n)} inste
 export const DISMANTLE_WORN = (name) => `Take off ${name} before dismantling it.`;
 export const DISMANTLED = (name, n) => `Dismantled: ${name}, for ${stonesText(n)}.`;
 
-/** The words a refused offer wears, and the set an offer belongs to by name. */
-export const BROKER_REFUSALS = Object.freeze({ bought: 'Bought today', stones: 'Not enough Deadlands Embers', gone: 'No longer in stock', heavy: 'Too heavy to carry' });
+/** The words a refused offer wears, and the set an offer belongs to by name. FIELD BUGS 2026-10-25b BOUGHT-YOURS
+ *  (#bug-reports, "Can't buy this piece": "I did dismantle the other chest i bought days ago, but still i cant buy this
+ *  one"): 'bought' says whose sale it was and that it is the day's. "Bought today" read as "you have one already" - a
+ *  Legendary wears its base record's name, so another day's offer comes back under it (2026-10-22's Warden was
+ *  Malacath's, 2026-10-25's Mora's), and a press just after a sale said it over the sale's own word. */
+export const BROKER_REFUSALS = Object.freeze({ bought: 'You bought this one today. You can buy each piece once a day.', stones: 'Not enough Deadlands Embers', gone: 'No longer in stock', heavy: 'Too heavy to carry' });
 export const offerSetName = (offer) => setById(offer?.set)?.name ?? '';
 export { SIGIL_STONE_TEMPLATE };
 /** Tests only: forget the record. */
