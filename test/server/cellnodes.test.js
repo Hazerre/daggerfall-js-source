@@ -126,6 +126,7 @@ test('COST-2 A HALO IN THE PAGE\'S OWN NODE IS CLOSED BY THE WORKER: a halo nami
   assert.equal(await reach(worker.fetch(upgrade('world:28,9?of=world:25,9'), { ROOMS: R.ROOMS })), 200, 'a halo of the next node walks');
   assert.equal(R.asks.at(-1).name, 'cell:2:7,2');
   assert.equal(await reach(worker.fetch(upgrade('world:24,9?of=town:x'), { ROOMS: R.ROOMS })), 200, 'an `of` that is no cell is no halo of one');
+  assert.equal(await reach(worker.fetch(upgrade('world:24,9?of=cell:2:6,2'), { ROOMS: R.ROOMS })), 200, 'nor a node\'s own key: a page names cells');
   // COST-2 (b): `of` names every room the page holds - a second halo toward a node a halo of the page already holds is
   // that halo's room, never a second socket of one peer in one object
   assert.equal(await reach(worker.fetch(upgrade(`world:29,9?of=${encodeURIComponent('world:25,9;world:28,9')}`), { ROOMS: R.ROOMS })), 101, 'the next node already held by a halo');

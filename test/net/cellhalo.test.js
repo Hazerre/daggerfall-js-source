@@ -27,6 +27,9 @@ test('COST-2 A HALO SAYS WHICH ROOM ITS PAGE STANDS IN: its socket asks for the 
   s.setHalo(['world:3,12']);
   assert.equal(sockets[1].url, `wss://relay.test/room/world:3,12?of=${encodeURIComponent('world:2,12')}`);
   assert.equal(new URL(sockets[1].url).searchParams.get(HALO_OF_PARAM), 'world:2,12');
+  // COST-2 (b): and every halo it holds already - the second halo of a corner names the first
+  s.setHalo(['world:3,12', 'world:2,13']);
+  assert.equal(new URL(sockets[2].url).searchParams.get(HALO_OF_PARAM), 'world:2,12;world:3,12');
 }));
 
 test('COST-2 "SAME ROOM" IS A WAIT, NOT A DROP: a halo closed CLOSE_SAME_ROOM keeps no socket and asks again only after HALO_WAIT_MS, its backoff untouched and no drop weighed; asked again it names the room the page stands in then; any other close is retried on its backoff as before (mutants: the close retried on its backoff; weighed as a drop; the wait short; the backoff doubled)', () => quiet(() => {

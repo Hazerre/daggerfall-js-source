@@ -114,6 +114,8 @@ test('COST-2 (b) THE PAGE: a crossing into a cell its socket covers is no crossi
     // the overworld word: a band of world:24,8, in the node, said from world:25,9
     s.owOk = true;
     assert.deepEqual(s.sendOverworld('sp', ['b195.180.1', 'b215.180.1']), ['b195.180.1'], 'bounded by the node\'s square, not the fine cell\'s');
+    // a welcome whose cells hold another node, or only the room itself, is no node of this socket's
+    assert.equal(session([26, 8, 28, 10]).s.coverOf('world:24,8'), 'world:24,8', 'a node that does not hold the room is never believed');
     // a relay before COST-2: no `cells`, today's crossing
     const old = session(null);
     assert.equal(old.s.coverOf('world:24,8'), 'world:24,8');
@@ -131,4 +133,6 @@ test('COST-2 (b) A COVERED CROSSING TAKES EVERY ROOM-KEYED RECORD WITH IT: the r
   assert.deepEqual([...new Set(moved)].sort(), [...new Set(forgot)].sort());
   assert.match(body('_forgetRoom'), /p\.src === room/);
   assert.match(body('_renameRoom'), /p\.src === from\) p\.src = to/);
+  // the grants' reader asks the session what the socket a frame came on covers
+  assert.match(readFileSync(new URL('../../src/scenes/grantHost.js', import.meta.url), 'utf8'), /grantRefusal\(v\.gr, \{ from, cell: at, cover: session\(\)\?\.coverOf\?\.\(at\) \?\? at,/);
 });

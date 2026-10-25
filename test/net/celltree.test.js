@@ -58,6 +58,8 @@ test('COST-2 the tree and the walk: L0_TREE leaves every fine cell its own node 
   assert.equal(isSplit(seed, 'cell:2:6,2'), true, 'at the base: whole unless split');
   assert.equal(isSplit(seed, 'cell:2:7,2'), false);
   assert.equal(isSplit(seed, 'world:25,9'), false, 'an L0 node never');
+  const top = readTree({ v: 1, base: 2, joined: ['cell:4:0,0'] });
+  assert.equal(leafOf(top, 'world:3,3'), 'cell:4:0,0', 'the walk starts at L4: a joined top node is one node');
   // the reader
   for (const bad of [null, 7, {}, { v: 2, base: 0 }, { v: 1, base: 5 }, { v: 1, base: -1 }, { v: 1, base: 1.5 },
     { v: 1, base: 2, split: ['cell:3:0,0'] }, { v: 1, base: 2, joined: ['cell:2:0,0'] }, { v: 1, base: 2, split: ['world:1,1'] },

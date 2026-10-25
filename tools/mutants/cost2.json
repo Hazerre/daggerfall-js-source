@@ -1,0 +1,583 @@
+[
+  {
+    "name": "COST2-L0-keyed-anew",
+    "file": "src/net/cellTree.js",
+    "old": "(L === 0 ? `world:${nx},${ny}` : `cell:${L}:${nx},${ny}`)",
+    "new": "`cell:${L}:${nx},${ny}`",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-level-size",
+    "file": "src/net/cellTree.js",
+    "old": "export const nodeSize = (L) => WORLD_CELL * 2 ** L;",
+    "new": "export const nodeSize = (L) => WORLD_CELL * (L + 1);",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-floor-negatives",
+    "file": "src/net/cellTree.js",
+    "old": "cellNodeKey(L, Math.floor(cx / 2 ** L), Math.floor(cy / 2 ** L))",
+    "new": "cellNodeKey(L, Math.trunc(cx / 2 ** L), Math.trunc(cy / 2 ** L))",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-child-out-of-place",
+    "file": "src/net/cellTree.js",
+    "old": "[[0, 0], [1, 0], [0, 1], [1, 1]].map(",
+    "new": "[[0, 0], [0, 1], [1, 0], [1, 1]].map(",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-parent-rounding",
+    "file": "src/net/cellTree.js",
+    "old": "cellNodeKey(n.L + 1, Math.floor(n.nx / 2), Math.floor(n.ny / 2))",
+    "new": "cellNodeKey(n.L + 1, Math.round(n.nx / 2), Math.round(n.ny / 2))",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-base-side",
+    "file": "src/net/cellTree.js",
+    "old": "return L > tree.base ? !s.joined.has(key) : s.split.has(key);",
+    "new": "return L >= tree.base ? !s.joined.has(key) : s.split.has(key);",
+    "tests": [
+      "test/net/celltree.test.js",
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-walk-start",
+    "file": "src/net/cellTree.js",
+    "old": "  let L = CELL_LEVEL_MAX;\n  let node = nodeAt(L, c[0], c[1]);",
+    "new": "  let L = CELL_LEVEL_MAX - 1;\n  let node = nodeAt(L, c[0], c[1]);",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-joined-unread",
+    "file": "src/net/cellTree.js",
+    "old": "? !s.joined.has(key) :",
+    "new": "? true :",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-tree-read-loose",
+    "file": "src/net/cellTree.js",
+    "old": "if (L == null || !side(L) || out.has(k)) return null;",
+    "new": "if (L == null || out.has(k)) return null;",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-tree-bound",
+    "file": "src/net/cellTree.js",
+    "old": "if (!Array.isArray(v) || v.length > TREE_NODES_MAX) return null;",
+    "new": "if (!Array.isArray(v)) return null;",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-partition-first",
+    "file": "src/net/cellTree.js",
+    "old": "const t = p ? targets.find((k) => nodeHolds(k, p[0], p[1])) : undefined;",
+    "new": "const t = p ? targets[0] : undefined;",
+    "tests": [
+      "test/net/celltree.test.js",
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-rest-dropped",
+    "file": "src/net/cellTree.js",
+    "old": "if (t) /** @type {T[]} */ (by.get(t)).push(r); else rest.push(r);",
+    "new": "if (t) /** @type {T[]} */ (by.get(t)).push(r);",
+    "tests": [
+      "test/net/celltree.test.js"
+    ]
+  },
+  {
+    "name": "COST2-walk-other-name",
+    "file": "server/src/cellNodes.js",
+    "old": "return layerWalk(env.ROOMS, node, new Request(request, { headers }),",
+    "new": "return layerWalk(env.ROOMS, key, new Request(request, { headers }),",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-node-header-page",
+    "file": "server/src/cellNodes.js",
+    "old": "const headers = { ...Object.fromEntries(request.headers), [NODE_HEADER]: node };",
+    "new": "const headers = { [NODE_HEADER]: node, ...Object.fromEntries(request.headers) };",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-directory-unasked",
+    "file": "server/src/cellNodes.js",
+    "old": "  const tree = await cellTreeOf(env);\n  const node = cellNodeOf(tree, key);",
+    "new": "  const tree = null;\n  const node = cellNodeOf(tree, key);",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-tree-unkept",
+    "file": "server/src/cellNodes.js",
+    "old": "if (kept && now - kept.at < CELL_TREE_KEEP_MS) return kept.tree;",
+    "new": "if (kept && now - kept.at < 0) return kept.tree;",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-fine-on-failure",
+    "file": "server/src/cellNodes.js",
+    "old": "  failedAt = now;\n  return kept?.tree ?? null;",
+    "new": "  failedAt = now;\n  return null;",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-retry-unpaced",
+    "file": "server/src/cellNodes.js",
+    "old": "if (now - failedAt < CELL_TREE_RETRY_MS) return kept?.tree ?? null;",
+    "new": "if (now - failedAt < 0) return kept?.tree ?? null;",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-halo-walked",
+    "file": "server/src/cellNodes.js",
+    "old": "if (held.some((k) => cellNodeOf(tree, k) === node)) return sameRoomAnswer();",
+    "new": "if (false) return sameRoomAnswer();",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-other-node-refused",
+    "file": "server/src/cellNodes.js",
+    "old": "if (held.some((k) => cellNodeOf(tree, k) === node)) return",
+    "new": "if (held.length) return",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-loose",
+    "file": "server/src/cellNodes.js",
+    "old": ".filter((k) => k !== key && isCellRoom(k));",
+    "new": ".filter((k) => k !== key);",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-one-room",
+    "file": "server/src/cellNodes.js",
+    "old": ".split(';').slice(0, HALO_OF_MAX)",
+    "new": ".split(';').slice(0, 1)",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-unbounded",
+    "file": "server/src/cellNodes.js",
+    "old": ".split(';').slice(0, HALO_OF_MAX)",
+    "new": ".split(';')",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-header-loose",
+    "file": "server/src/cellNodes.js",
+    "old": "if (nodeAt(L, c[0], c[1]) !== n) return null;",
+    "new": "if (false) return null;",
+    "tests": [
+      "test/server/cellnodes.test.js",
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-L0-kept-on-socket",
+    "file": "server/src/cellNodes.js",
+    "old": "  return L > 0 ? n : null;",
+    "new": "  return n;",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-node-covers-neighbour",
+    "file": "src/net/cellTree.js",
+    "old": "  return !!n && !!c && nodeAt(n.L, c[0], c[1]) === node;",
+    "new": "  return !!n && !!c;",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-cells-off-by-one",
+    "file": "src/net/cellTree.js",
+    "old": "return [n.nx * s, n.ny * s, (n.nx + 1) * s, (n.ny + 1) * s];",
+    "new": "return [n.nx * s, n.ny * s, (n.nx + 1) * s - 1, (n.ny + 1) * s - 1];",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-cells-read-loose",
+    "file": "src/net/cellTree.js",
+    "old": "if (y1 - y0 !== s || !Number.isInteger(L)",
+    "new": "if (!Number.isInteger(L)",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-square-unwidened",
+    "file": "src/net/overworldLaw.js",
+    "old": "return b && { x0: b.x0 - OW_CELL_MARGIN_PX, y0: b.y0 - OW_CELL_MARGIN_PX, x1: b.x1 + OW_CELL_MARGIN_PX, y1: b.y1 + OW_CELL_MARGIN_PX };",
+    "new": "return b && { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 };",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-grant-cover-unread",
+    "file": "src/net/grantLaw.js",
+    "old": "  if (!coversCell(cover, g.q)) return 'cell';",
+    "new": "  if (!coversCell(cell, g.q)) return 'cell';",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-grant-host-cover",
+    "file": "src/scenes/grantHost.js",
+    "old": "cover: session()?.coverOf?.(at) ?? at,",
+    "new": "cover: at,",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-cover-unkept-relay",
+    "file": "server/src/index.js",
+    "old": "...(ly ? { ly } : {}), ...(nd ? { nd } : {}) };",
+    "new": "...(ly ? { ly } : {}) };",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-welcome-cells-unsaid",
+    "file": "server/src/index.js",
+    "old": "? ',\"rf\":1' : '') + cellsWelcome(a);",
+    "new": "? ',\"rf\":1' : '');",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-ledger-fine",
+    "file": "server/src/index.js",
+    "old": "owIdInCell(id, coverOf(a))",
+    "new": "owIdInCell(id, a.key)",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-cover-the-key",
+    "file": "server/src/cellNodes.js",
+    "old": "export const coverOf = (a) => a?.nd ?? a?.key;",
+    "new": "export const coverOf = (a) => a?.key;",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-atCover-null",
+    "file": "server/src/cellNodes.js",
+    "old": "(cover == null ? cell == null : coversCell(cover, cell))",
+    "new": "coversCell(cover, cell)",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-crossing-reopened",
+    "file": "src/net/online.js",
+    "old": "if (this._ws && this.status === 'open' && isCellRoom(room) && isCellRoom(this.room) && this._cover && coversCell(this._cover, room)) {",
+    "new": "if (false) {",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-roster-left",
+    "file": "src/net/online.js",
+    "old": "move(this._rooms); move(this._inChat);",
+    "new": "move(this._inChat);",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-src-left",
+    "file": "src/net/online.js",
+    "old": "    for (const p of this.peers.values()) if (p.src === from) p.src = to;\n",
+    "new": "",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-halo-toward-covered",
+    "file": "src/net/online.js",
+    "old": "(rooms ?? []).filter((r) => isCellRoom(r) && !this._mine(r) &&",
+    "new": "(rooms ?? []).filter((r) => isCellRoom(r) && r !== this.room &&",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-word-fine-square",
+    "file": "src/net/online.js",
+    "old": "    const room = this._cover ?? this.room;",
+    "new": "    const room = this.room;",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-covered-not-held",
+    "file": "src/net/online.js",
+    "old": " || (this.status === 'open' && this._mine(key))); }",
+    "new": "); }",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-old-relay-read-as-node",
+    "file": "src/net/online.js",
+    "old": "const cover = n && isCoarseNode(n) && coversCell(n, room) ? n : null;",
+    "new": "const cover = n;",
+    "tests": [
+      "test/net/cellcover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-level-unsaid",
+    "file": "server/src/cellNodes.js",
+    "old": "(room._node ? String(nodeLevelOf(room._node)) : '')",
+    "new": "''",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-coarse-let-through",
+    "file": "server/src/index.js",
+    "old": "    if (isCoarseNode(key)) return json({ error: 'no such room' }, 404);\n",
+    "new": "",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-door-unwired",
+    "file": "server/src/index.js",
+    "old": "    if (isCellRoom(key)) return cellDoor(env, key, url, request);",
+    "new": "    if (false) return cellDoor(env, key, url, request);",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-blob11-dropped",
+    "file": "server/src/relayScale.js",
+    "old": "String(c.beats), String(level)],",
+    "new": "String(c.beats)],",
+    "tests": [
+      "test/server/cellnodes.test.js"
+    ]
+  },
+  {
+    "name": "COST2-unknown-handed",
+    "file": "server/src/cellHandover.js",
+    "old": "  return 'block';\n};",
+    "new": "  return 'part';\n};",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-prefix-exact",
+    "file": "server/src/cellHandover.js",
+    "old": "(p.endsWith(':') ? key.startsWith(p) : key === p)",
+    "new": "(key.startsWith(p))",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-blockers-one-page",
+    "file": "server/src/cellHandover.js",
+    "old": "    if (page.size < SWEEP_PAGE) return out;",
+    "new": "    return out;",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-clamp",
+    "file": "server/src/cellHandover.js",
+    "old": "const clamp = (/** @type {[number, number] | null} */ p) => (p ? /** @type {[number, number]} */ ([Math.min(Math.max(p[0], sq.x0), sq.x1 - 1), Math.min(Math.max(p[1], sq.y0), sq.y1 - 1)]) : null);",
+    "new": "const clamp = (/** @type {[number, number] | null} */ p) => p;",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-rows-kept-behind",
+    "file": "server/src/cellHandover.js",
+    "old": "  await st.delete(OW_LEDGER_KEY);\n",
+    "new": "",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-partial-let-go",
+    "file": "server/src/cellHandover.js",
+    "old": "  if (failed.length) return { ok: false, failed };\n",
+    "new": "",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-blocked-handed",
+    "file": "server/src/cellHandover.js",
+    "old": "  if (blocked.length) return { ok: false, blocked };\n",
+    "new": "",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-miss-asked-once",
+    "file": "server/src/cellHandover.js",
+    "old": "if (!(await once(t)) && !(await once(t))) failed.push(t);",
+    "new": "if (!(await once(t))) failed.push(t);",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-older-park-kept",
+    "file": "server/src/cellHandover.js",
+    "old": "if (had && (had.at ?? 0) >= (rec.at ?? 0)) continue;",
+    "new": "if (had && (had.at ?? 0) > (rec.at ?? 0) + 1e12) continue;",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-take-not-idempotent",
+    "file": "server/src/cellHandover.js",
+    "old": "if (!(dg[k]?.[2] >= r[2])) { dg[k] = r; n++; }",
+    "new": "{ dg[k] = r; n++; }",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-copy-dropped",
+    "file": "server/src/cellHandover.js",
+    "old": "    if (keyClass(k) === 'copy' && (await st.get(k)) === undefined) await st.put(k, v);\n",
+    "new": "",
+    "tests": [
+      "test/server/cellhandover.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-unsaid",
+    "file": "src/net/online.js",
+    "old": "const of = isCellRoom(this.room) ? `?${HALO_OF_PARAM}=",
+    "new": "const of = false ? `?${HALO_OF_PARAM}=",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-own-key",
+    "file": "src/net/online.js",
+    "old": "encodeURIComponent([this.room, ...",
+    "new": "encodeURIComponent([room, ...",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-other-halos-unsaid",
+    "file": "src/net/online.js",
+    "old": "[this.room, ...[...this._halo.keys()].filter((k) => k !== room)]",
+    "new": "[this.room]",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ]
+  },
+  {
+    "name": "COST2-of-any-room",
+    "file": "src/net/online.js",
+    "old": "const of = isCellRoom(this.room) ?",
+    "new": "const of = this.room ?",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ],
+    "equivalent": true,
+    "why": "a halo is opened only while the page stands in a cell (setHalo asks none, and lets every one go, in any other room; the retry tick walks the halos it holds), so a page in no cell never reaches the line that names its room"
+  },
+  {
+    "name": "COST2-same-backed-off",
+    "file": "src/net/online.js",
+    "old": "        if (code === CLOSE_SAME_ROOM) { h.ws = null; h.status = 'closed'; h.dropAt = null; h.retryAt = this._now() + HALO_WAIT_MS; return; }\n",
+    "new": "",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ]
+  },
+  {
+    "name": "COST2-same-wait-short",
+    "file": "src/net/online.js",
+    "old": "h.retryAt = this._now() + HALO_WAIT_MS; return; }",
+    "new": "h.retryAt = this._now() + BACKOFF_MIN_MS; return; }",
+    "tests": [
+      "test/net/cellhalo.test.js"
+    ]
+  }
+]

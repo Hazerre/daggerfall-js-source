@@ -3994,3 +3994,115 @@ The frames held are the held sent, the held gone and the still held:
   round from an empty hold, a refusal held.
 - `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
   `burst`, `liar` and `leavers` scenes.
+
+## COST-2 part one: built (2026-10-24, this branch - relay world258, NOT YET DEPLOYED; one relay drop at its merge, after COST-1's) - cells that can size themselves, the tree fixed at L0
+
+The owner (2026-10-24), of COST's third slice: not static bigger cells. A 64-pixel cell fills a town's SOCKETS_MAX early,
+its crowd spills into layers that cannot see each other, and it is wrong both ways at the 10,000 target. So cells size
+themselves to their players: coarse where the map is empty, fine (down to today's 16 pixels, then layers) where it is
+crowded. The page keeps computing its 16-pixel cell (wire.js worldRoom, cellHaloFor) as before. It ships in two drops.
+This one is the plumbing with the tree fixed at "every node at L0", so every object a cell's socket reaches is the one it
+reached before and every law reads as it did; part two seeds the tree at L2 and lets it split and merge.
+
+**The tree** (`src/net/cellTree.js`, pure). Levels over the fixed grid: L0 is today's 16-pixel cell under its own
+`world:<cx>,<cy>` key (its stored rows stay valid); L1 to L4 are 32 to 256 pixels under `cell:<L>:<nx>,<ny>`. The tree
+is the set of split nodes around a base level: a node above the base is split unless the tree joined it, a node at or
+below it whole unless the tree split it. A fine cell's node (leafOf) is the walk down from its L4 node while the node it
+stands in is split. `L0_TREE` splits everything down to L0: today's partition exactly. readTree reads a tree strictly (its
+version, its base, each node coarse, on its list's side of the base, once, at most TREE_NODES_MAX).
+
+**A node is an object's name; a socket keeps the key it joined with** - the layers' pattern (wire.js layerName). The
+Worker (`server/src/cellNodes.js` cellDoor) asks the directory for the tree, keeps it CELL_TREE_KEEP_MS (30 s) in its
+isolate, and passes the page's request on unchanged to the node's object, walked through its layers as SCALE5d walks a
+place. The object is told its node (NODE_HEADER, set whatever the page sent) and believes it only when the node holds the
+socket's cell. A page's own coarse node key (`/room/cell:...`) is refused 404.
+
+**The directory**: one object, CELL_DIRECTORY (`#cells`, a name wire.js roomOf never gives), answers the tree
+(CELL_INTERNAL_TREE): `L0_TREE` while it stores none, and nothing writes one in this drop. **It fails safe to the last
+tree an isolate saw**, and to the fine key only when it never saw one: once part two seeds the tree coarse, the fine key
+is not today's behaviour - it would stand a player alone in a fine object no one else of its node is in. A failed ask is
+not repeated for CELL_TREE_RETRY_MS (5 s), so a directory down costs an isolate one ROOM_CALL_MS deadline, not every page.
+
+**A socket covers its node** (the owner's session, of a crossing inside a node: a leave and a join on three of four
+crossings is a regression against today's seamless halo promotion). One law, both ends' (cellTree.js coversCell): a
+socket's COVER is its coarse node, kept on its attachment (`nd`, so a woken object still knows), or its own key, and a
+cell is covered by the cover itself or by a coarse node that holds it. Under L0 every cover is a fine cell, which covers
+itself alone - today's law.
+- **The relay reads the cover wherever it read the socket's key as a cell** (cellNodes.js coverOf, inCover, atCover):
+  a raid's, a rite's, a star's, a Super dungeon find's, a staff event's and a serpent's word by its pixel; the wild
+  zone's order by its room; a grant's `q` at its renewal, its hand-over and its foes (`_grantHere`); the City Watch's
+  tick by its pose; a park word's anchor; the overworld ledger's ids and rows (overworldLaw.js owCellSquare: a coarse
+  node's square, widened by OW_CELL_MARGIN_PX like a cell's). The socket's key itself never moves: no reader needs the
+  fine cell a player stands in now, so no attachment is rewritten as a player walks.
+- **The welcome says what the socket covers**: `cells`, `[x0, y0, x1, y1]` in fine cells (`[cx, cy, cx + 1, cy + 1]` at
+  L0). A relay before this drop says none, and the page keeps today's behaviour.
+- **The page keeps each socket's cover** (`src/net/online.js`: the primary's `_cover`, a halo's `cover`). A crossing into
+  a cell its socket covers is no crossing: the room renamed (`_renameRoom`, every room-keyed record `_forgetRoom` lets go
+  of - a pin holds the two lists to one), the socket and its peers kept, the host joining it at once (`inRoom`). No halo is
+  asked toward a covered cell, nor a second toward a node a halo already covers; a word for a covered cell goes down the
+  socket that covers it (`_mine`, `_haloFor`); the overworld word is bounded by the cover's square; and the grants' reader
+  (`src/scenes/grantHost.js`, grantLaw.js grantRefusal) stands a peer's foes on a grant whose `q` is any cell the socket
+  it came on covers. `q` is still the fine cell the grant was made out to; at every level both ends read it so.
+- **A halo names every room its page holds** (`?of=`, wire.js HALO_OF_PARAM: its own room first, then its halos, `;`
+  between, HALO_OF_MAX at most). The Worker answers a halo whose node one of them is in with a socket it opens and closes
+  CLOSE_SAME_ROOM (4002) at once - a browser sees no HTTP status on a refused upgrade - and asks no object: two sockets of
+  one peer in one object would replace each other. The page asks that halo again HALO_WAIT_MS later, with no drop weighed
+  and no backoff. At L0 no halo is ever in a room its page holds.
+
+**The handover** (`server/src/cellHandover.js` handOver, takeHandover, CELL_INTERNAL_TAKE). When the tree moves, the
+departing node's rows go to the nodes that hold them now, by pixel, clamped into the receivers' square (a ledger row may
+stand OW_CELL_MARGIN_PX past its cell). Every key a node holds has a class: `part` (the parked teams and the overworld
+ledger - its spent ids, dungeons and graves), `copy` (the relay's settings, bans, freezes), `drop` (looks and secrets,
+swept at every drain), and `block` - everything else, a key nobody has named included. A node holding a key that blocks
+is never repartitioned, so the tree can only move where the handover is whole. A receiver takes rows idempotently by their
+own keys, and the departing node lets its rows go only when every receiver took its part; a handover asked again after a
+partial failure leaves every receiver as one would.
+
+**The node's level** rides each room's metrics point (`server/src/relayScale.js` RoomMetrics, blob11): `0` for a fine
+cell, 1-4 for a coarse node, '' for a room told none. `relay-load.yml`'s questions can count awake rooms by level before
+and after part two.
+
+**Read in the code and left for part two, each with its reason.**
+- **The plan named caravan decor and cell memory**: neither lives in a cell. A caravan's decor is its own room's
+  (privateInterior.js caravanKeyOf), and a cell keeps no world memory (WORLD6b).
+- **A cell holds more than the plan named**: a cell's raids and their receipts, fallen stars, serpent fights and sites,
+  the wild's remains and its debts, staff events' ledgers. Each blocks; part two moves only nodes that hold none, and a
+  later slice partitions each by its pixel before it stops blocking.
+- **The calls between rooms name a cell by its fine key** (the park registry's drop, a raid's cleanse, a star held, a
+  gate's kill, a Super dungeon's find, a staff event's call) through `idFromName` directly, never through the Worker. Once
+  a fine key's object is a coarse node they must ask the tree too: part two's.
+- **A page from before this drop names no `of`**: in part two its halo toward its own node would reach that object and
+  replace its own socket (CLOSE_REPLACED). Part two raises the ground law (wire.js GROUND_LAW) so such pages reload first,
+  or ships days after this one.
+- **Layers keep no ledger, but they may keep parks**: part two hands over a crowded node's layers too, or blocks on them.
+
+**Expected:** nothing in this drop - the tree is L0. Part two: $9-19 a day on duration (the 64-pixel saving, more at
+night), with no layering in a town until a 16-pixel cell itself fills.
+
+**Pins.** `test/net/celltree.test.js` (3): the nodes, the tree and the walk (L0_TREE every cell its own node across the
+map and past it; a seeded tree's split town, base and joined corner; the reader's every refusal), the partition.
+`test/server/cellnodes.test.js` (5): at L0 every cell reaches the object it reached before - its own name, its layer's,
+its request unchanged, its node told - when the directory answers, fails or answers nothing readable, the tree asked once
+a CELL_TREE_KEEP_MS; a seen tree outliving its directory, a failed ask paced, the fine key only for an isolate that never
+saw one; no page reaching a node or the directory by name; a halo in a room its page holds closed CLOSE_SAME_ROOM by the
+Worker alone - its page's own room or another halo's node, at most HALO_OF_MAX read - another node's walked; a node
+believed only when it holds the cell, the directory's tree read strictly, blob11. `test/net/cellcover.test.js` (4): the
+law of what a socket covers, the welcome's cells and back, the ledger's square, the grant's cover; the relay keeping a
+coarse cover on the socket and saying it, a ledger word for another cell of the node taken and junk at L0; the page's
+covered crossing (no socket closed or opened, the roster renamed), halos only toward what no socket covers, the
+overworld word's bound, an old relay's crossing as today; the rename moving every map the forget lets go of, and the
+grants' reader asking the socket's cover. `test/server/cellhandover.test.js` (3): every key a class and the rest
+blocking; a split handing each child its own rows and the four merged back whole, a take asked again changing nothing;
+a blocked node and a child that never answers moving nothing. `test/net/cellhalo.test.js` (3): a halo's `of`, "same room"
+a wait and not a drop, no `of` for a page in no cell. `tools/mutants/cost2.json`: 64 - 63 dead, one recorded equivalent (a halo is opened only while its page stands in a cell).
+- PIN MOVED: a halo's socket URL carries `?of=` - `world6biiib`, `auditworld6biiib`, `halowait`, `netsmooth`, `scale2b`,
+  `scale2c` and `scale5d` read a socket's room off its URL's path; the metrics point's blob11 (`scale2b`,
+  `fb1021b_foeshold`); a cell's door asks the directory (`chat1`'s count of objects minted, `auditscale2_relay`'s R1-5
+  count of layers); the source pins of a cell-scoped law read it through the cover (`auditraid`, `hcc_park`, `int12_body_relay`, `seat1b_client`), and the overworld law imports the cell tree (`ow6_ledger`); thirty records re-aimed by content to the cover (raid3, star3, wb12d, serpent1, ow6l, hccpark, grant2,
+  grant3, grant4, grantaudit, int_lane2, int_lane3_audit, seat1b, audit_seats_relay, auditraid, auditscale2_relay,
+  auditwb_relay, fb1016b_graveparty, fb1021b_foeshold, lease1, scale5b).
+- RELAY_VERSION world258, its hash and the bundle's three new files (`src/net/cellTree.js`, `server/src/cellNodes.js`,
+  `server/src/cellHandover.js`) in `test/net/relayversion.test.js`, every pin on world256 moved.
+
+**The deploy.** One relay drop at the merge, after COST-1's, and the page with it (GitHub Pages). No account-service
+change, no migration, no object renamed: every cell's object is the one it was.
