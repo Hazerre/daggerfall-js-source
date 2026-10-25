@@ -4128,8 +4128,10 @@ below) - seeded at the deploy, every player in the open country would be turned 
 **The cell door** (`src/net/wire.js` CELL_HELLO_LAW; `server/src/cellMoves.js` cellDoorShut, wired in index.js
 `_doorRefused`): a cell's hello says `cv` 1 - this build names its rooms on every halo (`?of=`), keeps what each socket
 covers (`cells`) and joins again on CLOSE_REPARTITION. A COARSE node refuses a cell's hello without it, with GROUND-GATE's
-words (update the game) and CELL_OLD_REASON; a fine cell's object refuses nobody. This is the relay's own check that no
-page from before this build - so none without `of` - stands in a coarse node. **A departure from the brief**, which said
+words (update the game) and CELL_OLD_REASON; a fine cell's object refuses nobody. **This is the deploy-ordering check**:
+the relay itself, per hello, holds every page from before this build - so every one without `of` - out of a coarse node,
+whatever order the relay and the site deployed in; the setting only decides when there is a coarse node to hold them out
+of. **A departure from the brief**, which said
 "the ground-law bump for pages without `of`": GROUND_LAW is the terrain's law (pinned to fb1017f's fingerprint) and gated
 by `groundGate`, and a bump would refuse every ground room's hello - towns, dungeons, interiors - from part one's pages
 too. The cell door refuses only in a coarse node.
@@ -4202,14 +4204,19 @@ the moves made and blocked.
   this build has gone out - which means part one's site has too.
 - The ground-law bump: the cell door instead (above).
 - A `busy` flag while a duel, serpent fight, siege or gate stands: the handover's own classes instead - a node holding a
-  key that blocks never moves (part one's law), and the blocked moves are counted (`moves`).
+  key that blocks never moves (part one's law), the blocked moves are counted (`moves`), and its move is asked again after
+  MOVE_COOLDOWN_MS. The plan's own rule (never repartition while a fight stands in the node), kept by the parent session
+  (2026-10-25): a node a raid or an event holds layers at SOCKETS_MAX as a crowded cell does today - over its 64 pixels
+  rather than a cell's 16.
 - Six calls between rooms through the tree: two name a cell (above).
 
 **Known gaps**, each the deploy's or a later slice's to weigh:
 - **The seed cuts off what a fine cell's object holds that blocks.** A live raid, a held star, a serpent's fight, a staff
   event's ledger, the wild's remains and debts stay in the L0 object when the seed goes on: its sockets go to the coarse
-  node, and the pull takes the parks, the ledger and the copy keys alone. Set the seed at a quiet hour with no raid,
-  star, serpent fight or staff event live in the open country, or accept that those reset.
+  node, and the pull takes the parks, the ledger and the copy keys alone. A one-time lapse, said in the patch notes (the
+  parent session's call, 2026-10-25: moving live fight state is the one risk the owner did not ask for, so these are not
+  partitioned here): set the seed at a quiet hour with no raid, star, serpent fight or staff event live in the open
+  country, and most of it never happens.
 - **The park registry's layer is stale after a move.** It keeps the layer the storing object said; a move hands that park
   to the new node's place (layer 0), so a drop asked at the old layer misses it, and a ghost wagon stands up to
   PARK_TTL_MS (72 hours) or until its owner's next park word.
@@ -4247,7 +4254,7 @@ the commit, past an unanswered layer and past a late key that blocks; a blocked 
 walk; the calls that name a cell; the seed's pull; the cell door; the questions and the blobs.
 `test/net/cellrepartition.test.js` (2): the `cv` hello; CLOSE_REPARTITION a short wait, the primary's and a halo's.
 `tools/mutants/cost2b.json`: 77, all dead.
-- PIN MOVED: a coarse node's hello says `cv` (`cellcover`, `world6biiib`); the key classes `cellmoved` and
+- PIN MOVED: a cell's hello says `cv` (`cellcover`, `world6biiib`, `online`); the directory asks the hub for `cellSeed`, so the hub is among the objects a walk makes (`auditscale2_relay`); the key classes `cellmoved` and
   `cellpulled` (`cellhandover`); the directory serves its stored tree only while `cellSeed` is on, an unreadable one
   seeded afresh (`cellnodes`); blob12 and blob13 (`scale2b`, `fb1021b_foeshold`); the park drop's call is
   `cellNodes.js` cellCall's now - 28 calls between rooms in index.js, 19 on ROOM_CALL_MS (`scale2b`); the setting
