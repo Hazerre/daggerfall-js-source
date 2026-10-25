@@ -653,3 +653,19 @@ test('GOLD-ALL: by the sheets - the two presses one column of two equal rows ins
   const g = src('src/ui/grimoireDress.js');
   assert.match(g, /\$\{G\} \.goldfield \.goldacts \.act \{ min-height: 0 !important;[^\n]*font-size: 16px !important; line-height: 1 !important;/);
 });
+
+// AUDIT UPDATE II (2026-10-25, bible/01-Overview/audits/Audit-Update-II-2026-10-25.md) B1
+test('AUDIT UPDATE II B1: no gold into a store that settles its own pieces - the hall\'s shared chest (decorGrants.js openSharedChest, `loot.commit`) shows no gold field and keeps the purse whole; a store without one still takes it (mutants: the commit unasked; the press ungated)', () => {
+  const chest = [];
+  withPack(({ e, button, act }) => {
+    act('Storage')?.onclick?.();
+    assert.equal(button(), null, 'no "Store gold" over the shared chest');
+    assert.deepEqual([e.goldPieces, chest.filter(isGold).length], [5000, 0], 'the purse whole');
+  }, { deps: { loot: { items: () => chest, storage: true, title: 'Chest', commit: async () => false, closed: () => {} } }, gold: 5000 });
+  const own = [];
+  withPack(({ e, button, all }) => {
+    button().onclick();
+    all().onclick();
+    assert.deepEqual([e.goldPieces, own.filter(isGold).map((i) => i.stackCount)], [0, [5000]], 'the player\'s own storage takes the purse');
+  }, { deps: { loot: { items: () => own, storage: true } }, gold: 5000 });
+});

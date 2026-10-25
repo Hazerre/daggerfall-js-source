@@ -52,6 +52,7 @@ import { MINUTES_PER_DAY, dayOfYear } from './gameDate.js';   // X6: the soul-ge
 import { SOUL_TRAP_TEMPLATE } from './mysticism.js';   // X6: one home for the template id (X5 put it there with fillEmptyTrap)
 import { ILIAC_CARD_TEMPLATE, CARD_PACK_TEMPLATE } from './iliac/iliacItems.js';   // AUDIT CARDS-5 C2: the collectible card, which no shop buys; CARDS9: nor its pack
 import { goodOfTemplate } from './naval/tradeGoods.js';   // AUDIT CAPTAIN'S SEA B2: the exchange's goods, which no shop buys
+import { landSold } from './stolenGoods.js';   // AUDIT UPDATE II B2: the sale's own door, for the counter's arrows
 import { OIL_TEMPLATE, ARROW_TEMPLATE, addItem } from './inventory.js';   // SHOP-ARROWS: the counter's quiver   // AUDIT-RR2 G10: the shelf's AddItem   // AUDIT 58: UselessItems2.Oil (ItemEnums.cs:357) - one home for the id
 import { getBool } from './settings/settings.js';   // AUDIT 58: DaggerfallUnity.Settings.PlayerTorchFromItems, read where DFU reads it
 import { FACTION_TYPES } from '../formats/factionFile.js';        // S41: UpdateRegionalPrices' type-7 region walk
@@ -152,6 +153,15 @@ export const endlessArrowsAt = (buildingType) => buildingType === BUILDING_TYPES
 const isShelfArrow = (it) => it?.group === 'Weapons' && it.templateIndex === ARROW_TEMPLATE;
 /** ENDLESS-ARROWS: the counter's quiver, minted as the shelf mints its own (CreateWeapon's arrow arm, its roll a constant). */
 const mintQuiver = (n) => mintCondition(setItemFields({ ...createWeapon(ARROW_TEMPLATE, 0, () => 0), stackCount: n }));
+/** AUDIT UPDATE II B2: A SOLD PIECE ONTO A SHELF - STOLEN-GOODS' law (stolenGoods.js landSold), but an arrow sold at a
+ *  General Store's COUNTER is paid for and never shelved there (a departure from DFU's remoteItems, for these arrows
+ *  alone): its quiver is endless, and a sold row bought back would read as arrows the purchase took from it - a theft,
+ *  a sale and the buy-back stood the quiver again. `buildingType` the counter's shop, null for any other shelf.
+ *  Answers landSold's word: whether the piece is on the shelf. */
+export function landSoldAt(shelfItems, item, buildingType = null) {
+  if (endlessArrowsAt(buildingType) && isShelfArrow(item)) return false;
+  return landSold(shelfItems, item);
+}
 /** ENDLESS-ARROWS: a General Store's quiver given back what a purchase took of it, up to its whole; answers 1 when it
  *  filled or stood one, else 0. AUDIT UPDATE E1: the arrows the purchase took, never the whole - what a theft took
  *  stays gone. */

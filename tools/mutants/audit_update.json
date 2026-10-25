@@ -23,8 +23,8 @@
   {
     "name": "AUDIT-UPDATE-L1-the-outer-scope-lost",
     "file": "src/systems/loot/lootLevelGate.js",
-    "old": "  try { return fn(); } finally { _scoped = was; }",
-    "new": "  try { return fn(); } finally { _scoped = null; }",
+    "old": "  try { out = fn(); } finally { _scoped = was; }",
+    "new": "  try { out = fn(); } finally { _scoped = null; }",
     "tests": [
       "test/systems/audit_update_loot.test.js"
     ],
@@ -113,8 +113,8 @@
   {
     "name": "AUDIT-UPDATE-L5-the-imbues-worth-unrecorded",
     "file": "src/systems/reforge.js",
-    "old": "  item.imbueWorth = Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));",
-    "new": "  void before;",
+    "old": "  item.imbueWorth = (Number.isInteger(was.imbueWorth) ? Math.max(0, was.imbueWorth) : 0) + Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));",
+    "new": "    void before;",
     "tests": [
       "test/systems/audit_update_loot.test.js"
     ],
@@ -152,10 +152,10 @@
     "why": "a click in a town's middle that is the spot was sent to the ring"
   },
   {
-    "name": "AUDIT-UPDATE-T2-places-only-an-edge-refused",
+    "name": "AUDIT-UPDATE-II-B3-places-only-a-place-refused",
     "file": "src/scenes/world.js",
-    "old": "(middle = pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW)) || travelOptions?.settings?.targetCoordsAllowed === false,",
-    "new": "(middle = pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW)),",
+    "old": "      if (place && travelOptions?.settings?.targetCoordsAllowed !== false && !pickTakesPlace({",
+    "new": "      if (place && !pickTakesPlace({",
     "tests": [
       "test/systems/travel/ow_town_round.test.js"
     ],
@@ -587,8 +587,8 @@
   {
     "name": "AUDIT-UPDATE-P3-a-made-piece-imbued",
     "file": "src/systems/reforge.js",
-    "old": "if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact) return null;",
-    "new": "if (!item || item.questItem || item.artifact) return null;",
+    "old": "if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact || isSummoned(item)) return null;",
+    "new": "if (!item || item.questItem || item.artifact || isSummoned(item)) return null;",
     "tests": [
       "test/systems/audit_update_gate.test.js"
     ],
@@ -684,5 +684,115 @@
       "test/systems/companion_volume.test.js"
     ],
     "why": "the title's own: a volume past the whole"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A2-a-sets-sigil-raised-to-NaN",
+    "file": "src/systems/reforge.js",
+    "old": "if (item.rarity === tier && Number.isFinite(item.sigil?.power)) item.sigil",
+    "new": "if (item.rarity === tier && item.sigil) item.sigil",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "a set's sigil raised to NaN - the piece offered and never made"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A3-an-elites-share-ungated-early",
+    "file": "src/systems/eliteFoes.js",
+    "old": "  const at = rollerLevel() ?? lv;   // LOOT-GATE; AUDIT UPDATE II A3",
+    "new": "  const at = rollerLevel();   // LOOT-GATE; AUDIT UPDATE II A3",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "a scene's first elites at full rate"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A3-a-revenants-share-ungated-early",
+    "file": "src/systems/revenant/revenant.js",
+    "old": "  const at = rollerLevel() ?? lv;   // LOOT-GATE: the player's level holds its Legendary back; AUDIT UPDATE II A3",
+    "new": "  const at = rollerLevel();   // LOOT-GATE: the player's level holds its Legendary back; AUDIT UPDATE II A3",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "a scene's first revenants at full rate"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A5-the-conjured-unasked",
+    "file": "src/systems/reforge.js",
+    "old": "item.questItem || item.artifact || isSummoned(item)) return null;",
+    "new": "item.questItem || item.artifact) return null;",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "a conjured piece imbued, then gone at its hour"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A7-the-first-imbues-worth-overwritten",
+    "file": "src/systems/reforge.js",
+    "old": "  item.imbueWorth = (Number.isInteger(was.imbueWorth) ? Math.max(0, was.imbueWorth) : 0) + ",
+    "new": "  item.imbueWorth = 0 + ",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "plain to Magic to Rare sold above the plain piece"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A9-an-async-body-accepted",
+    "file": "src/systems/loot/lootLevelGate.js",
+    "old": "  if (out && typeof out.then === 'function') throw new TypeError('withRollerLevel: the body must be synchronous');",
+    "new": "",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "an async body read no scope past its first await"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-A9-the-throw-left-the-piece-rolled",
+    "file": "src/systems/reforge.js",
+    "old": "  } catch (err) { putBack(); throw err; }",
+    "new": "  } catch (err) { throw err; }",
+    "tests": [
+      "test/systems/audit_update_ii.test.js"
+    ],
+    "why": "a throw after the roll left the piece Rare, nothing paid"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-B1-the-commit-unasked",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "r?.kind !== 'bag' && !(r?.kind === 'storage' && typeof deps.loot?.commit === 'function');",
+    "new": "r?.kind !== 'bag';",
+    "tests": [
+      "test/systems/golddrop.test.js"
+    ],
+    "why": "the purse lost into the hall's shared chest"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-B2-the-counters-arrows-shelved",
+    "file": "src/systems/shopStock.js",
+    "old": "  if (endlessArrowsAt(buildingType) && isShelfArrow(item)) return false;\n  return landSold(shelfItems, item);",
+    "new": "  return landSold(shelfItems, item);",
+    "tests": [
+      "test/systems/endless_arrows.test.js"
+    ],
+    "why": "a theft, a sale and its buy-back stood the quiver again"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-B2-the-sale-unwired",
+    "file": "src/scenes/worldModes.js",
+    "old": "        landSoldAt(shelf.items, it, shelf === interiorCtx?.shelves?.[0] ? interiorBuilding?.buildingType : null);",
+    "new": "        landSoldAt(shelf.items, it, null);",
+    "tests": [
+      "test/systems/fb1016b_stolengoods.test.js"
+    ],
+    "why": "the counter's Sell arm named no shop"
+  },
+  {
+    "name": "AUDIT-UPDATE-II-B4-the-middle-unasked",
+    "file": "src/systems/travel/travelOptions.js",
+    "old": "  if (pickNearPlaceMiddle(p, { minX: L.xMin, maxX: L.xMax, minZ: L.zMin, maxZ: L.zMax, cx: (L.xMin + L.xMax) / 2, cz: (L.zMin + L.zMax) / 2 })) return p;\n",
+    "new": "",
+    "tests": [
+      "test/systems/travel/ow_town_round.test.js"
+    ],
+    "why": "an undiscovered dungeon's middle click walked to its ring"
   }
 ]

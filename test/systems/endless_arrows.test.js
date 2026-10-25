@@ -81,3 +81,21 @@ test('AUDIT UPDATE E3: a counter quiver over the whole (DFU\'s own drawn arrows 
   const [fresh] = arrows(shelf);
   assert.deepEqual([fresh.currentCondition, fresh.maxCondition, fresh.value], [was.currentCondition, was.maxCondition, was.value], 'minted as the shelf mints its own, condition and price');
 });
+
+// AUDIT UPDATE II (2026-10-25, bible/01-Overview/audits/Audit-Update-II-2026-10-25.md) B2
+test('AUDIT UPDATE II B2: an arrow sold at a General Store\'s counter is paid for and never shelved, so a sale bought back never reads as arrows taken from its quiver; every other piece and shelf lands as STOLEN-GOODS says (mutants: the counter\'s arrows shelved; every shop\'s refused)', async () => {
+  const { landSoldAt } = await import('../../src/systems/shopStock.js');
+  const shelf = stock(B.GeneralStore, 5);
+  const [quiver] = arrows(shelf);
+  shelf.splice(shelf.indexOf(quiver), 1);   // the quiver stolen whole
+  const mine = { ...quiver, stackCount: 100 };   // the player's own hundred, sold
+  assert.equal(landSoldAt(shelf, mine, B.GeneralStore), false, 'paid for, not shelved');
+  assert.equal(count(shelf), 0, 'so nothing of it to buy back');
+  const dagger = { group: 'Weapons', templateIndex: 113, name: 'Dagger' };
+  assert.equal(landSoldAt(shelf, dagger, B.GeneralStore), true, 'any other piece lands');
+  const armorer = stock(B.Armorer, 5);
+  const n = count(armorer);
+  assert.equal(landSoldAt(armorer, { ...mine }, B.Armorer), true);
+  assert.equal(count(armorer), n + 100, 'an Armorer shelves the arrows sold to it');
+  assert.equal(landSoldAt(shelf, { ...mine }, null), true, 'a shelf behind the counter (no shop named) lands them');
+});

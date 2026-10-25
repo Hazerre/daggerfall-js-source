@@ -40,6 +40,7 @@
 //     two time formats. The port keeps both strings and takes the SDF
 //     arm (systems/travel/travelOptionsText.js says why).
 
+import { pickNearPlaceMiddle } from './travelPathMode.js';   // AUDIT UPDATE II B4: a location's middle, the click's own law
 import { modSetting, colorKeyRgba } from '../modSettings.js';
 import { registerCustomGuild } from '../guild/guildServices.js';   // AUDIT-TO1 F1: GuildManager.RegisterCustomGuild (:331-336)
 import {
@@ -345,11 +346,14 @@ export function spotOffTown(locationRect, locationBorderRect, p) {
   return { x: p.x, z: side === 'n' ? nz : sz };
 }
 /** OW-TOWN-ROUND: a clicked spot `p` in the pixel whose town's rects are `rects` (the host's, null for none), put out on
- *  the town's ring unless the traveller (`me`) already stands in the town - its streets are the town walk's then. */
+ *  the town's ring unless the traveller (`me`) already stands in the town - its streets are the town walk's then - or
+ *  the spot stands in the location's own middle (AUDIT UPDATE II B4: a place the map holds no plate for - an
+ *  undiscovered dungeon, graveyard or coven - is asked its middle here, travelPathMode.js pickNearPlaceMiddle's law). */
 export function spotOffTownFor(p, rects, me) {
   if (!rects?.locationRect || !rects.locationBorderRect) return p;
   const L = rects.locationRect;
   if (me && me.x >= L.xMin && me.x <= L.xMax && me.z >= L.zMin && me.z <= L.zMax) return p;
+  if (pickNearPlaceMiddle(p, { minX: L.xMin, maxX: L.xMax, minZ: L.zMin, maxZ: L.zMax, cx: (L.xMin + L.xMax) / 2, cz: (L.zMin + L.zMax) / 2 })) return p;
   return { ...p, ...spotOffTown(L, rects.locationBorderRect, p) };
 }
 export function ringPassPoints(locationRect, locationBorderRect, from, to, mid) {

@@ -7,6 +7,9 @@
 // whoever opens it - so a level 1 character met a Legendary in about one Crypt in three. Now the Rare and Legendary
 // thresholds are multiplied by a factor of the roller's level before the roll (lootRarity.js rarityChances); Magic is
 // left alone. The source still decides the odds; the level only holds the top tiers back until the character is ready.
+// NOT EVERY DOOR (AUDIT UPDATE L7, AUDIT UPDATE II A6 - LEFT, the owner's call): the world's shared and receipt-seeded
+// spoils pick their tier off rarityChances with no level - the Gate, the Abyss, the raids, the Ketch, the serpent, the
+// starfall, a staff event's, a revenant's trophy - so a young character there meets them as anyone does.
 //
 //   Rare:      x0.15 up to level 7, then up to x1 at level 12
 //   Legendary: x0.05 up to level 9, x0.25 at level 10, then up to x1 at level 15
@@ -74,7 +77,11 @@ export function registerRollerLevel(fn) { _level = typeof fn === 'function' ? fn
 export function withRollerLevel(level, fn) {
   const was = _scoped;
   _scoped = { level: gateLevel(level) };
-  try { return fn(); } finally { _scoped = was; }
+  let out;
+  try { out = fn(); } finally { _scoped = was; }
+  // AUDIT UPDATE II A9: the scope is synchronous - an async body would read no scope past its first await
+  if (out && typeof out.then === 'function') throw new TypeError('withRollerLevel: the body must be synchronous');
+  return out;
 }
 /** The roller's level now - a scope's (withRollerLevel), else the registered one - or null when there is none or it
  *  answers nonsense. */

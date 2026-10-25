@@ -49,7 +49,7 @@ import { welkyndShards, isWelkyndShard, WELKYND_SHARD } from './gate/gateSpoils.
 import { isBound } from './item/itemBound.js';
 import { isLocked } from './item/itemLock.js';
 import { isEquipped, notifyEquipChange } from './equip.js';   // GEM1: a worn piece's wearer folded again
-import { addItem, isEnchanted } from './inventory.js';   // AUDIT GEM: an enchanted gem is no loose stone
+import { addItem, isEnchanted, isSummoned } from './inventory.js';   // AUDIT GEM: an enchanted gem is no loose stone
 import { totalGoldAmount, deductGold } from './court.js';
 import { itemIsIdentified } from './tradeModes.js';
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
@@ -235,7 +235,7 @@ const payFor = (player, p) => { spendShards(player.items, p.shards); deductGold(
 /** The tier an Imbue raises a piece to, or null: a plain piece the ladder could grade becomes Magic, a found Magic one
  *  Rare. Never a made piece (its record is its maker's), DFU's own magic, a quest's item or an artifact. */
 export function imbueTarget(item) {
-  if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact) return null;
+  if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact || isSummoned(item)) return null;   // AUDIT UPDATE II A5: nor a conjured piece - it vanishes at its hour, the price with it
   if (item.rarity == null) return rarityEligible({ ...item, equipSlot: null }) ? 'magic' : null;   // worn is the refusal's word, not the target's
   if (item.magic) return null;
   if (makerRows(item)) return null;   // AUDIT UPDATE L3: the Item Maker's rows on a found Magic piece - the Rare's flavour would write over them
@@ -280,20 +280,19 @@ export function imbuePiece(item, player, rolls = Math.random) {
     for (const k of ['rarity', 'reforged', 'honed']) delete item[k];
     item.affixes = [];
   }
-  applyRarity(item, tier, rolls);
-  // AUDIT UPDATE L2: what the piece keeps, at its new tier's law - a technique rolled again in the new band (the law
-  // reads a Rare's line by the Rare's band), a won sigil at least at the new tier's floor
-  if (item.rarity === tier) for (const a of kept) addTechniqueLine(item, rolls, { id: a.param });
-  if (item.rarity === tier && item.sigil) item.sigil = { ...item.sigil, power: Math.max(item.sigil.power, sigilFloor(tier, item.sigil.party)) };
-  item.imbued = true;
-  item.imbueWorth = Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));   // AUDIT UPDATE L5: what a counter takes off (lootRarity.js craftedRarityWorth)
-  item.isIdentified = true;   // the guild made it - nothing to identify
-  // AUDIT UPDATE L2: a piece the item law would hold (the judge's own reading) is never made - put back, nothing paid
-  if (item.rarity !== tier || itemLawFindings(item).some((f) => !lawBefore.has(f))) {
-    for (const k of Object.keys(item)) delete item[k];
-    Object.assign(item, was);
-    return { ok: false, reason: 'not' };
-  }
+  const putBack = () => { for (const k of Object.keys(item)) delete item[k]; Object.assign(item, was); };
+  try {
+    applyRarity(item, tier, rolls);
+    // AUDIT UPDATE L2: what the piece keeps, at its new tier's law - a technique rolled again in the new band (the law
+    // reads a Rare's line by the Rare's band), a won sigil at least at the new tier's floor
+    if (item.rarity === tier) for (const a of kept) addTechniqueLine(item, rolls, { id: a.param });
+    if (item.rarity === tier && Number.isFinite(item.sigil?.power)) item.sigil = { ...item.sigil, power: Math.max(item.sigil.power, sigilFloor(tier, item.sigil.party)) };   // AUDIT UPDATE II A2: a set's sigil is no blow - it has no power to raise
+    item.imbued = true;
+    item.imbueWorth = (Number.isInteger(was.imbueWorth) ? Math.max(0, was.imbueWorth) : 0) + Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));   // AUDIT UPDATE L5: what a counter takes off (lootRarity.js craftedRarityWorth); AUDIT UPDATE II A7: a second Imbue's added to the first's
+    item.isIdentified = true;   // the guild made it - nothing to identify
+    // AUDIT UPDATE L2: a piece the item law would hold (the judge's own reading) is never made - put back, nothing paid
+    if (item.rarity !== tier || itemLawFindings(item).some((f) => !lawBefore.has(f))) { putBack(); return { ok: false, reason: 'not' }; }
+  } catch (err) { putBack(); throw err; }   // AUDIT UPDATE II A9: a throw after the roll leaves the piece as it was, nothing paid
   payFor(player, price);
   return { ok: true, tier, price };
 }

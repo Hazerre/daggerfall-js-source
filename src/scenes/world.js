@@ -31288,8 +31288,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // OW-TOWN-ROUND (2026-10-23, the owner): and only a click in the town's MIDDLE - anywhere else on it is the spot,
       // walked round the town (travelPathMode.js pickNearPlaceMiddle)
       // AUDIT UPDATE T1: the middle remembered, so a middle click that is the spot (FREE, the neighbourhood) is walked to as
-      // clicked, never round its town; T2: with Travel Options' places alone, a click anywhere on the town is the town's
-      if (place && !pickTakesPlace({ hit: (middle = pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW)) || travelOptions?.settings?.targetCoordsAllowed === false, nearby: tvNearPlace(place), fine: fineMoveHeld(e), mode: travelPathMode() })) place = null;
+      // clicked, never round its town; T2 (AUDIT UPDATE II B3): with Travel Options' places alone there is no spot to walk
+      // to, so a click on a place is the place's in every mode, near or far, a fine-move key held or not
+      if (place && travelOptions?.settings?.targetCoordsAllowed !== false && !pickTakesPlace({ hit: (middle = pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW)), nearby: tvNearPlace(place), fine: fineMoveHeld(e), mode: travelPathMode() })) place = null;
       // AUDIT DEEP2 B-5: WATER IS WHERE THE CLICK LANDED, not its pixel's byte - the ground in a pixel is a blend of its
       // neighbours' bytes clamped at the sea, so a coastal pixel holds sea and sand both: a click on the sea in a land
       // pixel walked the traveller into it, and one on the sand in a sea pixel was refused. The sea is flat and known

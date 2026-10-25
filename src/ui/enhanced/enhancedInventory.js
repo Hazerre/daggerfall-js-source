@@ -1935,10 +1935,17 @@ function toggleBag() {
   render();
 }
 
+/** Whether gold may go to the list the window shows: never a reward tray (AUDIT GOLD-DROP 3) nor the bag (BAG1) - and
+ *  AUDIT UPDATE II B1: never a store that settles its own pieces (`loot.commit`: the hall's shared chest, decorGrants.js
+ *  openSharedChest), whose service keeps only the pieces it can name - a coin stack it never names was lost on the close,
+ *  the whole purse at one press of GOLD-ALL's "all". */
+const goldMayGo = (r) => r?.kind !== 'reward' && r?.kind !== 'bag' && !(r?.kind === 'storage' && typeof deps.loot?.commit === 'function');
+
 /** DropGoldPopup_OnGotUserInput (:1269-1303), through U56. The FIELD
  *  is this pane's; the range refusal and the wagon clamp are not. */
 function dropGold(text) {
   notice = null;
+  if (!goldMayGo(remoteModel(deps, sessionState()))) { goldEntry = null; render(); return; }   // AUDIT UPDATE II B1: the field's own gate, whichever press asks
   const player = deps.entity ?? {};
   const to = remoteTarget(deps, sessionState());
   const plan = planDropGold(text, {
@@ -4370,7 +4377,7 @@ function render() {
     // the TRAY, not the choice. The wagon, opened beside a tray, still takes gold and keeps it, as DFU's DropGoldPopup
     // does (it has no choose-one check) - though no ITEM may go there while a choice is up (planStore's chooseOnePile,
     // DFU's `!chooseOne` Remove arm).
-    const giving = remote?.kind !== 'reward' && remote?.kind !== 'bag';   // BAG1: gold is no material - never into the bag
+    const giving = goldMayGo(remote);   // BAG1: gold is no material - never into the bag; AUDIT UPDATE II B1: nor a chest that settles its own pieces
     if (giving) {
       const verb = `${GOLD_VERB[remote?.kind] ?? 'Drop'} gold`;   // never the bare verb an item's Store or Drop carries
       const give = el('button', `act goldbtn${goldEntry != null ? ' primary' : ''}`, verb);

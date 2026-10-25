@@ -1117,7 +1117,7 @@ export function revenantLoot(level = 1, rank = 1, rolls = Math.random, goldMult 
   const L = REVENANT_LOOT;
   if (rolls() < L.magicChance) { const it = tieredGear(lv, 'magic', rolls); if (it) out.push(it); }
   if (rk >= L.rareFromRank || rolls() < L.rareChance + L.rarePerRank * rk) { const it = tieredGear(lv, 'rare', rolls); if (it) out.push(it); }
-  const at = rollerLevel();   // LOOT-GATE: the player's level holds its Legendary back, none registered no gate
+  const at = rollerLevel() ?? lv;   // LOOT-GATE: the player's level holds its Legendary back; AUDIT UPDATE II A3: none registered yet, the level the drop is minted at (the player's at every host)
   if (rolls() < (L.legendaryChance + L.legendaryPerRank * rk) * (at == null ? 1 : legendaryGate(at))) { const it = tieredGear(lv, 'legendary', rolls); if (it) out.push(it); }
   const [lo, hi] = L.goldPerLevel;
   out.push(goldStack(Math.round(lv * rk * (lo + rolls() * (hi - lo)) * (goldMult > 0 ? goldMult : 1))));   // RVN7d: found in its lair, x LAIR_GOLD

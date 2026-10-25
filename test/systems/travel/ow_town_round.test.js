@@ -89,8 +89,9 @@ test('OW-TOWN-ROUND: a spot beyond its pixel\'s town is reached round the town (
 
 test('OW-TOWN-ROUND wired (by source): the click asks the middle and walks a spot outside the town; the walk hands its spot to the legs and a ring at the start joins no road (mutants: the click unasked; the spot unput)', () => {
   const w = readFileSync(new URL('../../../src/scenes/world.js', import.meta.url), 'utf8');
-  // PIN MOVED (AUDIT UPDATE T1, T2): the middle remembered for the ground arm, the places-only setting's click the town's
-  assert.match(w, /pickTakesPlace\(\{ hit: \(middle = pickNearPlaceMiddle\(n, tvPlaceRect\(place\), TV_PLACE_GROW\)\) \|\| travelOptions\?\.settings\?\.targetCoordsAllowed === false,/);
+  // PIN MOVED (AUDIT UPDATE T1; AUDIT UPDATE II B3): the middle remembered for the ground arm; with places alone a click
+  // on a place is the place's before the path mode is asked at all
+  assert.match(w, /if \(place && travelOptions\?\.settings\?\.targetCoordsAllowed !== false && !pickTakesPlace\(\{ hit: \(middle = pickNearPlaceMiddle\(n, tvPlaceRect\(place\), TV_PLACE_GROW\)\),/);
   assert.match(w, /travelViewWalkTo\(hit\.point, pix, \{ outside: !middle && !fineMoveHeld\(e\) \}\)/);
   assert.match(w, /let n = outside && !water \? spotOffTownFor\(state\.worldCoords\(point\), tvTownRects\(pix\.x, pix\.y\), state\.worldCoords\(player\.pos\)\) : state\.worldCoords\(point\);/);
   assert.match(w, /let legs = tvJoinedLegs\(from, plan, roads, door \|\| water \? null : n\);/);   // PIN MOVED (AUDIT UPDATE T3): never a spot on the sea
@@ -147,4 +148,11 @@ test('AUDIT UPDATE T6: a walk with two equal ways round goes the one way every t
   const legs = routeLegs([{ x: 10, y: 10 }], [], { ringAt }, [me, east]);
   assert.deepEqual(legs.map((l) => rel(l.at)), [[-7000, 0], [-7000, 7000], [7000, 7000], [7000, 0], [12000, 0]], 'round the north, the first of the two');
   assert.equal(crosses(me, legs), false);
+});
+
+// AUDIT UPDATE II (2026-10-25, bible/01-Overview/audits/Audit-Update-II-2026-10-25.md) B4
+test('AUDIT UPDATE II B4: a spot in the location\'s own middle is kept - a place the map holds no plate for (an undiscovered dungeon) is asked its middle by the spot\'s own law; off the middle it is put out on the ring as before (mutants: the middle unasked)', () => {
+  const rects = { locationRect: L, locationBorderRect: B }, outside = { x: mid.x - 12000, z: mid.z };
+  assert.deepEqual(rel(spotOffTownFor({ x: mid.x + 1000, z: mid.z - 1000 }, rects, outside)), [1000, -1000], 'the middle: kept as clicked');
+  assert.deepEqual(rel(spotOffTownFor({ x: mid.x + 5000, z: mid.z - 1000 }, rects, outside)), [7000, -1000], 'off it: the east band');
 });
