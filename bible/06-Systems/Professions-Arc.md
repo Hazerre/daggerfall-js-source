@@ -5565,10 +5565,15 @@ The report (SaberGGaming, through the owner): no Daedric Ingot could be had, and
   `nodeLaw.js` draws); the fixed city - FLAGGED as before (no nodes, no forge of its own).
 - **Pinned**: `test/net/daedricsmelt_law.test.js` (7), `test/net/daedricsmelt_service.test.js` (5),
   `test/net/deepopen.test.js` (5), and the pins the law moved (PIN MOVED, each): AUDIT 29 A5, AUDIT 30 L7 and S9, AUDIT 31
-  L2, CAP-OFF, CRAFT1, GROUND-MIDNIGHT and GROUND-STALE (woodland dungeons now: their Moonstone is the only difference a
-  witness makes), UNWITNESSED-ORE, PROF2's law, service and forge, PROF6, PROF7, PROF11, VEIN-NEED and TOOL-USE (a dungeon
-  whose first vein is Silver), MINE-PERKS, ORE-MAP, the hard-coded ratchet. `tools/mutants/prof2.json`: 30 records
-  added, 9 re-aimed across six lists - 39, all dead.
+  L2 (the law's and the service's - the commission guard kept for the next unyielded input, its two records marked
+  equivalent with the reason), CAP-OFF, CRAFT1, GROUND-MIDNIGHT and GROUND-STALE (woodland dungeons now: their Moonstone
+  is the only difference a witness makes), UNWITNESSED-ORE, PROF2's law, service and forge, PROF6, PROF7, PROF11,
+  VEIN-NEED, TOOL-USE, GATHER-FEEL F2/R4, R3 and V6/V7 and GF2-VEINCRACKS V8 (a dungeon whose first vein is Silver -
+  `test/gatherRig.mjs` DEEP_DUNGEON), VEIN-WASH (each deep vein its own ore's wash), MINE-PERKS, ORE-MAP, the hard-coded
+  ratchet, and the version's. `tools/mutants/prof2.json`: 30 records added; 9 re-aimed across six lists and the 11
+  version records by content. Judged: every record whose source or killing pin this moved, 1,030 - 1,014 dead, 14
+  equivalent as recorded, and 2 that survive on main's base as well (PROF12-migration-unique,
+  AUDIT30-S5-a-piece-listed-off-the-road - not this slice's to close, named).
 - **NEXT, named.** The Warden's own heart a kill (`systems/gate/gateSpoils.js` rollSpoils, "the Oblivion Gate's gift"):
   cheap in code, but the spoils' order and pictures are pinned by WB5, WB9f, WB12d, WB14g, CARDS-6, GEM2, GILDED2 and
   SET6's floors, so it is a slice of its own; the Gate pays hearts today through the faithful's chest. 4.7's gate-touched
