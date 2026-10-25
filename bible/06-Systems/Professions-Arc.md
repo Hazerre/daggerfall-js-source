@@ -5989,7 +5989,13 @@ The report (SaberGGaming, through the owner): no Daedric Ingot could be had, and
   ratchet, and the version's. `tools/mutants/prof2.json`: 30 records added; 9 re-aimed across six lists and the 11
   version records by content. Judged: every record whose source or killing pin this moved, 1,030 - 1,014 dead, 14
   equivalent as recorded, and 2 that survive on main's base as well (PROF12-migration-unique,
-  AUDIT30-S5-a-piece-listed-off-the-road - not this slice's to close, named).
+  AUDIT30-S5-a-piece-listed-off-the-road - not this slice's to close, named). **At the merges with main** (CLOTH-GEMS
+  to FIRST-BUDGET): the heart's records re-aimed at the loose door's list (DAEDRIC-SMELT-heart-unregistered,
+  -the-heart-yielded, -ingot-unyielded-again; ASO-unyielded; PROF12's two back to main's text), AUDIT 31's two
+  commission records live again and killed (the service's L2 pin on a graded gem's jewel), and the three guards that read
+  the empty `UNYIELDED` marked equivalent with the reason (AUDIT30-L7's order and catalogue, AUDIT31-svc-writ-unyielded-word).
+  Re-judged on the merged tree, this slice's lists, the re-aimed records and the version's: 369 - 360 dead, 8
+  equivalent as recorded, and AUDIT30-S5-a-piece-listed-off-the-road, main's survivor still.
 - **NEXT, named.** The Warden's own heart a kill (`systems/gate/gateSpoils.js` rollSpoils, "the Oblivion Gate's gift"):
   cheap in code, but the spoils' order and pictures are pinned by WB5, WB9f, WB12d, WB14g, CARDS-6, GEM2, GILDED2 and
   SET6's floors, so it is a slice of its own; the Gate pays hearts today through the faithful's chest. 4.7's gate-touched
