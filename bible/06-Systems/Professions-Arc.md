@@ -5696,7 +5696,8 @@ band aids".
   A's row (POTION-DOOR).
 - **HOST-SPLIT**: the maker's hooks moved out of `createWorldModes` to `scenes/potionMakerHost.js` (`potionMakerHooks`:
   M2's pack, cart and bag, the carried recipes, the one minter, the walk's spend and MakePotionService's scan, beside the
-  door) - 11,039 to 11,017 logical lines on its branch, 11,022 to 11,000 at the merge with main, its ceiling lowered. The window (`ui/potionMakerWindow.js`) asks the door
+  door) - 11,039 to 11,017 logical lines on its branch, 11,066 to 11,044 at the merges with main (on DECOR's 11,066), its
+  ceiling lowered. The window (`ui/potionMakerWindow.js`) asks the door
   before it mixes (`hooks.brew`), lists `hooks.storeItems`, keeps each unit's source in the pot, holds one brew at a
   time - its pot untouched while it is asked - and empties its cauldron only when the service brewed.
 - **THE FOUR HOSTS**: `scenes/worldModes.js` - wired (the window on the module's hooks; `alchemyHere`);
