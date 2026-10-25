@@ -35,7 +35,7 @@ Market tab's, which collected only what a read of the road named: the trader's s
 settled nothing.
 
 FIXED.
-- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct190, acct177 on its branch). A record one on from where the tab
+- **The service** (`market.js` marketBuy and buyWithGold; ACCOUNT_VERSION acct191, acct177 on its branch). A record one on from where the tab
   asked, under its lease, with a sale this id made, is that sale, landed: it is answered as the repeat with the record's
   sequence (`realm.seq`). A DEPARTURE FROM L1-F2, for a buy alone. It is said only to a tab that asks for it (`landed`):
   an older tab reads every repeat as a sale paid before it asked, so its settle would checkpoint its purse unpaid over

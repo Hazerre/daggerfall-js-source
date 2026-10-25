@@ -162,6 +162,52 @@ test('DECOR-ACCESS the rest of a cut stack leaves as one take', async () => {
   assert.equal(given[0].stackCount, 10);
 });
 
+test('DECOR-ACCESS a stack put away comes back once, and the next chest waits for that save', async () => {
+  const uid = 'cccccccccccccccc';
+  const pile = { uid, group: 'Gems', templateIndex: 0, stackCount: 300 };
+  const pack = [pile];
+  let opened = null;
+  let release = null;
+  const gate = new Promise((r) => { release = r; });
+  let listed = [];
+  bindDecorHouse({
+    use: (req) => {
+      if (req.op === 'list') listed.push(req.id);
+      return Promise.resolve({ ok: true, data: req.op === 'list' && req.id === 'chest-b' ? { items: [{ uid: 'dddddddddddddddd', group: 'Gems', templateIndex: 1, stackCount: 1 }] } : { items: [] } });
+    },
+    mapId: 1, buildingKey: 2, character: () => 'c',
+    items: () => pack,
+    take(id) { const i = pack.findIndex((it) => it?.uid === id); if (i >= 0) pack.splice(i, 1); },
+    give(it) { if (!pack.some((x) => x?.uid === it?.uid)) pack.push(it); },
+    say() {}, refusal: (e) => e,
+    open: (spec) => { opened = spec; },
+    realm: () => async ({ apply, call }) => { call({ id: 'r', seq: 2 }); await gate; apply(); return { ok: true }; },
+  });
+  assert.equal(await openSharedChest('chest-a'), true);
+  const goods = opened.loot.items();
+  assert.equal(await opened.loot.commit('put', pile, 300, () => { goods.push(pile); return pile; }), true);
+  assert.equal(pack.length, 1);
+  assert.equal(pack[0].stackCount, 300);
+  const saving = opened.loot.finish();
+  assert.equal(opened.loot.busy, 'Saving the chest...');
+  let openedNext = false;
+  const next = openSharedChest('chest-b').then((ok) => { openedNext = ok; });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(openedNext, false, 'the second chest does not open while the first is still saving');
+  assert.deepEqual(listed, ['chest-a']);
+  release();
+  await saving;
+  assert.equal(pack.length, 0, 'the save takes the parked stack out of the pack');
+  await next;
+  assert.equal(openedNext, true);
+  assert.deepEqual(listed, ['chest-a', 'chest-b']);
+  const gear = opened.loot.items()[0];
+  const draft = opened.items();
+  assert.equal(draft.unstacked, true);
+  applyTransfer(gear, { amount: 1 }, opened.loot.items(), draft);
+  assert.equal(pack.reduce((n, it) => n + (it.stackCount ?? 1), 0), 0, 'the window does not add the next chest onto the pack');
+});
+
 test('DECOR-ACCESS a shared chest keeps each stack whole until the settle joins them', () => {
   const chest = Object.assign([{ uid: 'aaaaaaaaaaaaaaaa', group: 'Gems', templateIndex: 0, stackCount: 98 }], { unstacked: true });
   const pile = { uid: 'bbbbbbbbbbbbbbbb', group: 'Gems', templateIndex: 0, stackCount: 54 };
