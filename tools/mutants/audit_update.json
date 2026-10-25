@@ -497,7 +497,7 @@
   {
     "name": "AUDIT-UPDATE-P3-the-old-marks-kept",
     "file": "src/systems/reforge.js",
-    "old": "    for (const k of ['rarity', 'reforged', 'honed']) delete item[k];",
+    "old": "    for (const k of ['rarity', 'reforged', 'reforges', 'honed']) delete item[k];",
     "new": "    delete item.rarity;",
     "tests": [
       "test/systems/audit_update_gate.test.js"

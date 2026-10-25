@@ -4,7 +4,7 @@
 //
 // Two pages over the player's own pack: REFORGE - every piece the Reforge takes (a Magic or Rare piece, an Exalted
 // Legendary), a row each in its tier's frame; a row pressed shows the piece whole beside the list, and each line the
-// Reforge may roll again carries its own press with the price on it (or why not, in a word or two: "Need 2 more
+// Reforge may replace (REFORGE-REPLACE: by another kind) carries its own press with the price on it (or why not, in a word or two: "Need 2 more
 // shards", "Not identified") - and SALVAGE - every laddered piece that will break, what it breaks into, and a press
 // that asks before it breaks it ("Break it" / "Keep"); after them (FB1012d SALVAGE-CLASSIC) every piece that wears
 // Magic the ladder never graded - DFU's own magic - its press "Classic magic", saying why it never breaks. The purse
@@ -26,7 +26,6 @@ import { setById } from '../systems/sigil/sigilSets.js';
 import { itemIsIdentified } from '../systems/tradeModes.js';
 import { reforgePrice, reforgeRefusal, salvageShards, salvageRefusal, shardsHeld, shardsText, honePrice, honeRefusal } from '../systems/reforge.js';   // LOOT17: and the hone
 import { imbueTarget, imbuePrice, imbueRefusal } from '../systems/reforge.js';   // LOOT-GATE: the Imbue
-import { t } from '../systems/textManager.js';   // LOOT-GATE: the Imbue's words in the player's language, read when they are said
 import { inventoryItemImage } from '../systems/item/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from './textureCanvas.js';
 import { SLOT_BOX, screenDpr } from './iconFit.js';
@@ -37,6 +36,7 @@ import { brokerSkinCss, BROKER_SKIN_STYLE_ID, refusePress } from './brokerWindow
 import { techniqueDetail } from '../systems/loot/lootRarity.js';   // AUDIT TECH1: a technique line's "what a press does", as the card says it
 import { REFORGE_CSS } from './enhanced/enhancedPlusStyle.js';   // AUDIT LOOT F6: the window's own rules, beside the Broker's sheet
 import { isEnhancedPlus } from '../systems/uiSkin.js';
+import { t } from '../systems/textManager.js';   // REFORGE-REPLACE: the Reforge's new words in the player's language; LOOT-GATE: the Imbue's, read when they are said
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -99,7 +99,8 @@ export const reforgePriceText = (p) => (p ? `${shardsText(p.shards)} and ${p.gol
 /** The whole reason a press is refused (its title), by the law's word. */
 export const REFORGE_REFUSALS = Object.freeze({
   off: 'Loot rarity is off', not: 'Nothing the Reforge can roll', unknown: 'Not identified yet. Have the guild identify it first',
-  worn: 'Take it off first', line: 'Only the line it was reforged on', shards: 'Not enough Welkynd Shards', gold: 'Not enough gold',
+  worn: 'Take it off first', shards: 'Not enough Welkynd Shards', gold: 'Not enough gold',
+  get line() { return t('reforge.refusal.line', 'No other kind of line can take its place'); },   // REFORGE-REPLACE: a record's line, or one nothing else can replace - the one-line lock is gone
   top: 'Already at its highest value',   // LOOT17
   imprinted: 'It already has a power', unfound: 'Your codex has no such power for it',
   none: 'Nothing left to find in this region', nowhere: 'No map to scry here', family: 'No such kin',   // LOOT19
@@ -133,6 +134,9 @@ export function reforgeLabel(why, price, have, verb = 'Reforge') {
 /** The last word of a press. */
 export const REFORGED = (name, line) => `Reforged: ${name} - ${line}.`;
 export const HONED = (name, line) => `Honed: ${name} - ${line}.`;   // LOOT17
+/** REFORGE-REPLACE (the owner: "Replace, price rises"): the card's word on the Reforge's price - what it does, and that
+ *  the next costs twice. */
+export const REFORGE_NOTE = (price) => t('reforge.note', 'A reforge costs {price}. It always replaces the line with a different kind, and the price doubles with each reforge on this piece.', { price: reforgePriceText(price) });
 /** LOOT17: the card's word on the hone's price. */
 export const HONE_NOTE = (price) => `A hone costs ${reforgePriceText(price)}. The price doubles with each hone, and a line at its highest value can't be honed.`;
 export const SALVAGED = (name, n) => `Salvaged: ${name}, for ${shardsText(n)}.`;
@@ -396,8 +400,7 @@ export function mountReforgeWindow(host, deps) {
       ul.append(li);
     });
     card.append(ul);
-    if (Number.isInteger(it.reforged)) card.append(el('p', 'boundline', 'Reforged once. Only that line can be reforged again.'));
-    else if (price) card.append(el('p', 'boundline', `A reforge costs ${reforgePriceText(price)}. Once you reforge a line, only that line can be reforged again.`));
+    if (price && may.length) card.append(el('p', 'boundline reforge-note', REFORGE_NOTE(price)));   // REFORGE-REPLACE: no line is locked - the price says the count
     if (hp && hone.length) card.append(el('p', 'boundline hone-note', HONE_NOTE(hp)));   // LOOT17
     body.append(card);
   };

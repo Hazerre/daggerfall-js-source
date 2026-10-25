@@ -12414,6 +12414,26 @@
   "tr": "ec05d3724c23",
   "by": "claude-in-session"
  },
+ "prof.maker.away": {
+  "en": "06e687439460",
+  "tr": "36f3d07ce545",
+  "by": "claude-in-session"
+ },
+ "prof.maker.fee": {
+  "en": "626f55a19a45",
+  "tr": "812817b36234",
+  "by": "claude-in-session"
+ },
+ "prof.maker.rank": {
+  "en": "7a652b7633eb",
+  "tr": "35aa7c5a3a28",
+  "by": "claude-in-session"
+ },
+ "prof.maker.storedRank": {
+  "en": "cf68f09ccae5",
+  "tr": "1ad9b5dd7f23",
+  "by": "claude-in-session"
+ },
  "prof.page.act.strike": {
   "en": "f9ae58aa354c",
   "tr": "4d979da5f458",
@@ -12425,8 +12445,8 @@
   "by": "claude-in-session"
  },
  "prof.page.alchemy.away": {
-  "en": "06dacdc7b30b",
-  "tr": "0e0fb4c6ef17",
+  "en": "947820be3b3a",
+  "tr": "ca28884c8b42",
   "by": "claude-in-session"
  },
  "prof.page.alchemy.brew": {
@@ -12520,8 +12540,8 @@
   "by": "claude-in-session"
  },
  "prof.page.alchemy.xpFirst": {
-  "en": "3db828324f06",
-  "tr": "bca4e58ba1ef",
+  "en": "6453810371ed",
+  "tr": "f98f2df86664",
   "by": "claude-in-session"
  },
  "prof.page.anvil": {
@@ -13075,8 +13095,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.alchemy": {
-  "en": "1cfb55c18244",
-  "tr": "9451fe1c487b",
+  "en": "b38418e7f431",
+  "tr": "be4f19c8a5e4",
   "by": "claude-in-session"
  },
  "prof.page.how.enchanting": {
@@ -13559,6 +13579,16 @@
   "tr": "6a504ee58567",
   "by": "claude-in-session"
  },
+ "prof.page.reforge.how": {
+  "en": "4e31236deeb2",
+  "tr": "83c0c18877ca",
+  "by": "claude-in-session"
+ },
+ "prof.page.reforge.rank": {
+  "en": "aabdb6820678",
+  "tr": "41e874e6869d",
+  "by": "claude-in-session"
+ },
  "ql.board.head": {
   "en": "05d05c6f6a06",
   "tr": "34c1b87f91d8",
@@ -13702,6 +13732,16 @@
  "quest.remain.min": {
   "en": "a47d8efbcf4d",
   "tr": "a47d8efbcf4d",
+  "by": "claude-in-session"
+ },
+ "reforge.note": {
+  "en": "341f6b452635",
+  "tr": "43eee68bc37e",
+  "by": "claude-in-session"
+ },
+ "reforge.refusal.line": {
+  "en": "4686986101b3",
+  "tr": "9d79620d91a3",
   "by": "claude-in-session"
  },
  "rest.exhausted.fighting": {
