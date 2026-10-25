@@ -23,6 +23,7 @@
 import { createRandomWeapon, createRandomArmor } from './loot/loot.js';
 import { mintCondition, setItemFields } from './item/itemTemplates.js';
 import { applyRarity, rarityEligible, rarityChances, championSource, corpseSource, lootRarityOn } from './loot/lootRarity.js';   // ELITE-RARE: the champion's blue the elite's Rare is read off; BAL4: the ladder's switch, offline
+import { rareGate, legendaryGate, rollerLevel } from './loot/lootLevelGate.js';   // LOOT-GATE: the player's level holds the elite's top tiers back
 import { goldStack } from './inventory.js';
 import { isAmmunition } from './item/itemTemplates.js';
 import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';   // ELITE-FLOOR: the watch is never an elite
@@ -170,6 +171,7 @@ export function pickDungeonElites(enemies, key, { elite = true, count = null, cl
     const at = Math.floor(rng() * pool.length);
     const i = pool.splice(at, 1)[0];
     enemies[i].eliteFoe = true;
+    enemies[i].eliteSeed = eliteHash('elite-trait', key, i);   // BOSS-TRAITS: its trait's draw, every client's alike (systems/bossTraits.js eliteTraits)
     n++;
   }
   return n;
@@ -208,8 +210,9 @@ export function eliteLoot(level = 1, rolls = Math.random) {
   const out = [];
   for (let i = 0; i < ELITE_FOE_LOOT.magic; i++) { const it = tiered(lv, 'magic', rolls); if (it) out.push(it); }
   for (let i = 0; i < ELITE_FOE_LOOT.common; i++) { const it = tiered(lv, 'common', rolls); if (it) out.push(it); }
-  if (rolls() < eliteRareChance(lv)) { const it = tiered(lv, 'rare', rolls); if (it) out.push(it); }   // ELITE-RARE: half a champion's blue at this level
-  if (rolls() < ELITE_FOE_LOOT.legendaryChance) { const it = tiered(lv, 'legendary', rolls); if (it) out.push(it); }
+  const at = rollerLevel() ?? lv;   // LOOT-GATE; AUDIT UPDATE II A3: none registered yet (a scene's first foes, before any host frame) - the level the drop is minted at, the player's at every host
+  if (rolls() < eliteRareChance(lv) * (at == null ? 1 : rareGate(at))) { const it = tiered(lv, 'rare', rolls); if (it) out.push(it); }   // ELITE-RARE: half a champion's blue at this level
+  if (rolls() < ELITE_FOE_LOOT.legendaryChance * (at == null ? 1 : legendaryGate(at))) { const it = tiered(lv, 'legendary', rolls); if (it) out.push(it); }
   const [lo, hi] = ELITE_FOE_LOOT.goldPerLevel;
   out.push(goldStack(Math.round(lv * (lo + rolls() * (hi - lo)))));
   return out;
@@ -260,7 +263,21 @@ export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false)
 export const eliteCorpseSize = (size, entity) => (isEliteCorpse(entity) && size ? { ...size, w: size.w * eliteSize(entity), h: size.h * eliteSize(entity) } : size);
 
 /** The size a sprite is drawn at (STAFF-EVENT: a mini boss's its event's). */
-export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);
+export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.raidLeader ? RAID_LEADER_SIZE : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);   // RAID5: a raid's leader, larger
+
+// ═══ RAID5: A RAID'S LEADER (bible/03-World/Raiding-Parties.md RAID5) ═══════════════════════════════════════════════
+/** How much larger a raid's leader is drawn than its kind. */
+export const RAID_LEADER_SIZE = 1.5;
+/** Make a raid's leader of a fresh foe: an elite (its health, its blows, its drop - ELITE-FLOOR asked no level: the
+ *  party's leader is no roll), larger, and called by its party's word (`name`, "Knight-Captain") - its traits are the
+ *  caller's (systems/bossTraits.js). `own` false for a puppet (its owner's health, the record's `k`). Idempotent. */
+export function promoteRaidLeader(entity, { own = true, name = '' } = {}) {
+  if (!entity) return false;
+  promoteEliteFoe(entity, { own, checkLevel: false });
+  if (!entity.raidLeader) entity.raidLeader = { name: String(name ?? '') };
+  if (own) grantEliteLoot(entity, entity.level);   // AUDIT WORLD-EVENTS L2-6: an elite's drop - the pool grants it at a stand that rolled the elite, and a leader is promoted after its stand (once, whichever came first)
+  return true;
+}
 
 // ═══ STAFF-EVENT: A STAFF EVENT'S MINI BOSS ═══════════════════════════════════════════════════════
 // (2026-10-24, mob: "mini boss need to be a single enlarges version of the mob spawns / instead of the blue elite glow
