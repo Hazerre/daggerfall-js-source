@@ -75,7 +75,7 @@ const READ_ROW_S = 10 * 60;
 
 export const REALM_ROUTES = Object.freeze(['/v1/staff/trade-holds', '/v1/staff/findings', '/v1/staff/trade-hold', '/v1/staff/trade-unhold',
   '/v1/staff/rollback', '/v1/staff/fix/repair', '/v1/staff/fix/mend', '/v1/staff/fix/bank', '/v1/staff/gains', '/v1/staff/market/pull',
-  '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/evidence', '/v1/staff/evidence/return', '/v1/staff/item/catalogue', '/v1/staff/item/give']);
+  '/v1/staff/market/remove', '/v1/staff/item/take', '/v1/staff/item/purge-dupes', '/v1/staff/evidence', '/v1/staff/evidence/return', '/v1/staff/item/catalogue', '/v1/staff/item/give']);
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
 const parse = (/** @type {unknown} */ t) => { try { return typeof t === 'string' ? JSON.parse(t) : null; } catch { return null; } };
@@ -536,6 +536,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     return said(`fix-${act}`, row.player, { ...detail, ...landed }, r.error ? r : { ...r, playing: playing(row) });
   }
 
+  if (path === '/v1/staff/item/purge-dupes') return purgeDupes();
   if (path === '/v1/staff/item/take') return takeAct();
   if (path === '/v1/staff/item/give') return giveAct();
   return { error: 'not-found' };
@@ -579,6 +580,80 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     }
     await dropObjects(c.bucket, [prep.prev]);
     return said('item-give', row.player, { ...detail, from: row.seq, to: prep.seq }, { ok: true, seq: prep.seq, piece: g.item, playing: playing(row) });
+  }
+
+  /**
+   * DESTROY EVERY COPY MARKED ON THIS CHARACTER (the panel's button): the ledger's `item_dupes` rows for this character,
+   * every one of those pieces in the record, and the same uids in chests of homes this account owns. Not kept for Put
+   * back, and no trail check - a hundred flagged rares is the case the one-piece Remove cannot clear. A chest in a home
+   * this account does not own keeps its row.
+   * shortcut: a flagged piece that is the furniture itself (decorOwn) is not in a list splice can reach, so its mark
+   * goes and the piece stays - upgrade when a flagged piece is furniture.
+   */
+  async function purgeDupes() {
+    const act = 'purge-dupes';
+    const early = (/** @type {string} */ error) => (body.confirm === true ? said(act, row.player, { ...ch }, { error }) : { error });
+    if (row.dead_at != null) return early('dead');
+    if (!c.bucket || !row.obj) return early('no-data');
+    const save = parse(await realmSaveTextOf(await c.bucket.get(row.obj)));
+    if (!save || typeof save !== 'object') return early('no-data');
+    const flagged = /** @type {{ uid: string }[]} */ ((await db.prepare('SELECT uid FROM item_dupes WHERE char_id = ?1').bind(row.id).all())?.results ?? []);
+    const keys = flagged.map((d) => d.uid).filter((u) => typeof u === 'string');
+    const keySet = new Set(keys);
+    let held = 0;
+    for (const list of possessedItemLists(save)) for (const it of list) if (keySet.has(ledgerKeyOf(it))) held++;
+    let bins = 0;
+    for (let i = 0; i < keys.length; i += 80) {
+      const part = keys.slice(i, i + 80);
+      const m = part.map((_, j) => `?${j + 2}`).join(', ');
+      const n = await db.prepare(`SELECT COUNT(*) AS n FROM decor_bin b WHERE b.uid IN (${m}) AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = b.map_id AND h.building_key = b.building_key AND h.player = ?1)`).bind(row.player, ...part).first();
+      bins += Number(n?.n ?? 0);
+    }
+    if (body.confirm !== true) {
+      await audit('purge-dupes-check', row.player, ch, { onceIn: READ_ROW_S }).run();
+      return { character: { id: row.id, name: row.name, account: accountOf(row) }, seq: row.seq, playing: playing(row), dupes: keys.length, held, bins };
+    }
+    const reason = REMOVE_REASONS.includes(body.reason) ? body.reason : null;
+    const note = noteOf(body.note);
+    const detail = { ...ch, reason, note, dupes: keys.length, held, bins };
+    if (!reason) return said(act, row.player, detail, { error: 'staff-reason' });
+    if (!note) return said(act, row.player, detail, { error: 'staff-note' });
+    if (!keys.length) return said(act, row.player, detail, { error: 'no-dupes' });
+    if (body.seq !== row.seq) return said(act, row.player, detail, { error: 'seq' });
+    const steps = [];
+    /** @type {{ steps: any[], prev: string | null, seq: number, key: string } | null} */
+    let prep = null;
+    let seq = row.seq;
+    if (held > 0) {
+      const seized = await seizeRealmRecord(c, row.player, row.id, (s) => {
+        for (const list of possessedItemLists(s)) {
+          for (let i = list.length - 1; i >= 0; i--) if (keySet.has(ledgerKeyOf(list[i]))) list.splice(i, 1);
+        }
+        return null;
+      }, { escrow: false, take: true });
+      if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
+      prep = seized;
+      steps.push(...seized.steps);
+      seq = seized.seq;
+    }
+    for (let i = 0; i < keys.length; i += 80) {
+      const part = keys.slice(i, i + 80);
+      const m = part.map((_, j) => `?${j + 2}`).join(', ');
+      steps.push(
+        db.prepare(`DELETE FROM item_dupes WHERE char_id = ?1 AND uid IN (${m})`).bind(row.id, ...part),
+        db.prepare(`DELETE FROM item_uids WHERE char_id = ?1 AND uid IN (${m})`).bind(row.id, ...part),
+        db.prepare(`DELETE FROM decor_bin WHERE uid IN (${m}) AND EXISTS (SELECT 1 FROM homes h WHERE h.map_id = decor_bin.map_id AND h.building_key = decor_bin.building_key AND h.player = ?1)`).bind(row.player, ...part),
+      );
+    }
+    steps.push(staffFinding(db, row, nowS, { act, by, note, reason, dupes: keys.length, held, bins, from: row.seq, to: seq }));
+    try {
+      await db.batch(steps);
+    } catch {
+      if (prep) await dropIfUnnamed(db, c.bucket, row.player, row.id, prep.key);
+      return said(act, row.player, detail, { error: 'seq' });
+    }
+    if (prep) await dropObjects(c.bucket, [prep.prev]);
+    return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, bins, playing: prep ? false : playing(row) });
   }
 
   /**
