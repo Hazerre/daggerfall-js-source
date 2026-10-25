@@ -109,6 +109,7 @@ import { offerWaitingWords } from '../../ui/questlines/qlJournal.js';   // AUDIT
 // are unchanged.
 import { positionHash, staticNpcData, layoutNpcData } from '../../characters/staticNpc.js';
 import { festivalQuestEnded } from '../../systems/festival/festivalClient.js';   // WITCH1: a quest done asks a find
+import { setEscortQuestAway } from '../../ui/hud/hudEscortFaces.js';   // QUEST-SHELF-FACES: a quest set aside shows no faces
 
 export { positionHash, staticNpcData, layoutNpcData };
 
@@ -479,6 +480,9 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
   // macro walk that is not handed a context of its own (questMacros.js
   // setMacroWorld) - one registration, every window, every host.
   setMacroWorld(() => machine.macroContext());
+  // QUEST-SHELF-FACES: a quest set aside shows no escort faces (ui/hud/hudEscortFaces.js) - the page's one panel asks
+  // the page's one bridge, as the macro world does
+  setEscortQuestAway((uid) => isShelved(machine.getQuest(uid)));
 
   questLists = new QuestListsManager({
     readListTable: (name) => ctx.data.readListTable(name),
