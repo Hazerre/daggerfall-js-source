@@ -5054,7 +5054,7 @@ export function createWorldModes(host) {
   function activateDecor(id) {
     const piece = interiorDecor.pieceOf(id);
     if (piece?.station === VENDOR_STATION) { openHomeVendor(piece, id); return; }   // HOME-VENDOR: anyone may trade with it
-    if (useDecorPiece(piece, interiorCamps, getInteractionMode, restFromInteriorBed)) return;   // DECOR-USE (systems/decor/decorUse.js): a placed fire or the cooking station opens what a brazier opens (a fire is nobody's), a placed bed is slept in as the room's own are (the rest window says who may)
+    if (useDecorPiece(piece, interiorCamps, getInteractionMode, restFromInteriorBed, () => forgeOffered() && (focusStoresStation('fire'), interiorKeyCtx.togglePause({ at: 'stores' }), true))) return;   // DECOR-USE (systems/decor/decorUse.js): a placed fire or the cooking station opens what a brazier opens (a fire is nobody's), a placed bed is slept in as the room's own are (the rest window says who may)
     if (piece?.station) { useDecorStation(piece); return; }   // HOME-STATIONS
     if (piece?.storage && caravanGuestHere()) { say(homeBelongsLine({ owner: privateVisitOwner })); return; }   // WAGONS2-VISIT: a caravan's storage is its owner's, as a home's cupboards are - shut to its visitor, in its owner's name
     if (isHallBoard(piece)) { openHallBoard(); return; }   // GUILD1e: the board in a guild's hall

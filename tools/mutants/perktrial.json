@@ -66,10 +66,10 @@
     ]
   },
   {
-    "name": "PERKTRIAL-the-lock-said-over-a-waiting-change",
-    "file": "server-account/src/professions.js",
-    "old": "  const lock = pending ? null : respecLockUntil(row, nowS);",
-    "new": "  const lock = respecLockUntil(row, nowS);",
+    "name": "PERKTRIAL-a-waiting-change-kept-waiting",
+    "file": "src/net/professionLaw.js",
+    "old": "  if (row?.respec_to && (row.respec_rank === 50 || row.respec_rank === 100)) {   // AUDIT PERK-TRIAL P8: whatever its time",
+    "new": "  if (row?.respec_to && Number.isSafeInteger(row?.respec_at) && nowS >= row.respec_at && (row.respec_rank === 50 || row.respec_rank === 100)) {",
     "tests": [
       "test/net/perktrial.test.js"
     ]
@@ -96,8 +96,8 @@
   {
     "name": "PERKTRIAL-a-trial-change-restarts-it",
     "file": "server-account/src/professions.js",
-    "old": "      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5\n        WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col}_at > ?8",
-    "new": "      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, ${col}_at = ?5, updated_at = ?5\n        WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col}_at > ?8",
+    "old": "      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5,\n          respec_to",
+    "new": "      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, ${col}_at = ?5, updated_at = ?5,\n          respec_to",
     "tests": [
       "test/net/prof1_service.test.js"
     ]
@@ -105,8 +105,8 @@
   {
     "name": "PERKTRIAL-asked-free-charged",
     "file": "server-account/src/professions.js",
-    "old": "  if (askedTrial === true) return { error: 'prof-spec-stale' };",
-    "new": "  if (false) return { error: 'prof-spec-stale' };",
+    "old": "  if (askedTrial === true) return { error: 'prof-trial-over' };",
+    "new": "  if (false) return { error: 'prof-trial-over' };",
     "tests": [
       "test/net/fb1016b_firstpick.test.js"
     ]
@@ -215,7 +215,7 @@
   {
     "name": "PERKTRIAL-the-trial-unasked",
     "file": "src/net/profBook.js",
-    "old": "      const trial = !!from && specTrialShown(tr, rank, now() / 1000);",
+    "old": "      const trial = !!from && (typeof shown?.trial === 'boolean' ? shown.trial : specTrialShown(tr, rank, now() / 1000));",
     "new": "      const trial = false;",
     "tests": [
       "test/net/audit29_client.test.js"
@@ -224,10 +224,64 @@
   {
     "name": "PERKTRIAL-the-trial-asked-always",
     "file": "src/net/profBook.js",
-    "old": "      const trial = !!from && specTrialShown(tr, rank, now() / 1000);",
+    "old": "      const trial = !!from && (typeof shown?.trial === 'boolean' ? shown.trial : specTrialShown(tr, rank, now() / 1000));",
     "new": "      const trial = !!from;",
     "tests": [
       "test/net/audit29_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P1-the-pages-word-unread",
+    "file": "src/net/profBook.js",
+    "old": "(typeof shown?.trial === 'boolean' ? shown.trial : specTrialShown(tr, rank, now() / 1000))",
+    "new": "specTrialShown(tr, rank, now() / 1000)",
+    "tests": [
+      "test/net/audit29_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P1-the-page-sends-nothing",
+    "file": "src/ui/professions/profPages.js",
+    "old": "const res = await book.choose(_sel, r, s.id, chosen ? { trial: _armedFree } : {});",
+    "new": "const res = await book.choose(_sel, r, s.id);",
+    "tests": [
+      "test/net/fb1016b_firstpick.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P2-the-trials-rate-unasked",
+    "file": "server-account/src/professions.js",
+    "old": "    // AUDIT PERK-TRIAL P2: a free change is still a write, and a row kept for good - the professions' own hour holds it\n    if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };\n",
+    "new": "",
+    "tests": [
+      "test/net/prof1_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P3-the-kept-ids-kept",
+    "file": "src/net/profBook.js",
+    "old": "          for (const k of [...ids.keys()]) if (k !== key && k.startsWith(`spec|${owner}|${profession}|${rank}|`)) ids.delete(k);\n",
+    "new": "",
+    "tests": [
+      "test/net/audit29_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P7-the-choices-times-unread",
+    "file": "server-account/migrations/0167_perk_trial.sql",
+    "old": "    spec50_at = (SELECT MAX(c.at) FROM prof_choices c",
+    "new": "    spec50_at = (SELECT NULL FROM prof_choices c",
+    "tests": [
+      "test/net/perktrial.test.js"
+    ]
+  },
+  {
+    "name": "AUDITPERK-P1-armed-free-past-its-day",
+    "file": "src/ui/professions/profPages.js",
+    "old": "const armedHere = _armed === `${r}|${s.id}` && _armedFree === trial;",
+    "new": "const armedHere = _armed === `${r}|${s.id}`;",
+    "tests": [
+      "test/net/fb1016b_firstpick.test.js"
     ]
   }
 ]

@@ -482,6 +482,7 @@ const REFUSAL_WORDS = {
   'prof-account-cap': () => t('account.refusal.profAccountCap', 'Your account has gathered all a day allows in this craft, across your characters.'),
   'prof-deep-cap': () => t('account.refusal.profDeepCap', 'Dungeons not yet confirmed by other players give you {max} veins a day.', { max: DEEP_UNCONFIRMED_PER_DAY }),
   'prof-spec-stale': () => t('account.refusal.profSpecStale', 'Your specialization changed elsewhere. Look again before you choose.'),
+  'prof-trial-over': () => t('account.refusal.profTrialOver', 'The free day to change this specialization has ended. Nothing was spent - look again before you choose.'),   // AUDIT PERK-TRIAL P4
   'prof-spec-taken': () => t('account.refusal.profSpecTaken', 'A specialization was chosen there already. Look again.'),
   'stores-full': () => t('account.refusal.storesFull', 'Your Stores hold {max, number} of that already.', { max: STORES_MAX }),
   'stores-short': () => t('account.refusal.storesShort', 'Your Stores do not hold that many.'),

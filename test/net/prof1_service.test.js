@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 import { standService, T0 } from '../accountDb.mjs';
 import { herbPatches, nodeKey, utcDayOfMs, pixelKey } from '../../src/net/nodeLaw.js';
-import { herbKey, rankOfXp, writXp, STORES_MAX, COURT_WRITS_PER_DAY, RESPEC, xpForRank, SPEC_TRIAL_S } from '../../src/net/professionLaw.js';
+import { herbKey, rankOfXp, writXp, STORES_MAX, COURT_WRITS_PER_DAY, RESPEC, xpForRank, SPEC_TRIAL_S, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { sharedClassicMinutes } from '../../src/net/wire.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { RENOWN_TRACKS_MAX } from '../../src/net/renown.js';   // RENOWN-CHAR: a writ's Renown makes a track only under the tracks' bound
@@ -414,6 +414,10 @@ test('PROF1 service: a specialisation - at 50, free the first time; PERK-TRIAL (
   assert.deepEqual([tried.body.track.specs, tried.body.track.trial, tried.body.track.lock], [{ 50: 'botanist', 100: null }, { 50: NOON + SPEC_TRIAL_S }, undefined], 'in effect at once, no lock');
   assert.deepEqual((await spec('gardener', { from: 'botanist' })).body.track.specs, { 50: 'gardener', 100: null }, 'as often as wanted');
   assert.equal(burnt(), 0, 'nothing burnt on trial');
+  // AUDIT PERK-TRIAL P2: as often as the professions' hour allows - a free change is a write and a row kept for good
+  s.raw.prepare("INSERT INTO rate_limits (key, window_start, count) VALUES (?, ?, ?) ON CONFLICT (key) DO UPDATE SET window_start = excluded.window_start, count = excluded.count").run(`prof:${mac.id}`, Math.floor(_now / PROF_OPS_WINDOW_S) * PROF_OPS_WINDOW_S, PROF_OPS_MAX);
+  assert.deepEqual((await spec('botanist', { from: 'gardener' })).body, { error: 'prof-rate' }, 'the hour spent');
+  s.raw.prepare('DELETE FROM rate_limits WHERE key = ?').run(`prof:${mac.id}`);
   // past it: the paid change
   clock(NOON + SPEC_TRIAL_S);
   assert.equal((await s.call('/v1/prof/state', { character: mac.character }, mac.secret)).body.tracks.find((t) => t.profession === 'herbalism').trial, undefined, 'its day out');

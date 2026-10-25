@@ -82,7 +82,7 @@ test('FIRST-PICK: a lock at 50 leaves the 100 cards open - PIN MOVED (PERK-TRIAL
       const refused = await s.call('/v1/prof/spec', { character: mac.character, profession: 'smithing', rank: 100, spec: 'quartermaster', from: 'masterwright', rid: 'fp-000001' }, mac.secret);
       assert.equal(refused.body.error, 'prof-respec-pending', 'the service agrees the lock holds');
       const askedFree = await s.call('/v1/prof/spec', { character: mac.character, profession: 'smithing', rank: 100, spec: 'quartermaster', from: 'masterwright', rid: 'fp-000002', trial: true }, mac.secret);
-      assert.equal(askedFree.body.error, 'prof-spec-stale', 'asked as a trial\'s, its day out: refused, never charged');
+      assert.equal(askedFree.body.error, 'prof-trial-over', 'asked as a trial\'s, its day out: refused, never charged, and said so (AUDIT PERK-TRIAL P4)');
     } finally { p.done(); }
   } finally { Date.now = realNow; }
 });
@@ -101,4 +101,33 @@ test('FIRST-PICK: the merge\'s free change stays offered while a change waits at
     assert.deepEqual(rows.Masterwright, [true, null], 'the chosen one');
     assert.deepEqual(rows.Armoursmith, [true, null], 'a paid change at 50 still waits');
   } finally { p.done(); }
+});
+
+test('AUDIT PERK-TRIAL P1 the page asks a change as its card said it: armed free on its choice\'s day, the second press asks it free (`trial: true`); armed at the price, paid; a card armed free whose day runs out before the second press arms again at its price - never asked free past its day, never charged unseen (mutants: the page sends nothing)', async () => {
+  const realNow = Date.now;
+  let now = 2_000_000_000_000;
+  Date.now = () => now;
+  try {
+    const tracks = new Map(), asked = [];
+    const book = {
+      state: { open: true, day: 1, character: 'c', account: 'a', readAt: Date.now(), stores: new Map(), tracks, today: {}, caps: null },
+      stale: () => false, refresh: async () => ({ ok: true }), track: () => tracks.get('smithing'), choose: async (...a) => { asked.push(a); return { ok: true }; },
+    };
+    tracks.set('smithing', { profession: 'smithing', xp: xpForRank(50), rank: 50, specs: { 50: 'goldsmith', 100: null }, respec: null, trial: { 50: now / 1000 + 600 } });
+    const p = await page(book);
+    try {
+      const card = (n) => p.cards().find((c) => c.querySelector('b').textContent === n);
+      await card('Gemcutter').onclick();
+      assert.equal(asked.length, 0, 'the first press arms');
+      await card('Gemcutter').onclick();
+      assert.deepEqual(asked.pop(), ['smithing', 50, 'gemcutter', { trial: true }], 'asked free, as it said');
+      await card('Gemcutter').onclick();
+      now += 601_000;   // armed free, and its day runs out on the screen
+      p.draw();
+      await card('Gemcutter').onclick();
+      assert.equal(asked.length, 0, 'armed again, at its price');
+      await card('Gemcutter').onclick();
+      assert.deepEqual(asked.pop(), ['smithing', 50, 'gemcutter', { trial: false }], 'asked paid, as it said');
+    } finally { p.done(); }
+  } finally { Date.now = realNow; }
 });

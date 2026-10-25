@@ -269,12 +269,14 @@ export const specOf = (profession, rank, specId) => SPECIALISATIONS[trackOf(prof
  * The specialisations a track stands under at `nowS`: the chosen ones, a paid change taking the place of its rank's
  * choice once its week is out. `row` is the service's track row (spec50, spec100, respec_rank, respec_to, respec_at).
  * PERK-TRIAL: a change is written at once now (`respec_to` stays empty, `respec_at` the lock's end) - the fold is for a
- * change made before it, which migration 0167 folds too.
+ * change made before it, which migration 0167 folds too. AUDIT PERK-TRIAL P8: a change written as waiting stands AT ONCE,
+ * whatever its `respec_at` (now the lock): the older service, serving between the migration and the new one's deploy,
+ * still wrote changes to wait their week, and they would have waited it.
  * @returns {{ 50: string|null, 100: string|null }}
  */
 export function specsAt(row, nowS) {   // CRAFT3: a merged craft's track stands under one choice a rank, of its four
   const out = { 50: row?.spec50 ?? null, 100: row?.spec100 ?? null };
-  if (row?.respec_to && Number.isSafeInteger(row?.respec_at) && nowS >= row.respec_at && (row.respec_rank === 50 || row.respec_rank === 100)) {
+  if (row?.respec_to && (row.respec_rank === 50 || row.respec_rank === 100)) {   // AUDIT PERK-TRIAL P8: whatever its time
     out[row.respec_rank] = row.respec_to;
   }
   return out;

@@ -2174,8 +2174,8 @@ and a barrel's aim drew no arc and no post, only a flat ring on the sea under he
   A sail of her own standing where the eye would stand steps it on along her keel, AIM_CAM_CLEAR clear of the canvas
   (`clearOfRig`) - the galleon's and the carrack's ends stand clear already (their canvas is under and behind the eye);
   the walk is for a rig that is not (the mod's own builds' single boxes). Never crippled, never with the Broadside camera
-  part off, as before.
-- **The barrel's fall** is drawn: `dropArc` (`systems/naval/navalBallistics.js`) runs from the stern's rail to its mark,
+  part off, as before. (The first cut's law - AUDIT AIM-ENDS, below, is the eye's law now.)
+- **The barrel's fall** is drawn: `fallArc` (`systems/naval/navalBallistics.js`) runs from the stern's rail to its mark,
   its way out even and its height falling with the square of it (let go, no rise), and a post of light stands over the
   mark as a gun's splash has one.
 - **Departure.** The port's own - Daggerfall has no sea; it moves AUDIT NAV1's H4 ("never for the chasers"), whose row
@@ -2186,3 +2186,34 @@ and a barrel's aim drew no arc and no post, only a flat ring on the sea under he
   `tools/mutants/navaudit_helm.json` (the camera's own re-aimed into the module), all dead.
 - **Not changed.** No stern guns were added: the barrels astern are the guns table's design (The guns). A hull with
   nothing astern still says "No guns bear there."
+
+### AUDIT AIM-ENDS (2026-10-25)
+
+The owner: *"Audit"*. A cold lane on a frozen snapshot of the branch, given the ask and the files and never this
+record, stood the real naval host's eye over each end of every hull with her canvas set, and measured what it could
+see. Each finding below failed on the snapshot and passes now (`scenes/naval/aimCamera.js` endEye).
+
+- **A1 - the stern's eye stood past the barrel's mark.** AIM_CAM_AHEAD astern of the rail put the eye beyond where the
+  barrel lands (1.5 m out), and looking astern no part of the fall it drew was on the screen. The eye stands straight
+  over the rail the barrels roll from, AIM_CAM_UP over it, lifted AIM_CAM_CLEAR over any box of hers it would stand in
+  (her hull's top, her canvas there) - the fall and its mark under it, a look down over the stern.
+- **A2 - the bow's eye stood inside a galley's prow.** AIM_CAM_AHEAD past the chasers is inside the Large Galley,
+  whose prow reaches 6 m past her guns. **A4 - and behind the galleon's set jib**, which hid the arcs as the helm's
+  eye had. The eye stands AIM_CAM_CLEAR past the furthest any box of hers - her hull and every sail set - reaches along
+  her keel (`reachAlong`), where that is further than AIM_CAM_AHEAD; `clearOfRig`'s walk over the sails is gone.
+  **A6 - the pin asked it with her canvas furled**, no box of hers standing: H8 sets her canvas now.
+- **A3 - the eye jumped 29-56 m in a frame** when a look swung from a broadside past the bow's arc. Its place is eased
+  in her own frame (AIM_CAM_TAU a step) - 1.5-4.3 m a frame now - so a ship under way never drags it behind her.
+- **A5 - a ship alongside was the sea's ships alone.** A peer's boat and my own other boats stand alongside too: the
+  camera reads the naval host's one list of the hulls about her (`systems/naval/seaClearance.js` createSeaHulls, as
+  they stand - Passage FERRY-CLEAR F3).
+
+Left, each with its reason: the mod's Carrack, drawn with its fallback mesh, pokes past its own collider at the bow, so
+the eye clears her boxes and not that mesh - the mesh is the mod's, and a box is what the port measures her by; for the
+few frames an end is eased to, the eye can pass through her rig - easing is A3's fix, and a path round the rig is its
+own; and the setting is still named "Broadside camera" though it moves the eye over her ends too - a setting's name
+is the owner's.
+
+Pinned by `test/systems/naval/aimends_camera.test.js` (A1, A2/A4 on all of her, A3) and
+`test/systems/naval/navaudit_helm.test.js` H8 (PIN MOVED: her canvas set, the bow's eye past her reach, the stern's over
+her); 15 records in `tools/mutants/navaudit_helm.json` (AIM-ENDS and AUDIT AIM-ENDS), all dead.

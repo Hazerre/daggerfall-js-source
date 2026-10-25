@@ -108,7 +108,7 @@ test('AUDIT 29 A15: a specialisation is asked with the choice the client saw sta
   for (const e of ['prof-spec-stale', 'prof-spec-taken', 'prof-account-cap', 'prof-deep-cap']) assert.doesNotMatch(accountRefusalText(e), /problem|could not be read/, e);
 });
 
-test('PERK-TRIAL the book asks a change on its choice\'s day of trial as one (`trial`) - never a paid change the player was shown as free; past the day, as a paid one (mutants: the trial unasked; the trial asked always)', async () => {
+test('PERK-TRIAL the book asks a change as the page offered it (`trial`: free on its choice\'s day, or paid) - AUDIT PERK-TRIAL P1 (PIN MOVED: it read the clock at the second press, and a card armed free past the day\'s end was charged): the page\'s word stands whatever the clock says; without one, the track\'s own day at the press (mutants: the trial unasked; the trial asked always; the page\'s word unread)', async () => {
   const asked = [];
   let t = T;
   const door = {
@@ -121,7 +121,36 @@ test('PERK-TRIAL the book asks a change on its choice\'s day of trial as one (`t
   await book.choose('herbalism', 50, 'botanist');
   t = T + 61_000;   // the day out on the open page
   await book.choose('herbalism', 50, 'botanist');
-  assert.deepEqual(asked, [{ s: 'botanist', from: 'gardener', trial: true }, { s: 'botanist', from: 'gardener', trial: false }]);
+  await book.choose('herbalism', 50, 'botanist', { trial: true });   // a card armed free before the day ran out
+  t = T;
+  await book.choose('herbalism', 50, 'botanist', { trial: false });   // a card offered at its price
+  assert.deepEqual(asked.map((a) => a.trial), [true, false, true, false]);
+  assert.ok(asked.every((a) => a.s === 'botanist' && a.from === 'gardener'));
+});
+
+test('AUDIT PERK-TRIAL P3: a choice answered forgets every other id the book kept for its rank - a flip whose answer was lost, asked again after the rank moved on, is a new request, never answered as the old one with nothing changed (mutants: the kept ids kept)', async () => {
+  const asked = [];
+  let specs = { 50: 'gardener', 100: null };
+  let lose = true;
+  const door = {
+    account: () => 'acct-1',
+    state: async () => okState(20500, { tracks: [{ profession: 'herbalism', xp: 25000, rank: 50, specs, respec: null, trial: { 50: T / 1000 + 3600 } }] }),
+    spec: async (c, p, r, s, from, rid) => {
+      asked.push({ s, rid });
+      if (lose) { lose = false; specs = { ...specs, 50: s }; return { ok: false, error: 'maintenance' }; }   // made, its answer lost (a kept refusal: its id kept for the pump)
+      specs = { ...specs, 50: s };
+      return { ok: true, data: { track: { profession: 'herbalism', xp: 25000, rank: 50, specs, respec: null } } };
+    },
+  };
+  const book = createProfBook({ door, storage: memStorage(), character: () => 'c1', now: () => T, sleep: noWait });
+  await book.refresh();
+  await book.choose('herbalism', 50, 'botanist', { trial: true });   // gardener -> botanist, answer lost (the id kept)
+  const kept = asked.at(-1).rid;
+  await book.refresh();
+  await book.choose('herbalism', 50, 'gardener', { trial: true });   // botanist -> gardener, answered
+  await book.refresh();
+  await book.choose('herbalism', 50, 'botanist', { trial: true });   // gardener -> botanist again
+  assert.notEqual(asked.at(-1).rid, kept, 'a new request id');
 });
 
 test('AUDIT 29 C1: a page drawn over a stale state it cannot read draws again only when a NEW read answers - never on the backoff\'s last answer (the loop that starved the tab)', async () => {

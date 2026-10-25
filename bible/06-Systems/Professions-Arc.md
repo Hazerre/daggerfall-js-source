@@ -5478,10 +5478,10 @@ THE LAW (`src/net/professionLaw.js`; the service's `server-account/src/professio
   is burnt. A first choice at the other rank, the merge's free change (CRAFT3) and a choice on its day of trial are
   answered before the lock, as FIRST-PICK answered them before the old wait.
 - **Asked as free, never charged**: the page asks a change on its day of trial as one (`trial: true`, `profBook.js`
-  choose, off the track's `trial`); the day out meanwhile, the service refuses it `prof-spec-stale` and the book reads the
-  track again - a card left open across the day's end never burns 1,000 Marks the player was shown as free.
+  choose, off the card as it was armed - AUDIT PERK-TRIAL P1, below); the day out meanwhile, the service refuses it
+  `prof-trial-over` (AUDIT PERK-TRIAL P4: it was `prof-spec-stale`, said as a stale page) and the book reads the track again - a card left open across the day's end never burns 1,000 Marks the player was shown as free.
 - **The page**: on its day a choice's other cards say "Change: free until <time>"; past it "Change: 1,000 silver", "Press
-  again: 1,000 silver, in effect at once"; inside the lock the chosen card says "Next change from <date>" and the others
+  again: 1,000 silver, in effect at once. The next change waits 7 days" (AUDIT PERK-TRIAL P5: the lock said before it is paid for); inside the lock the chosen card says "Next change from <date>" and the others
   wait. The track as the service says it carries `trial` (`{ 50: until }`) and `lock`, each only where there is one.
 - **The changes already waiting** (migration `0167_perk_trial.sql`): a change bought before PERK-TRIAL and still waiting
   its week lands at the migration, its trial from then (its buyer paid to try it) and its week kept as the lock; one
@@ -5500,6 +5500,37 @@ burn, one track (`test/net/audit29_service.test.js`, PIN MOVED: the track change
 `tools/mutants/perktrial.json`, 25 dead; `audit29.json`, `craft3.json` and `fb1016b_firstpick.json` records re-aimed by
 content, and the 44 older records on the choice (PROF1, AUDIT 29, AUDIT 30, CRAFT3, FIRST-PICK, MINE-PERKS) judged again,
 all dead.
+
+### AUDIT PERK-TRIAL (2026-10-25)
+
+The owner: *"Audit"*. A cold lane on a frozen snapshot of the branch, given the ask and the files and never this
+section, walked the page, the book, the account service and the migration over the real Worker and its node:sqlite D1.
+Each finding below failed on the snapshot and passes now.
+
+- **P1 - a card armed free was charged past its day.** The book read the clock at the second press: a card armed as
+  free whose day ran out before it was pressed again was asked as a paid change and burnt 1,000 Marks the player had
+  been shown as free. The page sends the card's word as it was armed (`trial`, `profBook.js` choose's `shown`), the
+  book asks the change so, and a card armed free whose day runs out on the screen arms again at its price.
+- **P2 - a free change was a free write.** A change on trial is a row kept for good, and nothing held how often one
+  could be asked: the professions' own hour holds it (`overRate`, PROF_OPS_MAX in PROF_OPS_WINDOW_S).
+- **P3 - an answer lost was answered as the old one.** The book kept a request's id for each choice it asked, and a
+  flip whose answer was lost, asked again after the rank had moved on, was answered by the service as the first - with
+  nothing changed. A choice answered forgets every other id kept for its rank.
+- **P4 - a free change past its day was refused as a stale page.** It is `prof-trial-over` (409) now, said as itself:
+  the free day ended, nothing was spent.
+- **P5 - the lock was said only after it was paid for.** The armed card says the week it starts.
+- **P6 - a moment was written in English.** The trial's end and the lock's are written as the player's language writes
+  a day and a time, in UTC and said to be (`profPages.js`; here and not in `textManager.js`, which the relay bundles).
+- **P7 - a choice made in the day before the deploy had no trial.** The migration takes each choice's time from its own
+  `prof_choices` row, so one made an hour before has the rest of its day, as one made a minute after has.
+- **P8 - a change bought across the deploy waited its week.** An older service writes a change as waiting until the
+  new one is up; the law stands a change written as waiting at once whatever its time (`specsAt`), and the service
+  folds it with its week as the lock (`trackView` says no `respec`, ever).
+- **P9 - the waits' table said "sixty harvests a day"** (`Online-Waits.md`), false since CAP-OFF.
+
+Pinned in `test/net/audit29_client.test.js` (P1, P3), `test/net/fb1016b_firstpick.test.js` (P1 on the page, P4),
+`test/net/prof1_service.test.js` (P2), `test/net/perktrial.test.js` (P7, P8) and `test/systems/foraging/prof1_law.test.js`
+(PIN MOVED, P8); `tools/mutants/perktrial.json` (31, all dead).
 
 ## Appendix A - a day of a gatherer
 

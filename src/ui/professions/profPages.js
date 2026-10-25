@@ -99,7 +99,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 import { chainPlan, chainNeeded, chainYield, storesRoom } from '../../net/chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { getPref, setPref } from '../../systems/uiPrefs.js';
 import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a material's picture, the host's
-import { t, localizedText, formatMessage, formatNumber } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
+import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
 
 /**
  * @typedef {object} ProfPagesProvider
@@ -237,6 +237,16 @@ export const PROF_PAGE_SECTIONS = Object.freeze([wordRow('professions', () => t(
 /** What the Professions page has chosen, and a change of specialisation pressed once (the second press buys it). */
 let _sel = 'herbalism';
 let _armed = null;
+/** AUDIT PERK-TRIAL P1: whether the armed card said its change was free (its choice's day of trial) - the second press
+ *  buys what the card said, never what the clock says by then. */
+
+/** AUDIT PERK-TRIAL P6: a moment as the player's language writes a day and a time - the day of the month, the month's
+ *  short name, the hour and minute on a 24-hour clock - in UTC, the professions' clock, and said to be UTC. Here and not
+ *  in textManager.js, which the relay bundles (test/net/relayversion.test.js): a page's words are no deploy. */
+function utcMoment(ms) {
+  try { return new Intl.DateTimeFormat(intlLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC', timeZoneName: 'short' }).format(new Date(ms)); } catch { return ''; }
+}
+let _armedFree = false;
 /** The Professions page's last refusal, said under the cards. */
 let _profWord = null;
 /** The Stores page's filter, search, sort, the material chosen and the quantity to withdraw. */
@@ -695,7 +705,7 @@ export function drawProfessionsPage(detail, rerender, kit) {
   // once on the choice's day of trial (`trial`), else 1,000 silver and at once, and the week after a paid change locked
   const two = disciplinesOf(_sel).length > 1;
   const nowS = Date.now() / 1000;
-  const when = (at) => `${new Date(at * 1000).toUTCString().slice(5, 22)} UTC`;
+  const when = (at) => utcMoment(at * 1000);   // AUDIT PERK-TRIAL P6: in the player's language
   for (const r of SPEC_RANKS) {
     pane.append(divider(t('prof.page.specs.at', 'At {rank}', { rank: r })));
     const cards = el('div', 'prof-specs');
@@ -715,19 +725,19 @@ export function drawProfessionsPage(detail, rerender, kit) {
       const waits = !!chosen && (!!tr.respec || lock !== null) && !free && !trial;
       card.disabled = locked || chosen === s.id || waits;
       if (s.later) card.append(el('i', 'prof-cost', LATER_WORDS[s.later] ?? t('prof.page.later.any', 'Comes in a later update')));
-      const armedHere = _armed === `${r}|${s.id}`;
+      const armedHere = _armed === `${r}|${s.id}` && _armedFree === trial;   // AUDIT PERK-TRIAL P1: a card armed free whose day ran out on the screen is armed no more - pressed again, it arms at the price it says now
       if (!locked && chosen && chosen !== s.id && !waits) {
         card.append(el('i', 'prof-cost', free ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecFree', 'Change: free, once'))
           : trial ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecTrial', 'Change: free until {date}', { date: when(tr.trial[r]) }))
-            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once', { cost: RESPEC.marks })
+            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once. The next change waits {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })   // AUDIT PERK-TRIAL P5: the lock said before it is paid for
               : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
       }
       if (chosen === s.id && waits && lock !== null) card.append(el('i', 'prof-cost', t('prof.page.specs.lockedUntil', 'Next change from {date}', { date: when(lock) })));   // PERK-TRIAL
       if (tr.respec?.to === s.id && tr.respec?.rank === r) card.append(el('i', 'prof-cost', t('prof.page.specs.inEffect', 'In effect from {date}', { date: new Date(tr.respec.at * 1000).toUTCString().slice(0, 16) })));
       card.onclick = async () => {
-        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; rerender(); return; }
+        if (chosen && !armedHere) { _armed = `${r}|${s.id}`; _armedFree = trial; rerender(); return; }
         _armed = null;
-        const res = await book.choose(_sel, r, s.id);
+        const res = await book.choose(_sel, r, s.id, chosen ? { trial: _armedFree } : {});   // AUDIT PERK-TRIAL P1: as the card said it
         _profWord = res?.ok ? null : accountRefusalText(res?.error);
         rerender();
       };
@@ -2369,7 +2379,7 @@ function drawCookFire(detail, rerender, { el, divider }) {
   if (!p?.fire || !p.craft) return;
   const book = p.book;
   const fire = p.fire();
-  detail.append(divider(t('prof.page.fire', 'The Fire')));
+  detail.append(stationHead(divider, t('prof.page.fire', 'The Fire'), 'fire'));   // AUDIT DECOR-USE D2: a cooking station's press lands here
   if (!fire) {
     endPan();
     detail.append(el('p', 'px-note', fireAwayLine()));

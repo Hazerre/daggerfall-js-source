@@ -15,8 +15,9 @@
 --
 --   - `spec50_at`, `spec100_at`: when the rank's choice standing was
 --     made (its first, or a paid change) - its trial runs a day from it,
---     a change inside it free and at once. Empty for a choice made
---     before this: its day is long out.
+--     a change inside it free and at once. A choice made before this
+--     takes its time from its own row (below); one with none stays
+--     empty - its day is long out.
 --   - `respec_at` is the lock's end now - the track's next paid change
 --     waits until it - and `respec_to` stays empty: a change is written
 --     to its rank at once.
@@ -29,6 +30,15 @@
 
 ALTER TABLE prof_tracks ADD COLUMN spec50_at INTEGER;
 ALTER TABLE prof_tracks ADD COLUMN spec100_at INTEGER;
+
+-- AUDIT PERK-TRIAL P7: A CHOICE MADE BEFORE THIS, its time from its own row - a first choice (and the merge's free
+-- change) keeps one in `prof_choices`, so one made in the day before the migration has the rest of its day of trial,
+-- as one made a minute after it has; an older one's day is out already.
+UPDATE prof_tracks SET
+    spec50_at = (SELECT MAX(c.at) FROM prof_choices c WHERE c.player = prof_tracks.player AND c.char_id = prof_tracks.char_id
+      AND c.profession = prof_tracks.profession AND c.rank = 50 AND c.spec = prof_tracks.spec50),
+    spec100_at = (SELECT MAX(c.at) FROM prof_choices c WHERE c.player = prof_tracks.player AND c.char_id = prof_tracks.char_id
+      AND c.profession = prof_tracks.profession AND c.rank = 100 AND c.spec = prof_tracks.spec100);
 
 UPDATE prof_tracks SET
     spec50 = CASE WHEN respec_rank = 50 THEN respec_to ELSE spec50 END,

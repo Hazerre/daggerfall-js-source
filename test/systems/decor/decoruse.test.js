@@ -31,7 +31,7 @@ test('DECOR-USE the law: a placed piece that is one of Daggerfall\'s beds - a to
   assert.equal(decorBed(null), false);
 });
 
-test('DECOR-USE the law: a placed fire one stands over (the world\'s own cooking fires: the lights archive\'s bowl of fire, camp flame and brazier) is a hearth, and so is any piece made the cooking station; a candle, a piece that holds things, or a fire serving another craft is not (mutants: the hearth flats unread; the cooking station unread; a storage fire cooked on)', () => {
+test('DECOR-USE the law: a placed fire one stands over (the world\'s own cooking fires: the lights archive\'s bowl of fire, camp flame and brazier) is a hearth, and so is any piece made the cooking station; a candle, a piece that holds things, or a fire serving another craft is not (mutants: the hearth flats unread; the cooking station unread; a storage fire cooked on; the fireplaces unread)', () => {
   for (const r of HEARTH_RECORDS) assert.equal(decorHearth(piece({ flat: [210, r] })), true, `TEXTURE.210 record ${r}`);
   assert.equal(decorHearth(piece({ flat: [210, 3] })), false, 'a candle is no cooking fire');
   assert.equal(decorHearth(piece({ flat: [209, 0] })), false, 'a book');
@@ -40,6 +40,9 @@ test('DECOR-USE the law: a placed fire one stands over (the world\'s own cooking
   assert.equal(decorHearth(piece({ flat: [210, 0], storage: true })), false, 'holding things, it holds things');
   assert.equal(decorHearth(piece({ flat: [210, 20], station: 'alchemy' })), false, 'serving another craft, it serves that');
   assert.equal(decorHearth(piece({ model: 41000 })), false, 'a bed');
+  for (const m of [41116, 41117]) assert.equal(decorHearth(piece({ model: m })), true, `AUDIT DECOR-USE D4: Daggerfall\'s fireplace ${m}`);
+  assert.equal(decorHearth(piece({ model: 41116, storage: true })), false, 'a fireplace that holds things holds things');
+  assert.equal(decorHearth(piece({ model: 41105 })), false, 'a bench');
 });
 
 test('DECOR-USE the cooking station: a tenth station, before the loom, at the crafts\' own licence (STATION-FEES: 50,000), named so; made on a piece the service\'s own law keeps it; offered online and offline, in a home, a caravan and a ship alike - Climates & Calories cooks offline (mutants: no cooking station; its licence cheap)', () => {
@@ -54,42 +57,63 @@ test('DECOR-USE the cooking station: a tenth station, before the loom, at the cr
   assert.ok(stationsOffered(false).includes('cooking'), 'and in a caravan or a ship');
 });
 
-test('DECOR-USE the press: a hearth opens what a brazier opens (the camps\' `hearth:` press, in the interaction mode), a bed is slept in through the room\'s own beds\' door; any other piece is left to its station or its storage (mutants: the fire unpressed; the bed unpressed; the mode unread)', () => {
+test('DECOR-USE the press: a hearth opens what a brazier opens (the camps\' `hearth:` press, in the interaction mode) where the braziers answer (AUDIT DECOR-USE D6: the camps\' `usable` - off, a placed fire answers no more than they do); the cooking station opens the Stores page on The Fire where there is one (D2), else what a brazier opens; a bed is slept in through the room\'s own beds\' door; any other piece is left to its station or its storage (mutants: the fire unpressed; the bed unpressed; the mode unread; the braziers\' gate unread; the Stores door unasked)', () => {
   const log = [];
-  const camps = { activate: (key, mode) => log.push(['fire', key, mode]) };
-  const press = (p) => useDecorPiece(p, camps, () => 'steal', () => log.push(['bed']));
+  let usable = true, stores = false;
+  const camps = { usable: () => usable, activate: (key, mode) => log.push(['fire', key, mode]) };
+  const press = (p) => useDecorPiece(p, camps, () => 'steal', () => log.push(['bed']), () => { log.push(['stores?']); return stores; });
   assert.equal(press(piece({ flat: [210, 1] })), true);
-  assert.equal(press(piece({ model: 41120, station: COOKING_STATION })), true);
+  assert.equal(press(piece({ model: 41120, station: COOKING_STATION })), true, 'the Stores page not here: the fire\'s own');
   assert.equal(press(piece({ model: 41001 })), true);
   assert.equal(press(piece({ model: 41001, storage: true })), false, 'a bed that holds things opens as storage');
   assert.equal(press(piece({ model: 41120, station: 'forge' })), false, 'a forge is its station\'s');
-  assert.deepEqual(log, [['fire', 'hearth:', 'steal'], ['fire', 'hearth:', 'steal'], ['bed']]);
+  assert.deepEqual(log, [['fire', 'hearth:', 'steal'], ['stores?'], ['fire', 'hearth:', 'steal'], ['bed']]);
+  log.length = 0;
+  stores = true;
+  assert.equal(press(piece({ model: 41120, station: COOKING_STATION })), true);
+  assert.equal(press(piece({ flat: [210, 0] })), true);
+  assert.deepEqual(log, [['stores?'], ['fire', 'hearth:', 'steal']], 'the station on The Fire; a placed fire as a brazier, never the Stores page');
+  log.length = 0;
+  usable = false;
+  assert.equal(press(piece({ flat: [210, 0] })), true, 'still its press - nothing else of it answers');
+  assert.deepEqual(log, [], 'Climates & Calories off and offline: no fire answers');
 });
 
-test('DECOR-USE the room: its placed fires are hearths as collectHearths gives the room\'s own - the flame at the picture\'s middle over its base, the floor it stands on and its size (the eye\'s box) - a candle beside it none, and one taken down gone (mutants: the room\'s fires unlisted; the flame on the floor; the size dropped)', async () => {
+test('DECOR-USE the room: its placed fires are hearths by their flame - a picture\'s over its base, a model\'s at its box\'s middle - and no eye\'s box (AUDIT DECOR-USE D1: a square over a model\'s longer side stood through a wall and took a door\'s press; the piece\'s own target is the press); a candle beside it none, a piece not yet standing none, and one taken down gone (mutants: the room\'s fires unlisted; the flame on the floor; a model\'s box unread; the eye\'s box back)', async () => {
+  const cpu = { positions: new Float32Array([-0.8, 0, -0.25, 0.8, 0, -0.25, 0.8, 2, 0.25, -0.8, 2, 0.25]), indices: new Uint16Array([0, 1, 2, 0, 2, 3]) };   // a fireplace's plan, 1.6 m by 0.5, 2 m tall
   const room = createDecorRoom({
-    meshes: null, collider: () => null, origin: () => [100, 10, 200],
-    renderer: { createBillboardBatch: () => ({}), destroyBillboardBatch() {} },
+    meshes: { getGpuMesh: async (id) => ({ gpu: `mesh${id}` }), cpuModels: new Map([[41116, cpu], [41120, cpu]]) },
+    collider: () => ({ addMesh() {}, removeBucket() {} }), origin: () => [100, 10, 200],
+    renderer: { createBillboardBatch: () => ({}), destroyBillboardBatch() {}, drawMesh() {} },
     getTexture: async () => ({ recordCount: 30, getSize: () => ({ width: 20, height: 40 }), getScale: () => ({ width: 0, height: 0 }), getFrameCount: () => 1 }),
     uploadRecord() {},
   });
   room.put(piece({ id: 'fire', flat: [210, 0] }));
   room.put(piece({ id: 'candle', flat: [210, 3], pos: [5, 0, 5] }));
-  await settle(); await settle();
+  room.put(piece({ id: 'hearth', model: 41116, pos: [-3, 0, 1] }));
+  room.put(piece({ id: 'stove', model: 41120, pos: [6, 0, -2], station: COOKING_STATION }));
+  room.put(piece({ id: 'bench', model: 41120, pos: [9, 0, 9] }));
+  await settle(); await settle(); await settle();
   const list = room.hearths();
-  assert.equal(list.length, 1, 'the fire, not the candle');
-  const [h] = list;
-  assert.ok(h.w > 0 && h.h > 0, 'its size');
-  assert.deepEqual([h.x, h.foot, h.z], [102, 10, 203], 'standing where it was placed, from the room\'s origin');
-  assert.equal(h.y, 10 + h.h / 2, 'the flame at the picture\'s middle');
-  assert.ok(hearthAabb(h), 'the eye\'s box');
-  assert.equal(hearthNear(list, [102, 10, 204], 4), true, 'a body beside it is by a fire');
+  assert.equal(list.length, 3, 'the fire, the fireplace and the cooking station - not the candle, nor a piece serving nothing');
+  const [f, m, c] = list;
+  assert.deepEqual([f.x, f.z], [102, 203], 'the picture where it was placed, from the room\'s origin');
+  assert.ok(f.y > 10, 'its flame over its base');
+  assert.deepEqual([m.x, m.y, m.z], [97, 11, 201], 'the fireplace at its box\'s middle');
+  assert.deepEqual([c.x, c.y, c.z], [106, 11, 198]);
+  for (const h of list) assert.equal(hearthAabb(h), null, 'no eye\'s box: the piece\'s own target is the press');
+  assert.equal(hearthNear(list, [97, 10, 202], 4), true, 'a body by the fireplace is by a fire');
   room.remove('fire');
+  room.remove('hearth');
+  room.remove('stove');
   assert.deepEqual(room.hearths(), [], 'taken down, gone');
 });
 
 test('DECOR-USE the host: the interior\'s camps hear the room\'s placed fires beside its own, and a placed piece\'s own use is pressed before a station\'s craft - after a trader, whose press is anyone\'s (mutants: the host\'s fires unhanded; the use unwired)', () => {
   const wm = src('src/scenes/worldModes.js');
   assert.match(wm, /const interiorCamps = createCamps\(\{\n\s+entity: playerEntity,\n\s+hearths: \(\) => \[\.\.\.interiorHearths, \.\.\.interiorDecor\.hearths\(\)\],/);
-  assert.match(wm, /if \(piece\?\.station === VENDOR_STATION\) \{ openHomeVendor\(piece, id\); return; \}[^\n]*\n\s+if \(useDecorPiece\(piece, interiorCamps, getInteractionMode, restFromInteriorBed\)\) return;[^\n]*\n\s+if \(piece\?\.station\) \{ useDecorStation\(piece\); return; \}/);
+  assert.match(wm, /if \(piece\?\.station === VENDOR_STATION\) \{ openHomeVendor\(piece, id\); return; \}[^\n]*\n\s+if \(useDecorPiece\(piece, interiorCamps, getInteractionMode, restFromInteriorBed, \(\) => forgeOffered\(\) && \(focusStoresStation\('fire'\), interiorKeyCtx\.togglePause\(\{ at: 'stores' \}\), true\)\)\) return;[^\n]*\n\s+if \(piece\?\.station\) \{ useDecorStation\(piece\); return; \}/);
+  // AUDIT DECOR-USE D2: and The Fire is a station's head the press lands on
+  assert.match(src('src/ui/professions/profPages.js'), /detail\.append\(stationHead\(divider, t\('prof\.page\.fire', 'The Fire'\), 'fire'\)\);/);
+  assert.match(src('src/scenes/camps.js'), /\n\s+usable,[^\n]*\n\s+\};\n\}/, 'the camps say whether their fires answer');
 });

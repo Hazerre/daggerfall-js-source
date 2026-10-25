@@ -129,16 +129,16 @@ export const shut = (player, env) => (profOpenFor(player, env) ? null : { error:
  *  discipline's is its craft's track (`profession` the craft's - 'jewelcrafting' answers 'smithing'), and `free` the
  *  ranks a change is free at, once - the merge's (0088's `free_respec`: 1 the choice at 50, 2 at 100), said only where
  *  there is one. PERK-TRIAL: `trial` each rank whose choice is still on trial and until when (`{ 50: at }`), and `lock`
- *  the second the track's next paid change opens - each said only where there is one. `respec` is a change on its way,
- *  which only a row before 0167 can hold. */
+ *  the second the track's next paid change opens - each said only where there is one. `respec`, a change on its way, is
+ *  never one now (AUDIT PERK-TRIAL P8: a change written as waiting stands at once - specsAt) and is said empty for the
+ *  clients that read it. */
 export function trackView(row, profession, nowS) {
   const xp = Number(row?.xp ?? 0);
   const specs = specsAt(row, nowS);
-  const pending = row?.respec_to && Number(row.respec_at) > nowS ? { rank: Number(row.respec_rank), to: row.respec_to, at: Number(row.respec_at) } : null;
   const free = SPEC_RANKS.filter((r) => (Number(row?.free_respec ?? 0) & freeBit(r)) !== 0);
   const trial = Object.fromEntries(SPEC_RANKS.map((r) => [r, specTrialUntil(row, r, nowS)]).filter(([, at]) => at !== null));
-  const lock = pending ? null : respecLockUntil(row, nowS);
-  return { profession: trackOf(profession), xp, rank: rankOfXp(xp), specs, respec: pending, ...(free.length ? { free } : {}), ...(Object.keys(trial).length ? { trial } : {}), ...(lock ? { lock } : {}) };
+  const lock = respecLockUntil(row, nowS);
+  return { profession: trackOf(profession), xp, rank: rankOfXp(xp), specs, respec: null, ...(free.length ? { free } : {}), ...(Object.keys(trial).length ? { trial } : {}), ...(lock ? { lock } : {}) };
 }
 /** CRAFT3: a rank's bit in a track's `free_respec` (0088) - 1 the choice at 50, 2 at 100. */
 export const freeBit = (rank) => (rank === 50 ? 1 : rank === 100 ? 2 : 0);
@@ -786,7 +786,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
  * change costs RESPEC.marks (burnt - a line, `respec`), takes effect at once, starts its own trial, and locks the
  * track's next paid change for RESPEC.days (`respec_at`; `prof-respec-pending` refuses one inside it). Before it, a
  * change took effect RESPEC.days later, the old choice standing until then. A change the client asks as a trial's
- * (`trial: true`) is never a paid one: its day out meanwhile, it is refused `prof-spec-stale` and nothing is burnt. `from` is the choice the client saw standing (null for none): AUDIT 29 A15 - a choice the client
+ * (`trial: true`) is never a paid one: its day out meanwhile, it is refused `prof-trial-over` and nothing is burnt. `from` is the choice the client saw standing (null for none): AUDIT 29 A15 - a choice the client
  * thought free, made meanwhile (another device, a lost answer), would have been a paid change the player never
  * confirmed; it is refused, `prof-spec-stale`, and nothing is burnt.
  */
@@ -842,9 +842,9 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
         WHERE EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?3 AND profession = ?4 AND (free_respec & ?9) != 0)`)
         .bind(player.id, rid, character, profession, rank, spec, nowS, nonce, bit),
       db.prepare(`UPDATE prof_tracks SET ${col} = ?4, free_respec = free_respec & ~?8,
-          respec_rank = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_rank END,
+          respec_rank = CASE WHEN respec_rank = ?9 AND respec_to IS NOT NULL THEN NULL ELSE respec_rank END,
           respec_to = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_to END,
-          respec_at = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_at END, updated_at = ?5
+          respec_at = CASE WHEN respec_rank = ?9 AND respec_to IS NOT NULL THEN NULL ELSE respec_at END, updated_at = ?5
         WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND (free_respec & ?8) != 0
           AND EXISTS (SELECT 1 FROM prof_choices WHERE player = ?1 AND rid = ?6 AND n = ?7)`)
         .bind(player.id, character, profession, spec, nowS, rid, nonce, bit, rank),
@@ -858,23 +858,28 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
     // PERK-TRIAL: THE CHOICE ON TRIAL - changed free and at once, neither its trial nor the lock moved. Its row decides,
     // only while the trial runs; the track takes it by the row's nonce
     if (current === spec) return answer();   // already so
+    // AUDIT PERK-TRIAL P2: a free change is still a write, and a row kept for good - the professions' own hour holds it
+    if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
     const nonce = mintId(rand);
     await db.batch([
       db.prepare(`INSERT OR IGNORE INTO prof_choices (player, rid, char_id, profession, rank, spec, at, n)
         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
         WHERE EXISTS (SELECT 1 FROM prof_tracks WHERE player = ?1 AND char_id = ?3 AND profession = ?4 AND ${col}_at > ?9)`)
         .bind(player.id, rid, character, profession, rank, spec, nowS, nonce, nowS - SPEC_TRIAL_S),
-      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5
+      // AUDIT PERK-TRIAL P8: a change still written as waiting at this rank (an older service's, across the deploy) is
+      // this one's to replace - specsAt reads a waiting change as landed, and it would stand over the trial's
+      db.prepare(`UPDATE prof_tracks SET ${col} = ?4, updated_at = ?5,
+          respec_to = CASE WHEN respec_rank = ?9 THEN NULL ELSE respec_to END
         WHERE player = ?1 AND char_id = ?2 AND profession = ?3 AND ${col}_at > ?8
           AND EXISTS (SELECT 1 FROM prof_choices WHERE player = ?1 AND rid = ?6 AND n = ?7)`)
-        .bind(player.id, character, profession, spec, nowS, rid, nonce, nowS - SPEC_TRIAL_S),
+        .bind(player.id, character, profession, spec, nowS, rid, nonce, nowS - SPEC_TRIAL_S, rank),
     ]);
     const made = await db.prepare('SELECT n FROM prof_choices WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
     if (made?.n === nonce) return answer({ trial: true });
     if (made) return answer({ repeat: true });
-    return { error: 'prof-spec-stale' };   // its trial ran out meanwhile - the client reads the track again
+    return { error: 'prof-trial-over' };   // its trial ran out meanwhile - the client reads the track again
   }
-  if (askedTrial === true) return { error: 'prof-spec-stale' };   // PERK-TRIAL: asked as a trial's free change, its day out - never charged for it
+  if (askedTrial === true) return { error: 'prof-trial-over' };   // PERK-TRIAL: asked as a trial's free change, its day out - never charged for it (AUDIT PERK-TRIAL P4: and said so)
   if (respecLockUntil(row, nowS) !== null) return { error: 'prof-respec-pending' };   // PERK-TRIAL: the week after a paid change
   if (current === spec) return answer();   // already so
   if (!marksOpenFor(player, env)) return { error: 'marks-closed' };
@@ -894,8 +899,8 @@ export async function chooseSpec(ctx, player, env, { character, profession: aske
     // PERK-TRIAL: the change is its rank's at once, its trial from now, and the track's next paid change locked a week
     // (`respec_at`; `respec_to` empty - nothing waits). A change made before it is folded into its rank first, as ever
     db.prepare(`UPDATE prof_tracks SET
-        spec50 = CASE WHEN ?5 = 50 THEN ?6 WHEN respec_rank = 50 AND respec_to IS NOT NULL AND respec_at <= ?4 THEN respec_to ELSE spec50 END,
-        spec100 = CASE WHEN ?5 = 100 THEN ?6 WHEN respec_rank = 100 AND respec_to IS NOT NULL AND respec_at <= ?4 THEN respec_to ELSE spec100 END,
+        spec50 = CASE WHEN ?5 = 50 THEN ?6 WHEN respec_rank = 50 AND respec_to IS NOT NULL THEN respec_to ELSE spec50 END,
+        spec100 = CASE WHEN ?5 = 100 THEN ?6 WHEN respec_rank = 100 AND respec_to IS NOT NULL THEN respec_to ELSE spec100 END,
         ${col}_at = ?4, respec_rank = ?5, respec_to = NULL, respec_at = ?7, updated_at = ?4
       WHERE player = ?1 AND char_id = ?2 AND profession = ?3
         AND NOT (respec_at IS NOT NULL AND respec_at > ?4)

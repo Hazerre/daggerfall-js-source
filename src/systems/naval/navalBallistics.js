@@ -122,7 +122,7 @@ export function arcPoints(p0, v0, h, n, g = SHOT_GRAVITY) {
  * The stern's aim drew no arc at all: a barrel is dropped, not laid (navalGunnery.js aimSolution), and the line it
  * falls along was never drawn.
  */
-export function dropArc(p0, land, n) {
+export function fallArc(p0, land, n) {
   const out = [];
   const k = Math.max(2, n | 0);
   for (let i = 0; i < k; i++) {

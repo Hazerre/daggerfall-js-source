@@ -773,10 +773,12 @@ export function createDecorRoom({
   const pieceOf = (id) => standing.get(id)?.piece ?? null;
   const list = () => [...standing.values()].map((e) => e.piece);
   /**
-   * DECOR-USE (systems/decor/decorUse.js decorHearth): THE ROOM'S PLACED FIRES - a fire flat one stands over and a piece
-   * made the cooking station - as survival/hearth.js collectHearths gives the room's own: its flame (`x`, `y`, `z`, the
-   * picture's middle), the floor it stands on (`foot`) and its size (`w`, `h`, the eye's box - hearthAabb). A model is
-   * its box in the world; a flat its base and its size. A piece not yet standing (no size, no box) is none yet.
+   * DECOR-USE (systems/decor/decorUse.js decorHearth): THE ROOM'S PLACED FIRES - a fire flat one stands over, a fireplace
+   * and a piece made the cooking station - as survival/hearth.js collectHearths gives the room's own, by their flame
+   * (`x`, `y`, `z`: a model's box's middle, a picture's over its base). AUDIT DECOR-USE D1: and NO eye's box (`foot`,
+   * `w`, `h` - hearthAabb answers none): the piece's own target (`decor:<id>`, its model's mesh or its picture) is the
+   * press, and a square over a model's longer side stood past its narrow sides, through a wall at a hand from it, and
+   * took the press from a door beyond. A piece not yet standing (no size, no box) is none yet.
    */
   function hearths() {
     const out = [];
@@ -786,11 +788,10 @@ export function createDecorRoom({
       if (e.piece.model != null) {
         if (!e.box || !e.matrix) continue;
         const b = transformedAabb(e.box, e.matrix);
-        const w = Math.max(b[3] - b[0], b[5] - b[2]), h = b[4] - b[1];
-        out.push({ x: (b[0] + b[3]) / 2, y: b[1] + h / 2, z: (b[2] + b[5]) / 2, foot: b[1], w, h });
+        out.push({ x: (b[0] + b[3]) / 2, y: (b[1] + b[4]) / 2, z: (b[2] + b[5]) / 2 });
       } else if (e.size) {
         const p = [o[0] + e.piece.pos[0], o[1] + e.piece.pos[1], o[2] + e.piece.pos[2]];
-        out.push({ x: p[0], y: p[1] + e.size.h / 2, z: p[2], foot: p[1], w: e.size.w, h: e.size.h });
+        out.push({ x: p[0], y: p[1] + e.size.h / 2, z: p[2] });
       }
     }
     return out;

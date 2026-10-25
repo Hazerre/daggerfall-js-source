@@ -17248,3 +17248,35 @@ cooking), and the interior camps' line in `test/systems/survival/fb1004d_campcap
 dead; the station list's and the licences' records in `prof2.json`, `prof4.json`, `prof7.json`, `prof10.json`,
 `prof11.json` and the camps' in `fb1004d_campcap.json` re-aimed by content.
 
+### AUDIT DECOR-USE (2026-10-25)
+
+The owner: *"Audit"*. A cold lane on a frozen snapshot of the branch, given the ask and the files and never this
+record, built a real decor room (TEXTURE.210, a real fireplace model) wired to `createCamps` as the host wires it and
+pressed it. Each finding below failed on the snapshot and passes now.
+
+- **D1 - a placed fire took a door's press.** `decorRoom.js` hearths gave each placed fire an eye's box (`foot`, `w`,
+  `h`), and a square laid over a model's longer side stood through the room's wall and caught the press meant for its
+  door. A hearth is a place now (`x`, `y`, `z`: a picture's flame over its base, a model's box's middle) and no box: the
+  piece's own target is its press.
+- **D8 - a fire that is a model was no hearth.** The room's hearths were its flats alone; a fireplace model, or any
+  model made the cooking station, warmed nothing, and a rest or Climates & Calories' cooking by it found no fire. A
+  model's hearth stands at its box's middle.
+- **D2 - the cooking station opened the brazier's door.** Pressed online it opened Rest and Cook, where the Stores
+  page's The Fire is the crafts' cooking: it opens the Stores page on The Fire now where the page is offered (the
+  forge's own door - `worldModes.js` activateDecor, the one statement), else what a brazier opens; The Fire is a
+  station's head the press lands on (`profPages.js` stationHead).
+- **D4 - Daggerfall's own fireplaces were "Furniture 26" and "27".** Models 41116 and 41117 (`improvedInteriorLighting.js`
+  IIL_FIREPLACE_MODELS, their one home) placed in a home were neither named nor hearths; the camp flame was "Light 1".
+  They are "Fireplace" and "Campfire" (`decorCatalogue.js`), and a fireplace placed is a hearth.
+- **D6 - a placed fire answered where the room's own did not.** A press opened Rest and Cook wherever it stood; it
+  answers now only where the room's braziers do (`camps.js` usable).
+
+Left, each with its reason: a fire flat licensed as the cooking station (50,000 gold) is a hearth already, and the
+licence buys it only the Stores door - the licence is the stations' one price, and the catalogue says what each piece
+is; a yard's placed fires stay lights (a yard's fire is its own slice, above); an older build drops a piece it does not
+know as a station (`cooking`) until it updates - the account service keeps it, so nothing is lost; and a long model's
+hearth stands at its middle, so its far end is out of a brazier's reach - the camps' reach is HEARTH1's, not this
+slice's to widen.
+
+Pinned in `test/systems/decor/decoruse.test.js` (D1, D2, D4, D6, D8); `tools/mutants/decoruse.json` (23, all dead).
+

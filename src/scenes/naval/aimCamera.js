@@ -8,11 +8,19 @@
 //   A BROADSIDE  the eye eases (over AIM_CAM_TAU s, smoothstepped) to AIM_CAM_OUT past the battery's ports, AIM_CAM_UP
 //                over them and AIM_CAM_AFT toward her stern - her guns, the zone and the enemy on one screen - and
 //                AIM_CAM_CLEAR short of a ship alongside on its way out.
-//   THE ENDS     the bow chasers and the stern's barrels: AIM_CAM_AHEAD past the battery along her keel (ahead of the
-//                bow, astern of the stern) and AIM_CAM_UP over it - and past her own canvas there (the galleon's jib
-//                over her chasers, the carrack's spritsail ahead of hers), AIM_CAM_CLEAR clear of it, so no sail of
-//                hers stands between the eye and the arcs. AUDIT NAV1 kept the eye home for the chasers, and from
-//                the helm's eye behind her rig the jib hid every arc the chasers drew.
+//   THE BOW      the bow chasers: AIM_CAM_UP over them and ahead along her keel - AIM_CAM_AHEAD past them, and
+//                AIM_CAM_CLEAR past the furthest reach of her hull and of every sail she has set (`endEye`) - so
+//                nothing of her stands between the eye and the arcs. AUDIT NAV1 kept the eye home for the chasers, and
+//                from the helm's eye behind her rig the jib hid every arc the chasers drew. AUDIT AIM-ENDS A2/A4: the
+//                first cut stood AIM_CAM_AHEAD past the guns alone - inside the Large Galley's prow, which reaches 6 m
+//                past her guns, and behind the galleon's set jib.
+//   THE STERN    the stern's barrels: straight over the rail they roll from, AIM_CAM_UP over it and clear over her
+//                hull and canvas there - the barrel's fall and its mark lie under the eye, a look down over the
+//                stern. AUDIT AIM-ENDS A1: the first cut stood AIM_CAM_AHEAD astern of the rail, past the barrel's
+//                mark 1.5 m out, and looking astern no part of the fall it drew was ever on the screen.
+//   ONE SIDE TO THE NEXT  the eye's place is eased in her own frame (AIM_CAM_TAU a step), so a look swung from a
+//                broadside past the bow's arc carries the eye round to the bow, as it carried it out from the helm -
+//                AUDIT AIM-ENDS A3: it jumped 29-56 m in a frame. Her own frame, so a ship under way never drags it.
 //   NEVER        with the Broadside camera off (`naval-aim-camera`), for a crippled ship (her guns are silent), or
 //                with nothing laid - and home again on the release, the eye its own once there.
 import { segmentBoxEntry, toBoxLocal, flatUnit } from '../../systems/naval/navalBallistics.js';
@@ -29,34 +37,41 @@ export const AIM_CAM_TAU = 0.22;
 /** ...and stops this far (m) short of another ship's side on its way out from the ports. AIM-ENDS: and stands this far
  *  clear of her own canvas over the bow or the stern. */
 export const AIM_CAM_CLEAR = 1.2;
-/** AIM-ENDS: over the bow chasers or the stern's barrels the eye stands this far (m) past them along her keel. */
+/** AIM-ENDS: over the bow chasers the eye stands at least this far (m) past them along her keel. */
 export const AIM_CAM_AHEAD = 4;
 
 const isEnd = (side) => side === 'bow' || side === 'stern';
 const inside = (box, p, pad) => { const l = toBoxLocal(box, p); return Math.abs(l[0]) <= box.h[0] + pad && Math.abs(l[1]) <= box.h[1] + pad && Math.abs(l[2]) <= box.h[2] + pad; };
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+/** How far along the unit direction `d` an oriented box reaches (its middle's, and each half size along it). */
+export const reachAlong = (box, d) => dot(box.c, d) + Math.abs(dot(box.ax, d)) * box.h[0] + Math.abs(dot(box.ay, d)) * box.h[1] + Math.abs(dot(box.az, d)) * box.h[2];
+const UP = Object.freeze([0, 1, 0]);
 
 /**
- * AIM-ENDS: `at` carried on along `dir` (flat, unit) out of every one of `boxes` it stands in, `pad` clear of it - the
- * eye over her bow or her stern stepped out past her own canvas there. A box it steps into on the way is stepped out
- * of in turn; the walk ends after as many passes as there are boxes.
+ * AUDIT AIM-ENDS: THE EYE OVER AN END, before a ship alongside is asked - `c` the battery's middle, `fwd` her keel's way
+ * (flat, unit), `own` her hull's box and her set canvas's. The bow: AIM_CAM_UP over the chasers, AIM_CAM_AHEAD past them
+ * or AIM_CAM_CLEAR past the furthest any of `own` reaches, whichever is further. The stern: AIM_CAM_UP straight over the
+ * barrels' rail, lifted AIM_CAM_CLEAR over any of `own` it would stand in.
  */
-export function clearOfRig(at, dir, boxes, pad = AIM_CAM_CLEAR) {
-  let p = at;
-  for (let pass = 0; pass <= boxes.length; pass++) {
-    let moved = false;
-    for (const box of boxes) {
-      if (!box || !inside(box, p, pad)) continue;
-      const reach = 2 * (Math.hypot(box.h[0], box.h[1], box.h[2]) + pad) + 1;
-      const far = [p[0] + dir[0] * reach, p[1], p[2] + dir[2] * reach];
-      const out = segmentBoxEntry(far, p, box, pad);   // from beyond it, back: where the walk leaves it
-      if (!out) continue;
-      p = [out.point[0] + dir[0] * 1e-3, out.point[1], out.point[2] + dir[2] * 1e-3];
-      moved = true;
-    }
-    if (!moved) break;
+export function endEye(side, c, fwd, own) {
+  if (side === 'bow') {
+    const along = Math.max(dot(c, fwd) + AIM_CAM_AHEAD, ...own.filter(Boolean).map((b) => reachAlong(b, fwd) + AIM_CAM_CLEAR));
+    const k = along - dot(c, fwd);
+    return [c[0] + fwd[0] * k, c[1] + AIM_CAM_UP, c[2] + fwd[2] * k];
+  }
+  const p = [c[0], c[1] + AIM_CAM_UP, c[2]];
+  for (let pass = 0; pass <= own.length; pass++) {
+    const over = own.filter((b) => b && inside(b, p, AIM_CAM_CLEAR));
+    if (!over.length) break;
+    p[1] = Math.max(...over.map((b) => reachAlong(b, UP) + AIM_CAM_CLEAR));
   }
   return p;
 }
+/** A world point in her own frame (toWorld's inverse). */
+const toLocal = (pose, p) => {
+  const q = pose.rotation;
+  return quatRotate([-q[0], -q[1], -q[2], q[3]], [p[0] - pose.position[0], p[1] - pose.position[1], p[2] - pose.position[2]]);
+};
 
 /**
  * The aim camera: `eye(ownEye, dt)` is the frame's eye - `ownEye` eased toward the laid battery's own while one is
@@ -68,11 +83,12 @@ export function clearOfRig(at, dir, boxes, pad = AIM_CAM_CLEAR) {
  * @param {() => any} deps.boat   my boat at the helm, or null
  * @param {(boat: any) => boolean} deps.wrecked   crippled: her guns silent
  * @param {(boat: any) => { position: number[], rotation: number[] }} deps.pose
- * @param {() => Iterable<any>} deps.alongside   the hull boxes of the ships afloat about her
+ * @param {() => Iterable<any>} deps.alongside   the hull boxes of the ships about her (seaClearance.js createSeaHulls)
+ * @param {(boat: any) => any} deps.hull   her own hull's box (navalHost.js hullBoxOf)
  * @param {(boat: any) => any[]} deps.rig   her own canvas as boxes (navalHost.js rigBoxesOf)
  */
 export function createAimCamera(deps) {
-  let camK = 0, camSide = null;
+  let camK = 0, camSide = null, camLocal = /** @type {number[] | null} */ (null);   // AUDIT AIM-ENDS A3: the eye's place, eased in her frame
   function eye(ownEye, dt) {
     const boat = deps.boat();
     const aim = deps.aim();
@@ -80,7 +96,7 @@ export function createAimCamera(deps) {
       && !deps.wrecked(boat) ? aim.side : null;
     if (want) camSide = want;
     camK += ((want ? 1 : 0) - camK) * (1 - Math.exp(-Math.max(0, dt) / AIM_CAM_TAU));
-    if (!want && camK < 1e-3) { camK = 0; camSide = null; }
+    if (!want && camK < 1e-3) { camK = 0; camSide = null; camLocal = null; }
     if (!boat || !camSide || camK <= 0) return ownEye;
     const pose = deps.pose(boat);
     const bat = batteryOf(boat.hull, camSide);
@@ -90,7 +106,7 @@ export function createAimCamera(deps) {
     const fire = flatUnit(quatRotate(pose.rotation, SIDE_DIR[camSide])) ?? [1, 0, 0];
     const fwd = flatUnit(quatRotate(pose.rotation, [0, 0, 1])) ?? [0, 0, 1];
     let at = isEnd(camSide)
-      ? clearOfRig([c[0] + fire[0] * AIM_CAM_AHEAD, c[1] + AIM_CAM_UP, c[2] + fire[2] * AIM_CAM_AHEAD], fire, deps.rig(boat))   // AIM-ENDS: past her canvas there
+      ? endEye(camSide, c, fwd, [deps.hull(boat), ...deps.rig(boat)])   // AIM-ENDS: clear of all of her there
       : [c[0] + fire[0] * AIM_CAM_OUT - fwd[0] * AIM_CAM_AFT, c[1] + AIM_CAM_UP, c[2] + fire[2] * AIM_CAM_OUT - fwd[2] * AIM_CAM_AFT];
     // never inside a ship alongside - a broadside at her rail's width is the one Black Flag remembers
     let clear = 1;
@@ -99,6 +115,11 @@ export function createAimCamera(deps) {
       if (hit && hit.t < clear) clear = hit.t;
     }
     if (clear < 1) at = [c[0] + (at[0] - c[0]) * clear, c[1] + (at[1] - c[1]) * clear, c[2] + (at[2] - c[2]) * clear];
+    // AUDIT AIM-ENDS A3: from one battery's place to the next eased, in her own frame
+    const local = toLocal(pose, at);
+    const step = 1 - Math.exp(-Math.max(0, dt) / AIM_CAM_TAU);
+    camLocal = camLocal ? camLocal.map((v, i) => v + (local[i] - v) * step) : local;
+    at = toWorld(pose, camLocal);
     const k = camK * camK * (3 - 2 * camK);   // eased in and out
     return [ownEye[0] + (at[0] - ownEye[0]) * k, ownEye[1] + (at[1] - ownEye[1]) * k, ownEye[2] + (at[2] - ownEye[2]) * k];
   }

@@ -2884,6 +2884,11 @@
   "tr": "3a10e9753421",
   "by": "claude-in-session"
  },
+ "account.refusal.profTrialOver": {
+  "en": "b1efa73a0dea",
+  "tr": "18ac61540ef5",
+  "by": "claude-in-session"
+ },
  "account.refusal.progressPlay": {
   "en": "80a24bb3eb49",
   "tr": "57102f2977da",
@@ -26365,8 +26370,8 @@
   "by": "claude-in-session"
  },
  "prof.page.specs.respecNowArmed": {
-  "en": "6221283a2423",
-  "tr": "84ae7037eaf3",
+  "en": "dccc32644eeb",
+  "tr": "f0f6f65ef5e8",
   "by": "claude-in-session"
  },
  "prof.page.specs.respecTrial": {
