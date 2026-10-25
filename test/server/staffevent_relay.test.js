@@ -20,7 +20,7 @@ import { STAFF_ROUTES } from '../../server-account/src/service.js';
 import { HOUR_JOBS } from '../../server-account/src/cron.js';
 
 const { subtle } = globalThis.crypto;
-const EV = Object.freeze({ id: 'ab12cd34ef', rg: 17, loc: 0, px: 207, py: 213, nm: 'Daggerfall', ct: 1, mt: [7, 12], n: 30, m: 12, b: 24, bs: 200, bh: 10, at: Date.now(), ue: 0, eb: 1, fb: 0, by: 'SirMcMobdon' });
+const EV = Object.freeze({ id: 'ab12cd34ef', rg: 17, loc: 0, px: 207, py: 213, nm: 'Daggerfall', ct: 1, mt: [7, 12], n: 30, m: 12, b: 24, bs: 200, bh: 10, hp: 0, at: Date.now(), ue: 0, eb: 1, fb: 0, by: 'SirMcMobdon' });
 /** A wire pose standing on map pixel (px, py) (wire.js mapPixelOfWire's inverse, the pixel's middle). */
 const poseOn = (px, py) => ({ x: px * PIXEL_UNITS + PIXEL_UNITS / 2, z: (499 - py) * PIXEL_UNITS + PIXEL_UNITS / 2 });
 
@@ -235,8 +235,11 @@ test('STAFF-EVENT: THE ACCOUNT DOORS - Admins alone; a start stored, audited and
     assert.equal(JSON.parse(audit[0].detail).health, 25);
     // bad stagings refused before the relay is asked
     const before = s.door.pushed;
-    for (const bad of [{ ...STAGE, n: 0 }, { ...STAGE, m: 31 }, { ...STAGE, mt: [146] }, { ...STAGE, bh: 101 }, { ...STAGE, mins: 1441 }, { ...STAGE, mins: -1 }]) {
-      assert.deepEqual((await s.call('/v1/staff/event', { op: 'start', ev: bad }, s.mob.session)).body, { error: 'event-bad' });
+    // EVENT-FAULT (mob 2026-10-25: "service refused"): each refusal names its field
+    for (const [bad, field] of [[{ ...STAGE, n: 0 }, 'total'], [{ ...STAGE, m: 31 }, 'meter'], [{ ...STAGE, mt: [146] }, 'monsters'], [{ ...STAGE, bh: 101 }, 'health'], [{ ...STAGE, hp: 1_000_001 }, 'health'],
+      [{ ...STAGE, mins: 1441 }, 'runs'], [{ ...STAGE, mins: -1 }, 'runs'], [{ ...STAGE, b: 39 }, 'boss'], [{ ...STAGE, bs: 99 }, 'size'], [{ ...STAGE, px: 1000 }, 'pixel'], [{ ...STAGE, loc: 10000 }, 'place'], [{ ...STAGE, rg: 256 }, 'region']]) {
+      const r2 = await s.call('/v1/staff/event', { op: 'start', ev: bad }, s.mob.session);
+      assert.deepEqual([r2.status, r2.body], [400, { error: `event-bad-${field}` }], JSON.stringify(bad));
     }
     assert.equal(s.door.pushed, before);
     // Spawn mini boss now: one more call at the hub, which tells the place's cell (its ledger calls the boss)
@@ -272,6 +275,17 @@ test('STAFF-EVENT: THE ACCOUNT DOORS - Admins alone; a start stored, audited and
     r = await s.call('/v1/staff/event', { op: 'start', ev: STAGE }, s.mob.session);
     assert.deepEqual([r.status, r.body.error], [409, 'event-full']);
     assert.equal(s.raw.prepare("SELECT COUNT(*) AS n FROM staff_events WHERE state = 'failed'").get().n, 1);
+    // EVENT-CLEAR (mob 2026-10-25: "let me clear other events as well form history"): one over taken off, a live one never, then every one over
+    const pushed = s.door.pushed;
+    const live = s.raw.prepare("SELECT id FROM staff_events WHERE state = 'live'").all();
+    s.raw.prepare("INSERT INTO staff_events (id, at, staff_id, staff_name, ev, state) VALUES ('ee000009', 1, 'x', 'x', '{}', 'live')").run();
+    assert.deepEqual((await s.call('/v1/staff/event', { op: 'clear', id: 'ee000009' }, s.mob.session)).body, { error: 'event-live' });
+    assert.equal((await s.call('/v1/staff/event', { op: 'clear', id: two.id }, s.asy.session)).status, 403, 'Admins alone');
+    assert.deepEqual((await s.call('/v1/staff/event', { op: 'clear', id: two.id }, s.mob.session)).body, { ok: true, cleared: 1 });
+    assert.deepEqual((await s.call('/v1/staff/event', { op: 'clear', all: 1 }, s.mob.session)).body, { ok: true, cleared: 2 }, 'the one ended by staff and the failed one');
+    assert.deepEqual(s.raw.prepare('SELECT id FROM staff_events ORDER BY id').all().map((x) => x.id), [...live.map((x) => x.id), 'ee000009'].sort(), 'the live rows kept');
+    assert.equal(s.door.pushed, pushed, 'the hub never asked');
+    assert.equal(s.raw.prepare("SELECT COUNT(*) AS n FROM staff_audit WHERE act = 'event-clear'").get().n, 2);
   } finally { s.restore(); }
 });
 

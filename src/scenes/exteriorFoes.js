@@ -1094,7 +1094,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       weight: () => enemyWeightClassicUnits(isClass, f.gender, mobileWeight, f.entity?.items),
     }, { audio, hitEffects, shake: fromPlayer && !peer && !striker ? shake : null, rolls });   // AUDIT TELL H6: my own blow's kick alone
     if (_tell === 'hold') return;
-    if (knockDir && weaponKnockbackApplies(f.ai.knockbackSpeed, isClass, mobileWeight)) {
+    if (knockDir && !f.entity?.staffBoss && weaponKnockbackApplies(f.ai.knockbackSpeed, isClass, mobileWeight)) {   // BOSS-UNSHAKEN (mob 2026-10-25: "he got stun locked lets stop him from getting stunned"): a staff event's mini boss takes no shove and no Hurt
       // EW1: the foe's own kit is half of DFU's weight
       const w = enemyWeightClassicUnits(isClass, f.gender, mobileWeight, f.entity?.items);
       f.ai.knockbackSpeed = weaponKnockbackSpeed(damage, w) * (_tell === 'stagger' ? TELL.STAGGER_KNOCK : 1);
@@ -2840,7 +2840,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (rev) { const fw = `${r.ad ?? 0},${r.wq ?? -1},${r.p2 ?? 0},${r.rb ?? 0}`; if (f._feudWire !== fw) { f._feudWire = fw; f.entity.revenant = feudFromWire(f.entity.revenant, r); puppetRevenantBlows(f.entity, r); } }
     if (r.rt !== undefined && f.puppet) { const m = _pupIndex.get(pupKey(f.puppet, r.rt)); const name = m ? puppetBandName(m.entity?.revenant?.name, m.mobileType) : null; if (name) f.entity.bandName = name; }   // RVN13: a follower named for its master's band
     if (r.k !== undefined) f.entity.maxHealth = r.k;   // AUDIT SETS M1: the owner's maximum - "under half" is its word
-    if (r.h !== undefined) { if (p.h != null && r.h < p.h) p.hurt = true; p.h = r.h; f.entity.health = r.h; }
+    if (r.h !== undefined) { if (p.h != null && r.h < p.h && !f.entity.staffBoss) p.hurt = true; p.h = r.h; f.entity.health = r.h; }
     if (Number.isInteger(r.gg) && f.entity.zoneGiant !== r.gg && f.mobileType === WILD_GIANT && !markedOf(f.puppet, (x) => x.entity?.zoneGiant === r.gg)) {   // FOE-FORGE: a Greater Giant is a giant, and one of each to an owner
       f.entity.wildGiant = true; f.entity.zoneGiant = r.gg;
       // GIANT-BLOWS (2026-10-12, a player: the Greater Giant "does less damage than normal mobs in the zone"): its blows at me
