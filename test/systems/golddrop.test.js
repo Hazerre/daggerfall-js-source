@@ -639,6 +639,10 @@ test('GOLD-ALL: the field stacks its verb over "<verb> all", and the "all" moves
     button().onclick();
     assert.equal(all()?.disabled, true, 'nothing in the purse: the all is greyed');
   }, { gold: 0 });
+  withPack(({ button, all }) => {   // AUDIT UPDATE E3: one coin is a purse - the all is live for it
+    button().onclick();
+    assert.equal(all()?.disabled, false, 'a purse of one coin: the all stands');
+  }, { gold: 1 });
 });
 
 test('GOLD-ALL: by the sheets - the two presses one column of two equal rows inside the box\'s 44px (the field grows by nothing), each the kit\'s press at the Gold button\'s 12px; the DFO Grimoire dress writes them in its face at no height of their own', async () => {

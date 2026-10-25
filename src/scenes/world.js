@@ -30665,7 +30665,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   // (systems/travel/travelRoute.js over Hazelnut's bytes), open ground is walked to - and Travel Options walks it
   // (beginTravelAlongRoute / beginTravelToPoint, the port's own two journeys built from the mod's parts). The places
   // around the traveller wear plates a click also takes; the trip's way is the line under them.
-  const TV_PLACE_GROW = 6144;   // native units (1.5 RMB blocks): a click this near a town's walls is a click on the town
+  const TV_PLACE_GROW = 6144;   // native units (1.5 RMB blocks): a click this near a town's walls is a click on the town (OW-TOWN-ROUND: its journey asked at its middle alone)
   const TV_NEAR_REACH = TV_PLACE_GROW * 2;   // OW-PATH: the town's neighbourhood - from inside it, every ground click is a spot
   const TV_PLACE_LIFT = 24;   // m: a plate floats over its town
   const TV_SEA_EPS_M = 0.25;   // m: AUDIT DEEP2 B-5 - the ground's clamp stands AT the sea; a hair over it is still the sea
@@ -30900,7 +30900,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (!plan) { tvSeaNoWay(from, pix, seaAsk ? means : null, wnet, water ? 'sea' : 'land'); return false; }
     const dry = water ? null : tvMooredDry(seaAsk ? means : null, plan, () => planRoute(from, pix, { roads: wnet?.roads ?? null, tracks: wnet?.tracks ?? null, ...tvRouteGround(), goalExempt: !!door }));   // AUDIT OW5 S3
     if (dry) { plan = dry; seaAsk = null; }
-    let legs = tvJoinedLegs(from, plan, roads, door ? null : n);   // OW-TOWN-ROUND: round the towns at both ends
+    let legs = tvJoinedLegs(from, plan, roads, door || water ? null : n);   // OW-TOWN-ROUND: round the towns at both ends (AUDIT UPDATE T3: never a spot on the sea - its crossing is the sea's)
     // AUDIT OW5 S4: a spot on the sea in the traveller's own pixel, from afloat - the planner's one pixel is no step, so the
     // route had no leg at all: the crossing read its kind as land, landed the boat mid-sea and packed it from under the
     // traveller. One sea leg to the spot (its arrival the sea spot's square)
@@ -31257,7 +31257,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const dir = rayDirFromScreen(sx, sy, canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, travelView.eye, worldViewportRect(canvas.clientWidth, canvas.clientHeight));
     if (!dir) return;
     const hit = horizonHit(travelView.eye, dir, (x, z) => tvGroundAt(x, z, false));   // OW-HORIZON: the land as far as the view shows it - the grid's, the far ring's past it
-    let pix = null, place = null, water = false;
+    let pix = null, place = null, water = false, middle = false;   // AUDIT UPDATE T1: `middle` - the click in its town's middle
     if (hit.point) {
       const n = state.worldCoords(hit.point);
       pix = worldCoordToMapPixel(n.x, n.z);
@@ -31278,7 +31278,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // town's journey only in ROADS mode, from outside its neighbourhood, with no fine-move key held - else the spot
       // OW-TOWN-ROUND (2026-10-23, the owner): and only a click in the town's MIDDLE - anywhere else on it is the spot,
       // walked round the town (travelPathMode.js pickNearPlaceMiddle)
-      if (place && !pickTakesPlace({ hit: pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW), nearby: tvNearPlace(place), fine: fineMoveHeld(e), mode: travelPathMode() })) place = null;
+      // AUDIT UPDATE T1: the middle remembered, so a middle click that is the spot (FREE, the neighbourhood) is walked to as
+      // clicked, never round its town; T2: with Travel Options' places alone, a click anywhere on the town is the town's
+      if (place && !pickTakesPlace({ hit: (middle = pickNearPlaceMiddle(n, tvPlaceRect(place), TV_PLACE_GROW)) || travelOptions?.settings?.targetCoordsAllowed === false, nearby: tvNearPlace(place), fine: fineMoveHeld(e), mode: travelPathMode() })) place = null;
       // AUDIT DEEP2 B-5: WATER IS WHERE THE CLICK LANDED, not its pixel's byte - the ground in a pixel is a blend of its
       // neighbours' bytes clamped at the sea, so a coastal pixel holds sea and sand both: a click on the sea in a land
       // pixel walked the traveller into it, and one on the sand in a sea pixel was refused. The sea is flat and known
@@ -31287,7 +31289,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     const what = classifyPick({ hit, place, water });
     if (what.kind === 'place') travelViewRouteTo(what.place);
-    else if (what.kind === 'ground') { if (travelOptions?.settings?.targetCoordsAllowed === false) tvSay(TRAVEL_VIEW_TEXT.placesOnly); else travelViewWalkTo(hit.point, pix, { outside: true }); }   // OW-TOWN-ROUND: a click on a town's edge is a spot outside it   // AUDIT DEEP T2-8: the mod's AllowTargetingMapCoordinates, as its maps hold it
+    else if (what.kind === 'ground') { if (travelOptions?.settings?.targetCoordsAllowed === false) tvSay(TRAVEL_VIEW_TEXT.placesOnly); else travelViewWalkTo(hit.point, pix, { outside: !middle && !fineMoveHeld(e) }); }   // OW-TOWN-ROUND: a click on a town's edge is a spot outside it (AUDIT UPDATE T1: its middle, or a fine-move click, the spot as clicked)   // AUDIT DEEP T2-8: the mod's AllowTargetingMapCoordinates, as its maps hold it
     else if (what.kind === 'water') { if (travelOptions?.settings?.targetCoordsAllowed === false) tvSay(TRAVEL_VIEW_TEXT.placesOnly); else travelViewWalkTo(hit.point, pix, { water: true }); }   // OWS2: a spot on the sea, sailed to - with a boat (else the refusal, or a boat's hint)
     else if (what.kind === 'far') tvSay(TRAVEL_VIEW_TEXT.far);
   }

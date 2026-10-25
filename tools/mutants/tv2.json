@@ -382,8 +382,8 @@
   {
     "name": "AUDIT-DEEP-T2-8-coordinates-forbidden",
     "file": "src/scenes/world.js",
-    "old": "if (travelOptions?.settings?.targetCoordsAllowed === false) tvSay(TRAVEL_VIEW_TEXT.placesOnly); else travelViewWalkTo(hit.point, pix, { outside: true });",
-    "new": "travelViewWalkTo(hit.point, pix, { outside: true });",
+    "old": "if (travelOptions?.settings?.targetCoordsAllowed === false) tvSay(TRAVEL_VIEW_TEXT.placesOnly); else travelViewWalkTo(hit.point, pix, { outside: !middle && !fineMoveHeld(e) });",
+    "new": "travelViewWalkTo(hit.point, pix, { outside: !middle && !fineMoveHeld(e) });",
     "tests": [
       "test/systems/travel/tv2_click_to_move.test.js"
     ],

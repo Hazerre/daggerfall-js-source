@@ -44,9 +44,40 @@ test('ENDLESS-ARROWS: a purchase that takes arrows fills a General Store\'s quiv
   assert.equal(restockEndless(shelf, [quiver]), 0, 'no shop named: nothing filled');
 });
 
-test('ENDLESS-ARROWS wired (by source): the counter\'s commit and the keyed list both name their shop to restockEndless (mutants: the commit unnamed)', () => {
+test('ENDLESS-ARROWS wired (by source): the counter\'s commit and the keyed list both name their shop to restockEndless - for the counter\'s shelf alone (mutants: the commit unnamed; any shelf a quiver)', () => {
   const w = readFileSync(new URL('../../src/scenes/worldModes.js', import.meta.url), 'utf8');
-  assert.match(w, /guildFactionId, buildingType: b\.buildingType \}\),/);
-  assert.match(w, /restockEndless\(shelf\.items, staged, asked\.buildingType\);/);
-  assert.match(w, /restockEndless\(shelf\.items, \[it\], interiorBuilding\?\.buildingType\);/);
+  // PIN MOVED (AUDIT UPDATE E2, E-N7): the shop read where the restock is made, and only for the counter's shelf - a
+  // back shelf's drawn arrows, or a row a player sold there, are no endless quiver
+  assert.match(w, /restockEndless\(shelf\.items, staged, shelf === interiorCtx\?\.shelves\?\.\[0\] \? interiorBuilding\?\.buildingType : null\);/);
+  assert.match(w, /restockEndless\(shelf\.items, \[it\], shelf === interiorCtx\?\.shelves\?\.\[0\] \? interiorBuilding\?\.buildingType : null\);/);
+  assert.doesNotMatch(w, /buildingType: b\.buildingType \}/, 'the commit\'s asks carry no shop (E-N7: no host line for it)');
+});
+
+// AUDIT UPDATE (2026-10-25, bible/01-Overview/audits/Audit-Update-2026-10-25.md): lane E's laws of the quiver
+test('AUDIT UPDATE E1: a purchase puts back what it took, never the whole - arrows stolen stay gone, so a theft and one arrow bought is one arrow sold (mutants: the whole filled; the theft refilled)', () => {
+  const shelf = stock(B.GeneralStore, 5);
+  const [quiver] = arrows(shelf);
+  quiver.stackCount = 40;   // sixty stolen
+  assert.equal(restockEndless(shelf, [{ ...quiver, stackCount: 10 }], B.GeneralStore), 1);
+  assert.equal(count(shelf), 50, 'forty left, ten bought and ten put back: the theft stays gone');
+  quiver.stackCount = 1;   // ninety-nine stolen, the last bought whole
+  shelf.splice(shelf.indexOf(quiver), 1);
+  assert.equal(restockEndless(shelf, [{ ...quiver, stackCount: 1 }], B.GeneralStore), 1);
+  assert.equal(count(shelf), 1, 'one arrow bought: one put back, never a fresh hundred');
+});
+
+test('AUDIT UPDATE E3: a counter quiver over the whole (DFU\'s own drawn arrows merged in) is never cut back; a lot of arrows and a dagger puts the arrows back; a fresh quiver stands at the shelf\'s own condition (mutants: the whole read as exactly it; every row an arrow asked; the mint\'s condition skipped)', () => {
+  const shelf = stock(B.GeneralStore, 5);
+  const [quiver] = arrows(shelf);
+  quiver.stackCount = 102;   // 104 stocked, two bought
+  assert.equal(restockEndless(shelf, [{ ...quiver, stackCount: 2 }], B.GeneralStore), 0);
+  assert.equal(count(shelf), 102, 'left as it stands');
+  quiver.stackCount = 80;
+  assert.equal(restockEndless(shelf, [{ ...quiver, stackCount: 20 }, { group: 'Weapons', templateIndex: 113 }], B.GeneralStore), 1);
+  assert.equal(count(shelf), GENERAL_STORE_ARROWS, 'the arrows of a mixed lot put back');
+  const was = { ...quiver };
+  shelf.splice(shelf.indexOf(quiver), 1);
+  restockEndless(shelf, [{ ...quiver, stackCount: GENERAL_STORE_ARROWS }], B.GeneralStore);
+  const [fresh] = arrows(shelf);
+  assert.deepEqual([fresh.currentCondition, fresh.maxCondition, fresh.value], [was.currentCondition, was.maxCondition, was.value], 'minted as the shelf mints its own, condition and price');
 });

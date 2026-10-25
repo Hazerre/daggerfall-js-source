@@ -332,7 +332,8 @@ export function segmentCrossesRect(a, b, rect, pad = 0) {
   return t0 <= t1;
 }
 /** OW-TOWN-ROUND: a spot inside a town's rect, put out on the ring's band nearest it - the middle of the band on the side
- *  of the rect it stands nearest (a corner's square where it is nearest two). A spot outside the rect is kept. Pure. */
+ *  of the rect it stands nearest, a tie to the first of west, east, south and north (AUDIT UPDATE N1: never a corner). A
+ *  spot outside the rect is kept. Pure. */
 export function spotOffTown(locationRect, locationBorderRect, p) {
   const L = locationRect, B = locationBorderRect;
   if (!(p.x > L.xMin && p.x < L.xMax && p.z > L.zMin && p.z < L.zMax)) return { x: p.x, z: p.z };
@@ -359,7 +360,9 @@ export function ringPassPoints(locationRect, locationBorderRect, from, to, mid) 
   // the straight walk between it and the pixel the route goes on to (or comes from) never meets the town
   const pointy = (v) => !Array.isArray(v) && v && Number.isFinite(v.x) && Number.isFinite(v.z);
   if (pointy(from) || pointy(to)) {
-    const stepPt = (v) => (pointy(v) ? v : { x: mid.x + Math.sign(v[0]) * MP_WORLD_UNITS, z: mid.z - Math.sign(v[1]) * MP_WORLD_UNITS });
+    // AUDIT UPDATE T4: the step's own length - a FREE plan pulled taut (freePull) steps several pixels, and its sign alone
+    // aimed the crossing test at the diagonal neighbour
+    const stepPt = (v) => (pointy(v) ? v : { x: mid.x + v[0] * MP_WORLD_UNITS, z: mid.z - v[1] * MP_WORLD_UNITS });
     const a = stepPt(from), b = stepPt(to);
     const sa = pointy(from) ? ringSideAt(L, from) : ringSideOf(from[0], from[1]), sb = pointy(to) ? ringSideAt(L, to) : ringSideOf(to[0], to[1]);
     if (!sa || !sb || !segmentCrossesRect(a, b, L)) return [];

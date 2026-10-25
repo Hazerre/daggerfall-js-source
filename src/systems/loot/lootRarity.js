@@ -87,7 +87,7 @@ import { THUNDERLOCK_TEMPLATE } from '../../characters/thunderlockIds.js';   // 
 import { dressClassOf } from '../clothingStanding.js';   // LOOT14: a garment's standing leans to its dress
 import { survivalOn } from '../survival/switch.js';   // LOOT14: the warmth and weatherproof lines' reader - a leaf
 import { hoodCapable } from '../survival/temperature.js';   // LOOT15: Unseen answers a hood (HOOD-SAID's one law)
-import { rareGate, legendaryGate, rollerLevel } from './lootLevelGate.js';   // LOOT-GATE: the roller's level holds the top tiers back
+import { rareGate, legendaryGate, rollerLevel, gateLevel } from './lootLevelGate.js';   // LOOT-GATE: the roller's level holds the top tiers back
 import { ROLLED_TIERS } from '../rarityTier.js';   // RARE-BREAK1: the rolled tiers' one home
 import { setPieceKind, rollSetSigil, rollSetJoin, setLines, setSigilLines } from '../sigil/sigilSets.js';   // SET4: a won piece of armour or a shield may carry a set's sigil; a weapon's may join one; SET5: the set in words
 import { TECHNIQUE_IDS, TECHNIQUE_BANDS, TECHNIQUE_PER_MILLE, techniqueById, techniquesFor, techniqueBrief, techniqueParts } from '../../combat/technique/techniqueRoster.js';   // TECH1: a weapon's technique - the roster's one table (a leaf)
@@ -329,9 +329,10 @@ export function rarityChances({ kind = 'corpse', tier = 0, boss = false, luck = 
   };
   const legendary = Math.min(rare, legAt(W.legendary) * (Number.isFinite(find) && find > 0 ? find : 1));
   // LOOT-GATE (lootLevelGate.js): the roller's level, when the roll names one, scales Rare and Legendary - never Magic
-  if (atLevel == null || !Number.isFinite(atLevel)) return { magic, rare, legendary };
-  const rareG = Math.min(magic, rare * rareGate(atLevel));
-  return { magic, rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(atLevel)) };
+  const lv = gateLevel(atLevel);   // AUDIT UPDATE L9: a level read as the gate reads one (a number's string too)
+  if (lv == null) return { magic, rare, legendary };
+  const rareG = Math.min(magic, rare * rareGate(lv));
+  return { magic, rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(lv)) };
 }
 
 /** LOOT5 (bible/06-Systems/Loot-Arc.md sections 7 and 10): THE FINDERS - named functions answering a multiplier on the
@@ -1325,7 +1326,10 @@ export const rareEnchantWorth = (item) => Math.round(RARE_ENCHANT_WORTH * (isGar
 export function craftedRarityWorth(item) {
   if ((typeof item?.provenance !== 'string' && item?.imbued !== true) || !ROLLED_TIERS.includes(item.rarity)) return 0;   // LOOT-GATE: an imbued piece too - its tier was bought, so a counter pays for the piece it was
   // AUDIT CRAFT-WORTH: a record's lines only as a list - a malformed one is worth nothing here, never a throw in the Sell walk
-  return affixesWorth(Array.isArray(item.affixes) ? item.affixes : [], item) + (item.rarity === 'rare' ? rareEnchantWorth(item) : 0);
+  const rolled = affixesWorth(Array.isArray(item.affixes) ? item.affixes : [], item) + (item.rarity === 'rare' ? rareEnchantWorth(item) : 0);
+  // AUDIT UPDATE L5: an imbued piece's counter takes off what the Imbue added, so a found Magic made Rare sells as the
+  // Magic it was (reforge.js imbuePiece imbueWorth) - never more than its lines are worth
+  return typeof item.provenance !== 'string' && Number.isInteger(item.imbueWorth) ? Math.min(rolled, Math.max(0, item.imbueWorth)) : rolled;
 }
 
 /** THE HOST DOOR. Roll every eligible item of a freshly generated list
@@ -2082,14 +2086,14 @@ export const championSource = (source, qualityMult = 1) => ({
  *  list it is handed - so the find landed on the copy and was thrown away with it: no body ever kept one (the
  *  Thunderlock's "tier-4 corpse, about 1 in 700"; 0 of 20,000 level-12 champions' bodies, where the list door kept 111).
  *  What the roll added past the carried pieces goes onto the body. */
-export function rollCorpseLoot(entity, basics, { rolls = Math.random, luck = 50, qualityMult = 1, weights = null, find = undefined } = {}) {   // FOE-CAP: `weights` the plain foe's ladder (systems/foeLootCap.js)
+export function rollCorpseLoot(entity, basics, { rolls = Math.random, luck = 50, qualityMult = 1, weights = null, find = undefined, level = undefined } = {}) {   // FOE-CAP: `weights` the plain foe's ladder (systems/foeLootCap.js); AUDIT UPDATE L4: `level` the roller's (LOOT-GATE)
   if (!lootRarityOn() || !entity) return entity?.items ?? [];
   const worn = new Set(entity.equip ? equipTableOf(entity).filter(Boolean) : []);
   const loot = (entity.items ?? []).filter((it) => it && !worn.has(it));
   const carried = loot.length;
   const source = corpseSource(basics, entity.level, entity.mobileType);   // LOOT6: its family
   const champ = typeof entity.champion === 'string' && entity.champion !== '';   // LOOT7: a champion is a stronger source
-  rollLootRarity(loot, champ ? championSource(source, qualityMult) : { ...source, qualityMult, ...(weights ? { weights } : {}) }, { rolls, luck, find });   // CHAMP-LOOT: a champion's own source (half an elite's); FOE-CAP: a plain foe's ladder
+  rollLootRarity(loot, champ ? championSource(source, qualityMult) : { ...source, qualityMult, ...(weights ? { weights } : {}) }, { rolls, luck, find, level });   // CHAMP-LOOT: a champion's own source (half an elite's); FOE-CAP: a plain foe's ladder
   if (loot.length > carried) (entity.items ??= []).push(...loot.slice(carried));   // LOOT7-CHECK CORPSE-FIND: the find onto the body
   return entity.items;
 }

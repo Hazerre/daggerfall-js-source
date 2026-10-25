@@ -171,7 +171,7 @@ export function spawnEnemyLoot(entity, mobileType, basics, player, { rolls = Mat
   // and carries at most its cap, gold included; the stamp rides the entity so the death's handlers are capped too
   const plain = plainFoeLootRule(entity, basics);
   if (plain) entity.lootCap = plain.cap;
-  rollCorpseLoot(entity, basics, { rolls, luck, find, qualityMult: lootQualityMult, weights: plain?.plainLadder ? plainFoeRarityWeights(ease) : null });   // PARTY-LOOT: the caller's Luck and finders
+  rollCorpseLoot(entity, basics, { rolls, luck, find, qualityMult: lootQualityMult, weights: plain?.plainLadder ? plainFoeRarityWeights(ease) : null, level: effectiveLevel(player) });   // PARTY-LOOT: the caller's Luck and finders; AUDIT UPDATE L4: and its level (LOOT-GATE) - a scene's first foes are rolled before any host frame
   capFoeLoot(entity);
   return entity.items;
 }

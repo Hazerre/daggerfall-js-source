@@ -802,6 +802,8 @@ export function runSurvivalMinutes(entity, from, to, env, deps) {
   let last = Number.isFinite(s.lastMinute) ? s.lastMinute : Math.floor(from);
   if (last > end + MAX_CATCHUP_MINUTES) last = Math.floor(from);
   const start = Math.max(Math.floor(from), last, end - MAX_CATCHUP_MINUTES);
+  // AUDIT UPDATE E-N5: a meal's hold that ran in the minutes a long jump never replays held them all the same
+  if (Number.isFinite(s.mealUntil) && s.mealUntil > last && start > last) s.lastAte = Math.max(s.lastAte ?? last, Math.min(s.mealUntil, start) - 11);   // the last held minute's own lift (survivalMinute: now - 10)
   // SURV-THIRST1 AUDIT: WHICH MINUTE IS THE PLAYER ACTUALLY LIVING IN.
   // Every minute but the last is a REPLAY - a jump's minutes, fabricated
   // by `playerTicker.advance` (scenes/shared.js) for a fast travel, a
@@ -945,6 +947,7 @@ export function clearSurvivalMods(entity) {
 export const ALIGN_GRACE_MINUTES = MINUTES_PER_DAY;
 export function alignSurvival(entity, now, lastSeen = null) {
   const s = survivalOf(entity, now);
+  if (Number.isFinite(s.mealUntil) && s.mealUntil > now + HEARTY_MEAL_MINUTES) s.mealUntil = now + HEARTY_MEAL_MINUTES;   // AUDIT UPDATE E-N4: no meal holds longer than one - a record carried or written past it
   const gap = lastSeen == null ? Infinity : now - lastSeen;
   if (gap > ALIGN_GRACE_MINUTES || (s.lastAte ?? now) > now || (s.awakeSince ?? now) > now) {
     Object.assign(s, { lastAte: now - 10, thirst: 0, wet: 0, sleepDebt: 0, awakeSince: now, exposure: 0, drunk: 0, fed: 0, mealUntil: 0, lastMinute: now, notes: boonNotes(s) });   // HEARTY-MEAL: a clock run back holds no meal   // AUDIT SURV-BOONS C3: the boons already said stay said

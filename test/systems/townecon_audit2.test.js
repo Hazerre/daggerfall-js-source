@@ -50,7 +50,7 @@ test('AUDIT TOWN-ECON 2 PRICE-1: LAW-3 SHARES A LOT BY THE PURCHASE\'S OWN ASKS 
     assert.ok(c0[COUNTER_PAID_MARK] < c[COUNTER_PAID_MARK] && k0[COUNTER_PAID_MARK] > k[COUNTER_PAID_MARK], 'the no-holiday asks held the cuirass to less and the katana to more');
   });
   const wm = rd('src/scenes/worldModes.js');
-  assert.match(wm, /commit: \(m, staged, price, proceeds\) => commitTrade\(shelf, m, staged, price, proceeds, identifySpell, \{ holidayId: getHolidayId\(Math\.floor\(skyMinutes\(\)\), b\.regionIndex \?\? 0\), guildFactionId, buildingType: b\.buildingType \}\),/);   // PIN MOVED (ENDLESS-ARROWS): and the counter's shop
+  assert.match(wm, /commit: \(m, staged, price, proceeds\) => commitTrade\(shelf, m, staged, price, proceeds, identifySpell, \{ holidayId: getHolidayId\(Math\.floor\(skyMinutes\(\)\), b\.regionIndex \?\? 0\), guildFactionId \}\),/);
   assert.match(wm, /const r = commitTrade\(shelf, m, staged, price, proceeds, identifySpell, \{ holidayId: getHolidayId\(Math\.floor\(skyMinutes\(\)\), b\.regionIndex \?\? 0\), guildFactionId \}\);/);
 });
 

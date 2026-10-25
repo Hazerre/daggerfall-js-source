@@ -3,7 +3,7 @@
 // (survival/needs.js), the HUD's Well Fed tile counting its hours down (survival/status.js survivalHudChips).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { newSurvival, survivalMinute, hungerStage, hungerMinutes, thirstStage, heartyMeal, heartyMealHeld, heartyMealLeft, pauseSurvival, alignSurvival, HEARTY_MEAL_MINUTES } from '../../../src/systems/survival/needs.js';
+import { newSurvival, survivalMinute, hungerStage, hungerMinutes, thirstStage, heartyMeal, heartyMealHeld, heartyMealLeft, pauseSurvival, alignSurvival, HEARTY_MEAL_MINUTES, runSurvivalMinutes } from '../../../src/systems/survival/needs.js';
 import { tavernEat, tavernOrder, TAVERN_MENU_TEXT, MEAL_MINUTES } from '../../../src/systems/survival/tavernMenu.js';
 import { survivalHudChips, heartyMealWord, HEARTY_MEAL_GLYPH } from '../../../src/systems/survival/status.js';
 import { SURVIVAL_RULES } from '../../../src/systems/survival/difficulty.js';
@@ -65,4 +65,23 @@ test('HEARTY-MEAL: the HUD wears a Well Fed buff tile on the hunger\'s glyph wit
   assert.equal(tip.meta, 'Boon');
   assert.match(tip.lines[0], /hearty tavern meal/);
   assert.equal(tip.foot, '5h left');
+});
+
+// AUDIT UPDATE (2026-10-25, bible/01-Overview/audits/Audit-Update-2026-10-25.md): lane E's laws of the hold
+test('AUDIT UPDATE E3, E-N4, E-N5: a second meal never stacks the hold; no record holds longer than one meal; a journey past the replayed span still owes nothing for the hours the meal held (mutants: the holds summed; the record unbounded; the skipped hold lost)', () => {
+  const s = { ...newSurvival(0) };
+  heartyMeal(s, 100); heartyMeal(s, 200);
+  assert.equal(s.mealUntil, 200 + HEARTY_MEAL_MINUTES, 'six hours from the last meal, never twelve');
+  const f = { ...newSurvival(1000), mealUntil: 1e9 };
+  alignSurvival(body(f), 1000, 990);
+  assert.equal(f.mealUntil, 1000 + HEARTY_MEAL_MINUTES, 'a far hold (carried, or written) is one meal\'s');
+  for (const days of [1, 3]) {
+    const j = { ...newSurvival(0), lastAte: -800, thirst: 50 };
+    const e = body(j);
+    tavernEat(j, 0, 240);
+    j.lastMinute = MEAL_MINUTES;
+    const end = MEAL_MINUTES + days * 1440;
+    runSurvivalMinutes(e, MEAL_MINUTES, end, { air: 20 }, { autoDrink: false, autoEat: false });
+    assert.equal(hungerMinutes(j, end), end - (MEAL_MINUTES + HEARTY_MEAL_MINUTES - 11), `${days} day(s): hungry only from the hold's end, as a day replayed is`);
+  }
 });

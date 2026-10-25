@@ -140,26 +140,32 @@ export const shopArrowStack = (buildingType, quality) => shopAmmoStack(buildingT
  * ENDLESS-ARROWS (2026-10-23, the owner: "give general stores always arrows for each player to buy they cant exhaust"): A
  * GENERAL STORE'S QUIVER NEVER EMPTIES. Its counter shelf carries a full quiver (GENERAL_STORE_ARROWS, whatever the
  * shop's quality - SHOP-ARROWS' 14 to 29 was a General Store's) from no roll, and every purchase that takes arrows off it
- * fills it back to the whole (restockEndless), offline and online alike - unlike ENDLESS-STOCK's bag, campfire and
- * rations, which online alone. A shelf is each player's own (the client stocks it), so no patron buys another's arrows
- * out. The other storefronts' quivers sell out as SHOP-ARROWS says. A declared departure (Port-Ledger A).
+ * puts back what it took, up to the whole (restockEndless), offline and online alike - unlike ENDLESS-STOCK's bag,
+ * campfire and rations, which online alone. AUDIT UPDATE E1: only what a PURCHASE took - an arrow stolen stays gone,
+ * so a theft and one arrow bought never fill the quiver again; E2: the counter's shelf alone (the hosts hand its shop
+ * for that shelf and no other). Online a shelf is the room's (WORLD6a), and the refill rides its published list, so no
+ * patron buys another's arrows out (AUDIT UPDATE E-N8). The other storefronts' quivers sell out as SHOP-ARROWS says. A
+ * declared departure (Port-Ledger A).
  */
 export const GENERAL_STORE_ARROWS = SHOP_ARROWS_MAX;
 export const endlessArrowsAt = (buildingType) => buildingType === BUILDING_TYPES.GeneralStore;
 const isShelfArrow = (it) => it?.group === 'Weapons' && it.templateIndex === ARROW_TEMPLATE;
 /** ENDLESS-ARROWS: the counter's quiver, minted as the shelf mints its own (CreateWeapon's arrow arm, its roll a constant). */
 const mintQuiver = (n) => mintCondition(setItemFields({ ...createWeapon(ARROW_TEMPLATE, 0, () => 0), stackCount: n }));
-/** ENDLESS-ARROWS: a General Store's quiver filled back to its whole after a purchase that took arrows; answers 1 when it
- *  filled or stood one, else 0. */
+/** ENDLESS-ARROWS: a General Store's quiver given back what a purchase took of it, up to its whole; answers 1 when it
+ *  filled or stood one, else 0. AUDIT UPDATE E1: the arrows the purchase took, never the whole - what a theft took
+ *  stays gone. */
 function restockArrows(shelfItems, bought, buildingType) {
-  if (!endlessArrowsAt(buildingType) || !(bought ?? []).some(isShelfArrow)) return 0;
+  const took = (bought ?? []).filter(isShelfArrow).reduce((n, it) => n + Math.max(1, Math.trunc(it.stackCount ?? 1)), 0);
+  if (!endlessArrowsAt(buildingType) || !(took > 0)) return 0;
   const stack = shelfItems.find(isShelfArrow);
   if (stack) {
-    if ((stack.stackCount ?? 1) >= GENERAL_STORE_ARROWS) return 0;
-    stack.stackCount = GENERAL_STORE_ARROWS;
+    const was = stack.stackCount ?? 1;
+    if (was >= GENERAL_STORE_ARROWS) return 0;
+    stack.stackCount = Math.min(GENERAL_STORE_ARROWS, was + took);
     return 1;
   }
-  addItem(shelfItems, mintQuiver(GENERAL_STORE_ARROWS));
+  addItem(shelfItems, mintQuiver(Math.min(GENERAL_STORE_ARROWS, took)));
   return 1;
 }
 

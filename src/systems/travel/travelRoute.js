@@ -477,14 +477,14 @@ export function routeLegs(pixels, kinds = [], { ringAt = null, start: start0 = n
   // OW-TOWN-ROUND: the ends' rings - the first pixel's from the traveller to the step out (never one left under sail), the
   // last's from the step in to the spot (never one reached under sail); one pixel alone, from the traveller to the spot
   const endRing = (i, from, to) => (ringAt && from && to ? ringAt(pixels[i].x, pixels[i].y, from, to) ?? [] : []);
-  const ringStart = n > 1 && !['sea', 'embark'].includes(kinds[0]) ? endRing(0, start, step(0, 1)) : [];
+  const ringStart = n > 1 && !['sea', 'landfall'].includes(kinds[0]) ? endRing(0, start, step(0, 1)) : [];   // AUDIT UPDATE T5: afloat at the first pixel when its step out is sailed or a landfall - an embark starts ashore
   const ringEnd = n > 1 && !['sea', 'embark'].includes(kinds[n - 2]) ? endRing(n - 1, step(n - 1, n - 2), end) : [];
   if (n === 1) {
     const only = endRing(0, start, end);
     return only.length ? [...only.map((at) => ({ x: pixels[0].x, y: pixels[0].y, kind: 'open', at: { x: at.x, z: at.z }, ring: true })),
       { x: pixels[0].x, y: pixels[0].y, kind: 'open', at: { x: end.x, z: end.z } }] : legs;
   }
-  for (const at of ringStart) legs.push({ x: pixels[0].x, y: pixels[0].y, kind: kinds[0] ?? 'open', at: { x: at.x, z: at.z }, ring: true });
+  for (const at of ringStart) legs.push({ x: pixels[0].x, y: pixels[0].y, kind: kinds[0] === 'embark' ? 'open' : kinds[0] ?? 'open', at: { x: at.x, z: at.z }, ring: true });   // AUDIT UPDATE T5: an embark's ring walked ashore
   // OW-TOWN-RING: a pixel the route passes THROUGH (never its last - the place itself is arrived at) that holds a town
   // is walked round its border ring - the ring's points (`ringAt`: the town's own rects, travelOptions.js
   // ringPassPoints) each a leg of the incoming step's kind, aimed at its own point (`at`) and marked `ring`; the run

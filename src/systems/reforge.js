@@ -37,7 +37,10 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { lootRarityOn, reforgeableLines, reforgeAffix, honeableLines, honeAffix, affixBand } from './loot/lootRarity.js';   // LOOT17: and the hone
-import { applyRarity, rarityEligible, AFFIX_KINDS, isCursed } from './loot/lootRarity.js';   // LOOT-GATE: the Imbue
+import { applyRarity, rarityEligible, AFFIX_KINDS, isCursed, addTechniqueLine } from './loot/lootRarity.js';   // LOOT-GATE: the Imbue; AUDIT UPDATE L2: a kept technique in its new band
+import { itemLawFindings } from './loot/loot.js';   // AUDIT UPDATE L2: the item law's word on what the Imbue made
+import { sigilFloor } from './sigil/sigil.js';   // AUDIT UPDATE L2: a won sigil at its new tier's floor
+import { itemBaseValue } from './item/itemTemplates.js';   // AUDIT UPDATE L5: the price a piece with none stood at
 import { rarityOf } from './loot/lootRarity.js';   // FB1012d SALVAGE-CLASSIC: the tier a piece's card wears
 import { ALL_GEM_IDS, SOCKET_EMPTY, gemKindOf, gemGrade, hasSocket, socketsOf, socketGem, socketGems, setGem, unsetGem, gemWorthOf } from './loot/lootRarity.js';
 import { PATRON_COUNTER_MARK, COUNTER_PAID_MARK, COUNTER_VALUE_MARK } from '../net/patronLaw.js';   // AUDIT TOWN-ECON 2 PRICE-2: a set stone's counter mark   // LOOT20: the sockets; GEM1: a list of them, every grade of gem
@@ -235,8 +238,13 @@ export function imbueTarget(item) {
   if (!item || typeof item.provenance === 'string' || item.questItem || item.artifact) return null;
   if (item.rarity == null) return rarityEligible({ ...item, equipSlot: null }) ? 'magic' : null;   // worn is the refusal's word, not the target's
   if (item.magic) return null;
+  if (makerRows(item)) return null;   // AUDIT UPDATE L3: the Item Maker's rows on a found Magic piece - the Rare's flavour would write over them
   return item.rarity === 'magic' ? 'rare' : null;
 }
+/** AUDIT UPDATE L3: an enchantment row a Magic piece carries that is not its curse's drawback - a found Magic piece rolls
+ *  none (lootRarity.js applyRarity: the Rare's flavour alone), so it is one the Item Maker laid. */
+const makerRows = (item) => (Array.isArray(item.enchantments) ? item.enchantments : [])
+  .some((e) => !(item.cursed && e?.type === item.cursed.type && e?.param === item.cursed.param));
 /** What an Imbue costs, or null for a piece it does not take. */
 export function imbuePrice(item) {
   const t = imbueTarget(item);
@@ -264,17 +272,28 @@ export function imbuePiece(item, player, rolls = Math.random) {
   const tier = /** @type {'magic'|'rare'} */ (imbueTarget(item));
   const price = /** @type {{ shards: number, gold: number }} */ (imbuePrice(item));
   const kept = (item.affixes ?? []).filter((a) => AFFIX_KINDS[a?.id]?.technique);
-  const was = { ...item };
+  const was = structuredClone(item);   // AUDIT UPDATE L2: whole, so a refused piece is put back exactly
+  const lawBefore = new Set(itemLawFindings(item));
+  const before = Number.isFinite(item.value) ? item.value : itemBaseValue(item);   // AUDIT UPDATE L5: the price it stood at
   if (tier === 'rare') {
     // the Magic tier's marks go with its lines
     for (const k of ['rarity', 'reforged', 'honed']) delete item[k];
     item.affixes = [];
   }
   applyRarity(item, tier, rolls);
-  if (item.rarity !== tier) { for (const k of Object.keys(item)) delete item[k]; Object.assign(item, was); return { ok: false, reason: 'not' }; }
-  if (kept.length) item.affixes.push(...kept);
+  // AUDIT UPDATE L2: what the piece keeps, at its new tier's law - a technique rolled again in the new band (the law
+  // reads a Rare's line by the Rare's band), a won sigil at least at the new tier's floor
+  if (item.rarity === tier) for (const a of kept) addTechniqueLine(item, rolls, { id: a.param });
+  if (item.rarity === tier && item.sigil) item.sigil = { ...item.sigil, power: Math.max(item.sigil.power, sigilFloor(tier, item.sigil.party)) };
   item.imbued = true;
+  item.imbueWorth = Math.max(0, Math.round((Number.isFinite(item.value) ? item.value : before) - before));   // AUDIT UPDATE L5: what a counter takes off (lootRarity.js craftedRarityWorth)
   item.isIdentified = true;   // the guild made it - nothing to identify
+  // AUDIT UPDATE L2: a piece the item law would hold (the judge's own reading) is never made - put back, nothing paid
+  if (item.rarity !== tier || itemLawFindings(item).some((f) => !lawBefore.has(f))) {
+    for (const k of Object.keys(item)) delete item[k];
+    Object.assign(item, was);
+    return { ok: false, reason: 'not' };
+  }
   payFor(player, price);
   return { ok: true, tier, price };
 }

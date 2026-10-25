@@ -10280,8 +10280,8 @@
   "by": "claude-in-session"
  },
  "features.lootRarity.note": {
-  "en": "d1491acb18c4",
-  "tr": "18535bf3380b",
+  "en": "86fb40b04f50",
+  "tr": "b2c9e0c2ada5",
   "by": "claude-in-session"
  },
  "features.lootRarity.title": {
@@ -15372,6 +15372,16 @@
  "menu.act.begin": {
   "en": "c3651ab2341e",
   "tr": "d1b9bb3683b2",
+  "by": "claude-in-session"
+ },
+ "menu.audio.companionVolume": {
+  "en": "8969b9c3dca8",
+  "tr": "515e86b0a305",
+  "by": "claude-in-session"
+ },
+ "menu.audio.companionVolumeNote": {
+  "en": "bc23755ffc85",
+  "tr": "86ee90f51a17",
   "by": "claude-in-session"
  },
  "menu.audio.monsterVolume": {
@@ -28644,6 +28654,56 @@
   "tr": "1ecddb2496cb",
   "by": "claude-in-session"
  },
+ "reforge.imbue.ask": {
+  "en": "3b4d524d18db",
+  "tr": "533b97c670ba",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.confirm": {
+  "en": "2ee73e25e1bc",
+  "tr": "4bf3b630b837",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.cursed": {
+  "en": "ec3cb0fdc488",
+  "tr": "2e7e6a54add7",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.done": {
+  "en": "f170c409f54f",
+  "tr": "fc54fcaaaca0",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.gemSet": {
+  "en": "0222ee2f9562",
+  "tr": "bb9b03cb180b",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.locked": {
+  "en": "a798882f1c31",
+  "tr": "99c1b43ea202",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.none": {
+  "en": "396cb062f4f4",
+  "tr": "9506b29a957e",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.refused": {
+  "en": "d74a76ffffe0",
+  "tr": "c7e3016aedad",
+  "by": "claude-in-session"
+ },
+ "reforge.imbue.sub": {
+  "en": "ff8af4b6edfd",
+  "tr": "ff929c0bc6c4",
+  "by": "claude-in-session"
+ },
+ "reforge.refusal.cursed": {
+  "en": "183aaeb289f6",
+  "tr": "6e01696d1532",
+  "by": "claude-in-session"
+ },
  "report.again": {
   "en": "c394e963c144",
   "tr": "619713d41558",
@@ -33577,6 +33637,16 @@
  "summon.noQuest": {
   "en": "78040ad85087",
   "tr": "5bc6a8d6942e",
+  "by": "claude-in-session"
+ },
+ "survival.boon.meal": {
+  "en": "de79781f6c72",
+  "tr": "a5fafcce689f",
+  "by": "claude-in-session"
+ },
+ "survival.boon.mealTip": {
+  "en": "33d0010cf91a",
+  "tr": "7874218a12c6",
   "by": "claude-in-session"
  },
  "timers.at": {

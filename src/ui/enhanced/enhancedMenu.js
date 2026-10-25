@@ -2899,7 +2899,7 @@ function monsterVolumeRow() {
 export const COMPANION_VOLUME_NAME = 'Companion Idle Volume';
 function companionVolumeRow() {
   return volumeRow('companionVolume', t('menu.audio.companionVolume', COMPANION_VOLUME_NAME),
-    t('menu.audio.companionVolumeNote', 'How loud your companions moan and cry out while they idle beside you. 0% silences them.'));
+    t('menu.audio.companionVolumeNote', 'How loud companions moan and cry out while they idle, yours and other players\' alike. 0% silences them.'));   // AUDIT UPDATE E-N6: every companion's idle call - a peer's puppet carries `companion` too
 }
 /** MONSTER-VOL's row, for any 0..1 volume on the shelf (`key`): its name, `note` its title. */
 function volumeRow(key, name, note) {
