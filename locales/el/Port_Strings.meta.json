@@ -1214,6 +1214,11 @@
   "tr": "1c62e3654ec8",
   "by": "claude-in-session"
  },
+ "account.refusal.fenced": {
+  "en": "51602667d8ce",
+  "tr": "b6fd9cd06290",
+  "by": "claude-in-session"
+ },
  "account.refusal.foe": {
   "en": "c8af1250deb1",
   "tr": "7c403a29b27a",
@@ -3002,6 +3007,11 @@
  "account.wear.worn": {
   "en": "109ed08cf9d2",
   "tr": "77a6d2c45049",
+  "by": "claude-in-session"
+ },
+ "broker.owed": {
+  "en": "d66d34978dca",
+  "tr": "768ae94d7410",
   "by": "claude-in-session"
  },
  "chair.bench": {

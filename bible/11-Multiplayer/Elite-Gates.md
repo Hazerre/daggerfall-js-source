@@ -2949,7 +2949,9 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
 - **The sink.** `POST /v1/eg/sink { piece }` (one of `EG_PANOPLY_IDS`) is one conditional UPDATE in the insignia's way:
   `insignia_spent + 20`, where the purse covers it and no `eg_sink` row stands this week. The week's row is written by
   that write alone. It answers `{ ok, piece, week, purse }`, or refuses `guest` 403, `piece` 400, `bought` 409 (which
-  piece) or `short` 409 (the purse and the price). It is in `ROUTES`, the eg act map, `EG_STATUS` and the route comment.
+  piece) or `short` 409 (the purse and the price). BROKER-RID (AUDIT FB1024): `rid`, the press's request id, is written
+  beside the sale in its batch (`broker_sales`, migration 0174) - refused `fenced` 409 where a settle fenced it first,
+  `rid` 400 where it is not one; the same id asked again answers its sale (`again`). It is in `ROUTES`, the eg act map, `EG_STATUS` and the route comment.
 - **`server-account/src/index.js`**: the claim takes `{ receipt, character }`. INT5's `grantSpoils` fires only for a
   recorded, paid Redoubt.
 - **Migration 0117** (EG-PLAY's, unshipped; 0111, 0112, 0113, 0114 then 0116 on its branch, renumbered past NAME-AS's 0111, SEAT-FACTS' 0112, LAMP-KEEPER II's 0113, FIRMAMENT-ON's 0114, KG6's 0115 and POI-1's 0116 at the merges) gains a block of its own:
@@ -2961,7 +2963,9 @@ the pay law `net/eliteGates/egPay.js`, and the Broker sells the Panoply's sink. 
     `piece`;
   - `systems/sigil/sigilBroker.js` `panoplySale`, the insignia's two halves. The host's `mint` comes first (a piece it cannot
     make is never paid for). Then the embers leave the pack before the service is asked. A refusal gives them back. A
-    lost answer is asked after (`held`). A held sale adds the piece, with no Broker price on it, and is saved;
+    lost answer is asked after by the press's own request id (`/v1/broker/settle`: the sale, or the id fenced and the
+    embers back; BROKER-RID, AUDIT FB1024 - `01-Overview/bugs/Field-Bugs-2026-10-24.md`). A held sale adds the piece,
+    with no Broker price on it, and is saved. One unheard twice is owed, and her next open settles it;
   - `ui/brokerWindow.js`: "The Battlemage's Panoply" under the insignia (`panoplyRows`, the nine pieces by section 19's
     names). It shows the price and "One a week", and its Buy says why not ("Need 15 more", "Bought", "Next week"). A
     sale in flight holds every other;
