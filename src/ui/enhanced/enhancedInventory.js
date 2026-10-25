@@ -1660,9 +1660,10 @@ function heldThen(dir, item, amount, go) {
   if (typeof commit !== 'function') { go(); return; }
   if (heldBusy.has(item)) return;
   heldBusy.add(item);
-  Promise.resolve(commit(dir, item, amount, go)).then((ok) => {
+  Promise.resolve(commit(dir, item, amount, go)).then(() => {
     heldBusy.delete(item);
-    if (ok === false) { refresh(); render(); }
+    refresh();
+    render();
   }, () => { heldBusy.delete(item); notice = t('inventory.store.chestShut', 'The chest stays shut.'); refresh(); render(); });
 }
 
@@ -1731,7 +1732,7 @@ function stow(item) {
     // applyTransfer - is a no-op, so a LIT TORCH dropped on the ground
     // went on lighting the player from where it lay. INV2 made that a
     // gesture; it was already the button's.
-    applyTransfer(item, { ...plan, amount }, deps.items?.() ?? [], to, { entity: deps.entity, fromLocal: true, returnTo: theftTarget(deps, sessionState()) });   // STOLEN-GOODS: the owner's piece put back is theirs again
+    const moved = applyTransfer(item, { ...plan, amount }, deps.items?.() ?? [], to, { entity: deps.entity, fromLocal: true, returnTo: theftTarget(deps, sessionState()), stack: typeof deps.loot?.commit !== 'function' });   // STOLEN-GOODS: the owner's piece put back is theirs again. A shared chest keeps the stack whole; the settle joins it.
     if (qty.item === item) qty = { item: null, text: '' };
     // AUDIT INV2 B-F9: `stow` was written for the BUTTON, whose argument
     // is always `picked`; a drag hands it any row. Closing a tooltip the
@@ -1741,6 +1742,7 @@ function stow(item) {
     if (picked === item) { picked = null; side = 'remote'; }
     refresh();
     render();
+    return moved;
   });
 }
 
@@ -1820,6 +1822,7 @@ function take(item) {
   }
   refresh();
   render();
+  return taken;
   });
 }
 
@@ -1883,8 +1886,8 @@ function bulkMove(dir) {
         let ok = false;
         try {
           ok = await deps.loot.commit(taking ? 'take' : 'put', q.item, plan.amount, () => {
-            applyTransfer(q.item, { ...plan, amount: plan.amount }, from, to, { entity: deps.entity, fromLocal: !taking, toPlayer: taking, stolenFrom: taking ? keeping : null, returnTo: taking ? null : keeping });
             sound = plan.sound === 'gold' && sound !== 'click' ? 'gold' : 'click';
+            return applyTransfer(q.item, { ...plan, amount: plan.amount }, from, to, { entity: deps.entity, fromLocal: !taking, toPlayer: taking, stolenFrom: taking ? keeping : null, returnTo: taking ? null : keeping, stack: taking || typeof deps.loot?.commit !== 'function' });
           });
         } catch { ok = false; }
         if (ok === false) { notice = t('inventory.store.chestShut', 'The chest stays shut.'); break; }
@@ -1949,9 +1952,18 @@ function dropGold(text) {
   if (plan.notice) notice = plan.notice;
   else if (!plan.ok && plan.refusal?.reason === 'ground') notice = plan.refusal.text;   // HOUSE-DROP: the floor's refusal is said
   if (plan.ok) {
-    deductGold(player, plan.amount);
-    addItem(to, goldStack(plan.amount));
+    const pile = goldStack(plan.amount);
     goldEntry = null;
+    // A shared chest records the pile with the other goods. The purse moves only once that record starts,
+    // so a list that arrives later still has the coins.
+    const land = () => {
+      deductGold(player, plan.amount);
+      if (typeof deps.loot?.commit === 'function') to.push(pile);
+      else addItem(to, pile);
+      return pile;
+    };
+    if (typeof deps.loot?.commit === 'function') heldThen('put', pile, plan.amount, land);
+    else land();
   }
   refresh();
   render();
