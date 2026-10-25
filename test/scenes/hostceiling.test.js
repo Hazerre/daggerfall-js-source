@@ -64,6 +64,7 @@ const CEILINGS = [
   ['src/scenes/exteriorFoes.js', 'createExteriorFoes', 3_343, MODULE],
   ['src/combat/fpArm.js', 'createFpArm', 3_252, MODULE],
   ['src/scenes/eliteGates/egClient.js', 'createEgClient', 3_175, MODULE],
+  ['src/scenes/decor/decorTool.js', 'createDecorTool', 3_014, MODULE],   // DECOR (2026-10-25): the decorator's tool, the module the host wires, crossed KNOT at 2,614 - the ceiling is that length plus ROOM
 ];
 
 const sizes = new Map();

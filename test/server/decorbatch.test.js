@@ -124,10 +124,12 @@ test('DECOR-BATCH refuses what would lose goods, gold or the room, and a batch t
   env.DB._raw.prepare(`INSERT INTO home_decor (map_id, building_key, id, model, place, placed_at, paid, yard) VALUES (?, ?, 'vend', 41000, ?, 1, 180, 0)`).run(HOME.mapId, HOME.buildingKey, JSON.stringify(piece({ id: 'vend', station: 'vendor' })));
   const stocked = await call('POST', '/v1/homes/decor/batch', { ...HOME, character: A.id, rev: 0, txn: txn(3), put: [], drop: ['vend'] }, aldric);
   assert.equal(stocked.body.error, 'vendor-stocked');
-  env.DB._raw.prepare('UPDATE homes SET char_id = ? WHERE map_id = ?').run('not-the-owner', HOME.mapId);
+  await registered('Thief');
+  const thief = env.DB._raw.prepare("SELECT id FROM players WHERE handle = 'Thief'").get().id;
+  env.DB._raw.prepare('UPDATE homes SET player = ? WHERE map_id = ?').run(thief, HOME.mapId);
   const stolen = await call('POST', '/v1/homes/decor/batch', { ...HOME, character: A.id, realm: realmAt(env, A.id), rev: 0, txn: txn(4), put: [piece({ id: 'x1', pos: [5, 0, 5] })], drop: [] }, aldric);
-  assert.equal(stolen.body.error, 'no-home');
-  env.DB._raw.prepare('UPDATE homes SET char_id = ? WHERE map_id = ?').run(A.id, HOME.mapId);
+  assert.equal(stolen.body.error, 'no-home', JSON.stringify(stolen.body));
+  env.DB._raw.prepare('UPDATE homes SET player = ? WHERE map_id = ?').run(owner, HOME.mapId);
   assert.ok(ids((await call('POST', '/v1/homes/decor', HOME, aldric)).body).includes('p1'));
   const liveGold = recordOf(env, A.id).goldPieces;
   const real = env.DB.batch.bind(env.DB);

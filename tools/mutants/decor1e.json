@@ -300,8 +300,8 @@
   {
     "name": "DECOR1e-the-removal-unstood",
     "file": "src/scenes/decor/decorTool.js",
-    "old": "    if (deps.visit?.() === visit) pool.remove(piece.id);",
-    "new": "    if (false) pool.remove(piece.id);",
+    "old": "        if (deps.visit?.() === visit) pool.remove(piece.id);\n        const res = await pending;\n        if (!res?.ok) { restore(); deps.say?.(deps.refusal?.(res?.error) ?? 'The piece could not be removed.'); return false; }\n        paid = decorPieceOf(res.data?.piece)?.paid ?? paid;   // the service's own record of what it cost",
+    "new": "        if (false) pool.remove(piece.id);\n        const res = await pending;\n        if (!res?.ok) { restore(); deps.say?.(deps.refusal?.(res?.error) ?? 'The piece could not be removed.'); return false; }\n        paid = decorPieceOf(res.data?.piece)?.paid ?? paid;   // the service's own record of what it cost",
     "tests": [
       "test/systems/online/decor1e.test.js"
     ]

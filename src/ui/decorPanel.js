@@ -491,7 +491,7 @@ export function createDecorButton({ onPress, touch = false, doc = document }) {
  *   thumbOf?: (entry: any) => Promise<string|null>|null, onMove?: (piece: any) => void, onDuplicate?: (piece: any) => void, onRemove?: (piece: any) => void,
  *   onToggle?: (piece: any, what: string) => void, onTurn?: (piece: any, dir: number) => void, onRename?: (piece: any) => void, onAccess?: (piece: any) => void, onPlaceLook?: (furniture: any, look: any) => void,
  *   onBase?: (keys: string[], out: boolean) => void, onRoom?: (id: number) => void, onRent?: (what: string, row: any, price: number|null) => void,
- *   onPaint?: (what: string, look: any) => void, doc?: any, win?: any, thumbKeyOf?: (entry: any) => string }} opts
+ *   onPaint?: (what: string, look: any) => void, onHot?: (key: string) => void, useLabel?: (piece: any) => string, doc?: any, win?: any, thumbKeyOf?: (entry: any) => string }} opts
  */
 export function createDecorPanel({
   onPlace, onClose = () => {}, onPoint = () => {}, thumbOf = () => null, onMove = () => {}, onDuplicate = () => {}, onRemove = () => {}, onToggle = () => {},

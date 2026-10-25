@@ -291,7 +291,7 @@ export function createDecorRoom({
 }) {
   /** DECOR-CLEAR: the gate of the collider the room stands in now (the host's collider is a visit's), or none. */
   const late = () => lateSolidsOf(collider?.());
-  /** @type {Map<string, {piece: any, o: number[], gpu: any, box: any, wbox?: number[] | null, cpu: any, mesh?: any, merged?: boolean, matrix: Float32Array, batch: any, anims: any, size: any, light: any, mount: any, door: any, release?: any}>} */
+  /** @type {Map<string, {piece: any, o: number[], gpu: any, box: any, wbox?: number[] | null, cpu: any, mesh?: any, merged?: boolean, matrix: Float32Array, batch: any, anims: any, size: any, light: any, mount: any, door: any, release?: any, quiet?: boolean}>} */
   const standing = new Map();
   // YARD-MERGE: the pool's merge - { gpu, matrix, box, wbox, n } - and when the pool last changed
   /** @type {{gpu: any, matrix: Float32Array, box: number[], wbox: number[] | null, n: number} | null} */
@@ -853,7 +853,6 @@ export const DECOR_LIST_RETRY_MAX_MS = 30_000;
  * holds pieces - the host's gate opens there and nowhere else. Anything else stands nothing, and the list is asked
  * again `wait` on, twice as long each time to DECOR_LIST_RETRY_MAX_MS, by `later` (setTimeout's shape; node: never
  * holding a process open).
- * @param {{ ask: () => any, live: () => boolean, stand: (r: any) => void, later?: (f: () => void, ms: number) => any, wait?: number }} o
  */
 /** The door's ask, started when the player commits to going in, so the list overlaps the greeting and the build. */
 let decorAhead = null;
@@ -874,6 +873,9 @@ export function primedDecorList(key) {
   return p;
 }
 
+/**
+ * @param {{ ask: () => any, live: () => boolean, stand: (r: any) => void, later?: (f: () => void, ms: number) => any, wait?: number }} _spec
+ */
 export function askDecorList({ ask, live, stand, later = setTimeout, wait = DECOR_LIST_RETRY_MS }) {
   const again = () => {
     if (live()) later(() => { if (live()) askDecorList({ ask, live, stand, later, wait: Math.min(2 * wait, DECOR_LIST_RETRY_MAX_MS) }); }, wait)?.unref?.();
