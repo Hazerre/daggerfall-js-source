@@ -601,3 +601,15 @@ SEA-DROPS (`07-Rendering/Performance-Priority.md`) took one more: the boats' col
 collider its posed buckets moved (`posesMoved`) once it has carried them - the sync is the one place that moves them, and
 `player/collider.js` holds the rest. 36,296 -> 36,297, the reason beside it; 36,295 at the merge with main, whose own host had come down to 36,282.
 
+
+## WILD-REJOIN's move - the seizure's frame out of bootWorld (2026-10-25)
+
+WILD-REJOIN (`01-Overview/bugs/Field-Bugs-2026-10-25.md`) wires a page that comes back while its fall is still down, and
+`bootWorld` stood one logical line under its ceiling (36,386 of 36,387). The move came first, by `tools/hostMove.mjs`:
+`wildSeizeFrame` - the killer's carry of a fall's receipt, one member that writes nothing of the host's - went verbatim to
+`src/scenes/wildSeizeHost.js` (`createWildSeizeHost(host)`): five names by value (`_wildSeize`, `campToWire`, `player`,
+`wildAccount`, `wildDeposit`), two live (`online`, `wildRemains`), the frame returned. 17 logical lines freed
+(36,386 -> 36,369); WILD-REJOIN's wiring took them back (36,386), the decisions in `systems/wild/wildRejoin.js`. The
+ceiling stays. Two pins quote the moved spelling (`host.online`): `test/net/int9_wild_ref.test.js` through `hostText`,
+`test/systems/fb1015_cartaway.test.js` by the module's own path. The change the slice made to the frame (the 'grace'
+word of an older account service asked again once) came after the move, in the module.

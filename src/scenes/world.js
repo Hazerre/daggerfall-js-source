@@ -777,7 +777,7 @@ import { isOnFoot } from '../systems/transport.js';   // TransportManager.IsOnFo
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: the world collider's late solids, withheld from the walking body until it is clear
 import { floorLanding, doorWorldPosition, dungeonEntranceLanding, repositionFeetY, openGroundNear, heldInSolid } from '../player/enterExit.js';   // FixStanding for the exterior arrivals (2026-08-27); SD2b: where a Hollow's mouth stands, to find it at
 import { jumpSpeedMultiplier, isEnhancedJumping, tallySkill, SKILLS } from '../systems/skills.js';   // TO1: the avoid-encounter roll reads skillValue live (imported above) Stealth   // AUDIT 64 F2: CheckAirControl's IsEnhancedJumping disjunct
-import { playerEntity, surfacePlayer, hurtPlayer, forcePlayerDeath, playerBlowCameToNothing, setDeathPresenter, presentPlayerDeath, setDeathListener, setAvoidDeathHook, setStaffPowers, staffPowers, registerPlayerDamageMod, registerLevitateWard, registerFreeFlight } from '../characters/playerEntity.js';   // AUDIT-SEATS G5: a siege's ward on Levitate   // AUDIT-SEATS G4: a spectator's flight
+import { playerEntity, surfacePlayer, hurtPlayer, forcePlayerDeath, presentHeardDeath, playerBlowCameToNothing, setDeathPresenter, presentPlayerDeath, setDeathListener, setAvoidDeathHook, setStaffPowers, staffPowers, registerPlayerDamageMod, registerLevitateWard, registerFreeFlight } from '../characters/playerEntity.js';   // AUDIT-SEATS G5: a siege's ward on Levitate   // AUDIT-SEATS G4: a spectator's flight
 import { bodySayer } from '../net/bossBody.js';   // INT15: my body, said to a boss fight's room
 import { SOUND } from '../systems/soundClips.js';
 import { createWeaponRig, autoBuildArms, armIdentityOf, armBuiltFor, armsReady, sheetHolderOf, buildArmsFor, prebuildArmsForSave } from '../combat/weapon/weaponRig.js';   // MWA1: the arms at boot; MWA3: the identity the arm should stand for, beside the one it does; MW-EARLY: and before the world is read
@@ -956,7 +956,7 @@ import { wildRing, wildRingAt, wildRingName, wildRingBonus, wildZoneKind, zoneWo
 import { etherWildRingAt, etherRisePort, etherRiseSite, etherInPeace, ETHER_KIND, ETHER_WILD_TEXT } from '../systems/wild/etherWild.js';   // ETHER-WILD: the Eltheric Ocean past Veilhaven's peace, an open PvP zone
 import { createSeaVentures, seaStormShown } from './seaVenturesHost.js';   // SEA VENTURES: the sea's vaults, its events, its bounties and boards - wired here, held there
 import { wildTakeTook, wildPacks, wornOffer, wildRecord, wildChunks, wildSpawnSpot, wildFallWords, wildTookAny, wildRisePicks } from '../systems/wild/wildDeath.js';   // CART-AWAY (FIELD BUGS 2026-10-15d): my wagon away from my death keeps its cargo - and COMPANION-DROP's word that my game reads my companions' packs, one call (wildFallWords)
-import { readWildReceipt, WILD_FALL_GRACE_S } from '../net/wild/wildReceipt.js';   // INT9: the relay's fall, carried to the service
+import { readWildReceipt, wildFallGraceS } from '../net/wild/wildReceipt.js';   // INT9: the relay's fall, carried to the service
 import { WILD_REF, wildKin, sameGuild } from '../net/wild/wildRef.js';   // INT9: the zone referee's numbers (its mend, for the HUD); MAC (2026-10-14): and its kin, one law with the referee's
 import { createWildFight } from '../net/wild/wildFight.js';
 import { createWildRemains, WILD_PILE_ICON, WILD_NO_STORE } from '../net/wild/wildRemains.js';   // WILD-WAYPOINT: my remains' flag on both maps (below)
@@ -1182,6 +1182,8 @@ import { createRegionChaseHearing } from './regionChaseHost.js';   // OW-CHASE-R
 import { TOWN_PACE_MAX } from '../systems/travel/townWalk.js';   // OW-TOWN-WALK: the keys' travel in a town, held to a town's pace
 import { createExteriorAutomapToggle } from './exteriorAutomapToggle.js';   // HOST-SPLIT
 import { monsterVolume } from '../systems/monsterVolume.js';   // MONSTER-VOL: a monster's pain cry rides the Audio tab's Monster Volume
+import { createWildSeizeHost } from './wildSeizeHost.js';   // HOST-SPLIT
+import { createWildRejoin } from '../systems/wild/wildRejoin.js';   // WILD-REJOIN: a fall that outlives its page
 
 /** Internal_Strings_en 654 / 655, the two guild map-reveal notes
  *  (ThievesGuild.cs:115, DarkBrotherhood.cs:108). %map is the
@@ -23039,6 +23041,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
   };
   const _wildSeize = new Map();   // a fall I won, signed: r -> { rc, room, p, due, tries } - its drop the fallen's tab's first
+  const wildRejoin = createWildRejoin({ present: () => presentHeardDeath(playerEntity) });   // WILD-REJOIN: whether a referee's `down` word is this page's death to take
   const _wildFellAt = new Map();  // AUDIT INT9: where a fall I won lay, in its room's frame, when the referee called it: r -> p
   /** A FALL (`wref` `fell`): mine - a death in the zone, the referee's word, whatever my save's health says; my foe's at my
    *  hand - its body's offer awaited under the fall's id, from the room that refereed it. */
@@ -23058,18 +23061,27 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (_wildVit?.foe?.id === g.id) { _wildVit = null; wildHudSay(); }
   };
   /** A FALL SIGNED (`wref` `rc`, net/wild/wildReceipt.js): mine - my drop taken off my record against it, now; my foe's - theirs
-   *  to carry first, mine to carry once WILD_FALL_GRACE_S has gone by with no remains of theirs in the room. */
+   *  to carry first, mine to carry once its grace has gone by with no remains of theirs in the room (wildFallGraceS: none
+   *  when it was signed with them gone - WILD-REJOIN). */
   const wildRcIn = (g, room) => {
     const c = readWildReceipt(g.rc), me = social?.acct ?? null;
     if (!c || c.r !== g.r || !me) return;
     if (c.f === me) { wildTakeDrop(g.rc, room); return; }
     if (c.k !== me || _wildSeize.has(c.r)) return;
-    _wildSeize.set(c.r, { rc: g.rc, room, p: _wildFellAt.get(c.r) ?? null, due: Date.now() + (WILD_FALL_GRACE_S + 5) * 1000, tries: 0 });
+    _wildSeize.set(c.r, { rc: g.rc, room, p: _wildFellAt.get(c.r) ?? null, due: Date.now() + (wildFallGraceS(c) + 5) * 1000, tries: 0 });
     if (_wildSeize.size > 16) _wildSeize.delete(_wildSeize.keys().next().value);
+  };
+  /** WILD-REJOIN: the referee says I am still down (net/wild/wildRef.js wildDownWord) - this page came back after its game
+   *  closed on the death screen. It lies down again for the time left, its body where the fall was, so the receipt that
+   *  follows lays my drop there. The closed page heard the death itself, so its subscribers are not told it again. */
+  const wildDownIn = (g, room) => {
+    const death = wildRejoin.heard(g, { alive: playerEntity.health > 0 });
+    if (death) _wildBody = { p: death.p ?? campToWire(player.feetAt()), room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
   };
   const wildRefIn = (g, room) => {
     if (g.k === 'hp') wildHpIn(g);
     else if (g.k === 'fell') wildFellIn(g, room);
+    else if (g.k === 'down') wildDownIn(g, room);
     else if (g.k === 'rc') wildRcIn(g, room);
     else seaVentures.wref(g, room);   // SHIP-PVP: the open sea's guns - a shot landed, a wreck (its room boarded), a wreck signed
   };
@@ -23218,24 +23230,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const at = isCellRoom(dep.room) ? nativeToMapPoint(dep.p[0], dep.p[2]) : (b.px ? { mx: b.px.x + 0.5, my: b.px.y + 0.5 } : null);
     if (at) markRemains({ mx: at.mx, my: at.my, until: _wildMine.until, r: dep.r });
   };
-  /** A FALL I WON whose fallen let the grace go by with no remains in the room: its drop taken by me, a SEIZURE (the
-   *  service moves their record where it stands), and deposited where they fell. */
-  const wildSeizeFrame = () => {
-    const now = Date.now();
-    for (const [r, s] of [..._wildSeize]) {
-      if (now < s.due) continue;
-      _wildSeize.delete(r);
-      if (wildRemains.has(r)) continue;   // their tab took it: its remains stand (or stood)
-      const p = s.p ?? campToWire(player.feetAt());   // AUDIT INT9: where the body fell, in its room's frame
-      wildAccount.fall({ receipt: s.rc, room: s.room, ...(online?.wildCollectAt?.(s.room) ? { collect: 1 } : {}) }).then((a) => {   // MAC (2026-10-14): my piece in escrow where the room signs my collect
-        const d = a?.ok ? a.data : null;
-        if (d?.order && Array.isArray(d.items) && d.items.length) { wildDeposit({ r: d.r, items: d.items, o: d.order, p, room: s.room, mine: null }); return; }
-        // AUDIT INT9: a word that says nothing of the fall (offline, the service's own error, the rate, a record that moved
-        // under the seizure) is asked again, a few times
-        if (['offline', 'server', 'rate', 'seq', 'no-session'].includes(a?.error) && s.tries < 3) _wildSeize.set(r, { ...s, due: Date.now() + 5_000 * (s.tries + 1), tries: s.tries + 1 });
-      }).catch(() => { /* the fallen's own tab, or nobody: the receipt's hour is theirs */ });
-    }
-  };
+  const { wildSeizeFrame } = createWildSeizeHost({   // HOST-SPLIT: src/scenes/wildSeizeHost.js
+    _wildSeize, campToWire, player, wildAccount, wildDeposit,
+    get online() { return online; },
+    get wildRemains() { return wildRemains; },
+  });
   /** THE FIRST DEAD FRAME IN THE ZONE (onlineFrame's dead branch, the room still mine): at another player's hand (the
    *  referee's word, wildZone.js wildFallHeard) my worn pieces are shown to my killer and the drop waits on the fall the relay signs;
    *  to a foe, nothing drops (FOE-KEEPS, the owner, 2026-10-24: "I dont want people to lose everything they have" - the
@@ -23244,11 +23243,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wildDeathBegin = () => {
     if (!wildHere() || !online?.wildOk || online.status !== 'open' || !online.room || !_deadMark) return false;
     const fell = wildFallHeard();   // AUDIT FOE-KEEPS H1: any fall heard since my last rise (wildGhostEnd clears it) - a hidden tab hears it, runs no frame
-    _wildBody = { p: [_deadMark.x, _deadMark.y, _deadMark.z], room: online.room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
+    // WILD-REJOIN: a death the referee told of has its body and its words already (wildDownIn), and offers nothing
+    const rejoined = wildRejoin.begin();
+    if (!rejoined) _wildBody = { p: [_deadMark.x, _deadMark.y, _deadMark.z], room: online.room, dungeon: modes?.mode === 'dungeon' ? (_wdunInside?.h ?? wdKey()) : null, px: playerTravelPixel() };
     // HALL-CROWS (the owner: "i dont see the crows circleling around the dungeon where i died on the zone map"): a death in
     // a hall always locks it and sets the crows over it - whether or not the pack had anything to drop
     if (modes?.mode === 'dungeon' && _wdunInside) wdunLeft(true);
-    setWildDeath({ killer: fell ? (peerName(fell.by) ?? 'Another player') : null, dropped: 0 });
+    if (!rejoined) setWildDeath({ killer: fell ? (peerName(fell.by) ?? 'Another player') : null, dropped: 0 });
     _wildVit = null; wildHudSay();   // AUDIT INT9: the readout goes with the life
     _wildGhost = true;
     // AUDIT INT9: a cell keeps my body's socket while it lies; a hall's or a building's room keeps it only until my deposit

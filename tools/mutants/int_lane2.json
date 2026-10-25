@@ -222,7 +222,7 @@
   {
     "name": "INT9-SVC-THE-GRACE-UNREAD",
     "file": "server-account/src/wild.js",
-    "old": "      if (ctx.nowS < c.i + WILD_FALL_GRACE_S) return { error: 'grace' };\n",
+    "old": "      if (ctx.nowS < c.i + wildFallGraceS(c)) return { error: 'grace' };\n",
     "new": "",
     "tests": [
       "test/net/int9_wild_ref.test.js"
