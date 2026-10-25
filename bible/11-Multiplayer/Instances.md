@@ -117,15 +117,17 @@ THE LAW is pure (instancePlaces.js):
   choice and every other way in, as a quest's. A whole build of a dungeon is the location's own blocks, drawn from
   nothing, so the heir's instance stands them on the floor under where they fell. Remains laid in the public room's own
   size (smaller or whole), or in a row from before the size was kept, are the public room's, as they always were.
-- **instanceOffer**: offline or at an older relay, nothing. Otherwise the rows:
+- **instanceOffer**: offline or at an older relay, nothing. Otherwise the rows, in this order:
   - Public - never Privateer's Hold online (HOLD-ONCE).
-  - Your instance - where a quest of mine names the place (the death quest's whole dungeon among them, HEIR-WHOLE: the
-    quest's room where a quest names it too - the dungeon whole as well, so it stands the remains), and at the Hold.
   - `<owner>`'s instance - for each room a party member stands in at THIS place (partnerInstances: the pose's `ins`, its
     public room this place's - never a pixel, which Castle Daggerfall and the arena share) whose owner is in the party,
     the relay's own law, so nothing is offered that the relay would refuse. Named by its owner; one row a room. After
     them, under the same law, the room the relay last joined ME to at this place (partnerInstances' `stood`, WIPE-RETURN,
     section 11): a room nobody stands in any more.
+  - Your instance - where a quest of mine names the place (the death quest's whole dungeon among them, HEIR-WHOLE: the
+    quest's room where a quest names it too - the dungeon whole as well, so it stands the remains), and at the Hold.
+    It comes after the party's rooms (WIPE-RETURN, section 11): a member holding a copy of the quest has a room of its
+    own, and the first instance row taken by habit was that one, apart from the party.
 
   A place with nothing but its public room has no popup: the door opens as it always did.
 - **questMountsHere**: online, a quest's things stand only in a dungeon whole - an instance, a main-story keep, a dungeon
@@ -153,7 +155,7 @@ THE PAGE (instanceDoor.js, HOST-SPLIT's shape - built once in world.js, asked by
   - The new game's start (`holdOpen`, nothing recorded) is the Hold's public room, never asked.
 - **The popup** is `ui/talkWindow.js` ChoiceWindow laid over whatever is open (townTalk.pushOverlay) - the enhanced dialog
   on the Plus skin and the panel on the classic. It is a redesigned window, not a DFU one (Port-Doctrine, Scope). Its rows
-  are numbered (`1 - Public`, `2 - Your instance`, ... nine at most - a full party's seven others with public and mine),
+  are numbered (`1 - Public`, `2 - Ann's instance`, ..., `Your instance` last - nine at most, a full party's seven others with public and mine),
   and Leave is the Escape key's row (`Esc - Leave`: a keyed menu takes its codes alone). The window closed any other way -
   replaced, disposed - answers Leave: never a door left waiting on nothing.
 - **Its two lines**: the place's name (localized, getLocalizedLocationName), then the question. At the Hold: "Privateer's
@@ -231,7 +233,7 @@ stands in.
   they fell; the room kept while they lie, a quest's room first, the older relay's whole public room; public-room
   remains as they were; one whole layout whoever builds it. `tools/mutants/fb1019f_heirwhole.json` (13), all dead.
 - `tools/mutants/instances.json` (51), all dead; the lists re-aimed by content where this arc moved their lines.
-  `tools/mutants/wipereturn.json` (7, WIPE-RETURN), all dead.
+  `tools/mutants/wipereturn.json` (8, WIPE-RETURN), all dead.
 - PIN MOVED: RELAY_VERSION world208 in every file that names it, and `test/net/relayversion.test.js`'s row and graph; the
   quest stamp and the re-lay; the funnels', the doors' and the identity's shapes; the relay's hello gate; the account
   Worker's deploy filter (`.github/workflows/account-deploy.yml`: net/instanceRoom.js is in its bundle).
@@ -314,11 +316,18 @@ the same respawn.. we had to leave and reset the dungeon."*
   - A public room is never kept, and a room keyed while the player is outside is not one they stood in.
   - It lasts as long as the page. A reload inside records the room in the save (section 7); a reload outside after the
     death forgets it, and the door reads the poses alone.
+- **The party's rows first.** A second report: *"Dying in an instance often causes party members and the host to
+  desync upon respawning ... (Note: Using Resurrect in time seems to prevent this death desync)."* A Resurrect rises in
+  place (world.js resurrectInPlace): no door, the mode's instance kept, the room rejoined from where the body lay. A
+  respawn goes out through the door, and after a single death too a member holding a copy of the quest was offered
+  `Public`, `Your instance`, then the owner's - and `Your instance` is the copy's own room. The door now lists the
+  party's rooms before mine (instanceOffer, section 4), so the first instance row is the party's.
 - **Not changed.** D-ONLINE1 still wakes a dungeon death outside the door. Waking it inside the instance, at its start,
   would also keep the party together; it is a change to the respawn, and the owner's call.
 - **Pinned.** `test/systems/quest/instances3_door.test.js` WIPE-RETURN, over the real door, ChoiceWindow and digests: a
   member without the quest and one with a copy after the wipe, the popup's rows and the entry taken, entryFor; the rooms
   members stand in first and one row a room; none offered whose owner left the party, of another place, kept from
-  outside or from a public room, or shut by the relay. `tools/mutants/wipereturn.json` (7), all dead.
+  outside or from a public room, or shut by the relay; the party's rows before mine, in the law and the popup.
+  `tools/mutants/wipereturn.json` (8), all dead.
   INSTANCES-POSE-OUTSIDE (`tools/mutants/instances.json`) re-aimed by content: `poseWord` is a method now.
 - **Open** (section 9): the popup's rows read once, when it opens; a room kept past its quest.

@@ -158,6 +158,8 @@ test('INSTANCES what the door offers: offline or at an older relay nothing; a qu
   assert.deepEqual(instanceOffer({ online: true, instanceOk: true, isHold: true }), [{ kind: 'mine' }], 'HOLD-ONCE: never its public room');
   assert.deepEqual(instanceOffer({ online: true, instanceOk: true, partners }), [{ kind: 'public' }, { kind: 'join', name: 'Ann', acct: 'a1', owner: '0123456789abcdef', epoch: '89abcdef' }]);
   assert.equal(instanceOffer({ online: true, instanceOk: true }), null, 'no popup: the door opens as it always did');
+  assert.deepEqual(instanceOffer({ online: true, instanceOk: true, questHere: true, partners }).map((r) => r.kind), ['public', 'join', 'mine'], 'the party\'s room before my own - a copy of the quest has its own room');
+  assert.deepEqual(instanceOffer({ online: true, instanceOk: true, isHold: true, partners }).map((r) => r.kind), ['join', 'mine'], 'and at the Hold');
 });
 
 /** The door over fake deps: a quest at the crypt, the windows laid over and the lines kept. */
@@ -361,8 +363,8 @@ test('WIPE-RETURN (a field report, 2026-10-25: "Upon Death in an instance, party
   bo.d.poseWord('dungeon', annRoom);
   pending = bo.d.choose(site);
   await until(() => bo.shown.length === 1);
-  assert.deepEqual(labels(bo.shown[0].win), [`1 - ${INSTANCE_TEXT.public()}`, `2 - ${INSTANCE_TEXT.mine()}`, `3 - ${INSTANCE_TEXT.join('Ann')}`, `Esc - ${INSTANCE_TEXT.leave()}`], 'it was Public and their own room alone');
-  bo.shown[0].win.input('Digit3');
+  assert.deepEqual(labels(bo.shown[0].win), [`1 - ${INSTANCE_TEXT.public()}`, `2 - ${INSTANCE_TEXT.join('Ann')}`, `3 - ${INSTANCE_TEXT.mine()}`, `Esc - ${INSTANCE_TEXT.leave()}`], 'it was Public and their own room alone; the party\'s comes first');
+  bo.shown[0].win.input('Digit2');
   assert.deepEqual(await pending, { instance: { owner: ANN, epoch: '89abcdef' }, whole: true });
   assert.deepEqual(await bo.d.entryFor(site), { instance: { owner: ANN, epoch: '89abcdef' }, whole: true }, 'a quest\'s transfer: the party\'s room before my own');
   // after the rooms members stand in now, and one row a room

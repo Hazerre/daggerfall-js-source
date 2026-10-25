@@ -133,11 +133,12 @@ export function partnerInstances(members, base, ownerOf = () => null, stood = nu
 }
 
 /**
- * WHAT THE DOOR OFFERS - null for no popup (the door opens on the public room, as it always did), else the rows:
+ * WHAT THE DOOR OFFERS - null for no popup (the door opens on the public room, as it always did), else the rows, in
+ * this order:
  *   { kind: 'public' }                              the place's shared room - never Privateer's Hold online (HOLD-ONCE)
- *   { kind: 'mine' }                                my instance - a quest of mine names the place, or the Hold
  *   { kind: 'join', name, acct, owner, epoch }      a party member's instance standing here now, or the one I last stood
  *                                                   in here (partnerInstances' `stood`, WIPE-RETURN)
+ *   { kind: 'mine' }                                my instance - a quest of mine names the place, or the Hold
  * Offline, or at a relay that keeps no instance, there is nothing to choose. A place with no instance to offer has no
  * popup; the Hold with none still answers (its public room refused, the door says so).
  */
@@ -145,7 +146,9 @@ export function instanceOffer({ online, instanceOk, isHold = false, questHere = 
   if (!online || !instanceOk) return null;
   const rows = [];
   if (!isHold) rows.push({ kind: 'public' });
-  if (questHere || isHold) rows.push({ kind: 'mine' });
+  // The party's rooms come before mine: a member who holds a copy of the quest has an instance of their own, which is
+  // another room, and taking the first instance row by habit after a death split them from the party.
   for (const p of partners ?? []) rows.push({ kind: 'join', name: p.name, acct: p.acct, owner: p.owner, epoch: p.epoch });
+  if (questHere || isHold) rows.push({ kind: 'mine' });
   return rows.length > (isHold ? 0 : 1) ? rows : null;
 }

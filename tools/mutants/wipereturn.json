@@ -68,5 +68,15 @@
       "test/systems/quest/instances3_door.test.js"
     ],
     "why": "the door offers back the room the relay just shut on me, while my party picture still names its owner"
+  },
+  {
+    "name": "WIPE-RETURN-mine-before-the-party",
+    "file": "src/systems/instancePlaces.js",
+    "old": "  for (const p of partners ?? []) rows.push({ kind: 'join', name: p.name, acct: p.acct, owner: p.owner, epoch: p.epoch });\n  if (questHere || isHold) rows.push({ kind: 'mine' });",
+    "new": "  if (questHere || isHold) rows.push({ kind: 'mine' });\n  for (const p of partners ?? []) rows.push({ kind: 'join', name: p.name, acct: p.acct, owner: p.owner, epoch: p.epoch });",
+    "tests": [
+      "test/systems/quest/instances3_door.test.js"
+    ],
+    "why": "a member with a copy of the quest takes the first instance row by habit - their own room, apart from the party"
   }
 ]
