@@ -202,7 +202,7 @@ import { leaseKeyOf, mintLease, readLease, leaseRoom, LEASE_FRAME_MIN_MS, LEASE_
 /** LEASE1 (the fourth review of the PR): a frame of a build that hands on no lease asks the hub's door at most this often -
  *  never once a minute (mob's load), yet one let in before the door went on at the hub is turned away within it. */
 const LEASE_OLD_ASK_MS = 10 * RELAY_CFG_TTL_MS;
-import { busOf, shardOf, isChannelShard, isChannelBus, isRegionBus, isCourtCopy, courtOfCopy, upOf, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES, HUB_BATCH_MS, HUB_SYNC_MS, HUB_COUNT_MS, HUB_BATCH_MAX, CLOSE_HUB, HUB_FIND_MAX, HUB_FIND_ROOM_HZ_MAX, HUB_GUILD_WHO_MAX, HUB_WHO_KEEP_MS, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, shardKeeps, foldFind, HUB_BATCH_BYTES, HUB_UP_QUEUE_BYTES, HUB_SILENT_MS, SHARD_LAW_KEYS, HUB_KEY_KEY } from '../../src/net/hubShards.js';   // SCALE5c: the hub, sixteen ways
+import { busOf, shardOf, regionsSharded, isChannelShard, isChannelBus, isRegionBus, isCourtCopy, courtOfCopy, upOf, HUB_INTERNAL_UP, HUB_INTERNAL_POLL, HUB_POLL_MS, HUB_OUTBOX_MAX, HUB_OUTBOX_BYTES, HUB_BATCH_MS, HUB_SYNC_MS, HUB_COUNT_MS, HUB_BATCH_MAX, CLOSE_HUB, HUB_FIND_MAX, HUB_FIND_ROOM_HZ_MAX, HUB_GUILD_WHO_MAX, HUB_WHO_KEEP_MS, HUB_FRAME_MAX, HUB_UP_HZ_MAX, HUB_UP_BURST, shardKeeps, foldFind, HUB_BATCH_BYTES, HUB_UP_QUEUE_BYTES, HUB_SILENT_MS, SHARD_LAW_KEYS, HUB_KEY_KEY } from '../../src/net/hubShards.js';   // SCALE5c: the hub, sixteen ways
 import { verifyToken, verifyOrder, verifyStakeOrderAnyAge, importPublicKeyB64, MAX_TTL_S, ORDER_TTL_S, renownIssuable, deckDigest, remainsDigest, _b64url } from '../../src/net/identityToken.js';   // MOD1: and the mute order, checked with the same key; AUDIT SAFE RELAY-10: and an order's claims read for its kind (`lawKindOf`)
 /** ACC1d/F8: the most spent signatures one room remembers. Every entry
  *  expires within MAX_TTL_S and the hello gate bounds how fast they can
@@ -345,6 +345,7 @@ import { roomOf, parseClient, GROUND_LAW, GROUND_OLD_REASON, groundRoom, GRANT_H
 import { NEW_VOICE_GAP_MS, SAFE_LAW_PATH } from './relay.js';   // SAFE6: a new voice's pace; SAFE4: the service's door in
 import { mintStamp, stampTabOf, PUBLIC_TABS } from '../../src/net/safety/chatStamp.js';   // SAFE2: the relay's stamp on every line it relays
 import { sealFeed, FEED_SIG_HEADER, FEED_BATCH, FEED_WAIT_MS, FEED_POST_MS } from '../../src/net/safety/chatFeed.js';   // SAFE5: the reviewer's feed
+import { flushAtDrain } from './drainWindows.js';   // COST-1: a drained room leaves nothing armed
 import { grantGate, grantModeOf, GRANT_MODES, GRANT_CFG_TTL_MS, validGrantAsk, grantMintGate, grantMarksFor, signGrant, grantBucketIdle, GRANT_TTL_MS, GRANT_SKEW_MS, GRANT_TALLY_MS, grantRenewed, grantCarried, grantHanded, grantSignedHere, GRANT_OPEN_KINDS, grantKindRolled, grantMarksAllow } from '../../src/net/grantLaw.js';   // GRANT2: the spawn grant's law (bible/11-Multiplayer/Spawn-Grants.md)
 import { newGrantMeasure, foldGrantAsk, foldGrantTally, grantMeasureBatch, sealGrantMeasure, GRANT_MEASURE_MS, GRANT_MEASURE_SIG_HEADER, GRANT_MEASURE_POST_MS, GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';   // GRANT2: and its measure, to the service
 import { foeStatsRefusal } from '../../src/net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have (GRANT9's strip reads it)
@@ -1442,6 +1443,9 @@ export class Room {
   /** A shard's attachment as the bus keeps it on the ShardSocket - the socket's id, badge and account, never its place,
    *  its room, its wire or the shard's own bookkeeping. */
   _shardAtt(a) { const { key, pose, hm, at, w2, vid, ly, ld, ...att } = a; void key; void pose; void hm; void at; void w2; void vid; void ly; void ld; return att; }   // LEASE1: a socket's lease is its shard's to keep (`ld`)
+  /** COST-1: the shard of channel `bus` an account lands on - a region's only where the relay's REGION_SHARDS names it
+   *  (net/hubShards.js regionsSharded: none by default, every region's channel whole). */
+  _shardOf(bus, sub) { return shardOf(bus, sub, regionsSharded(this.env?.REGION_SHARDS)); }
   /** (a shard) A socket that came to the wrong shard is told the right one, and closed - nothing written. */
   _hubHop(ws, key) {
     this._send(ws, JSON.stringify({ t: 'hub', key }));
@@ -3708,8 +3712,8 @@ export class Room {
       if (await frozenHello(this, ws, a.key, who, m, now, GROUND_OLD_WORDS)) return;   // STAFF-PANEL5-FREEZE (staffFreeze.js): the token's freeze, or the hub's book's newer one - an old build's refused
       // SCALE5c: A SHARD HOLDS ITS OWN ACCOUNTS - one whose subject lands on another is told which (its client goes there),
       // before anything here is written
-      if (isChannelShard(a.key) && shardOf(busOf(a.key), who.subject) !== a.key) { this._hubHop(ws, shardOf(busOf(a.key), who.subject) ?? /** @type {string} */ (busOf(a.key))); return; }   // SCALE5c part two: a region's shards the same
-      if (isChannelBus(a.key) && m.hs === 1 && shardOf(a.key, who.subject)) { this._hubHop(ws, /** @type {string} */ (shardOf(a.key, who.subject))); return; }   // SCALE5c: a hub link of a build that knows the shards, said hello to the bus itself (no stored word of them yet), is told its own - before anything is held, so its close says no leave
+      if (isChannelShard(a.key) && this._shardOf(busOf(a.key), who.subject) !== a.key) { this._hubHop(ws, this._shardOf(busOf(a.key), who.subject) ?? /** @type {string} */ (busOf(a.key))); return; }   // SCALE5c part two: a region's shards the same - COST-1: and a region's shard the relay keeps no more is told its channel
+      if (isChannelBus(a.key) && m.hs === 1 && this._shardOf(a.key, who.subject)) { this._hubHop(ws, /** @type {string} */ (this._shardOf(a.key, who.subject))); return; }   // SCALE5c: a hub link of a build that knows the shards, said hello to the bus itself (no stored word of them yet), is told its own - before anything is held, so its close says no leave
       if (a.key.startsWith('owned:') && !await privateInteriorAdmits(a.key, who.subject, isStaff(who.glyphs) || !!who.hid)) {   // STAFF-PANEL5-HIDDEN: a hidden spectator's right is staff's
         this._refuse(ws, 'private room'); return;
       }
@@ -5140,7 +5144,7 @@ export class Room {
     // ONESEAT R4), when it stays, said gone, as the old index re-read it, until the walk finds it unlisted
     if (!listed.includes(ws)) this._forget(ws);   // SCALE5a: still listed, its place in the kept account index stands
     const last = (listed.length === 0 || (listed.length === 1 && listed[0] === ws)) && !this._vsocks.size;   // SCALE5a: nobody but this one - said without a filtered copy of every socket; SCALE5c: and no shard's either
-    if (last) { try { await this._sweep(); this._swept = this.state.getWebSockets().length === 0; if (isWorldRoom(a.key)) await this.state.storage.setAlarm(Date.now() + worldTtlMsFor(a.key)); } catch { /* the next drain, or the next empty hello */ } this._metricsTick(true); }   // SCALE2b: a drained room says its last window
+    if (last) { try { await this._sweep(); this._swept = this.state.getWebSockets().length === 0; if (isWorldRoom(a.key)) await this.state.storage.setAlarm(Date.now() + worldTtlMsFor(a.key)); } catch { /* the next drain, or the next empty hello */ } this._metricsTick(true); void flushAtDrain(this); }   // SCALE2b: a drained room says its last window - COST-1: and posts every window it holds open, its timers cleared (drainWindows.js)
     if (!a.id) return;   // never said hello, or replaced - the id lives on in another socket
     followLeft(this, ws, a);   // STAFF-PANEL5-FOLLOW: a spectator gone, or a followed account's last socket here
     // INT9 (AUDIT): a fighter whose last socket here went is out of the zone (a closed tab kept its `zone` for good, and a

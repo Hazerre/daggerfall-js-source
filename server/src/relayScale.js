@@ -56,7 +56,8 @@ export class Bounded extends Map {
  *  | double5/6  | frames in, their bytes                                       |
  *  | double7    | poses in                                                     |
  *  | double8/9  | frames sent, their bytes                                     |
- *  | double10/11| storage reads (get, list), storage writes (put, delete)      |
+ *  | double10/11| storage reads (get, list), storage rows written: a key       |
+ *  |            | each a put or delete names, one an alarm set or deleted      |
  *  | double12   | sockets refused (closed with a reason)                       |
  *  | double13   | sockets refused 'room full' (SCALE5b, as all to double20)    |
  *  | double14   | frames the byte budgets dropped (foes and own)               |
@@ -115,9 +116,18 @@ export class RoomMetrics {
     return wrote;
   }
 }
+/** The rows a storage write is billed: a put of an object of entries and a delete of a list of keys one a key, any other
+ *  write (a key's put or delete, deleteAll, an alarm set or deleted) one. */
+export const rowsWritten = (method, args) =>
+  method === 'put' && args[0] && typeof args[0] === 'object'
+    ? Object.keys(args[0]).length
+    : method === 'delete' && Array.isArray(args[0])
+      ? args[0].length
+      : 1;
 /** SCALE2b: the object's state with its storage COUNTED into `metrics` - every get and list a read, every put and delete
- *  a write. A Proxy, so each method is looked up on the real storage at the call (a harness that swaps one sees its
- *  own), and every other member of the state is the runtime's own, bound to it. */
+ *  a write. A write counts the rows it bills (rowsWritten), an alarm set or deleted among them, so `writes` (double11)
+ *  is the storage rows the bill counts. A Proxy, so each method is looked up on the real storage at the call
+ *  (a harness that swaps one sees its own), and every other member of the state is the runtime's own, bound to it. */
 export function countedState(state, metrics) {
   const storage = state?.storage;
   if (!storage) return state;
@@ -126,7 +136,11 @@ export function countedState(state, metrics) {
       const v = Reflect.get(t, k);
       if (typeof v !== 'function') return v;
       if (k === 'get' || k === 'list') return (...args) => { metrics.c.reads++; return v.apply(t, args); };
-      if (k === 'put' || k === 'delete' || k === 'deleteAll') return (...args) => { metrics.c.writes++; return v.apply(t, args); };
+      if (k === 'put' || k === 'delete' || k === 'deleteAll' || k === 'setAlarm' || k === 'deleteAlarm')
+        return (...args) => {
+          metrics.c.writes += rowsWritten(k, args);
+          return v.apply(t, args);
+        };
       return v.bind(t);
     },
     set(t, k, v) { return Reflect.set(t, k, v); },

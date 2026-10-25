@@ -4055,3 +4055,89 @@ The frames held are the held sent, the held gone and the still held:
   round from an empty hold, a refusal held.
 - `tools/foesFirstBench.mjs`: each send read by its frame's number, the senders' tail, a handover its owner heard, the
   `burst`, `liar` and `leavers` scenes.
+
+## COST-1: built (2026-10-24, this branch - relay world260 (world256, world257, world258, then world259, until the merges with main, whose STAFF-EVENT, STAFF-EVENT BOSS, KETCH-LONGER and ASK-LONGER took them), NOT YET DEPLOYED; one relay drop at its merge)
+
+The owner's Cloudflare bill (2026-10-23): about $90 a day, $50 of it Durable Objects compute duration - some 370 objects
+held in memory around the clock at $0.135 an object-day (128 MB billed whatever an object uses, $12.50 per million GB-s).
+Cloudflare bills duration while an object runs or sits in memory unable to hibernate, and two things keep one from
+hibernating: an event (a socket's frame, an alarm firing) every few seconds, and anything pending - a timer, a call out.
+COST-0 (above, `do-active.yml`) is the measurement; this slice ships the two fixes the code alone shows, without waiting
+for it (the owner: the most savings at a moderate risk).
+
+**What kept them awake, read in the code.**
+- **A region's channel, five objects.** SCALE5c part two split each region's channel four ways for 2,048 sockets a
+  region at the 10,000 target. HUB-PULL (above) then gave every shard holding a socket a call held open at its bus, up to
+  HUB_POLL_MS at a time - a call out on one side and a timer on the other, so neither side ever hibernates. A populated
+  region kept its bus and up to four shards awake for as long as anyone stood in it: 62 buses and 248 shards at most, for
+  a few dozen players a region - under a fifth of one object's CHAT_SOCKETS_MAX.
+- **The ten-minute windows.** A cell arms the spawn grant's measure (GRANT_MEASURE_MS, index.js `_grantFold`) and the
+  staff traffic feed (staffFeeds.js `netArm`, the end of its NET_FEED_MS window); the reaction feed's tick re-arms every
+  REACT_EPISODE_MS while rows wait, and a public line arms the reviewer's feed (FEED_WAIT_MS). A player who crossed a cell
+  left it billed up to ten minutes after they walked on.
+
+**Built.**
+- **A region's channel whole again** (`src/net/hubShards.js` shardOf, regionsSharded; `server/src/index.js` `_shardOf`).
+  shardOf answers no shard for a region's channel unless the region is named, so a region link says hello to
+  `chat:region.<r>` itself - as it did before part two - and the channel holds its players' real sockets: its lines, its
+  travellers' marks (a joiner's welcome carries them), its census and the Region tab's list run over them as the bus's
+  own. Nothing polls: a quiet region sleeps between its lines. The page needs no change - world.js `channelLinkRoom` asks
+  shardOf, which answers the channel itself - and a page of an older build that asks for its shard is told the channel
+  (`hub`, the relay's hop) and closed before anything is written there.
+- **The way back: `REGION_SHARDS`** (`server/wrangler.toml` [vars]): region numbers separated by commas, or `all` - each
+  named region is split as part two split it, its links told their shards by the bus. Empty: no region is split. The
+  trade: one object takes a region's whole reconnect wave through its one hello gate (part two's reason). Measured then
+  (`tools/hubShardBench.mjs`): 2,000 arriving at one region's channel, the last hello 3.78 ms; a region holds tens. Name
+  a region only if the relay's metrics show its channel refusing `busy` (`relay-load.yml`, `chat`).
+- **The hub keeps its sixteen.** The world hub's shards, bus, ShardSockets and HUB-PULL are untouched: every player
+  online holds a hub link, its shards were awake 21-23 hours a day before HUB-PULL (measured, above), and the split keeps
+  the hub's door wide at a thousand online. Its seventeen objects are the floor this slice accepts.
+- **A drained room leaves nothing armed** (`server/src/drainWindows.js` flushAtDrain, wired in `_leave`'s drain beside
+  the room's last metrics window). The last leave posts every window open now - the grant's measure, both staff feeds,
+  the reviewer's lines - and clears its timer; a post that fails arms itself again (staffFeeds.js `send`), and a room
+  still empty when the posts settle lets that go too (each feed is a sample, in memory alone). While the room holds a
+  socket every window posts on its own timer, as before. The service reads a grant window's asks over its own length
+  (AUDIT GRANT A5), so a window cut short at a drain reads true.
+- **A write counted by the rows it bills** (`server/src/relayScale.js` countedState, rowsWritten): a put of entries and a
+  delete of keys count a row a key, and an alarm set or deleted is a row - so the metrics' `writes` (double11) is the
+  storage rows the bill counts. `relay-load.yml`'s `storage` question reads it.
+
+**Expected:** $20-40 a day from the regions (up to 248 shards and the buses' held polls asleep - each always-on object is
+$4.05 a month) and $2-8 a day from the windows - DO duration from $50 a day to $20-30.
+
+**The measurement that confirms it.** "Durable Objects awake" (`do-active.yml`, COST-0) for 7 days before the merge and 7
+days after: the objects awake past 22 hours a day fall from about 330 (the chat layer) toward the hub's 17 and the
+crowded cells, and the window's object-days a day fall with the bill's duration line. `relay-load.yml`'s `kinds`
+question: `chat` room-windows fall, and `busy` stays 0 on the region channels.
+
+**Left, each with its reason.**
+- **The Elite Gates' beat in an empty room.** The plan read it as waste: a breach's room beats every second with nobody
+  in it until its stage ends (net/eliteGates/egDurable.js egTickAt). It is not idle: that beat runs the breach's clock -
+  the count, the open window and an absent member's fall - and a gap past EG_GAP_MS (2 s) is given back to the breach
+  (egBeatGap), so a beat stopped for longer than an object takes to hibernate pauses the breach until someone returns. At
+  about $0.14 per open breach-day it is left as it runs.
+- **The bus pushing from its alarm** (a bus that sends its shards their frames, so no shard holds a call open): workerd
+  charges an outgoing call to the newest incoming request the object serves (HUB-PULL, "Why"), so the depth chain
+  HUB-PULL ended comes back as a race. Not built; a whole region needs no bus at all.
+- **Bigger cells** - COST-2, its own drop, merged a few days after this one so the two savings can be told apart.
+
+**Pins.** `test/net/cost1_regions.test.js` (3): the law (a region whole unless named, the var read strictly, `all`, the
+hub's sixteen untouched, the shards still rooms the Worker opens, the relay shipped naming none, the relay reading its
+own var); over real Rooms a region's channel whole (welcomed there, real sockets, no shard, a line and a mark heard and
+never back to its own, a joiner's welcome carrying the marks, the census, the Region list, an older build's link on a
+shard told the channel and nothing written there, nothing polled); the way back (a named region's link told its shard,
+another region whole). `test/server/cost1_drain.test.js` (3): the grant's window posted at the last leave and never at
+another, its timer cleared, nothing posted when nothing is open; both staff feeds and the reviewer's lines posted and
+their timers cleared, a failed post's retry let go in an empty room and kept under a socket; the rows a write bills.
+`tools/mutants/cost1.json`: 17.
+- PIN MOVED: the region shards' pins hold the split (the way back) - `scale5c.test.js` (part two; its law says the
+  default too), `lease1.test.js`, `staffpanel5hidden_relay.test.js` and `auditscale2_bus.test.js` run their worlds with
+  `REGION_SHARDS` naming every region (`test/fakeRoom.mjs` fakeRooms takes the relay's `vars`); `tools/mutants/scale5c.json`'s
+  two hops and `scale2b.json`'s drain re-aimed by content.
+- RELAY_VERSION world260, its hash and the bundle's new file (`server/src/drainWindows.js`) in
+  `test/net/relayversion.test.js`, every pin on world259 moved.
+
+**The deploy.** One relay drop, world260, at the merge (relay-deploy.yml) - every socket closes once, as every relay
+deploy does. No account-service change, no migration. Rollback is a revert (another drop); a page of either build joins
+whichever the relay answers, so no page change is needed either way. The region shards' stored `hubkey` stays in their
+storage, read by nothing until a region is split again.
