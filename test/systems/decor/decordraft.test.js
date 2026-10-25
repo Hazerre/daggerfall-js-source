@@ -126,6 +126,21 @@ test('DECOR-BATCH a copy\'s access waits until Confirm has written the piece', a
   assert.deepEqual(use.filter((b) => b.op === 'set'), [{ mapId: 11, buildingKey: 22, character: 'char-me', op: 'set', id: copy.id, kind: 'storage', mode: 'friends', names: [], realm: null }]);
 });
 
+test('DECOR-BATCH a wagon Confirm keeps an owned item through a later Discard', async () => {
+  const rig = toolRig({ room: { kind: 'caravan' }, gold: 1000 });
+  rig.frame();
+  rig.doc.body.children.find((c) => c.className === 'dfdecor-open').fire('click');
+  rig.standing.push(piece({ id: 'chest', paid: 0 }));
+  rig.owned.set('chest', { name: 'Rug' });
+  assert.equal(await rig.tool.confirmDraft(), true);
+  rig.standing.push(piece({ id: 'later', paid: 0 }));
+  rig.owned.set('later', { name: 'Later' });
+  assert.equal(rig.tool.discardDraft(), true);
+  assert.equal(rig.owned.get('chest')?.name, 'Rug');
+  assert.equal(rig.owned.has('later'), false);
+  assert.deepEqual(rig.standing.map((p) => p.id), ['chest']);
+});
+
 test('DECOR-BATCH a placed piece stays in the mode: Escape asks, and the piece is not kept yet', async () => {
   const rig = toolRig({
     room: { kind: 'home', mapId: 11, buildingKey: 22 }, gold: 5000,

@@ -72,10 +72,100 @@ test('DECOR-ACCESS gold in a chest is written with the other goods and taken bac
   assert.equal(given.length, 0, 'the purse already has the coins');
 });
 
+test('DECOR-ACCESS a take still waiting for the list is settled when the chest closes', async () => {
+  const gold = { uid: 'ffffffffffffffff', group: 'Currency', templateIndex: 276, stackCount: 4, value: 1 };
+  let release;
+  const listed = new Promise((r) => { release = r; });
+  const sent = [];
+  let opened = null;
+  let purse = 0;
+  bindDecorHouse({
+    use: (req) => {
+      if (req.op === 'settle') sent.push(req);
+      return req.op === 'list' ? listed : Promise.resolve({ ok: true });
+    },
+    mapId: 1, buildingKey: 2, character: () => 'c',
+    items: () => [], take() {}, give() {}, say() {}, refusal: (e) => e,
+    open: (spec) => { opened = spec; },
+    realm: () => async ({ apply, call }) => { call({ id: 'r', seq: 2 }); apply(); return { ok: true }; },
+  });
+  noteDecorBin('chest-race', [gold]);
+  assert.equal(await openSharedChest('chest-race'), true);
+  const from = opened.loot.items();
+  const take = opened.loot.commit('take', from[0], 4, () => { purse += from[0].stackCount; from.splice(0, 1); return null; });
+  opened.loot.closed();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(sent.length, 0, 'the close waits while the take is still reading the chest');
+  assert.equal(purse, 0);
+  release({ ok: true, data: { items: [{ uid: gold.uid, group: 'Currency', templateIndex: 276, stackCount: 4, value: 1 }] } });
+  assert.equal(await take, true);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(purse, 4);
+  assert.deepEqual(sent.map((s) => s.take), [[gold.uid]]);
+});
+
+test('DECOR-ACCESS two portions of one stack settle as its last remainder', async () => {
+  const pile = { uid: 'eeeeeeeeeeeeeeee', group: 'Gems', templateIndex: 0, stackCount: 10 };
+  const sent = [];
+  const given = [];
+  let opened = null;
+  bindDecorHouse({
+    use: (req) => {
+      if (req.op === 'settle') sent.push(req);
+      return req.op === 'list' ? Promise.resolve({ ok: true, data: { items: [pile] } }) : Promise.resolve({ ok: true });
+    },
+    mapId: 1, buildingKey: 2, character: () => 'c',
+    items: () => [], take() {}, give(it) { given.push(it); }, say() {}, refusal: (e) => e,
+    open: (spec) => { opened = spec; },
+    realm: () => async ({ apply, call }) => { call({ id: 'r', seq: 2 }); apply(); return { ok: true }; },
+  });
+  noteDecorBin('chest-cut', [pile]);
+  assert.equal(await openSharedChest('chest-cut'), true);
+  const row = opened.loot.items()[0];
+  const portion = (n) => { row.stackCount -= n; return { group: 'Gems', templateIndex: 0, stackCount: n }; };
+  assert.equal(await opened.loot.commit('take', row, 4, () => portion(4)), true);
+  assert.equal(await opened.loot.commit('take', row, 2, () => portion(2)), true);
+  opened.loot.closed();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(sent[0].cut, [{ uid: pile.uid, leave: 4 }]);
+  assert.deepEqual(sent[0].take, []);
+  assert.equal(given.length, 1);
+  assert.equal(given[0].stackCount, 6);
+});
+
+test('DECOR-ACCESS the rest of a cut stack leaves as one take', async () => {
+  const pile = { uid: '1111111111111111', group: 'Gems', templateIndex: 0, stackCount: 10 };
+  const sent = [];
+  const given = [];
+  let opened = null;
+  bindDecorHouse({
+    use: (req) => {
+      if (req.op === 'settle') sent.push(req);
+      return req.op === 'list' ? Promise.resolve({ ok: true, data: { items: [pile] } }) : Promise.resolve({ ok: true });
+    },
+    mapId: 1, buildingKey: 2, character: () => 'c',
+    items: () => [], take() {}, give(it) { given.push(it); }, say() {}, refusal: (e) => e,
+    open: (spec) => { opened = spec; },
+    realm: () => async ({ apply, call }) => { call({ id: 'r', seq: 2 }); apply(); return { ok: true }; },
+  });
+  noteDecorBin('chest-rest', [pile]);
+  assert.equal(await openSharedChest('chest-rest'), true);
+  const from = opened.loot.items();
+  const row = from[0];
+  assert.equal(await opened.loot.commit('take', row, 4, () => { row.stackCount -= 4; return { group: 'Gems', templateIndex: 0, stackCount: 4 }; }), true);
+  assert.equal(await opened.loot.commit('take', row, 6, () => { from.splice(from.indexOf(row), 1); return row; }), true);
+  opened.loot.closed();
+  await new Promise((r) => setTimeout(r, 0));
+  assert.deepEqual(sent[0].take, [pile.uid]);
+  assert.equal(sent[0].cut, undefined);
+  assert.equal(given.length, 1);
+  assert.equal(given[0].stackCount, 10);
+});
+
 test('DECOR-ACCESS a shared chest keeps each stack whole until the settle joins them', () => {
-  const chest = [{ uid: 'aaaaaaaaaaaaaaaa', group: 'Gems', templateIndex: 0, stackCount: 98 }];
+  const chest = Object.assign([{ uid: 'aaaaaaaaaaaaaaaa', group: 'Gems', templateIndex: 0, stackCount: 98 }], { unstacked: true });
   const pile = { uid: 'bbbbbbbbbbbbbbbb', group: 'Gems', templateIndex: 0, stackCount: 54 };
-  applyTransfer(pile, { amount: 54 }, [pile], chest, { stack: false });
+  applyTransfer(pile, { amount: 54 }, [pile], chest);
   assert.equal(chest.length, 2);
   assert.equal(chest[0].stackCount, 98);
   assert.equal(chest[1].stackCount, 54);
