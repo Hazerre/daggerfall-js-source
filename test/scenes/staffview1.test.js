@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createStaffViewHost, crowded, staffTagWords, STAFF_TAGS_MAX, STAFF_TAGS_ASK_MS, STAFF_FIND_WAIT_MS, STAFF_LINES_MAX, STAFF_TAG_HEAD_M } from '../../src/scenes/staffViewHost.js';
+import { createStaffViewHost, crowded, staffTagWords, STAFF_SEA_TYPES, STAFF_TAGS_MAX, STAFF_TAGS_ASK_MS, STAFF_FIND_WAIT_MS, STAFF_LINES_MAX, STAFF_TAG_HEAD_M } from '../../src/scenes/staffViewHost.js';
 import { STAFF_LINE, createStaffTags } from '../../src/ui/staffTags.js';
 import { validTags, NAMEPLATE_DIST } from '../../src/net/staffHook.js';
 import { ID_RE } from '../../src/net/identityToken.js';
@@ -232,6 +232,18 @@ test('STAFF-VIEW1 an Admin\'s monsters: the game\'s own puppets by their sender 
   for (let i = 0; i < 250; i++) foes.push({ puppet: 'p1', ai: { feet: [i % 20 - 10, 0, -30 - (i % 7)] } });
   r.frame();
   assert.equal(r.layer.lineSets.at(-1).length, STAFF_LINES_MAX);
+});
+
+test('STAFF-LINES-SEA (mob, 2026-10-25: "not draw line to player from sea creature", "they arnt a threat"): a Slaughterfish, a Dreugh or a Lamia draws no line to its owner on the Overworld and is not in the tag\'s count; a land monster still is (mutants: the sea lined, the sea counted, every monster dropped)', () => {
+  assert.deepEqual([...STAFF_SEA_TYPES].sort((a, b) => a - b), [11, 41, 42], 'the relay\'s FOE_SEA_TYPES');
+  const foes = [11, 41, 42, 7].map((t, i) => ({ puppet: 'p1', mobileType: t, ai: { feet: [i * 2 - 3, 0, -30] } }));
+  const follow = fakeFollow({ room: [peer('p1', 0, -30)] });
+  const r = rig({ follow, foes });
+  r.frame();
+  assert.equal(r.layer.members()[0].line, '1 monster', 'the Orc alone counted');
+  r.state.up = true;
+  r.frame();
+  assert.equal(r.layer.lineSets.at(-1).length, 1, 'the Orc alone lined');
 });
 
 // ── A TAG CLICK ────────────────────────────────────────────────────────────────────────────────────
@@ -532,19 +544,20 @@ test('FOLLOW-GROUND-HINT (mob: "following from ground does not work", "panel ope
   assert.equal(follow.hints.at(-1), null, 'locked: the followed room is not mine');
 });
 
-test('STAFF-FLAG-LINES (mob: "need to port over my watch lines and review lines for flags in staff esp", "helps flag bad players"): from the screen\'s middle a line to each flagged player in front of the eye - a report\'s red (review), a watch\'s gold - past the nameplate distance too; none to a player with no flag or behind the eye; on the Overworld to its tags; for a Moderator as for an Admin (mutants: a watch drawn as review, the distance cut on the lines, no lines on the Overworld)', () => {
+test('STAFF-FLAG-LINES (mob: "need to port over my watch lines and review lines for flags in staff esp", "helps flag bad players"): from the screen\'s middle a line to each flagged player in front of the eye - a report\'s red (review) - past the nameplate distance too; none to a player with no flag, a watch alone (STAFF-LINES-REVIEW, mob: "no watch line gold show just a red review") or behind the eye; on the Overworld to its tags; for a Moderator as for an Admin (mutants: a watch lined again, the distance cut on the lines, no lines on the Overworld)', () => {
   const tags = validTags({ dist: 50, list: [{ sub: 'acct-w', watch: true }, { sub: 'acct-r', level: 'low', why: '1 report' }, { sub: 'acct-far', level: 'high', why: '3 reports' }, { sub: 'acct-back', level: 'high', why: '3 reports' }] });
   const follow = fakeFollow({ room: [peer('p1', 0, -20, { sub: 'acct-w' }), peer('p2', 10, -20, { sub: 'acct-r' }), peer('p3', 0, -400, { sub: 'acct-far' }), peer('p4', 0, -25, { sub: 'acct-none' }), peer('p5', 0, 40, { sub: 'acct-back' })], tags });
   const r = rig({ glyphs: ['mod'], follow });
   r.frame();
   const kinds = () => r.layer.lineSets.at(-1).map((s) => s[4]).sort();
-  assert.deepEqual(kinds(), [STAFF_LINE.watch, STAFF_LINE.review, STAFF_LINE.review].sort(), 'the watch, the report, and the far report; nobody unflagged or behind');
+  assert.deepEqual(kinds(), [STAFF_LINE.review, STAFF_LINE.review], 'the report and the far report; nobody watched alone, unflagged or behind');
+  assert.equal(r.layer.members().find((m) => m.id === 'p1')?.line, 'WATCH', 'the watch keeps its word on the tag');
   for (const s of r.layer.lineSets.at(-1)) assert.deepEqual([s[0], s[1]], [CANVAS.clientWidth / 2, CANVAS.clientHeight / 2], 'from the middle');
   assert.ok(!r.layer.members().some((m) => m.id === 'p3'), 'the far one is past the nameplate distance - lined, not tagged');
   r.state.up = true;
   r.host.marks([]);
   r.frame();
-  assert.equal(kinds().length, 3, 'the Overworld: the same three');
+  assert.equal(kinds().length, 2, 'the Overworld: the same two');
 });
 
 test('CROWD-CHIPS (mob: "to many ocerlapping how would we clean thaT UP"; the card\'s pick "Merge close boxes, count only"): boxes that would touch merge into the one that leads until none does; ones clear of each other stay apart (mutants: no merge; a crowd that opens its names unasked)', () => {
