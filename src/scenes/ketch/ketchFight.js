@@ -123,10 +123,12 @@ export function ktBodyAct(B, now, mobile, blow, look = null) {
  *   audio?: any, link: any, now: () => number, cam?: () => number[]|null, feet?: () => number[]|null, grounded?: () => boolean,
  *   player?: () => any, save?: (e: any, el: string) => number, strike?: (dmg: number, how: any) => void, say?: (text: string) => void,
  *   sendHit?: (hit: { o: number, d: number, r: number, q: number }) => boolean, onStruck?: () => void,
+ *   fell?: (kind: string, id: number, at: number[]) => void,
  * }} deps
  *   `link` the ship's (net/ketch/ketchLink.js); `now` the relay's clock; `feet` my feet (the dungeon's frame, null off the ship);
  *   `strike` the dungeon context's door a blow on me lands through; `save` my saving throw against an element; `sendHit` a
- *   blow of mine out to the room; `onStruck` any blow or hazard met me (the client lets my cell go).
+ *   blow of mine out to the room; `onStruck` any blow or hazard met me (the client lets my cell go); `fell` a construct
+ *   (its kind's key, 'tonal' for the Warden) fallen fresh, where (KETCH-PELLETS: the client lays its Pellets).
  */
 export function createKetchFight({ renderer = null, gl = null, getTexture = null, uploadRecordFrame = null, audio = null, link, now, cam = () => null, feet = () => null, grounded = () => true, player = () => null, save = () => 100, strike = () => {}, say = () => {}, sendHit = () => false, onStruck = () => {}, fell = () => {} }) {
   const O = deckToDungeon(0, 0, 0);
