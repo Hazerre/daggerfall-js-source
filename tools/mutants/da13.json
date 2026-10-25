@@ -512,9 +512,9 @@
   },
   {
     "name": "DA13-52-a-cancelled-navigation-switches",
-    "file": "app/main.cjs",
-    "old": "if (d?.isMainFrame && !d.isSameDocument && d.url.startsWith('dagger://game/')) playReadyGame();",
-    "new": "if (d?.isMainFrame && !d.isSameDocument) playReadyGame();",
+    "file": "app/lib/readyGameSwitch.cjs",
+    "old": "  return typeof navigation.url === 'string' && navigation.url.startsWith(GAME_PAGES);",
+    "new": "  return true;",
     "tests": [
       "test/tooling/da13_gamechannel.test.js"
     ],
