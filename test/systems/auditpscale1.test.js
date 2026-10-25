@@ -191,6 +191,17 @@ test('AUDIT PSCALE1 outdoors, driven - WHOEVER FIGHTS IT: my foe is as tough as 
   owner.healFoe(boss, 10);
   assert.equal(boss.entity.health, 9960, 'a heal its own ten');
   assert.equal(owner.partyHit(10, boss), 13, 'its blow at me still four fighters\'');
+  // BOSS-BIG-HIT (mob 2026-10-25: "magic hits 10 of thousands"): a peer's blow past the bound lands on the mini boss at the
+  // bound - it was refused whole; any other foe still refuses it
+  boss.entity.health = 20000;
+  assert.equal(owner.applyHit('bob-0002', { i: boss.seq, dmg: 45000, kind: 'spell', k: 'world:3,12' }), true, 'a spell of 45,000 on the mini boss lands');
+  assert.equal(boss.entity.health, 10000, 'as 10,000');
+  // BOSS-BAR (mob: "the bar never moved"): past the wire's bound the record says the same share of it, so a reader's bar falls
+  const big = await owner.spawnFoe(0, [22, 0, 22], { feetGiven: true });
+  promoteStaffBoss(big.entity, { hp: 1000000 });
+  big.entity.health = 750000;
+  const br = owner.foesFrame(true).f.find((r) => r.i === big.seq);
+  assert.deepEqual([br.h, br.k], [75000, 100000], 'three quarters left reads three quarters');
   // DOORS-2: Namira's reflection through the foe's own door - its death, its fighters
   const wearer = { ...playerEntity(), equip: { slots: { Ring0: { name: 'Artifact', currentCondition: 800, maxCondition: 800, enchantments: [{ type: T.SpecialArtifactEffect, param: ARTIFACTS.RingOfNamira }] } } } };
   const zombie = await owner.spawnFoe(0, [18, 0, 18], { feetGiven: true });

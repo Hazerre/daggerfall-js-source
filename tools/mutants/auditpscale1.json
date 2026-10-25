@@ -390,5 +390,32 @@
     "tests": [
       "test/systems/auditpscale1.test.js"
     ]
+  },
+  {
+    "name": "BOSS-BIG-HIT-refused",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "(dmg > PEER_HIT_DMG_MAX && !f.entity?.staffBoss)) return false;",
+    "new": "dmg > PEER_HIT_DMG_MAX) return false;",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-BIG-HIT-unclamped",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "    const blow = Math.min(PEER_HIT_DMG_MAX, dmg);",
+    "new": "    const blow = dmg;",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
+  },
+  {
+    "name": "BOSS-BAR-clamped",
+    "file": "src/scenes/exteriorFoes.js",
+    "old": "k < 1 ? Math.round(e.health * k) : e.health",
+    "new": "e.health",
+    "tests": [
+      "test/systems/auditpscale1.test.js"
+    ]
   }
 ]
