@@ -128,7 +128,7 @@ context's alone.
 
 ## The relay
 
-`RELAY_VERSION` world265 (`net/wire.js`, `test/net/relayversion.test.js` - its law re-hashed, `net/ketch/ketchLaw.js`
+`RELAY_VERSION` world266 (world265 on its branch, renumbered past GATE-COURTS' world265 at the merge - `net/wire.js`, `test/net/relayversion.test.js` - its law re-hashed, `net/ketch/ketchLaw.js`
 now walked from `net/wire.js`), NOT YET DEPLOYED. The page's fixes ship with the site. The relay's ship with its deploy:
 the `st` word's wave, the sweep's `sw`, the voyage's number, her last minutes, the fight's two minutes, the crew's count,
 the Sentries, the bow and the hold, the end's tell and the raise.

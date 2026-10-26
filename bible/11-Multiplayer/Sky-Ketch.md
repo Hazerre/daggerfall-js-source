@@ -604,4 +604,4 @@ KETCH-FIX shut her hull's bottom, so a fall from a section of the ring landed in
   host body struck and reads the relay's word of its health. This holds for every event's host bodies: the gate's, the
   Spire's, the Hour's and hers (STAND-IN-BAR).
 
-Relay world265, NOT YET DEPLOYED.
+Relay world266 (world265 on its branch, renumbered past GATE-COURTS' at the merge), NOT YET DEPLOYED.
