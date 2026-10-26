@@ -153,38 +153,79 @@ door for a crafted piece of jewellery and nothing else (`keptEnchantments`), and
 consequence of DFU's filter meeting the ladder, never decided. The report's piece, a Masterwork Daedric Cuirass,
 carries Water Walking when held and 1,200 enchantment points; it was not listed.
 
-FIXED. The item maker takes an IDENTIFIED RARE with the rows the ladder rolled on it - its flavour, a curse's drawback
-- and any the maker laid since (`enchanting.js` rareKeeps, keptEnchantments; `itemMakerWindow.js` itemMakerFilter
-reads it, so both skins list it). Those rows stand at the head of the two lists in the forced colour, are never taken
-off, count in the ten-row guard and the picker's filters (so a curse's own setting is never offered again, and the
-temple's lift after it takes the curse's row, never the maker's - `lootCurse.js` liftCurse), and stay ahead of the new
-rows (applyEnchantments, J2's own path).
+FIXED. The item maker takes an IDENTIFIED RARE with the rows its ladder rolled on it - its flavour, one of its group's
+RARE_FLAVOURS, and a curse's drawback, the curse's own - and any the maker laid since; a Rare carrying any other row is
+DFU's still (`enchanting.js` rareKeeps, keptEnchantments; `itemMakerWindow.js` itemMakerFilter reads it, so both skins
+list it). Those rows stand at the head of the two lists in the forced colour, are never taken off, count in the
+ten-row guard and the picker's filters (so the picker never offers a curse's own setting again), and stay ahead of the
+new rows (applyEnchantments, J2's own path). A bound soul's forced set is added whole, past those filters, and may hold
+a row of the drawback's very kind (a Wraith's Item Deteriorates in holy places): the temple's lift takes the last row of
+the curse's kind that no maker laid (`lootCurse.js` liftCurse, AUDIT MAKER-RARE A1).
 
-THE LADDER'S ROWS COST THE MAKER NOTHING. A crafted jewel's roll is drawn among the flavours its points hold (AUDIT
-PROF-541 J4), so J2 costs it against them. Any other Rare's flavour is drawn whatever its points: Regens Health costs
-3,000 of the maker's points, and a Steel Cuirass holds 400, a Daedric one 1,200 - counted, nearly no Rare armour could
-ever take a row, and the report would stand. So a Rare's own rows are free, and a curse's drawback - a side effect,
-whose negative cost buys points when a player chooses it - buys none (the temple may lift it later). The rows the maker
-lays on a Rare cost as they always do, the side effects among them buying their points. A crafted jewel keeps J2's
-costing. This is the item law's budget already (`itemLaw.js` makerFindings counts a crafted jewel's kept rows and no
-other piece's), so the law does not move: ITEM_LAW_VERSION stays 14 and no account service is owed.
+THE LADDER'S ROWS COST THE MAKER NOTHING - this change's choice, put to the owner (below). A crafted jewel's roll is
+drawn among the flavours its points hold (AUDIT PROF-541 J4), so J2 costs it against them, and a crafted jewel keeps
+J2's costing. Any other Rare's flavour is drawn whatever its points - Regens Health costs 3,000 of the maker's points; a
+Steel Cuirass holds 400, a Daedric one 1,200 - so counted, 622 of the 1,144 Rare armour piece, metal and flavour pairs
+would start over their budget and only 475 could take even the cheapest power (Feather Weight, 100). The report's own
+cuirass is not one of them: its Water Walking costs 170, and counted it would hold 1,030. A curse's drawback - a side
+effect, whose negative cost buys points when a player chooses it - buys none (the temple may lift it later). The rows
+the maker lays on a Rare cost as they always do, the side effects among them buying their points. This is the item
+law's budget already (`itemLaw.js` makerFindings costs a crafted jewel's kept rows and no other piece's), so the law
+does not move: ITEM_LAW_VERSION stays 14 and no account service is owed.
 
-THE TWO THAT STAY OUT. An UNIDENTIFIED Rare: the maker would show its hidden rows and, through SetEnchantments'
-IdentifyItem, identify it for nothing - the Mages Guild's Identify (or the spell) first, as the Reforge, the Imbue and
-the temple's lift each ask ('unknown'). A Masterwork is minted identified, so it is listed at once. A LEGENDARY keeps
-DFU's refusal: it is a fixed record, named and made like an artifact (`06-Systems/Loot-Rarity.md`, Names), and the
-artifacts are out by DFU's own filter. DFU's MAGIC.DEF items, the artifacts and a Rare carrying a row its ladder never
-rolls stay out as before; AETHERIC-MAKER's Aetheric and Gilded refusal is untouched.
+WHAT STAYS OUT. An UNIDENTIFIED Rare: the maker would show its hidden rows and, through SetEnchantments' IdentifyItem,
+identify it for nothing - the Mages Guild's Identify (or the spell) first, as the Reforge, the Imbue and the temple's
+lift each ask ('unknown'). A Masterwork is minted identified, so it is listed at once. A LEGENDARY keeps DFU's refusal by
+its tier - a fixed record, named and made like an artifact (`06-Systems/Loot-Rarity.md`, Names) - even where its
+record's row is a Rare's own flavour (Lysandus's Visor). With the LADDER SWITCHED OFF the item maker is DFU's for a Rare,
+found or a Masterwork (AUDIT MAKER-RARE A2); online the lane forces the ladder on. DFU's MAGIC.DEF items and the
+artifacts stay out by DFU's own filter; AETHERIC-MAKER's Aetheric and Gilded refusal is untouched.
 
 Port-Ledger A: THE ITEM MAKER TAKES A RARE. `06-Systems/Professions-Arc.md` 36's J2 sentence narrowed beside it.
 
 PINS: `test/systems/fb1026_makerrare.test.js` (3: the report's cuirass through the window - listed, its roll free,
 enchanted, paid, lawful, listed again with the maker's row costed; a found Rare out unidentified and in identified, a
-Rare of every group on its tab, a maker's side effect still buying its points, and the Legendary, MAGIC.DEF,
-artifact and forged-row refusals; a cursed Rare's drawback free, its setting never offered again, lifted after the
-maker with the maker's row kept). The honest sweep's item-maker section gains a run over every identified Rare the
-sweep mints, loot and crafted (`test/honestItems.mjs`; 389 enchanted pieces at four seeds, every one lawful), so the
-item law is held to every Rare the maker now makes - INT1's producer count moved to 90 (PIN MOVED). PIN MOVED in
-`prof10_client.test.js`: J2's "no provenance" and "another recipe" pieces are no crafted jewels, and as identified Rares
-they are taken now, their roll free. Mutants `tools/mutants/fb1026_makerrare.json` (12, all dead); prof10's
-AUDIT-PROF10-J2-kept-any-enchanted re-aimed by content at the new guard (dead).
+Rare of every group and both cuts of clothing on its tab, a maker's side effect still buying its points, DFU's own
+magic and artifact off DFU's table, two Legendaries, four forgeries of a Rare's rows and the ladder switched off
+refused; a cursed Rare's drawback free and its setting never offered again, two forgeries of a cursed Rare's rows
+refused, and a Wraith's soul bound through the window from a soul trap bought and filled, then the curse lifted - the
+curse's own row gone, the soul's kept, the piece lawful). The honest sweep's item-maker section gains two runs
+(`test/honestItems.mjs`): a spread of 400 identified Rares, loot and crafted, and every cursed Rare the doors minted,
+through the maker - 453 enchanted pieces at four seeds, 62 of them cursed - then each cursed one lifted at the temple (62,
+22 beside a bound soul's forced rows); every one lawful, in the save and on the wire. INT1 holds both runs to that
+makeup (every group found and crafted, the cursed and their lifts) and its producer count moved to 91 (PIN MOVED). PIN
+MOVED in `prof10_client.test.js`: J2's "no provenance" and "another recipe" pieces are no crafted jewels, and as
+identified Rares they are taken now, their roll free. Mutants `tools/mutants/fb1026_makerrare.json` (22, all dead);
+prof10's AUDIT-PROF10-J2-kept-any-enchanted re-aimed by content at the new guard (dead).
+
+## AUDIT MAKER-RARE (the owner: "Audit this")
+
+Three lanes read the slice cold, each in its own worktree of the pushed head (`24123e927`), and no line was touched until
+all three had reported: A, the item maker's own law and its exploits; B, every other system that reads an enchanted Rare;
+C, the record - its tests, pins, mutants and docs. Every finding was reproduced on the tree before it was fixed.
+
+| | Finding | Lane | Done |
+|---|---|---|---|
+| A1 | BLOCKER. A cursed Rare enchanted with a bound soul whose forced set holds the curse's drawback kind (26 soul, drawback and group pairs: Item Deteriorates with a Ghost, a Wraith, a Lich, a Daedroth, a Frost Daedra or a Daedra Seducer; User Takes Damage with a Daedra Lord or a Daedra Seducer; Bad Reactions From with a Daedra Seducer, a Fire Daedra or a Daedroth; Low Damage Vs on a weapon with a Ghost, a Lich, a Wraith or a Daedroth), then lifted at the temple: the lift took "the last of its kind" - the soul's row - and left the curse biting, so the item law found two rows on an uncursed Rare and the soul's set broken: the owner's trade held, the piece off the maker's list and no temple to lift it again. MAKER-RARE's "the temple's lift after it takes the curse's row, never the maker's" was false for a soul | A, B, C | FIXED: the lift takes the last of the kind that no maker laid (`lootCurse.js` liftCurse; `enchanting.js` makerLaid, exported as the one test of a maker's row beside the law's isMakerRow). Shipped before any such piece could exist |
+| A2 | With the ladder switched off the maker took a Rare, while Loot-Rarity.md's switch says "Off ... DFU's loot, exactly" and a garment and a Masterwork are DFU's off (AUDIT LOOT II A9) | A | FIXED: rareKeeps asks the switch; a crafted jewel keeps J2's door, which never asked it |
+| B2 | Pre-existing, made wider: a Masterwork of your own make enchanted since is no crafted piece the market lists (smithItems.js asMinted) nor an auction's, and the pack's list greyed it out saying "made by you. List it as a crafted piece" - a list it was not on. A Fine or Superior piece enchanted under DFU's own maker, and J2's jewels, met it before | B | FIXED: "changed since you made it. Trade it, or sell it at a counter" (`marketTab.js` CHANGED_PIECE_WHY), as a spoiled dish is said (R2-C7) |
+| C2 | The branch conflicted with main: main's #1310 had written this record's path (LOOSE-SAID, QUEST-FIRST), and a conflicting pull request runs no workflow | C | FIXED: main merged in, MAKER-RARE folded into this record as its fourth report |
+| C3 | The sweep's Rare run was a 400-piece spread, three of them cursed - why A1 slipped through - and INT1 held only that the producer existed, so it could shrink to one jewel and stay green; the record called it "every identified Rare" | C | FIXED: every cursed Rare beside the spread, each lifted after in a run of its own, and INT1 holds both runs' makeup |
+| C4 | A cursed Rare carrying a row more than its ladder rolled was taken (the mutant `1 + (cursed ? 2 : 0)` lived) | C | FIXED with C5, pinned |
+| C5 | rareKeeps counted the ladder's rows and never asked what they were: a Rare whose one row its ladder never rolls (a blade's Vampiric Touch on a helm, 1,380 points) was taken with that row free, against "and no other" | C | FIXED: the flavour one of its group's RARE_FLAVOURS, a second row only the curse's own - the item law's reading (tierFindings) |
+| C6 | The reason for free rows was overstated ("nearly no Rare armour could ever take a row, and the report would stand"), and the Port-Ledger row's decision column credited it to the owner, who asked that Rares be enchantable | C | FIXED: the reason measured (above) and the choice named as this change's, put to the owner |
+| C7 | Test 2's "DFU's own magic and the artifacts" were a Rare with a forged `magic` or `artifact` mark | C | FIXED: a MAGIC.DEF item and Ebony Mail off DFU's table, the forged marks kept and named as forgeries; a Legendary carrying a Rare's own flavour added (its tier clause had no killer once C5 landed) |
+| C8 | "Every group a Rare rolls on" covered no men's clothing | C | FIXED: a men's Kimono |
+| C9 | keptEnchantments' docblock kept J2's "every row costed" and "null for any other enchanted item" with MAKER-RARE appended beneath; two comments said "a crafted piece's" alone; Professions-Arc 36 said a Masterwork "of any craft" rides free (a jewel's is costed); section 36's pins counted 13 tests and 166 mutants | C | FIXED: rewritten whole, "of any other craft", 16 and 173 |
+
+SAID, NOT CHANGED.
+- A bound soul's forced set may repeat a Rare's flavour (a Wraith's Regens Health in darkness beside a cuirass's): the
+  card lists it twice and both rows run. DFU's forced sets do the same beside any row a player chose.
+- `lootRarity.js` damnPiece finds the curse's row the same way the lift did, and was left: it runs at a door's mint, on
+  a Legendary weapon, which no maker has touched or takes.
+- The owner's word is asked on the free rows: a Rare's own rows cost none of its points (this change's choice, and the
+  item law's budget), or they count as J2 counts a crafted jewel's, which would refuse 622 of 1,144 armour pieces any row.
+
+PINS: as MAKER-RARE's above - `fb1026_makerrare` (A1, A2, C4, C5, C7, C8), INT1 (C3), `goldmarket_client.test.js`'s
+R2-C7 test (B2, PIN MOVED: the enchanted Masterwork beside the spoiled dish). Mutants: the twelve AUDIT-MAKER-RARE records
+in `tools/mutants/fb1026_makerrare.json`, all dead.

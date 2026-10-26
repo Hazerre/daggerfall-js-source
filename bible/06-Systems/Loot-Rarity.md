@@ -531,8 +531,11 @@ Rare named as its lines fall, the old law's both parts), `fb1013e_craftprocs` (t
 
 The owner: "You cant enchant masterwork/rare armor". A Rare's flavour is one of DFU's catalogue enchantments, so DFU's
 item maker - which lists no enchanted item (AddFilteredItem) - kept every Rare off its list, found or a Masterwork. Now
-an identified Rare is taken with the ladder's rows (its flavour, a curse's drawback) kept at the head of the maker's
-lists and costing none of its points, the maker's own rows after them costing as ever (`enchanting.js` rareKeeps,
-keptEnchantments). An unidentified Rare stays out - the maker would identify it for nothing - and a Legendary keeps
-DFU's refusal with the artifacts. A departure (Port-Ledger A, THE ITEM MAKER TAKES A RARE); the record is
-`01-Overview/bugs/Field-Bugs-2026-10-26.md`. `test/systems/fb1026_makerrare.test.js`.
+an identified Rare whose rows are the ladder's own (its group's flavour, a curse's drawback) is taken with them kept at
+the head of the maker's lists and costing none of its points, the maker's own rows after them costing as ever
+(`enchanting.js` rareKeeps, keptEnchantments). An unidentified Rare stays out - the maker would identify it for nothing
+- a Legendary keeps DFU's refusal with the artifacts, and with the ladder switched off the maker is DFU's, as a garment
+and a Masterwork are DFU's off (AUDIT LOOT II A9). The temple's lift takes the curse's own row, never one the maker laid: a bound soul's forced set may
+hold the drawback's very kind (`lootCurse.js` liftCurse; AUDIT MAKER-RARE A1). A departure (Port-Ledger A, THE ITEM MAKER
+TAKES A RARE); the record and its audit are `01-Overview/bugs/Field-Bugs-2026-10-26.md`.
+`test/systems/fb1026_makerrare.test.js`.
