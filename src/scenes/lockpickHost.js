@@ -82,6 +82,7 @@ export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverl
       let opened = false;
       const ov = overlay({
         act, what, seed, skill, gentle: gentle(), reduced,
+        gone: () => player?.health <= 0,   // AUDIT LOCKPICK A3/A4: dead under it - the interior's slot is overwritten, never disposed
         difficulty: lookAtLockText(lock, player.level, skill),
         picks: () => lockpickCount(player?.items),
         onAnswer: (/** @type {string} */ a) => {
@@ -94,10 +95,12 @@ export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverl
           } else if (a === 'open') {
             opened = true;
             tallySkill(player, SKILLS.Lockpicking, 1);   // ...or by the lock opening
-            setTimeout(() => ov?.dispose?.(), OPEN_HOLD_MS);
+            setTimeout(() => ov?.shut?.(), OPEN_HOLD_MS);
           }
         },
-        onClose: () => { if (open === ov) open = null; if (opened && !dead) onOpen(); },
+        // AUDIT LOCKPICK A3: the success tail only when the window shut itself or by the player's hand - a death screen
+        // (or any window) replacing it in its hold ran the tail under it: a corpse walked into the house
+        onClose: (/** @type {boolean} */ self) => { if (open === ov) open = null; if (opened && self && !dead && !(player?.health <= 0)) onOpen(); },
       });
       if (!ov) return true;
       open = ov;
@@ -124,6 +127,23 @@ export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverl
      */
     inside({ lock, key, what, onOpen }) {
       return host.begin({ lock, chance: interiorLockpickingChance(player.level, lock, skillValue(player, SKILLS.Lockpicking)), key, what, onOpen });
+    },
+    /**
+     * AN ACTION GRAPH'S LOCKED DOORS (world/actionSystem.js onLockpickAttempt - the magic arm stays the roll's): each picked
+     * in the window at DFU's interior chance; opened, swung through the graph's own seam (`lockpicked`: WORLD3's change, and
+     * never a door a peer swung first) and DFU's success said - the graph's own `onLockpickResult` where it has one (the
+     * dungeon's), else the host's line and chime (a building's). `place` names the graph: a door's lock is `place:key`. AUDIT LOCKPICK A4: a
+     * building's doors a Lock spell locked were never pickable - the graph had no hook, and DFU's roll it fell to read a
+     * Lockpicking of 0 against a retry gate of 0.
+     * @param {any} actions @param {string} place
+     */
+    wire(actions, place) {
+      if (!actions) return;
+      actions.onLockpickAttempt = (o) => host.inside({ lock: o.currentLockValue, key: `${place}:${o.key}`, onOpen: () => {
+        if (!actions.lockpicked(o)) return;
+        if (actions.onLockpickResult) actions.onLockpickResult(o, true);
+        else { line(LOCKPICKING_SUCCESS_TEXT); audio?.playOneShot?.(SOUND.ActivateLockUnlock, 1); }
+      } });
     },
     /** Whether a lock's window is up. */
     get busy() { return !!open && !open.done; },

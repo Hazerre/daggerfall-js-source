@@ -2736,7 +2736,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // door's here (world/actionSystem.js onLockpickAttempt: the magic arm stays the roll's, above) and a chest's
   // (activateSearchable) - in this dungeon's slot, a lockpick from the pack; the opened lock's tail is the roll's success
   const lockpick = createLockpickHost({ mount: (w) => pushDungeonWindow(w) });
-  actions.onLockpickAttempt = (o) => lockpick.inside({ lock: o.currentLockValue, key: `door:${dfLocation?.mapTableData?.mapId ?? 0}:${o.key}`, onOpen: () => actions.lockpicked(o) && actions.onLockpickResult(o, true) });
+  lockpick.wire(actions, `door:${dfLocation?.mapTableData?.mapId ?? 0}`);
   // X1: the Open/Lock SPELL outcome - the same door, one law up
   // (systems/mysticism.js). The armed effect is consumed here, so a
   // cast is spent whether or not the lock yielded, exactly as DFU's

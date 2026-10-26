@@ -27,7 +27,12 @@ export const SPOOL_TWO = 14;
  * THE ACT'S NUMBERS (seconds unless named):
  *   riseS        - the binding pin lifted to the shear line, on the average...
  *   riseJitter   - ...each lift its own, up to this share either way - a pin that rises in one beat a lift is a pin a
- *                  steady rhythm sets blind (a tap round the chambers at one pace opened a six-pin lock with no risk)
+ *                  steady rhythm sets blind (a tap round the chambers at one pace opened a six-pin lock with no risk).
+ *                  AUDIT LOCKPICK A2: the jitter must outspan what a press can set in - at DFU's 5% the hang at the best
+ *                  Agility band and both graces (0.08 x 1.3 + 2 x 0.03 = 0.164 s) under the rise's own spread (0.2 x 2 x
+ *                  0.45 = 0.18 s), so no one delay after a lift sets every rise; at 0.3, 0.18 and 0.05 every delay from
+ *                  0.167 to 0.3 s set every pin at every chance, and a blind rhythm opened a 5% lock six times in ten.
+ *                  Above it the hang grows with the chance and a steady, watching hand is the skill the lock rewards
  *   fallS        - the binding pin falling back from it
  *   springS      - a free pin's whole bounce, up and back (it never hangs)
  *   graceS       - a press this close to the hang (the rise's last of it, the fall's first) still sets
@@ -41,12 +46,12 @@ export const SPOOL_TWO = 14;
  *   senseSkill   - from this Lockpicking the binding pin is told apart before it is lifted
  */
 export const LOCKPICK_ACT = Object.freeze({
-  riseS: 0.16,
-  riseJitter: 0.3,
+  riseS: 0.2,
+  riseJitter: 0.45,
   fallS: 0.32,
   springS: 0.22,
-  graceS: 0.05,
-  windowMinS: 0.18,
+  graceS: 0.03,
+  windowMinS: 0.08,
   windowMaxS: 0.6,
   breakScale: 0.55,
   breakMin: 0.04,

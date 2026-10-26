@@ -282,6 +282,7 @@ export function mountLockpickWindow(host, deps) {
   }
   const frame = (ms) => {
     if (!alive) return;
+    if (deps.gone?.()) { deps.onGone?.(); return; }   // AUDIT LOCKPICK A3: the player died under it - whatever slot it stands in
     const now = ms / 1000;
     const dt = last == null ? 0 : Math.min(0.25, Math.max(0, now - last));
     last = now;

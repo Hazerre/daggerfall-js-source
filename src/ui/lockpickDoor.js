@@ -39,7 +39,9 @@ export function createLockpickOverlay(deps) {
   document.body.append(host);
   try { if (document.pointerLockElement) document.exitPointerLock?.(); } catch { /* no lock to let go */ }   // the pins are clicked
   let unregister = () => {};
-  const close = () => {
+  /** `self` - the window shut by the player (Esc, Leave, the pad's back, Tab's put-away) or its own hold's end; a
+   *  replacement in the slot (the death screen, another window - its `dispose`) is not (AUDIT LOCKPICK A3) */
+  const close = (self = false) => {
     if (fired) return;
     unregister();
     view?.unmount();
@@ -47,9 +49,9 @@ export function createLockpickOverlay(deps) {
     host.remove();
     fired = true;   // last: `done` must not read true while the DOM is up
     if (_open === overlay) _open = null;
-    deps.onClose?.();
+    deps.onClose?.(self);
   };
-  unregister = registerOverlay(close);
+  unregister = registerOverlay(() => close(true));
   const overlay = {
     isChoiceWindow: true,
     get done() { return fired; },
@@ -57,19 +59,21 @@ export function createLockpickOverlay(deps) {
     input(a) {
       if (a === 'left' || a === 'right') view?.act(a);
       else if (a === 'up' || a === 'confirm' || a === 'select') view?.act('press');
-      else if (a === 'back') close();
+      else if (a === 'back') close(true);
     },
     click() { /* the window is a fixed div over the canvas; pointers never get here */ },
     wheel() {},
     hover() {},
     tick() { /* its own animation frame draws it */ },
     draw() { /* DOM, not canvas */ },
-    dispose() { close(); },
+    dispose() { close(false); },
+    /** The host's own end of a window: the opened lock's hold run out. */
+    shut() { close(true); },
     repaint() { view?.repaint(); },
     /** The picks are gone: only Leave stays. */
     out() { view?.out(); },
   };
   _open = overlay;
-  view = mountLockpickWindow(host, { ...deps, onExit: close });
+  view = mountLockpickWindow(host, { ...deps, onExit: () => close(true), onGone: () => close(false) });
   return overlay;
 }

@@ -43,16 +43,16 @@ const seq = (...xs) => { let i = 0; return () => xs[Math.min(i++, xs.length - 1)
 
 test('LOCKPICK law: the act\'s numbers by value, the pins and spools a lock is built of, its window and its snap', () => {
   assert.deepEqual({ ...LOCKPICK_ACT }, {
-    riseS: 0.16, riseJitter: 0.3, fallS: 0.32, springS: 0.22, graceS: 0.05, windowMinS: 0.18, windowMaxS: 0.6,
+    riseS: 0.2, riseJitter: 0.45, fallS: 0.32, springS: 0.22, graceS: 0.03, windowMinS: 0.08, windowMaxS: 0.6,   // PIN MOVED (AUDIT LOCKPICK A2): the rise's spread outspans the 5% hang
     breakScale: 0.55, breakMin: 0.04, breakMax: 0.6, freeRisk: 0.35, senseSkill: 50,
   });
   assert.deepEqual([LOCK_PINS_MIN, LOCK_PINS_MAX, LOCK_PINS_STEP, SPOOL_ONE, SPOOL_TWO], [2, 6, 4, 8, 14]);
   assert.deepEqual([0, 1, 3, 4, 7, 8, 11, 12, 15, 16, 18, 19, 40].map(pinsFor), [2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6]);
   assert.deepEqual([0, 7, 8, 13, 14, 19].map(spoolsFor), [0, 0, 1, 1, 2, 2]);
   assert.equal(pinsFor(-3), 2, 'never under two'); assert.equal(pinsFor(NaN), 2);
-  assert.ok(Math.abs(setWindowS(5) - 0.18) < 1e-12); assert.ok(Math.abs(setWindowS(50) - 0.39) < 1e-12); assert.ok(Math.abs(setWindowS(95) - 0.6) < 1e-12);
-  assert.ok(Math.abs(setWindowS(50, 1.3) - 0.507) < 1e-12, 'the Agility band widens it');
-  assert.ok(Math.abs(setWindowS(200) - 0.6) < 1e-12 && Math.abs(setWindowS(-10) - 0.18) < 1e-12, 'DFU\'s 5..95 holds it');
+  assert.ok(Math.abs(setWindowS(5) - 0.08) < 1e-12); assert.ok(Math.abs(setWindowS(50) - 0.34) < 1e-12); assert.ok(Math.abs(setWindowS(95) - 0.6) < 1e-12);
+  assert.ok(Math.abs(setWindowS(50, 1.3) - 0.442) < 1e-12, 'the Agility band widens it');
+  assert.ok(Math.abs(setWindowS(200) - 0.6) < 1e-12 && Math.abs(setWindowS(-10) - 0.08) < 1e-12, 'DFU\'s 5..95 holds it');
   assert.ok(Math.abs(slipBreakChance(5) - 0.5225) < 1e-12); assert.ok(Math.abs(slipBreakChance(50) - 0.275) < 1e-12);
   assert.equal(slipBreakChance(95), 0.04, 'the floor'); assert.equal(lockBand(85), 1.3); assert.equal(lockBand(30), 0.85);
   assert.equal(sensesBinding(49), false); assert.equal(sensesBinding(50), true);
@@ -92,7 +92,7 @@ function cleanSet(act) {
   act.aim(act.binding);
   assert.equal(act.press(), 'lift');
   const p = act.state.pins[act.binding];
-  act.tick(p.rise + act.state.window / 2);
+  for (let t = 0, want = p.rise + act.state.window / 2; t < want - 1e-12; t += 0.05) act.tick(Math.min(0.05, want - t));   // a step is held to 0.25 s
   assert.equal(p.phase, PIN.hang);
   return act.press();
 }
@@ -121,10 +121,11 @@ test('LOCKPICK act: a press off the hang slips - the pick holds and the last pin
   assert.equal(act.press(), 'slip');
   assert.equal(act.state.pins[first].phase, PIN.rest, 'the last pin set dropped'); assert.equal(act.state.next, 0);
   assert.equal(act.state.slips, 1); assert.equal(act.state.broken, 0);
-  // the grace: the rise's last 50 ms sets
+  // the grace: the rise's last 30 ms sets
   assert.equal(cleanSet(act), 'set');
   act.aim(act.binding); act.press();
-  act.tick(act.state.pins[act.binding].rise - LOCKPICK_ACT.graceS + 0.001);
+  const into = act.state.pins[act.binding].rise - LOCKPICK_ACT.graceS + 0.001;
+  act.tick(into / 2); act.tick(into / 2);   // a step is held to 0.25 s
   assert.equal(act.state.pins[act.binding].phase, PIN.rise);
   assert.equal(act.press(), 'set', 'within the grace of the hang');
   // a snap: a roll under the slip's chance
@@ -160,11 +161,11 @@ test('LOCKPICK act: a free pin springs and never hangs - forcing it may snap the
 test('LOCKPICK act: the binding pin\'s rise is each lift\'s own, its window DFU\'s chance; a spool slipped loses its false set', () => {
   const lo = createLockpickAct({ lock: 1, chance: 5, seed: 9, rng: () => 0 });
   lo.aim(lo.binding); lo.press();
-  assert.ok(Math.abs(lo.state.pins[lo.binding].rise - 0.16 * 0.7) < 1e-12, 'the quickest rise');
+  assert.ok(Math.abs(lo.state.pins[lo.binding].rise - 0.2 * 0.55) < 1e-12, 'the quickest rise');
   const hi = createLockpickAct({ lock: 1, chance: 5, seed: 9, rng: () => 0.999999 });
   hi.aim(hi.binding); hi.press();
-  assert.ok(hi.state.pins[hi.binding].rise > 0.16 * 1.29, 'the slowest');
-  assert.ok(Math.abs(lo.state.window - 0.18) < 1e-12);
+  assert.ok(hi.state.pins[hi.binding].rise > 0.2 * 1.44, 'the slowest');
+  assert.ok(Math.abs(lo.state.window - 0.08) < 1e-12);
   assert.ok(Math.abs(createLockpickAct({ lock: 1, chance: 95, seed: 9, band: 1.15 }).state.window - 0.69) < 1e-12);
   // a spool false-set, then a slip: its false set is lost with the tension
   const seed = lockSeed('spool-slip');
@@ -184,7 +185,7 @@ test('LOCKPICK act: the Auto attempt opens on DFU\'s roll or snaps the pick; mov
   assert.equal(lose.auto(), 'break'); assert.equal(lose.state.broken, 1); assert.equal(lose.state.done, false);
   const door = createLockpickAct({ lock: 6, chance: 40, seed: 3, exterior: true, rng: () => 0.39 });
   assert.equal(door.auto(), 'break', 'a front door\'s roll: 1 + 39 is not under 40');
-  const m = createLockpickAct({ lock: 6, chance: 40, seed: 3 });
+  const m = createLockpickAct({ lock: 6, chance: 40, seed: 3, rng: () => 0.5 });   // the mean rise (0.2 s): one held step reaches the hang
   assert.equal(m.move(-1), 0); assert.equal(m.move(5), 1); m.aim(2); assert.equal(m.state.pos, 2); m.aim(9); assert.equal(m.state.pos, 2);
   m.aim(m.binding); m.press(); m.tick(10); assert.equal(m.state.pins[m.binding].phase, PIN.hang, 'a frame\'s step is held to a quarter second');
   m.cancel(); assert.equal(m.press(), null); assert.equal(m.auto(), null);
@@ -289,17 +290,18 @@ test('LOCKPICK item: a rogue\'s pockets - a Burglar or a Thief more often than n
 function rig({ picks = 3, skill = 40, gentle = false } = {}) {
   const player = { items: picks ? [lockpicks(picks)] : [], level: 4, skills: new Array(35).fill(skill), skillUses: new Array(35).fill(0), stats: {} };
   const said = [], lines = [], mounted = [], sounds = [];
-  let deps = null, outs = 0, disposed = 0;
+  let deps = null, outs = 0, disposed = 0, shut = 0;
   const host = createLockpickHost({
     player, mount: (w) => mounted.push(w), say: (l) => said.push(l), line: (l) => lines.push(l), changed: () => {},
     audio: { playOneShot: (k, v) => sounds.push([k, v]) }, gentle: () => gentle, reduced: () => false, rolls: () => 0.5,
     overlay: (d) => {
       deps = d;
-      const ov = { done: false, out() { outs++; }, dispose() { if (ov.done) return; ov.done = true; disposed++; d.onClose(); } };
+      const end = (self) => { if (ov.done) return; ov.done = true; if (self) shut++; else disposed++; d.onClose(self); };   // the door's own close: `self` its own or the player's
+      const ov = { done: false, out() { outs++; }, dispose() { end(false); }, shut() { end(true); } };
       return ov;
     },
   });
-  return { host, player, said, lines, mounted, sounds, get deps() { return deps; }, get outs() { return outs; }, get disposed() { return disposed; } };
+  return { host, player, said, lines, mounted, sounds, get deps() { return deps; }, get outs() { return outs; }, get disposed() { return disposed; }, get shut() { return shut; } };
 }
 
 test('LOCKPICK host: no pick and the lock says so - nothing opened, rolled, tallied or spent', () => {
@@ -333,13 +335,24 @@ test('LOCKPICK host: a snap spends a pick and tallies once; the last ends the at
   o.deps.onAnswer('open');
   assert.equal(o.player.skillUses[SKILLS.Lockpicking], 1); assert.equal(tail, 0, 'the plug is seen turning first');
   await new Promise((res) => setTimeout(res, OPEN_HOLD_MS + 40));
-  assert.equal(o.disposed, 1); assert.equal(tail, 1, 'shut, THEN the tail'); assert.equal(o.host.busy, false);
+  assert.equal(o.shut, 1); assert.equal(tail, 1, 'shut, THEN the tail'); assert.equal(o.host.busy, false);
   assert.equal(o.player.items.length, 1, 'an open costs no pick');
   // a window left: no tail
   const l = rig();
   let left = 0;
   l.host.inside({ lock: 2, key: 'c', onOpen: () => left++ });
-  l.deps.onClose(); assert.equal(left, 0);
+  l.deps.onClose(true); assert.equal(left, 0);
+  // AUDIT LOCKPICK A3: opened, then replaced in its hold - the death screen (or any window) taking the slot disposes it -
+  // and the success tail never runs under it; the player's own close in the hold (Esc, Leave) still runs it
+  for (const [how, want] of [['replaced', 0], ['the player', 1]]) {
+    const h = rig({ picks: 1 });
+    let ran = 0;
+    h.host.inside({ lock: 2, key: 'chest', onOpen: () => ran++ });
+    h.deps.onAnswer('open');
+    if (how === 'the player') h.mounted[0].shut(); else h.mounted[0].dispose();   // the door's own close (Esc, Leave: `self`), or the slot's replace
+    await new Promise((res) => setTimeout(res, OPEN_HOLD_MS + 40));
+    assert.equal(ran, want, `${how} in the hold`);
+  }
 });
 
 test('LOCKPICK host: disposed with a window up, the window shuts and an opened lock\'s tail never runs; Gentle work is handed on', async () => {
@@ -365,7 +378,8 @@ test('LOCKPICK host: a front door - DFU\'s exterior chance, its own roll; opened
   assert.deepEqual(order, ['enter']); assert.equal(r.lines.length, 1, 'the success line');
   assert.ok(r.sounds.some(([k]) => k === SOUND.ActivateLockUnlock), 'DFU\'s chime');
   const H = src('src/scenes/lockpickHost.js');
-  assert.ok(H.indexOf('tallyCrimeGuildRequirements(player, true, 1)') < H.indexOf('line(LOCKPICKING_SUCCESS_TEXT)'), 'CG2: the tally before the text (PlayerActivate.cs:552)');
+  // AUDIT LOCKPICK A5: the tally found at all - its absence read -1 and passed; lockpick_door.test.js counts it landing
+  assert.ok(H.indexOf('tallyCrimeGuildRequirements(player, true, 1)') >= 0 && H.indexOf('tallyCrimeGuildRequirements(player, true, 1)') < H.indexOf('line(LOCKPICKING_SUCCESS_TEXT)'), 'CG2: the tally before the text (PlayerActivate.cs:552)');
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -429,7 +443,9 @@ test('LOCKPICK sites: a dungeon door hands its pick to the host below the magic 
   assert.equal(door.state, 'end');
   assert.equal(a.lockpicked(door), false, 'an open lock is no lock'); assert.equal(door.state, 'end', 'and its door is not swung shut');
   const D = src('src/scenes/dungeonContext.js');
-  assert.match(D, /actions\.onLockpickAttempt = \(o\) => lockpick\.inside\(\{ lock: o\.currentLockValue, key: `door:\$\{dfLocation\?\.mapTableData\?\.mapId \?\? 0\}:\$\{o\.key\}`, onOpen: \(\) => actions\.lockpicked\(o\) && actions\.onLockpickResult\(o, true\) \}\);/);
+  // PIN MOVED (AUDIT LOCKPICK A4): the graph's doors wired through the host's own `wire` - the dungeon's and a building's
+  // alike (test/systems/lockpick/lockpick_audit.test.js drives it over a real graph)
+  assert.match(D, /lockpick\.wire\(actions, `door:\$\{dfLocation\?\.mapTableData\?\.mapId \?\? 0\}`\);/);
   assert.match(D, /return lockpick\.inside\(\{\n\s*lock: sb\.lock, key, what:/, 'a chest\'s pick, where SEARCH1 rolled');
   assert.match(D, /onOpen: \(\) => \{ markPicked\(key\); hudText\.add\(LOCKPICKING_SUCCESS_TEXT\); audio\.play3d\(SOUND\.ActivateLockUnlock, centre\); activateSearchable\(i, mode\); \}/, 'opened, marked picked and searched');
   assert.ok(D.includes('lockpick.dispose();   // LOCKPICK'), 'shut with the context');
@@ -438,10 +454,12 @@ test('LOCKPICK sites: a dungeon door hands its pick to the host below the magic 
 
 test('LOCKPICK sites: a front door in Steal mode opens the window where the roll stood, and is activated again once picked', () => {
   const W = src('src/scenes/worldModes.js');
-  assert.ok(W.includes('const lockpick = createLockpickHost({ talk: townTalk });'), 'the street\'s slot and line');
+  // PIN MOVED (AUDIT LOCKPICK A1): the host is `lockHost` - the ladder's own `lockpick` (the skill, DFU's name) shadowed
+  // `lockpick` and every front door threw; test/systems/lockpick/lockpick_door.test.js drives the door itself
+  assert.ok(W.includes('const lockHost = createLockpickHost({ talk: townTalk, mount: mountServiceWindow });'), 'the mode\'s own slot (A4), the street\'s line');
   const ladder = W.indexOf('if (!opened && !isBash) {\n          const lockpick = skillValue(playerEntity, SKILLS.Lockpicking);');
   const steal = W.indexOf("if (getInteractionMode() !== 'steal') {", ladder);
-  const pick = W.indexOf('if (!picked) return lockpick.frontDoor({ lock: lockValue, skill: lockpick, key: `building:${locId ?? 0}:${bd.buildingKey}`, enter: () => activateStaticDoor(hit, entries, false, { homeAsked, picked: true })', ladder);
+  const pick = W.indexOf('if (!picked) return lockHost.frontDoor({ lock: lockValue, skill: lockpick, key: `front:${locId ?? 0}:${bd.buildingKey}`, enter: () => activateStaticDoor(hit, entries, false, { homeAsked, picked: true })', ladder);
   assert.ok(ladder > 0 && steal > ladder && pick > steal, 'the refusal first, the window in Steal mode');
   assert.ok(W.indexOf('isBrokenIn = true;   // :557', pick) > pick, 'picked, it is a break-in');
   assert.equal(W.includes('getLastLockpickAttempt'), false, 'the anti-grind gate retired');
