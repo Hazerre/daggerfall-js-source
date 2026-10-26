@@ -861,7 +861,8 @@ CHANGED (`systems/naval/navalBoarding.js`, the law; `scenes/naval/navalHost.js` 
   side by side where I came to rest. The berth (`berthPose`) is the two hulls' own: the beams and BERTH_GAP apart, never
   nearer than HULL_CLEAR (0.5 m) between their colliders' widest (`halfWidth`), middle to middle (halfway from `aftZ` to
   `bowZ`), on the side and the heading she chose when the lines went over. A pirate's grapple on me (the repel) is
-  hauled the same way.
+  hauled the same way. AUDIT BOARD-MAGNET (below) drew the haul out to her berth's lane and along it, kept clear of my
+  hull, and moved its wiring to `scenes/naval/navalHaul.js`.
 - **The captain's stars** (`systems/naval/captainTree.js`): the ram's two keep their ids, which a saved sky names, and
   reach farther - `c_ram1` (Iron Beak, `ram` 0.2) is Long Lines, `reach` 0.15; Grappling Irons (`c_irons`, `foul` 8 and
   a boarder) `reach` 0.25 and the boarder - BOARD_RANGE times `statScale(reach)`. The stat reads "Grapple reach", and the
@@ -872,6 +873,57 @@ CHANGED (`systems/naval/navalBoarding.js`, the law; `scenes/naval/navalHost.js` 
   `tools/mutants/boardmagnet.json`.
 
 The port's own, as the sea fight is: Daggerfall and Daggerfall Unity have no sea, no ram and no boarding.
+
+## AUDIT BOARD-MAGNET - the haul audited (2026-10-26)
+
+The owner, on BOARD-MAGNET's pull request: *"Audit this."* An independent read of the diff found ten things, and the
+audit's own read an eleventh - the worst: each was measured on the code and fixed, or is recorded below as why not.
+
+FIXED:
+- **The haul drove her through my hull** (the audit's own): the eased straight line from where she lay to her berth
+  ignored my hull between them - from across my bow a galleon passed 16.7 m inside mine, a galley hauling a Carrack
+  25.8 m, and over every start in reach of every pair of hulls the worst was 39.7 m (a galley across another's stern).
+  The haul is drawn now (`navalBoarding.js` `drawHaul`, a frame of it): first across my keel to her berth's lane, then
+  along it, her heading round the short way, HAUL_SPEED (30 m/s) and HAUL_TURN (120 deg/s) at the most - and kept out
+  of my hull grown by HULL_CLEAR, by the push that keeps the sea's hulls apart (`hullOverlap`). Measured over the same
+  23,909 starts (out to a captain's farthest reach, 30 frames a second): never within HULL_CLEAR, 2.1 m in a frame at
+  the most (the straight line pushed out instead jumped 59 m in one, and fixed schedules - the lane first, the heading
+  late - all still drove 29-36 m in). A haul round a hull is longer: the fight waits until she lies in her berth
+  (`createBoarding` `step`: GRAPPLE_S and `arrived`) - about half lie in it by GRAPPLE_S, 95% by 3.5 s, the slowest (a
+  galley lying across another's stern) in 5.3 s; HAUL_MAX_S (6 s) is a guard none of them reaches, laying her in her
+  berth whatever held her (at 5 s it cut ten of those galleys 8.4 m short). Drawn straight at the berth without the
+  lane, 775 wedged behind a stern.
+- **Her side and heading flipped mid-haul** (F1): her berth's side of my keel and her heading were chosen afresh each
+  frame against my live helm - lying near 90 degrees off my heading, a turning helm flipped her heading 28 degrees in a
+  frame, and her side could flip across my keel. Chosen once now, when the lines go over (`berthPose`'s `lie`,
+  `navalHaul.js` `start`), the rest reckoned from my boat as it lies.
+- **A haul thrown at rest let the helm drive** (F3): nothing drove her on only while the brake was positive, and a throw
+  from rest has none - the oars gathered way under the haul. The helm is held for the whole haul (`hauling`).
+- **The haul's wiring was the host's own** (F6, HOST-SPLIT): the berth, the per-frame haul and the brake are
+  `scenes/naval/navalHaul.js` `createNavalHaul` now, wired by `createNavalHost` (its ceiling down by the line it freed).
+- **A dead reader** (F9): `createBoarding`'s `pose` read a fixed berth no caller asked for; it went with `haulPose`, the
+  straight line.
+- **Three copies of a hull's middle** (F10): `flatHull`, `hullGap`'s box and `berthHull` each worked it out -
+  `navalShips.js` `hullMid`, `flatHull`, `hullOverlap` and `flatGap` are the one law now (`navalHost.js` re-exports the
+  two its readers take from it; `navalAI.js hullGap` is `flatGap` of two).
+- **The ledger's row** (F7): it still said boarding took a ship fouled by my ram, and that the stars fed a ram and a
+  foul.
+- **A float pin** (F8): `helmway.test.js` asked `haulBrake(8.2) * GRAPPLE_S === 8.2` exactly.
+
+LEFT AS FOUND, and why:
+- **A repel strikes my canvas** (F2): it does now under the haul - and the fight's start always did (`leaveHelm` is Come
+  Sail Away's StopSailing, which lowers the sails and stops her dead); the haul only takes my way off over its seconds
+  instead of in one frame.
+- **The brake is sized once** (F4): at the haul's start, all of my way over GRAPPLE_S, nothing driving her on - she
+  comes to rest by its end. Past CSA_BRAKE_MAX times GRAPPLE_S (44 m/s) it cannot, but no way the sea gives is that
+  fast (a storm's Carrack makes 38.9), and a brake sized each frame binds at the same bound.
+- **A prize's hold at the helm's plain reach** (F5): the stars' `reach` is the grapples' - a prize is never grappled
+  again, and lies alongside once taken; her hold opens at BOARD_RANGE as it did.
+
+Tests: `boardmagnet.test.js` (9) - the sweep over every start in reach (six pairs of hulls, every side and heading), a
+turning helm, a throw from rest, a ship across my bow, a berth too far for HAUL_MAX_S; `nav_d_boarding.test.js`'s haul
+and phases on `drawHaul` (the long way round, the haul that waits); `tools/mutants/boardmagnet.json` (25, all dead) and
+`nav_d.json`'s side and short-way records re-aimed (dead).
 
 ## THE FOUR HOSTS RULE
 
@@ -916,8 +968,8 @@ The port's own, as the sea fight is: Daggerfall and Daggerfall Unity have no sea
 - RAM-BOARD and SHOT-KINDS: the naval host's, stood and stepped in the world host's exterior frame alone (as COMBAT-FEEL);
   `worldModes.js` and `dungeonContext.js` - FLAGGED: no sea fight is fought there; `exterior.js` (the bench) - FLAGGED: no
   naval host.
-- BOARD-MAGNET: the naval host's, the same - the world host hands Come Sail Away the haul's brake (`brake: () =>
-  naval?.brake()`) beside the runtime it stands; `worldModes.js` (interiors) and `dungeonContext.js` (a dungeon's water) -
+- BOARD-MAGNET: the naval host's, the same (its haul `scenes/naval/navalHaul.js`, the module it wires) - the world host
+  hands Come Sail Away the haul's brake (`brake: () => naval?.brake()`) beside the runtime it stands; `worldModes.js` (interiors) and `dungeonContext.js` (a dungeon's water) -
   FLAGGED: no sea fight is fought there, so no grapples are thrown; `exterior.js` (the bench) - FLAGGED: no naval host.
 - RAID-ASHORE's withdraw reads the world host's two pools - the street's and, through `worldModes.js`'s `interiorPool`,
   the sailing cabin's room; `dungeonContext.js` - FLAGGED: no voyage's raid is fought below ground.

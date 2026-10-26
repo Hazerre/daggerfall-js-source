@@ -73,7 +73,8 @@ carries its row instead. It stands on three things the port already had:
   below her waterline, how many through her rigging.
 - **Interact boards** (E): a ship that has struck her colours within BOARD_RANGE of the helm - BOARD-MAGNET
   (2026-10-26, `03-World/Naval-Refit.md`): at any way - the grapples fly, your canvas is struck and your way comes off
-  over the haul (`haulBrake`), she is hauled alongside your ship as it lies each frame, side by side where you come to
+  over the haul (`haulBrake`), she is hauled alongside your ship as it lies each frame - out to her berth's lane and
+  along it, round your hull and never through it (AUDIT BOARD-MAGNET, `drawHaul`) - side by side where you come to
   rest, and you go over her rail. On foot (swimming up, or from a
   deck alongside) the same press within FOOT_BOARD_M of her side with the look on her. The target card and the plate's
   hint say the key ("Colours struck - E: board her"). Retired by BOARD-MAGNET, and kept here as their record: RAM-BOARD

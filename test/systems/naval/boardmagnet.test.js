@@ -5,7 +5,10 @@
 // within the grapples' reach is "E: board" at any way, never a heave-to first; the grapples' haul draws her to the ship
 // as it lies each frame while my way comes off under haulBrake, so she ends side by side where I came to rest - her hull
 // clear of mine, her middle level with mine; a captain's Long Lines and Grappling Irons reach farther; a sound ship being
-// boarded (a repel) is said afloat, her mode 'boarded'; an older build's ram blow is a blow alone.
+// boarded (a repel) is said afloat, her mode 'boarded'; an older build's ram blow is a blow alone. AUDIT BOARD-MAGNET
+// (2026-10-26, the owner: "Audit this"): the haul drawn out to her lane and along it, kept clear of my hull from every
+// start in reach (the eased line drove a galley 39.7 m into another); her side and heading kept against a turning helm;
+// the helm held under a haul thrown from rest.
 // tools/mutants/boardmagnet.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,8 +16,9 @@ import assert from 'node:assert/strict';
 import { HULL, hullBuild } from '../../../src/systems/naval/navalShips.js';
 import { SHIP_STATES, STRUCK_AT } from '../../../src/systems/naval/navalDamage.js';
 import {
-  BOARD_RANGE, BERTH_GAP, GRAPPLE_S, HULL_CLEAR, berthHull, berthPose, haulBrake, haulPose, boardableState, createBoarding,
+  BOARD_RANGE, BERTH_GAP, GRAPPLE_S, HULL_CLEAR, HAUL_SPEED, HAUL_TURN, HAUL_MAX_S, berthHull, berthPose, haulBrake, drawHaul, boardableState, createBoarding,
 } from '../../../src/systems/naval/navalBoarding.js';
+import { wrapAngle } from '../../../src/world/mat4.js';
 import { hullGap } from '../../../src/systems/naval/navalAI.js';
 import { starStats } from '../../../src/systems/naval/captainTree.js';
 import { CSA_BRAKE_MAX } from '../../../src/systems/comeSailAway/comeSailAway.js';
@@ -53,7 +57,7 @@ function alongOf(mine, her, myHull, herHull) {
   return (b[0] - a[0]) * f[0] + (b[1] - a[1]) * f[1];
 }
 
-test('BOARD-MAGNET the law: only a ship whose colours are struck takes the grapples - never a sound one, one boarded already, a prize or a wreck going down; a berth lies the two hulls side by side, the half beams and BERTH_GAP apart and never nearer than HULL_CLEAR at their widest (a Large Galley\'s planking swells 2.4 m past her deck), middle to middle, on either heading; the haul brake takes a way off over GRAPPLE_S, never past the runtime\'s bound; and the haul draws her to the berth as it lies NOW, laid in it the frame the haul is done (mutants: a sound ship boardable, the clearance dropped, the middles dropped, the brake halved, the haul blind to the berth moving)', () => {
+test('BOARD-MAGNET the law: only a ship whose colours are struck takes the grapples - never a sound one, one boarded already, a prize or a wreck going down; a berth lies the two hulls side by side, the half beams and BERTH_GAP apart and never nearer than HULL_CLEAR at their widest (a Large Galley\'s planking swells 2.4 m past her deck), middle to middle, on either heading; the haul brake takes a way off over GRAPPLE_S, never past the runtime\'s bound; a side and a heading kept (`lie`); and the haul draws her to the berth as it lies NOW, laid in it by GRAPPLE_S on open water (mutants: a sound ship boardable, the clearance dropped, the middles dropped, the brake halved, the haul blind to the berth moving, the lie unkept, the haul unbounded in time)', () => {
   const ship = (state, boarded = false) => ({ boarded, damage: { state } });
   assert.equal(boardableState(ship('struck')), true);
   for (const st of ['afloat', 'prize', 'sinking', 'sunk', 'wrecked']) assert.equal(boardableState(ship(st)), false, st);
@@ -77,18 +81,63 @@ test('BOARD-MAGNET the law: only a ship whose colours are struck takes the grapp
   near(haulBrake(6) * GRAPPLE_S, 6, 1e-12);
   assert.equal(haulBrake(1e3, CSA_BRAKE_MAX), CSA_BRAKE_MAX);
   assert.equal(haulBrake(0), 0);
-  // the haul toward a berth that moves
-  const from = { pos: [40, 0, 0], yaw: 1 };
-  const b = createBoarding({ kind: 'board', shipId: 'x', from, to: { pos: [10, 0, 0], yaw: 0 } });
-  b.step(GRAPPLE_S / 2);
-  const moved = { pos: [10, 0, 6], yaw: 0.2 };
-  assert.deepEqual(b.haul(moved), haulPose(from, moved, 0.5), 'on the way to where the berth lies now');
-  assert.deepEqual(b.to, moved, 'kept as the haul\'s');
-  b.step(GRAPPLE_S);
-  assert.equal(b.phase, 'fight');
-  const last = { pos: [10, 0, 9], yaw: 0.3 };
-  assert.deepEqual(b.haul(last).pos, last.pos, 'laid in the berth itself the frame the haul is done');
-  near(b.haul(last).yaw, last.yaw, 1e-12);
+  // a side and a heading kept: her lie against an anchor turned past 90 degrees off her
+  const her = berthHull([-30, 0, 4], 1.4, HULL.SmallShip), lie = { side: 1, same: true };
+  const kept = berthPose(berthHull([0, 0, 0], -0.4, HULL.SmallShip), her, lie);
+  assert.deepEqual([kept.side, kept.same], [1, true]);
+  near(wrapAngle(kept.yaw - -0.4), 0, 1e-12, 'its own heading, not the reciprocal she lies nearer now');
+  assert.deepEqual([berthPose(berthHull([0, 0, 0], -0.4, HULL.SmallShip), her).side, berthPose(berthHull([0, 0, 0], -0.4, HULL.SmallShip), her).same], [-1, false], 'chosen afresh, both flip');
+  // the haul toward a berth that moves, the hull it is hauled to far off: laid in it by GRAPPLE_S
+  const far = { pos: [0, 0, -5000], yaw: 0, hull: HULL.SmallShip };
+  const b = createBoarding({ kind: 'board', shipId: 'x', from: { pos: [40, 0, 0], yaw: 1 }, to: { pos: [10, 0, 0], yaw: 0 }, hull: HULL.SmallShip });
+  for (let i = 0; i < 11; i++) {
+    const to = { pos: [10, 0, 0.6 * i], yaw: 0.02 * i };
+    b.haul(to, far, 0.2); b.step(0.2);
+    assert.deepEqual(b.to, to, 'kept as the haul\'s');
+  }
+  near(b.at.pos[0], 10, 1e-6, 'in the berth as it lies at the haul\'s end'); near(b.at.pos[2], 6, 1e-6);
+  near(b.at.yaw, 0.2, 1e-9);
+  assert.equal(b.phase, 'fight', 'over her rail on time');
+  // a berth past what HAUL_SPEED reaches in HAUL_MAX_S: laid in it then, whatever held her
+  const long = createBoarding({ kind: 'board', shipId: 'y', from: { pos: [1000, 0, 0], yaw: 0 }, to: { pos: [10, 0, 0], yaw: 0 }, hull: HULL.SmallShip });
+  while (long.phase === 'grapple') { long.haul(long.to, far, 0.1); long.step(0.1); }
+  near(long.t, HAUL_MAX_S, 0.1 + 1e-9, 'at HAUL_MAX_S');
+  assert.deepEqual(long.at.pos, [10, 0, 0], 'in her berth');
+});
+
+test('BOARD-MAGNET AUDIT THE HAUL KEPT CLEAR: from every start in reach of every pair of hulls - any side, any heading, ahead, abeam and astern - the drawn haul never brings her within HULL_CLEAR of the hull she is hauled to, never moves her faster than HAUL_SPEED and the push that keeps her clear, and lays her in her berth within HAUL_MAX_S - most by GRAPPLE_S (the eased straight line it replaced drove a galley 39.7 m into another from across her stern) (mutants: the straight line back, the lane dropped, the push dropped, the push at the bare hull)', () => {
+  const pairs = [[HULL.SmallShip, HULL.SmallShip], [HULL.LargeGalley, HULL.Carrack], [HULL.Carrack, HULL.LargeGalley], [HULL.LargeBoat, HULL.SmallShip], [HULL.SmallShip, HULL.LargeBoat], [HULL.LargeGalley, HULL.LargeGalley]];
+  const dt = 1 / 30, anchor = (hull) => ({ pos: [0, 0, 0], yaw: 0, hull });
+  let starts = 0, onTime = 0, worst = Infinity, fastest = 0, longest = 0;
+  for (const [mine, hers] of pairs) {
+    const reach = BOARD_RANGE + hullBuild(mine).beam + hullBuild(hers).beam;
+    for (let x = -reach; x <= reach; x += 7) for (let z = -reach; z <= reach; z += 7) {
+      if (Math.hypot(x, z) > reach) continue;
+      for (let yd = 0; yd < 360; yd += 45) {
+        const from = { pos: [x, 0, z], yaw: (yd * Math.PI) / 180 };
+        if (hullGap(from.pos, from.yaw, hers, [0, 0, 0], 0, mine) < HULL_CLEAR) continue;   // the sea's hulls kept apart
+        starts++;
+        const to = berthPose(berthHull([0, 0, 0], 0, mine), berthHull(from.pos, from.yaw, hers));
+        const b = createBoarding({ kind: 'board', shipId: 'x', from, to, hull: hers });
+        let prev = from.pos;
+        while (b.phase === 'grapple') {
+          const p = b.haul(to, anchor(mine), dt);
+          b.step(dt);
+          worst = Math.min(worst, hullGap(p.pos, p.yaw, hers, [0, 0, 0], 0, mine));
+          fastest = Math.max(fastest, Math.hypot(p.pos[0] - prev[0], p.pos[2] - prev[2]) / dt);
+          prev = p.pos;
+        }
+        longest = Math.max(longest, b.t);
+        if (b.t <= GRAPPLE_S + dt + 1e-9) onTime++;
+        near(b.at.pos[0], to.pos[0], 1e-3); near(b.at.pos[2], to.pos[2], 1e-3);
+      }
+    }
+  }
+  assert.ok(starts > 1500, `${starts} starts`);
+  assert.ok(worst >= HULL_CLEAR - 1e-6, `never within HULL_CLEAR of my hull (${worst.toFixed(3)} m)`);
+  assert.ok(longest <= HAUL_MAX_S + dt, `in her berth by HAUL_MAX_S (${longest.toFixed(2)} s)`);
+  assert.ok(onTime / starts > 0.4, `most by GRAPPLE_S (${(100 * onTime / starts).toFixed(0)}%)`);
+  assert.ok(fastest < HAUL_SPEED * 3, `no leap (${fastest.toFixed(1)} m/s at the most, the push with it)`);
 });
 
 test('BOARD-MAGNET NO STEM RAMS: my stem driven into a sound ship\'s side at a ram\'s way deals her nothing and takes nothing back, fouls nothing, charges nobody and offers no boarding; a galley\'s stem into my hull at speed does nothing either - the ram is gone from every bow (RAM-BOARD\'s foul with it)', async () => {
@@ -185,6 +234,49 @@ test('BOARD-MAGNET THE HAUL DRAWS HER TO ME AS I LIE: the grapples thrown at 6 m
     assert.ok(hullGap(h.e.ship.pos, h.e.ship.yaw, h.e.ship.hull, myPose(h).pos, myPose(h).yaw, hull) >= HULL_CLEAR - 1e-6, `${hull}: her hull clear of mine`);
     near(alongOf(myPose(h), { pos: h.e.ship.pos, yaw: h.e.ship.yaw }, hull, h.e.ship.hull), 0, 1e-6, `${hull}: middle to middle`);
   }
+});
+
+test('BOARD-MAGNET AUDIT A TURNING HELM, A HELM AT REST, A SHIP ACROSS MY BOW: thrown with her lying 85 degrees off my heading while my helm swings 10 degrees a second, her side and heading are the ones she chose when the lines went over - her heading never leaps (chosen afresh each frame it flipped 28 degrees in one) and she lies on my starboard at my own heading; thrown from rest, nothing drives my boat on under the haul (the oars gathered way through it); a struck ship lying across my bow is hauled round it to my side, never through my planking, and over her rail by HAUL_MAX_S (mutants: the lie unkept, the helm held only under a brake)', async () => {
+  const h = await helm();
+  const at = { pos: [2 * hullBuild(HULL.SmallShip).beam + 10, 0, 0], yaw: (85 * Math.PI) / 180 };
+  strike(h, at);
+  frames(h, [[h.e, at]]);
+  assert.equal(h.host.activate(), true);
+  let prev = h.e.ship.yaw, myYaw = 0, worstTurn = 0;
+  for (let t = 0; h.host.boarding?.phase === 'grapple' && t < HAUL_MAX_S + 1; t += 0.1) {
+    myYaw -= (10 * Math.PI) / 180 * 0.1;
+    h.boat.GameObject.rotation = [0, Math.sin(myYaw / 2), 0, Math.cos(myYaw / 2)];
+    h.host.frame(0.1);
+    worstTurn = Math.max(worstTurn, Math.abs(wrapAngle(h.e.ship.yaw - prev)));
+    prev = h.e.ship.yaw;
+  }
+  assert.equal(h.host.boarding?.phase, 'fight', 'over her rail');
+  assert.ok(worstTurn <= HAUL_TURN * 0.1 + 1e-9, `her heading ${((worstTurn * 180) / Math.PI).toFixed(1)} degrees in a frame at the most`);
+  near(wrapAngle(h.e.ship.yaw - myYaw), 0, 1e-6, 'at my own heading, as she chose');
+  const across = (h.e.ship.pos[0] - h.boat.GameObject.position[0]) * Math.cos(myYaw) - (h.e.ship.pos[2] - h.boat.GameObject.position[2]) * Math.sin(myYaw);
+  assert.ok(across > 0, `on my starboard, as she began (${across.toFixed(1)} m)`);
+  // thrown from rest
+  const r = await helm();
+  const lie = abeam(r, 10);
+  strike(r, lie);
+  r.runtime.state.velocityCurrent = [0, 0, 0];
+  frames(r, [[r.e, lie]]);
+  assert.equal(r.host.activate(), true);
+  assert.equal(r.host.brake(), 0, 'no way to take off');
+  assert.deepEqual([r.host.wayScale(true), r.host.wayScale(false)], [0, 0], 'and nothing drives her on while the lines haul');
+  // across my bow
+  const c = await helm();
+  const bow = { pos: [0, 0, hullBuild(HULL.SmallShip).bowZ + hullBuild(c.e.ship.hull).halfWidth + 8], yaw: Math.PI / 2 };
+  strike(c, bow);
+  frames(c, [[c.e, bow]]);
+  assert.equal(c.host.activate(), true, 'in reach across my bow');
+  let least = Infinity;
+  for (let t = 0; c.host.boarding?.phase === 'grapple' && t < HAUL_MAX_S + 1; t += 0.1) {
+    c.host.frame(0.1);
+    least = Math.min(least, hullGap(c.e.ship.pos, c.e.ship.yaw, c.e.ship.hull, [0, 0, 0], 0, HULL.SmallShip));
+  }
+  assert.equal(c.host.boarding?.phase, 'fight', 'over her rail by HAUL_MAX_S');
+  assert.ok(least >= HULL_CLEAR - 1e-6, `round my bow, never through it (${least.toFixed(2)} m of water at the least)`);
 });
 
 test('BOARD-MAGNET the grapples\' reach is the captain\'s: Long Lines and Grappling Irons (the stars that were the ram\'s and its foul, their ids the save\'s) reach BOARD_RANGE farther by their shares - a struck ship a fifth past BOARD_RANGE is out of reach without them and boarded with them (mutants: the reach unread)', async () => {

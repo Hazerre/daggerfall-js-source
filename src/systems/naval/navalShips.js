@@ -294,6 +294,41 @@ export const buildsStamp = () => stamp;
 /** A hull's build, or the rowboat's for anything unknown - a hull the port's ship stands in for the mod's own build's
  *  while its model does not stand (AUDIT GN-G4). */
 export const hullBuild = (hull) => (MOD_BUILDS[hull] && !standing[hull] ? MOD_BUILDS[hull] : HULL_BUILDS[hull] ?? HULL_BUILDS[0]);
+/** A build's middle along her keel (m, the root's frame): halfway from her stern to her stem. BOARD-MAGNET: one law for a
+ *  hull on the flat, the water between two, and the berth's middle to middle (navalBoarding.js berthHull). */
+export const hullMid = (b) => (b.bowZ + b.aftZ) / 2;
+/** A hull on the flat, off its build: its centre, forward and right, half length and half width. */
+export function flatHull(pos, yaw, hull) {
+  const b = hullBuild(hull);
+  const f = [Math.sin(yaw), Math.cos(yaw)];
+  const mid = hullMid(b);
+  return { c: [pos[0] + f[0] * mid, pos[2] + f[1] * mid], f, r: [f[1], -f[0]], hl: (b.bowZ - b.aftZ) / 2, hw: b.halfWidth };
+}
+/** The least push that takes hull A out of hull B (separating axes on the flat), or null when they stand apart. */
+export function hullOverlap(A, B) {
+  const d = [B.c[0] - A.c[0], B.c[1] - A.c[1]];
+  let best = null, least = Infinity;
+  for (const u of [A.f, A.r, B.f, B.r]) {
+    const ra = A.hl * Math.abs(A.f[0] * u[0] + A.f[1] * u[1]) + A.hw * Math.abs(A.r[0] * u[0] + A.r[1] * u[1]);
+    const rb = B.hl * Math.abs(B.f[0] * u[0] + B.f[1] * u[1]) + B.hw * Math.abs(B.r[0] * u[0] + B.r[1] * u[1]);
+    const dd = d[0] * u[0] + d[1] * u[1];
+    const o = ra + rb - Math.abs(dd);
+    if (o <= 0) return null;
+    if (o < least) { least = o; best = [-Math.sign(dd || 1) * u[0] * o, -Math.sign(dd || 1) * u[1] * o]; }
+  }
+  return best;
+}
+/** The open water between two flat hulls (m): the widest gap along any of their four axes - 0 or less when they touch. */
+export function flatGap(A, B) {
+  const d = [B.c[0] - A.c[0], B.c[1] - A.c[1]];
+  let gap = -Infinity;
+  for (const u of [A.f, A.r, B.f, B.r]) {
+    const ra = A.hl * Math.abs(A.f[0] * u[0] + A.f[1] * u[1]) + A.hw * Math.abs(A.r[0] * u[0] + A.r[1] * u[1]);
+    const rb = B.hl * Math.abs(B.f[0] * u[0] + B.f[1] * u[1]) + B.hw * Math.abs(B.r[0] * u[0] + B.r[1] * u[1]);
+    gap = Math.max(gap, Math.abs(d[0] * u[0] + d[1] * u[1]) - ra - rb);
+  }
+  return gap;
+}
 /** TOUGHER-SHIPS: the timbers and canvas a hull stood with before it was toughened - what a save from before measured
  *  her hurts against. */
 export function firstBuildOf(hull) {
