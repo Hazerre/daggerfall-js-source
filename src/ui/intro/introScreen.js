@@ -38,7 +38,7 @@ const STYLE = `${PIXELIFY_FIVE_FACE}
 .intro-credit[data-credit=nexus] img{max-width:45vw;max-height:17dvh}
 /* BR5: the box keeps BR4's height - 86vw and 1240px x 850/2112 x 526/322 for the DFO mark's 1.63:1; BR6: x 1232/1034 for the dragon mark's 1.19:1 */
 .intro-title{position:absolute;left:50%;top:48%;width:min(41.2vw,595px);opacity:0;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity,filter}
-.intro-title .brand-logo{display:block;width:100%;height:auto}
+.intro-title .brand-logo{display:block;width:100%;height:auto;transform:translateX(-10%)}
 .intro-title-fallback{font-size:clamp(28px,7vw,100px);text-align:center;margin:0;letter-spacing:.05em}
 .intro-light{position:absolute;inset:0;opacity:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#ebd3a025,transparent 58%)}
 /* INTRO4: the narrator's line, low in the frame over a soft dark of its own; the map's words over the continent */

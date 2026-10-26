@@ -56,6 +56,22 @@ read with a decimal), `test/tooling/doctrine.test.js` (the asset's OURS row).
 Mutants re-aimed by content, each to the box at BR5's ratio: `br4.json` 1,
 `br5.json` 6, `auditbr5.json` 4, `support1.json` 1.
 
+LOGO-CENTRE (2026-10-26, Mac: "The main logo is off center"). Every box was
+centred - the film's last frame put it at 480.5 of 960 - but the mark is cut to
+its paint and the dragon's wing and tail fill its left, so the LETTERS stood
+right of centre: at 1280 x 720 the Online scroll sat about 100 px right of the
+Tap to continue box beneath it. The letters at mid-height (the D's bowl, x 265,
+to the O's outline, x 1212, of 1232) centre 10% of the width right of the
+file's, so every surface that centres the mark draws it that 10% back
+(`translateX(-10%)`: the film's `.intro-title .brand-logo`, the door's and the
+masthead's `.brand-logo`, the site's `.wordmark img`) and DFO stands on the
+centre line with the dragon to its left. The launcher sets the mark at its left
+edge, where the box is what lines up, and is not moved. The number is
+`BRAND_LOGO_OPTICAL_SHIFT` (`src/ui/brandMark.js`), measured from the file by
+`test/ui/brand.test.js` (LOGO-CENTRE), so the next logo reddens it rather than
+a layout. Mutants: `logocentre.json` 3, all dead; `br4.json`'s blend mutant
+re-aimed at the rule it moved.
+
 ## BR5 DFO ONLINE (2026-10-11, Mac's call)
 
 Mac: "So next up I want to replace the current daggerfall online logo
