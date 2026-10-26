@@ -416,7 +416,7 @@ test('DECOR2b furniture and an online home: the account service has the model an
 test('DECOR2b the host (worldModes.js) by source: the tool reads the deliveries; a piece of furniture lives among them, is taken out of them whole and given back to them - never the pack; bought at the counter, bought by the keyed list, stolen off the shelf by either screen, or carried out of a closed shop, it is delivered and said once for the lot; a sold room and an online home\'s strays say where the furniture went (mutants: the deliveries unread, furniture into the pack at the counter, the keyed buy, the steal or the closed shop, one line per piece)', () => {
   const m = src('src/scenes/worldModes.js');
   assert.match(m, /furnishings: \(\) => playerEntity\.furnishings \?\? \[\],/);
-  // PIN MOVED (AUDIT FB1025b E1): the owner's own things' doors are systems/decor/decorPack.js's, the host wires them
+  // PIN MOVED (AUDIT FB1025i E1): the owner's own things' doors are systems/decor/decorPack.js's, the host wires them
   const pk = src('src/systems/decor/decorPack.js');
   assert.match(m, /const \{ decorHome, decorPackTake, decorPackGive \} = createDecorPack\(\(\) => playerEntity\);/);
   assert.match(pk, /function decorPackTake\(\/\*\* @type \{any\} \*\/ item\) \{\n\s*if \(isFurnishing\(item\)\) \{[^\n]*\n\s*const list = decorHome\(item\);\n\s*const i = list\.indexOf\(item\);\n\s*if \(i < 0\) return null;\n\s*list\.splice\(i, 1\);\n\s*return item;\n\s*\}/, 'whole, out of the deliveries');

@@ -511,7 +511,7 @@ claim is no strike - the owner's call), so a player who reads a piece's key off 
 it stops that piece moving for the grace (`DUPE_GRACE_S`, five minutes) each time, and takes nothing - its own copy
 locked.
 
-**COPY-LIFT (FIELD BUGS 2026-10-25b, Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
+**COPY-LIFT (FIELD BUGS 2026-10-25i, Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
 Locked'").** The decorator's Discard wrote a home's chests back as they stood when its draft opened
 (`scenes/decor/decorTool.js` CHEST-DRAFT): a piece taken out since stood in the chest and the pack, a key shown twice in
 one record - and in #1223's build a Discard in another room's decorator (a ship's, a caravan's, an offline house's)
@@ -527,13 +527,13 @@ batch destroys a copy of it, or staff's Remove took one off the character and ke
 and unclaimed and of the piece kept, no other record's copy known, and no trail check or one that found it innocent
 (`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`); the `dupe` finding and the answer's
 `lifted` say what the batch took, and a checkpoint landing between the act's read and its seizure refuses it `seq`. No
-checkpoint lifts a copy (AUDIT FB1025b): the record a checkpoint shows is the lists it holds, and a copy moved where it
+checkpoint lifts a copy (AUDIT FB1025i): the record a checkpoint shows is the lists it holds, and a copy moved where it
 lists nothing - a revenant's take (RVN8: a deserter's split, `splitPack`, and a kill's, `pickTaken` - neither takes a
 realm-locked piece now, `revenant.js:"&& !isRealmLocked(item)"`), a counter or the ground under a modified client -
 and brought back after would leave the other one trading. Open: a copy sold at a counter before the keep is gone from
 the save - nothing the act can count, so nothing lifts on that word; the sale's gold stays, and the piece bought back is
-a second of one, locked again by the checkpoint that shows both. Pinned by `test/server/fb1025b_chestlock.test.js` and
-`staffpanel3realm.test.js`; `tools/mutants/fb1025b_chestlock.json`.
+a second of one, locked again by the checkpoint that shows both. Pinned by `test/server/fb1025i_chestlock.test.js` and
+`staffpanel3realm.test.js`; `tools/mutants/fb1025i_chestlock.json`.
 
 ### 4b. The audit (2026-10-09, Mac: "Lets do a comprehensive audit on this")
 

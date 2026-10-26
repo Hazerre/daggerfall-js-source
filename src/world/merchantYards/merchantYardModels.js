@@ -89,7 +89,7 @@ const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 function faces() {
   /** @type {Map<number, {p: number[], n: number[], uv: number[], hung: boolean[]}>} */
   const byRec = new Map();
-  let hanging = false;   // FIELD BUGS 2026-10-25b SIGN-PASS: whether the faces laid now hang (a signboard's) - each triangle's mark in its group's `hung`
+  let hanging = false;   // FIELD BUGS 2026-10-25i SIGN-PASS: whether the faces laid now hang (a signboard's) - each triangle's mark in its group's `hung`
   const tri = (rec, a, b, c, ua, ub, uc) => {
     let g = byRec.get(rec);
     if (!g) byRec.set(rec, g = { p: [], n: [], uv: [], hung: [] });
@@ -190,7 +190,7 @@ function leanTo(f, { x0, x1, z0, z1, backH, frontH, posts, stalls = [], stallH =
 
 /** A SIGNBOARD hung square to the yard's front at (x, yMid, z): its two faces the yard's picture (`rec`) - the back's
  *  turned so it reads from behind as well - its edges plain wood, and two iron rods from its top to `hangTo`.
- *  FIELD BUGS 2026-10-25b SIGN-PASS: it HANGS - drawn, never solid (assemble's `solid`): a gate's board 2.4 m up, under its
+ *  FIELD BUGS 2026-10-25i SIGN-PASS: it HANGS - drawn, never solid (assemble's `solid`): a gate's board 2.4 m up, under its
  *  beam over the way in, stood inside a rider's 2.6 m capsule (player/motor.js RIDE_HEIGHT), and no horse or wagon could
  *  be ridden in under it; the beam over it, at 3.3 m, stays the wall it is. */
 function signboard(f, rec, x, yMid, z, hangTo) {

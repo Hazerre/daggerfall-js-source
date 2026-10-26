@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b SIGN-PASS (#bug-reports, ajaegerson, "Caravans get caught on shop signs": "Sometimes they do
+// FIELD BUGS 2026-10-25i SIGN-PASS (#bug-reports, ajaegerson, "Caravans get caught on shop signs": "Sometimes they do
 // when travelling through towns its really easy to fix just return and move a bit but kinda annoying it stops you";
 // Harlander: "Even going on foot you can get hung up on shop signs and fences"). A shop's sign (ARCH3D 43700-43755, a
 // town block's misc model) went into the collider whole, as DFU's combined block MeshCollider takes it, and its board,

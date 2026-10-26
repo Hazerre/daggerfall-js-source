@@ -11,7 +11,7 @@ export const QL_STAMP = 1;
  *  standing moved, the acts it has heard (QL11: kind -> count since it started) and whether this copy was RECEIVED from a
  *  party member (receivedState). AUDIT QUESTLINES REWARD-15: no `offer` - declared, read and reset, never written: a
  *  reward's choice waits in the layer's offers (qlLayer.js), and `moved` is what says the outcome was settled.
- *  FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): `reread`, the mends this state has taken - a sheet's objective
+ *  FIELD BUGS 2026-10-25i HEART-TAKEN (AUDIT FB1025i B4): `reread`, the mends this state has taken - a sheet's objective
  *  whose binding was mended names its mend, and a state that has not taken it reads that objective afresh once (qlLaw.js
  *  observe), so a latch an older build wrote under the old binding does not stand. */
 export const freshState = () => ({ stamp: QL_STAMP, tier: 1, opened: [], done: [], failed: [], choices: {}, outcome: null, paid: false, moved: false, acts: {}, received: false, reread: [] });
@@ -32,7 +32,7 @@ export function readState(data) {
     stamp: QL_STAMP, tier, opened: idList(data.opened), done: idList(data.done), failed: idList(data.failed), choices: strMap(data.choices),
     outcome: typeof data.outcome === 'string' && data.outcome ? data.outcome : null,
     paid: data.paid === true, moved: data.moved === true, acts: countMap(data.acts), received: data.received === true,
-    reread: idList(data.reread),   // HEART-TAKEN (AUDIT FB1025b B4): an older save's is empty - its mends are taken at its first read
+    reread: idList(data.reread),   // HEART-TAKEN (AUDIT FB1025i B4): an older save's is empty - its mends are taken at its first read
   };
 }
 

@@ -40,7 +40,7 @@ test('PVP-BLOOD THE POOL I STAND IN: a duel\'s blow and the open zone\'s splash 
 test('PVP-BLOOD THE STREET\'S OWN: the only splashes world.js sends straight to the street\'s pool are on paths that run in the street alone - a road traveller struck down (livingStrikeRoad, refused off the exterior) and a horse\'s trample (rrRiding)', () => {
   const src = rd('src/scenes/world.js');
   const at = [...src.matchAll(BARE)].map((m) => m.index);
-  // PIN MOVED (FIELD BUGS 2026-10-25b ROAD-SPARE): the road's strike, its splash with it, is scenes/livingWorld/roadStrike.js -
+  // PIN MOVED (FIELD BUGS 2026-10-25i ROAD-SPARE): the road's strike, its splash with it, is scenes/livingWorld/roadStrike.js -
   // its one splash past the host's `open()`, which is the exterior alone, into the pool the host hands it, the street's
   assert.equal(at.length, 1, 'a new splash straight into the street\'s pool - is its path the street\'s alone?');
   const road = rd('src/scenes/livingWorld/roadStrike.js');

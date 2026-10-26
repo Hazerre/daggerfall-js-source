@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b NODE-CROWN (Discord #bug-reports, kvassdrit, "Big trees hide resource node particles": "Needs to
+// FIELD BUGS 2026-10-25i NODE-CROWN (Discord #bug-reports, kvassdrit, "Big trees hide resource node particles": "Needs to
 // be size aware or have a completely different visual like others have recommended").
 //
 // A Logging node near the eye is its 3D tree - Low Poly Trees (on by default) draws every wild tree within LPT_NEAR_M
@@ -8,12 +8,12 @@
 // size with its scale in it already (world/lowPolyTrees.js readLowPolyTrees: `m.max[1] * sy`), the mesh is drawn at that
 // scale (renderer.js bbVertexShader's mesh mode: aCenter * uMeshScale * aScale), and the pass took the size times
 // `run.scale[1]` once more. The climates stand 95 Tree records (TREE_RECORDS, with the woodland sets' winter archives -
-// world/climateSwaps.js getNatureArchive), 93 with a prototype and 74 of those scaled (AUDIT FB1025b C2: this said 88 of
+// world/climateSwaps.js getNatureArchive), 93 with a prototype and 74 of those scaled (AUDIT FB1025i C2: this said 88 of
 // 116, the pin's own loop's count): the temperate and mountain woods' (504-511) mostly 0.5 to 0.8 - lit to half to four
 // fifths of their height, 504_16's 16 m tree to 8 m, the upper crown that shows over a wood never glinting - and the
 // swamp's, the desert's and a winter wood's 15 (1.1 to 4.2) over a box up to four times as tall as they are, most of
 // their glints' tries in the empty air above them and their sheen crossing it.
-// AUDIT FB1025b C1 (the report's own "Needs to be size aware"): and a big crown's glints were a herb's six at a herb's
+// AUDIT FB1025i C1 (the report's own "Needs to be size aware"): and a big crown's glints were a herb's six at a herb's
 // reach - per pixel of its picture 7 times sparser than a near herb's at 30 m, 25 times at 12 m. They grow with the
 // crown's size on screen now, up to twice as many reaching twice as far (nodeGlint.js glintCrownGrowth); a flat's stay. Not depth: the light is drawn after the
 // trees, against the world's depth at the picture's own (tools/nodeGlintProbe.mjs - a half-scale prefab's top two fifths
@@ -134,7 +134,7 @@ test('NODE-CROWN the report\'s tree: a temperate wood\'s 504_16, its prototype a
   assert.ok(treeTop <= g.inner[1] + g.inner[3], 'inside the rectangle it is lit in');
 });
 
-test('NODE-CROWN every climate\'s Tree records, its summer archive and its winter one (AUDIT FB1025b C2: the woodland sets\' alone have one - getNatureArchive): the glint\'s crown as tall as the tree drawn (its highest vertex at its prototype\'s scale and its row\'s), at a row scale under 1 and over it (C3) - 95 records, 93 with a prototype: 54 scaled under 1, 19 at 1 and 20 over it (mutants: the scale counted twice; the row\'s scale unread; the width for the height; the row\'s scale held at 1 and over)', async () => {
+test('NODE-CROWN every climate\'s Tree records, its summer archive and its winter one (AUDIT FB1025i C2: the woodland sets\' alone have one - getNatureArchive): the glint\'s crown as tall as the tree drawn (its highest vertex at its prototype\'s scale and its row\'s), at a row scale under 1 and over it (C3) - 95 records, 93 with a prototype: 54 scaled under 1, 19 at 1 and 20 over it (mutants: the scale counted twice; the row\'s scale unread; the width for the height; the row\'s scale held at 1 and over)', async () => {
   const d = await door();
   const seen = { records: 0, none: 0, under: 0, one: 0, over: 0 }, wrong = [];
   for (const [base, records] of Object.entries(TREE_RECORDS)) {
@@ -156,9 +156,9 @@ test('NODE-CROWN every climate\'s Tree records, its summer archive and its winte
   assert.deepEqual(seen, { records: 95, none: 2, under: 54, one: 19, over: 20 }, 'the record\'s numbers are the climates\' own');
 });
 
-// ─── AUDIT FB1025b C1: A CROWN'S GLINTS BY ITS SIZE ─────────────────────
+// ─── AUDIT FB1025i C1: A CROWN'S GLINTS BY ITS SIZE ─────────────────────
 
-test('NODE-CROWN (AUDIT FB1025b C1) the law: a 3D crown\'s glints grow over a herb\'s from the side a herb\'s glint stops growing at (GLINT_PX / GLINT_SHARE, with the image), its share of it to the two thirds - so their light, count times reach squared, grows as the crown\'s area - between 1 and GLINT_CROWN_GROWTH (twice as many, reaching twice as far); its side the square root of its standing area at its root\'s depth (mutants: the growth unbounded; the growth under 1; the power the side\'s own; the image unscaled; the count unrounded; the reach ungrown; the area its width alone; a root behind the eye none)', () => {
+test('NODE-CROWN (AUDIT FB1025i C1) the law: a 3D crown\'s glints grow over a herb\'s from the side a herb\'s glint stops growing at (GLINT_PX / GLINT_SHARE, with the image), its share of it to the two thirds - so their light, count times reach squared, grows as the crown\'s area - between 1 and GLINT_CROWN_GROWTH (twice as many, reaching twice as far); its side the square root of its standing area at its root\'s depth (mutants: the growth unbounded; the growth under 1; the power the side\'s own; the image unscaled; the count unrounded; the reach ungrown; the area its width alone; a root behind the eye none)', () => {
   assert.deepEqual([NG.GLINT_CROWN_GROWTH, NG.GLINT_CROWN_COUNT], [2, 12], 'twice: twelve glints the most a node has');
   const ref = NG.GLINT_PX / NG.GLINT_SHARE;   // 40 px at 1080 rows
   assert.equal(NG.glintCrownGrowth(1080, ref), 1, 'a crown no bigger than a herb\'s capped picture: a herb\'s');
@@ -176,7 +176,7 @@ test('NODE-CROWN (AUDIT FB1025b C1) the law: a 3D crown\'s glints grow over a he
   assert.equal(NG.crownSidePx([2, 0, 0, 0, 0, 3], 0, 4, 6, 800, 600), Infinity, 'its root at the eye: the most');
 });
 
-test('NODE-CROWN (AUDIT FB1025b C1) the report\'s tree through the Low Poly Trees door and the pass: 504_16 at 30 m and at 12 m glints a big crown\'s twelve at twice a herb\'s most reach (its rectangle the room for them); a herb\'s flat and the same tree\'s far flat keep six at a picture\'s reach; a sapling far off grows part way (mutants: the crown never grown; every node grown; the count unsent; the room a flat\'s)', async () => {
+test('NODE-CROWN (AUDIT FB1025i C1) the report\'s tree through the Low Poly Trees door and the pass: 504_16 at 30 m and at 12 m glints a big crown\'s twelve at twice a herb\'s most reach (its rectangle the room for them); a herb\'s flat and the same tree\'s far flat keep six at a picture\'s reach; a sapling far off grows part way (mutants: the crown never grown; every node grown; the count unsent; the room a flat\'s)', async () => {
   const d = await door();
   const rows = 720;   // quietGl's viewport: 1280 x 720
   for (const z of [30, 12]) {

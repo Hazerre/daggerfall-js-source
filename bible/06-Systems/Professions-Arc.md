@@ -5261,7 +5261,7 @@ hours; `flatLightAt`'s `out`; the draw asking each node's light at its place and
 at the night's by the floor; far, at night, no sheen at any moment it crossed by day - `renderer.flatLightAt` itself
 over the probe's scene); `tools/mutants/nodeglint.json` 107, all dead.
 
-### NODE-CROWN - a 3D tree lit to its top, its glints by its size (FIELD BUGS 2026-10-25b)
+### NODE-CROWN - a 3D tree lit to its top, its glints by its size (FIELD BUGS 2026-10-25i)
 
 Discord #bug-reports, kvassdrit, "Big trees hide resource node particles": **"Needs to be size aware or have a completely
 different visual like others have recommended."** FACT: a Logging node near the eye is its 3D tree (Low Poly Trees, on by
@@ -5271,14 +5271,14 @@ default, draws every wild tree within 140 m in 3D; a node glints within 120 m), 
   prototype's own scale - but the standing size carries that scale already (`world/lowPolyTrees.js` readLowPolyTrees,
   `m.max[1] * sy`; the mesh is drawn at it, `bbVertexShader`'s mesh mode). The climates stand 95 Tree records
   (`TREE_RECORDS` with the woodland sets' winter archives, `world/climateSwaps.js` getNatureArchive), 93 with a prototype
-  and 74 of those scaled (AUDIT FB1025b C2: this said 88 of 116, the pin loop's own count): the temperate and mountain
+  and 74 of those scaled (AUDIT FB1025i C2: this said 88 of 116, the pin loop's own count): the temperate and mountain
   woods' (504-511) mostly 0.5 to 0.8 glinted only up to half to four fifths of their height - 504_16's 16 m tree to 8 m,
   the upper crown that shows over a wood never - and the swamp's, the desert's and a winter wood's 15 (1.1 to 4.2) over a
   box up to four times their height, most of their glints' tries in the air above them. Not the depth: the light is drawn
   after the trees against the world's depth at the picture's own. FIXED: the crown as tall as the tree its run draws
   (`h = t.run.size[1] * row[4]`); its reach, the far flat's box and the jungle's trees (their prototypes unscaled) were
   right and are unchanged.
-- **Its glints were a herb's** (AUDIT FB1025b C1, the report's "size aware"): six at most, no larger than a near herb's,
+- **Its glints were a herb's** (AUDIT FB1025i C1, the report's "size aware"): six at most, no larger than a near herb's,
   this section's own law - so a crown filling the screen carried the herb's six. Measured on the real door's tree with the
   player's own atlases (the audit lane's probe, 1280 x 720): the light of a glint's cores a 10,000 pixels of its picture
   was a near herb's 158 (an 0.8 m patch at 5 m) against 504_16's 14 at 30 m and 3 at 12 m - 12 and 53 times sparser.
@@ -5298,11 +5298,11 @@ default, draws every wild tree within 140 m in 3D; a node glints within 120 m), 
   off the screen (the audit's C4, about a tenth); a small crown whose count steps as the eye nears it gains or loses a
   glint mid-life; the crown's box is `reach` deep (C5, as it was). Not a DFU member (the glint is ours); the scale is the
   mod's prefab scale under DFU's terrain tree scale, as the world draws it.
-- **Pinned** by `test/scenes/fb1025b_nodecrown.test.js` (the report's 504_16 through the Low Poly Trees door, the billboard
+- **Pinned** by `test/scenes/fb1025i_nodecrown.test.js` (the report's 504_16 through the Low Poly Trees door, the billboard
   program's own vertex stage and the pass; every climate's Tree records at a row scale under 1 and over it; the growth's
   law by value; 504_16 at 30 and 12 m twelve at twice the reach, its far flat and a herb six, a small far crown part way),
   `tools/nodeGlintProbe.mjs` (33 checks: a half-scale prefab's top two fifths lit - none before; the big crown twelve at
-  twice the reach, the herb six; its hearts a frame more than the herb's), `tools/mutants/fb1025b_nodecrown.json` (24, all
+  twice the reach, the herb six; its hearts a frame more than the herb's), `tools/mutants/fb1025i_nodecrown.json` (24, all
   dead); PIN MOVED: `test/scenes/nodeglint.test.js`'s boxes (a run's scale counted once), its programs (the life one law,
   twelve slots, no turn handed on) and its draw (the crown's count, reach and room); `tools/mutants/nodeglint.json`'s seed
   and room records re-aimed.

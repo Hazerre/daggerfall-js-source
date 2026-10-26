@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b RAIL-HANG (#bug-reports, "Caravans get caught on shop signs"; Harlander: "Even going on foot
+// FIELD BUGS 2026-10-25i RAIL-HANG (#bug-reports, "Caravans get caught on shop signs"; Harlander: "Even going on foot
 // you can get hung up on shop signs and fences"). The town's split-rail fences (ARCH3D 41206, 41207, 41208 - 358 of
 // BLOCKS.BSA's placements) are a post and two rails, each rail a wedge: a flat face on the street side, and behind it
 // two faces sloping to a back edge 0.55 m up for the lower rail. Met from behind, the lower sphere of a walker's capsule
@@ -146,5 +146,5 @@ test('RAIL-HANG THE LAW WHERE IT IS WRITTEN: a walking step\'s sideways pass and
   assert.match(col, /    this\._floorCeil = dy === 0 \? standCeil : Infinity;\n    this\._resolveCapsule\(feet, hOut, height, Infinity, true\);/, 'a walking step\'s sideways pass: its walls as they were, its floor under the ceiling');
   assert.match(col, /    this\._floorCeil = Infinity;   \/\/ RAIL-HANG: the vertical pass's floor as it was\n    out\.sides = sides;/, 'and the ladder\'s, the vertical pass\'s as it was');
   assert.match(col, /const setOn = floorAbove && \(this\._floorCeil === Infinity[^\n]*\n {12}\|\| \(!\(\(R \? center\[1\] - dy : t\[1\] \+ \(ly - dy\)\) > this\._floorCeil\) && planeOver\(tri, lx, ly, lz, R\)\)\);\n {10}if \(setOn\) \{/, 'a walking step\'s floor alone: under its ceiling, its plane over the sphere');
-  assert.match(col, /this\._floorCeil = Infinity;   \/\/ FIELD BUGS 2026-10-25b RAIL-HANG/, 'none outside the pass');
+  assert.match(col, /this\._floorCeil = Infinity;   \/\/ FIELD BUGS 2026-10-25i RAIL-HANG/, 'none outside the pass');
 });

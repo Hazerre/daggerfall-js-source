@@ -5,7 +5,7 @@
     "old": "h = t.run.size[1] * row[4];",
     "new": "h = t.run.size[1] * row[4] * t.run.scale[1];",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "the bug: the prototype's scale, already in its standing size, taken again"
@@ -16,7 +16,7 @@
     "old": "h = t.run.size[1] * row[4];",
     "new": "h = t.run.size[1];",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "the tree's own scale (DFU's 0.6..1.4) left out"
@@ -27,7 +27,7 @@
     "old": "h = t.run.size[1] * row[4];",
     "new": "h = t.run.size[0] * row[4];",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "the crown's height its standing width"
@@ -38,7 +38,7 @@
     "old": "_span(s.spans, k, row[0], row[1], row[2], 2 * reach, h, 0)",
     "new": "_span(s.spans, k, row[0], row[1], row[2], 2 * reach, h * t.run.scale[1], 0)",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the box the tree's, the glints' spots still on the double-counted crown"
   },
@@ -48,7 +48,7 @@
     "old": "row[0] + reach, row[1] + h, row[2] + reach);",
     "new": "row[0] + reach, row[1] + h * t.run.scale[1], row[2] + reach);",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the spots the tree's, the box (the rectangle the mask and the light stand in) still the double-counted one"
   },
@@ -58,9 +58,9 @@
     "old": "h = t.run.size[1] * row[4];",
     "new": "h = t.run.size[1] * Math.max(1, row[4]);",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
-    "note": "AUDIT FB1025b C3: a tree under its prototype's size at its prototype's"
+    "note": "AUDIT FB1025i C3: a tree under its prototype's size at its prototype's"
   },
   {
     "name": "NODE-CROWN-C1-the-growth-unbounded",
@@ -68,7 +68,7 @@
     "old": "Math.min(GLINT_CROWN_GROWTH, Math.max(1, (crownPx",
     "new": "Math.min(Infinity, Math.max(1, (crownPx",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "a crown's glints past twice a herb's"
   },
@@ -78,7 +78,7 @@
     "old": "Math.max(1, (crownPx",
     "new": "Math.max(0, (crownPx",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "a small crown's glints fewer than a herb's"
   },
@@ -88,7 +88,7 @@
     "old": "** (2 / 3)));",
     "new": "** 1));",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the light growing as the side cubed, not its area"
   },
@@ -98,7 +98,7 @@
     "old": "* (rows / GLINT_REF_ROWS))) ** (2 / 3)",
     "new": "* 1)) ** (2 / 3)",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the reference side at 1080 rows whatever the image"
   },
@@ -108,7 +108,7 @@
     "old": "Math.round(GLINT_COUNT * glintCrownGrowth(rows, crownPx))",
     "new": "GLINT_COUNT * glintCrownGrowth(rows, crownPx)",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "a count no whole one"
   },
@@ -118,7 +118,7 @@
     "old": "glintPx(rows, crownPx) * glintCrownGrowth(rows, crownPx);",
     "new": "glintPx(rows, crownPx);",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "a crown's glints more, never further"
@@ -129,7 +129,7 @@
     "old": "* ((h * Math.abs(proj[5]) * vh) / (2 * cw))",
     "new": "* ((w * Math.abs(proj[0]) * vw) / (2 * cw))",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the side its width's"
   },
@@ -139,7 +139,7 @@
     "old": ": Infinity);",
     "new": ": 0);",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "a crown about the eye grown none"
   },
@@ -149,7 +149,7 @@
     "old": "export const GLINT_CROWN_GROWTH = 2;",
     "new": "export const GLINT_CROWN_GROWTH = 3;",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js"
+      "test/scenes/fb1025i_nodecrown.test.js"
     ],
     "note": "the bound moved"
   },
@@ -159,7 +159,7 @@
     "old": "if (crown > 0) { s.count",
     "new": "if (false) { s.count",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "every node a herb's six"
@@ -170,7 +170,7 @@
     "old": "if (crown > 0) { s.count",
     "new": "if (crown >= 0) { s.count",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "a flat by the crown's law"
@@ -181,7 +181,7 @@
     "old": "t.run.size[0] * row[4], h, vw, vh));",
     "new": "h, h, vw, vh));",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "its width read as its height"
@@ -192,7 +192,7 @@
     "old": "vpm[3] * row[0] + vpm[7] * row[1] + vpm[11] * row[2] + vpm[15]",
     "new": "1",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "its size at a metre off"
@@ -203,7 +203,7 @@
     "old": "const room = Math.max(roomPx, s.glint + 2);",
     "new": "const room = roomPx;",
     "tests": [
-      "test/scenes/fb1025b_nodecrown.test.js",
+      "test/scenes/fb1025i_nodecrown.test.js",
       "test/scenes/nodeglint.test.js"
     ],
     "note": "a crown's longer rays cut at a flat's room"

@@ -5,7 +5,7 @@
     "old": "bought: 'You bought this one today. You can buy each piece once a day.'",
     "new": "bought: 'Bought today'",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "the refusal that read as \"you have one already\""
   },
@@ -15,7 +15,7 @@
     "old": "  if (!canCarry(sale.give, rest)) return { ok: false, reason: 'heavy' };",
     "new": "  if (!canCarry(sale.give, rest)) { markBrokerBought(offer); return { ok: false, reason: 'heavy' }; }",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "a sale refused as too heavy marks the offer: Bought, and no piece"
   },
@@ -25,7 +25,7 @@
     "old": "  addItem(items, sale.give);",
     "new": "  void sale.give;",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "the stones taken and the offer marked, the piece never given"
   },
@@ -35,7 +35,7 @@
     "old": "  if (_bought.day !== offer.day) _bought = { day: offer.day, ids: [] };",
     "new": "  if (_bought.day === -1) _bought = { day: offer.day, ids: [] };",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "a sale three days on joins the old day's record, so today's offer reads unbought after it was sold"
   },
@@ -45,7 +45,7 @@
     "old": "  const stones = dismantleStones(item);",
     "new": "  const stones = dismantleStones(item); _bought = NO_RECORD();",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "the player's reading made law: a dismantle frees the day's mark (SS5 keeps it)"
   },
@@ -55,7 +55,7 @@
     "old": "export const brokerBought = (day) => (_bought.day === day ? [..._bought.ids] : []);",
     "new": "export const brokerBought = (day) => [..._bought.ids];",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js"
+      "test/systems/item/fb1025i_brokerbought.test.js"
     ],
     "note": "another day's marks read as today's (the ids carry their day, so no offer of today's would match - but the record answers for its own day alone)"
   },
@@ -65,10 +65,10 @@
     "old": "return set ? `${name} (${set})` : name; };",
     "new": "return name; };",
     "tests": [
-      "test/systems/item/fb1025b_brokerbought.test.js",
+      "test/systems/item/fb1025i_brokerbought.test.js",
       "test/systems/item/ss1_stones.test.js"
     ],
-    "note": "AUDIT FB1025b A8: the two Wardens asked alike"
+    "note": "AUDIT FB1025i A8: the two Wardens asked alike"
   },
   {
     "name": "WARE-NAME-enhanced-unasked",
@@ -78,7 +78,7 @@
     "tests": [
       "test/systems/item/ss1_stones.test.js"
     ],
-    "note": "AUDIT FB1025b A8: the enhanced question without the set"
+    "note": "AUDIT FB1025i A8: the enhanced question without the set"
   },
   {
     "name": "WARE-NAME-classic-unasked",
@@ -88,6 +88,6 @@
     "tests": [
       "test/systems/item/ss1_stones.test.js"
     ],
-    "note": "AUDIT FB1025b A8: the classic question without the set"
+    "note": "AUDIT FB1025i A8: the classic question without the set"
   }
 ]

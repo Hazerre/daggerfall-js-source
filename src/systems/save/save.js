@@ -744,7 +744,7 @@ export function repairItemLists(repairLists) {
     const n = repairRarityNames(list);
     if (n) console.info(`[save] DISC29-B: ${n} item name(s) given back the word their make wrote`);
   }
-  // NAME-KEPT (FIELD BUGS 2026-10-25b; AUDIT FB1025b A3): a crafted piece the reforge before NAME-KEPT named on its bare
+  // NAME-KEPT (FIELD BUGS 2026-10-25i; AUDIT FB1025i A3): a crafted piece the reforge before NAME-KEPT named on its bare
   // template - a jewel without its metal and gem, a Masterwork with the ladder's words - takes its own base's name again
   for (const list of repairLists) {
     const n = repairCraftedNames(list);

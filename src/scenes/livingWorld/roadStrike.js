@@ -7,20 +7,20 @@
 // carries to the road's region as a Murder when a witness reaches a town, caravanHost.js slain), the blood, the
 // Brotherhood's five and the racial override's hit. Moved out of world.js bootWorld (HOST-SPLIT) by ROAD-SPARE.
 //
-// FIELD BUGS 2026-10-25b ROAD-SPARE (the Discord's #bug-reports, pepsiorcoke, "Player gets a bounty when defending
+// FIELD BUGS 2026-10-25i ROAD-SPARE (the Discord's #bug-reports, pepsiorcoke, "Player gets a bounty when defending
 // themselves against quest NPC's who attack": "Assassin's are attacking me for escorting another NPC and I choose to
 // defend myself and my escort target guards approach me with a hefty fee of 500+ gold"). PROTECT-FIGHT's law
-// (cityGuards.js playerSparesPerson: under Protect Bystanders, a fight - encounters.js fightNear since AUDIT FB1025b D3 - or a raid
+// (cityGuards.js playerSparesPerson: under Protect Bystanders, a fight - encounters.js fightNear since AUDIT FB1025i D3 - or a raid
 // passes the townspeople by) was asked of the street's walkers and never of the road's: a swing at an attacker just
 // past the reach landed on the traveller on the look ray - the caravan's own merchant, in an escort's fight - and one
 // hit was a Murder reported, -20 of the region's law at the town, the name the watch knows (standing.js, under -10),
 // and the watch's stop asking its fine (600 gold from a clean name). The road's travellers take the street's law now:
 // one it spares stops the swing (no deed, no door behind them bashed - AUDIT 29g's law); no fight, or the protection
 // off, and a blow at a traveller is DFU's.
-// THE LIKELY CAUSE, NOT A PROVEN ONE (AUDIT FB1025b D1): the reporter's save was not read. The quest's own attackers
+// THE LIKELY CAUSE, NOT A PROVEN ONE (AUDIT FB1025i D1): the reporter's save was not read. The quest's own attackers
 // and their deaths charge nothing, and the one other path to the same fine is DFU's own script and stands -
 // A0C00Y17's watch branch (two Warriors with a warrant), refused: `legal repute -20`, known, 600 gold (pinned as
-// intended in test/systems/livingWorld/fb1025b_roadspare.test.js).
+// intended in test/systems/livingWorld/fb1025i_roadspare.test.js).
 // ═══════════════════════════════════════════════════════════════════
 import { nearestPerson } from '../townTalk.js';
 import { WEAPON_REACH } from '../../combat/playerWeapon.js';

@@ -232,7 +232,7 @@ test('AUDIT PRE-MERGE 0929 D1: the throne puzzle (N0000037) at the motor\'s own 
   const world = blockWorld('N0000037.RDB', events);
   const heard = [];
   // walk from the floor in front of the throne up onto its seat, as Skibbster did (facing -x: the seat's front at x
-  // 33.64, its backrest at 32.79). PIN MOVED (FIELD BUGS 2026-10-25b RAIL-HANG): the seat stands 0.58 m over the floor,
+  // 33.64, its backrest at 32.79). PIN MOVED (FIELD BUGS 2026-10-25i RAIL-HANG): the seat stands 0.58 m over the floor,
   // over a step - a walker had been set on it by PH1's one-way floor, the loophole SH1's law now closes for a walking
   // body (the one that hung walkers on a fence's rail), so the body jumps up onto it, walking in
   walk(world, [34.9, 33.0, 39.4], -Math.PI / 2, 240, heard, 8);

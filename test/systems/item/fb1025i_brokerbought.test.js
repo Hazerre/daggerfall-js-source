@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b BOUGHT-YOURS (#bug-reports, "Can't buy this piece", Paofrenetico: "I did dismantle the other
+// FIELD BUGS 2026-10-25i BOUGHT-YOURS (#bug-reports, "Can't buy this piece", Paofrenetico: "I did dismantle the other
 // chest i bought days ago, but still i cant buy this one"; bible/11-Multiplayer/Sigil-Sets.md section 7). The report's
 // Broker, minted by the real stock off its own day: the window's six rows, its turn and its insignia's word as the
 // screenshot shows them; the two Wardens - 2026-10-22's (Malacath's) and 2026-10-25's (Mora's), two offers of one name -
@@ -53,7 +53,7 @@ test('BOUGHT-YOURS the two Wardens: two offers of one name, each a chest - a sal
   assert.deepEqual([itemLongName(old.item), offerSetName(old), old.item.rarity, old.item.templateIndex], ['The Warden', 'Malacath\'s Bulwark', 'legendary', 102]);
   assert.deepEqual([itemLongName(warden.item), offerSetName(warden), warden.item.rarity, warden.item.templateIndex], ['The Warden', 'Mora\'s Mantle', 'legendary', 102]);
   assert.notEqual(old.id, warden.id, 'two offers');
-  // AUDIT FB1025b A8: and a dismantle asked of either names its set - "The Warden" alone could not say which
+  // AUDIT FB1025i A8: and a dismantle asked of either names its set - "The Warden" alone could not say which
   assert.deepEqual([dismantleAsk(wareName(itemLongName(old.item), old.item), 3)[0], dismantleAsk(wareName(itemLongName(warden.item), warden.item), 3)[0]],
     ['Dismantle The Warden (Malacath\'s Bulwark)?', 'Dismantle The Warden (Mora\'s Mantle)?']);
   assert.equal(wareName('Deadlands Ember', sigilStone()), 'Deadlands Ember', 'a piece of no set, its name');

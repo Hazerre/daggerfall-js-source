@@ -477,7 +477,7 @@ export function itemLine(item, identity = undefined) {
     // row gold; this skin had no way to say it at all, so a player who
     // lit a torch could not tell which of three torches was burning.
     lit: !!item && identity?.lightSource === item,
-    // FIELD BUGS 2026-10-25b QUEST-MARK: and a QUEST's own item - that handler's FIRST arm, the classic list's green cell
+    // FIELD BUGS 2026-10-25i QUEST-MARK: and a QUEST's own item - that handler's FIRST arm, the classic list's green cell
     // (questItemBackgroundColor). This skin drew none, so the heart Q0C4XY04 gives its foe looked exactly like the plain
     // one a seducer's own loot leaves on the same body. The quest's name as the journal shows it ('' when no quest of
     // this world holds it), null for an item no quest owns.
@@ -495,7 +495,7 @@ export function itemLine(item, identity = undefined) {
   };
 }
 /** QUEST-MARK: a quest item's word on its row (HT2's "lit" is the gold row's), and its card's line naming the quest.
- *  AUDIT FB1025b B6: the trade windows' rows say the word too (enhancedTrade.js, enhancedPlayerTrade.js). */
+ *  AUDIT FB1025i B6: the trade windows' rows say the word too (enhancedTrade.js, enhancedPlayerTrade.js). */
 export const questWord = () => t('inventory.quest.word', 'quest item');
 const questLine = (name) => (name ? t('inventory.quest.of', 'Quest item: {quest}', { quest: name }) : t('inventory.quest.item', 'Quest item'));
 
@@ -3728,7 +3728,7 @@ function closeDismantle() { dismantleEl?.remove(); dismantleEl = null; dismantle
  *  button never stands where the card's did, and a second click of a pair never presses it (pairGuard). */
 function askDismantle(item) {
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
-  const name = wareName(itemLongName(item, { getQuest: deps.getQuest ?? null }), item);   // AUDIT FB1025b A8: and its set's
+  const name = wareName(itemLongName(item, { getQuest: deps.getQuest ?? null }), item);   // AUDIT FB1025i A8: and its set's
   const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'worn' ? DISMANTLE_WORN(name) : null; refresh(); render(); };
   const why = dismantleRefusal(item);
   if (why) { refusedFor(why); return; }

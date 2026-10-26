@@ -725,7 +725,7 @@ test('STAFF-PURGE-DUPES: one confirm destroys every copy marked on the character
   assert.equal(s.raw.prepare('SELECT 1 FROM item_dupes WHERE char_id = ?').get(chest.id), undefined);
 });
 
-test('STAFF-PURGE-DUPES keep (FIELD BUGS 2026-10-25b COPY-LIFT): one confirm keeps one of each marked piece - the pack\'s before a chest\'s - and destroys only its copies, a chest\'s of a kept piece too; the copy of its own is lifted in the same batch, said, and every other mark stands through the next checkpoint', async () => {
+test('STAFF-PURGE-DUPES keep (FIELD BUGS 2026-10-25i COPY-LIFT): one confirm keeps one of each marked piece - the pack\'s before a chest\'s - and destroys only its copies, a chest\'s of a kept piece too; the copy of its own is lifted in the same batch, said, and every other mark stands through the next checkpoint', async () => {
   const s = await stand();
   const a = 'a200000000000001';   // the pair the decorator's Discard made: in the pack and in the home's chest
   const b = 'b200000000000002';   // a claim's copy, held once
@@ -761,7 +761,7 @@ test('STAFF-PURGE-DUPES keep (FIELD BUGS 2026-10-25b COPY-LIFT): one confirm kee
   assert.deepEqual([again.body.extra, again.body.bins, again.body.lifts], [0, 0, 0]);
   assert.deepEqual(await s.admin('/v1/staff/item/purge-dupes', { id: t.id, keep: true, confirm: true, reason: 'duplicated', note: 'again', seq: again.body.seq }),
     { status: 409, body: { error: 'no-dupes' } }, 'a keep with no copy to destroy is refused - never a seizure for nothing');
-  // a pair one copy of which staff already took - Remove from a player, its trail checked (AUDIT FB1025b F1: the real
+  // a pair one copy of which staff already took - Remove from a player, its trail checked (AUDIT FB1025i F1: the real
   // producer, staff_evidence keeping the copy): nothing to destroy, the lift alone
   const d = 'd200000000000004';
   const h = await s.seat('Halved', freshSave({ name: 'Halved', items: [piece(d), piece(d)] }));
@@ -775,7 +775,7 @@ test('STAFF-PURGE-DUPES keep (FIELD BUGS 2026-10-25b COPY-LIFT): one confirm kee
   const lift = await s.admin('/v1/staff/item/purge-dupes', { id: h.id, keep: true, confirm: true, reason: 'duplicated', note: 'the copy was taken', seq: halved.body.seq });
   assert.deepEqual([lift.status, lift.body.lifted], [200, [d]], 'lifted by the act');
   assert.equal(s.raw.prepare('SELECT 1 FROM item_dupes WHERE char_id = ?').get(h.id), undefined);
-  // AUDIT FB1025b F1: one the PLAYER let go - sold at a counter, the service never told - is no copy the act can count:
+  // AUDIT FB1025i F1: one the PLAYER let go - sold at a counter, the service never told - is no copy the act can count:
   // the save's word that it shows the piece once lifts nothing
   const e = 'd200000000000005';
   const sold = await s.seat('Sold', freshSave({ name: 'Sold', items: [piece(e), piece(e)] }));
@@ -795,7 +795,7 @@ test('STAFF-PURGE-DUPES keep (FIELD BUGS 2026-10-25b COPY-LIFT): one confirm kee
   assert.equal(bt.status, 200, JSON.stringify(bt.body));
   s.raw.prepare("UPDATE staff_evidence SET state = 'returned' WHERE id = ?").run(bt.body.evidence);   // put back - and let go again since
   assert.equal((await s.admin('/v1/staff/item/purge-dupes', { id: back.id, keep: true })).body.lifts, 0);
-  // AUDIT FB1025b F1: a pair whose second copy the account's shared chest holds (its Access moved the chest's goods into
+  // AUDIT FB1025i F1: a pair whose second copy the account's shared chest holds (its Access moved the chest's goods into
   // the service's bin): the act destroys the chest's, so it lifts
   const f = 'd200000000000007';
   const binned = await s.seat('Binned', freshSave({ name: 'Binned', items: [piece(f), piece(f)] }));
@@ -813,7 +813,7 @@ for (const [where, hide, lies] of [
   ['a deserter revenant\'s take (revenant.js RVN8 splitPack)', (it) => ({ modData: { Revenant: { list: [{ id: 'rv1', sworn: false, defeated: false, took: [it] }] } } }), (save) => save.modData.Revenant.list[0].took],
   ['a pile on the ground', (it) => ({ world: { piles: [{ items: [it] }] } }), (save) => save.world.piles[0].items],
 ]) {
-  test(`STAFF-PURGE-DUPES keep (AUDIT FB1025b F1): a copy of the pair moved to ${where} - where the record lists nothing - is found by the keep and destroyed with the rest, the one kept lifted; the copy never comes back live`, async () => {
+  test(`STAFF-PURGE-DUPES keep (AUDIT FB1025i F1): a copy of the pair moved to ${where} - where the record lists nothing - is found by the keep and destroyed with the rest, the one kept lifted; the copy never comes back live`, async () => {
     const s = await stand();
     const a = 'a210000000000001';
     const t = await s.seat('Duper', freshSave({ name: 'Duper', items: [piece(a), piece(a)] }));
@@ -830,7 +830,7 @@ for (const [where, hide, lies] of [
   });
 }
 
-test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F1): a triple - the pack, a home\'s chest and a pile on the ground - keeps the pack\'s, destroys the other two, and lifts', async () => {
+test('STAFF-PURGE-DUPES keep (AUDIT FB1025i F1): a triple - the pack, a home\'s chest and a pile on the ground - keeps the pack\'s, destroys the other two, and lifts', async () => {
   const s = await stand();
   const a = 'a210000000000002';
   const scene = { sceneName: 'OnlineHome [MapID=11, BuildingKey=11]', decorItems: { c1: [piece(a)] } };
@@ -843,7 +843,7 @@ test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F1): a triple - the pack, a home\'s 
   assert.deepEqual([save.items.map((i) => i.uid), save.sceneCache.scenes[0].decorItems.c1, save.world.piles[0].items], [[a], [], []]);
 });
 
-test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F6): the copy kept is the ledger\'s own piece - a key shown first on another piece keeps the piece its row was first seen as, destroys the other, and lifts', async () => {
+test('STAFF-PURGE-DUPES keep (AUDIT FB1025i F6): the copy kept is the ledger\'s own piece - a key shown first on another piece keeps the piece its row was first seen as, destroys the other, and lifts', async () => {
   const s = await stand();
   const k = 'f210000000000001';
   const real = piece(k);
@@ -857,7 +857,7 @@ test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F6): the copy kept is the ledger\'s 
   assert.deepEqual(recordOf(s.env, t.id).items.map((i) => i.templateIndex), [real.templateIndex], 'the other piece destroyed');
 });
 
-test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F5): a claim\'s copy, its holder\'s real piece deposited in the account\'s shared chest - the keep lifts nothing, so it destroys nothing there: refused, the chest\'s piece kept', async () => {
+test('STAFF-PURGE-DUPES keep (AUDIT FB1025i F5): a claim\'s copy, its holder\'s real piece deposited in the account\'s shared chest - the keep lifts nothing, so it destroys nothing there: refused, the chest\'s piece kept', async () => {
   const s = await stand();
   const k = 'e210000000000001';
   const P = await s.seat('Giver', freshSave({ name: 'Giver', items: [piece(k)] }));
@@ -874,7 +874,7 @@ test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F5): a claim\'s copy, its holder\'s 
   assert.equal(s.raw.prepare('SELECT count(*) AS n FROM decor_bin WHERE uid = ?').get(k).n, 1, 'the real piece stays the chest\'s');
 });
 
-test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F2): a peer\'s claim landing between the keep\'s ask and its batch - the lift\'s own statement refuses, and neither the answer nor the record says lifted', async () => {
+test('STAFF-PURGE-DUPES keep (AUDIT FB1025i F2): a peer\'s claim landing between the keep\'s ask and its batch - the lift\'s own statement refuses, and neither the answer nor the record says lifted', async () => {
   const s = await stand();
   const a = 'a210000000000003';
   const t = await s.seat('Paired', freshSave({ name: 'Paired', items: [piece(a), piece(a)] }));
@@ -894,7 +894,7 @@ test('STAFF-PURGE-DUPES keep (AUDIT FB1025b F2): a peer\'s claim landing between
   assert.equal(lifts(), 0, 'no finding says lifted');
 });
 
-test('STAFF-PURGE-DUPES (AUDIT FB1025b F3): a checkpoint landing between the act\'s read of the record and its seizure - refused seq, the record as the checkpoint left it, the seizure\'s object dropped', async () => {
+test('STAFF-PURGE-DUPES (AUDIT FB1025i F3): a checkpoint landing between the act\'s read of the record and its seizure - refused seq, the record as the checkpoint left it, the seizure\'s object dropped', async () => {
   const s = await stand();
   const a = 'a210000000000004', b = 'b210000000000004';
   const t = await s.seat('Mover', freshSave({ name: 'Mover', items: [piece(a), piece(a)] }));

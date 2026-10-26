@@ -1255,9 +1255,9 @@ const nameAround = (base, tier, affixes) => {
   if (suf) parts.push(affixWord(suf, tier));
   return parts.join(' ');
 };
-/** FIELD BUGS 2026-10-25b NAME-KEPT (SaberGGaming: "if you've renamed your item it will revert it back into its original
+/** FIELD BUGS 2026-10-25i NAME-KEPT (SaberGGaming: "if you've renamed your item it will revert it back into its original
  *  name"): A NAME IS THE LADDER'S, OR THE PIECE'S OWN. The ladder's is its words around its BASE, read off the piece -
- *  never off its name (AUDIT FB1025b A1-A5: a name parsed by the lines it had kept a curse's or an unset gem's word
+ *  never off its name (AUDIT FB1025i A1-A5: a name parsed by the lines it had kept a curse's or an unset gem's word
  *  stale, and a name an older reforge had broken broken). The base a piece's name is built around now: a crafted jewel's
  *  recipe name (smithItems.js setJewel - "Silver Ruby Ring"), a Masterwork's bare template (mintPiece - its maker's mark
  *  names it), else the Roleplay & Realism: Items word and the template (rarityName's). */
@@ -1308,7 +1308,7 @@ const ladderName = (item, tier) => (markNamed(item) ? ladderBase(item) : nameAro
 export function linesName(item, tier, was = item) {
   return ladderBuilt(was, was?.rarity, was?.name) ? ladderName(item, tier) : was?.name;
 }
-/** NAME-KEPT (AUDIT FB1025b A3): THE CRAFTED NAMES A SAVE KEPT. The reforge before NAME-KEPT built a crafted piece's name
+/** NAME-KEPT (AUDIT FB1025i A3): THE CRAFTED NAMES A SAVE KEPT. The reforge before NAME-KEPT built a crafted piece's name
  *  on its bare template - a jewel lost its metal and gem ("Silver Ring" to "Ring"), a Masterwork took the ladder's words
  *  its mark withholds ("Saber's Mule's Ring of Skill"). On load a Magic or Rare crafted piece whose name is a ladder build
  *  other than the one its base gives now takes the ladder's; a name of its own is left as it came, and a second load

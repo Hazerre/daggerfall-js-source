@@ -21,7 +21,7 @@
 //        crown) in the plane each stands in, so it moves with the picture as the eye moves; a flat's judged by its own
 //        picture at its own texel, a crown's by the silhouette GLINT_HOLD_PX round; none, and that life is dark: a
 //        white-hot core in a soft bloom, and four thin rays, a little turned, GLINT_PX long at most at GLINT_REF_ROWS
-//        rows, shorter on a small picture. NODE-CROWN (FIELD BUGS 2026-10-25b): a 3D crown's grow with its size on
+//        rows, shorter on a small picture. NODE-CROWN (FIELD BUGS 2026-10-25i): a 3D crown's grow with its size on
 //        screen, up to twice as many reaching twice as far (glintCrownGrowth) - a big tree's six were lost in it.
 //      - THE SHEEN: a soft band of light crossing the silhouette, rising, once each 1 / GLINT_SHEEN_HZ seconds - the
 //        picture's own shape lit, only inside it; faded out as the node comes near (GLINT_SHEEN_NEAR_M to
@@ -81,7 +81,7 @@ export const GLINT_PX_MIN = 4;
 export const GLINT_PX_FLOOR = 1.5;
 export const GLINT_REF_ROWS = 1080;
 export const GLINT_SHARE = 0.35;
-/** NODE-CROWN (AUDIT FB1025b C1, the report's "Needs to be size aware"): the most a 3D crown's glints grow over a herb's
+/** NODE-CROWN (AUDIT FB1025i C1, the report's "Needs to be size aware"): the most a 3D crown's glints grow over a herb's
  *  - twice as many, each reaching twice as far (glintCrownGrowth) - and so the most glints a node has: the light's
  *  slots. A flat (a herb, a vein, a far tree) keeps GLINT_COUNT at glintPx's reach. */
 export const GLINT_CROWN_GROWTH = 2;
@@ -646,15 +646,15 @@ export class NodeGlintRenderer {
           }
         }
         if (t) {
-          // FIELD BUGS 2026-10-25b NODE-CROWN ("Big trees hide resource node particles"): its crown as tall as the tree its
+          // FIELD BUGS 2026-10-25i NODE-CROWN ("Big trees hide resource node particles"): its crown as tall as the tree its
           // run draws - the run's standing size at its row's scale; the prototype's own scale is in that size already
           // (world/lowPolyTrees.js readLowPolyTrees), and counted again it stood most of a temperate or mountain wood's
           // crowns at half to four fifths of their trees (504_16's 16 m tree lit to 8 m, its top never) and a swamp's, a
-          // desert's or a winter wood's 15 over up to four times their height (AUDIT FB1025b C2: 74 of the climates' 93)
+          // desert's or a winter wood's 15 over up to four times their height (AUDIT FB1025i C2: 74 of the climates' 93)
           const row = this._row, reach = t.run.size[0] * GLINT_TREE_REACH * row[4], h = t.run.size[1] * row[4];
           NodeGlintRenderer._span(s.spans, k, row[0], row[1], row[2], 2 * reach, h, 0);   // AUDIT NODE-GLINT: its crown, about its root
           NodeGlintRenderer._box(s.boxes, k++, row[0] - reach, row[1], row[2] - reach, row[0] + reach, row[1] + h, row[2] + reach);
-          // NODE-CROWN (AUDIT FB1025b C1): its standing width and height at its root's depth, the size its glints grow by
+          // NODE-CROWN (AUDIT FB1025i C1): its standing width and height at its root's depth, the size its glints grow by
           crown = Math.max(crown, crownSidePx(r._proj, vpm[3] * row[0] + vpm[7] * row[1] + vpm[11] * row[2] + vpm[15], t.run.size[0] * row[4], h, vw, vh));
         }
       }
@@ -665,7 +665,7 @@ export class NodeGlintRenderer {
         const sp = s.spans[Math.floor((i * k) / s.anchorN)], o = i * 8;
         s.anchors[o] = sp[0]; s.anchors[o + 1] = sp[1]; s.anchors[o + 2] = sp[2]; s.anchors[o + 3] = sp[3]; s.anchors[o + 4] = sp[4]; s.anchors[o + 5] = sp[5];
       }
-      // NODE-CROWN (AUDIT FB1025b C1, the report's "Needs to be size aware"): a 3D crown's glints grown by its size on
+      // NODE-CROWN (AUDIT FB1025i C1, the report's "Needs to be size aware"): a 3D crown's glints grown by its size on
       // screen - more of them, each reaching further (a big tree's six herb-sized glints were lost in it); a flat's
       // GLINT_COUNT at its picture's reach, as they were. And the room its rays take round it.
       if (crown > 0) { s.count = glintCrownCount(vh, crown); s.glint = glintCrownPx(vh, crown); } else { s.count = GLINT_COUNT; s.glint = glintPx(vh, Math.max(s.inner[2] * vw, s.inner[3] * vh)); }

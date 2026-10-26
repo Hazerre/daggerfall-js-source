@@ -1087,7 +1087,7 @@ export class NativeInventoryWindow {
    *  ground, which its binding refuses: the refusal and the offer in DFU's own Yes/No box (ui/yesNoBox.js, pressed or
    *  keyed). Yes dismantles it (systems/sigil/sigilBroker.js dismantleWare) and says so; No leaves it in the pack. */
   _askDismantle(it, n) {
-    const name = wareName(itemLongName(it, { getQuest: this.hooks.getQuest ?? null }), it);   // AUDIT FB1025b A8: and its set's
+    const name = wareName(itemLongName(it, { getQuest: this.hooks.getQuest ?? null }), it);   // AUDIT FB1025i A8: and its set's
     this._tip.hide();   // AUDIT SS: the piece's tooltip drew over the question until the mouse moved
     this.inputBox = new YesNoBoxWindow({
       rows: [{ text: boundText(name), center: true }, { text: DISMANTLE_INSTEAD(n), center: true }],

@@ -232,16 +232,16 @@ const copyRows = (/** @type {any} */ db, /** @type {string[]} */ keys, /** @type
     .bind(char, nowS, kind, ...part.flatMap((k) => { const w = whoOf(k); return [k, w?.first ?? null, w?.firstAt ?? null, w?.claimant ?? null, w?.claimAt ?? null, w?.fp ?? null]; })));
 
 /**
- * FIELD BUGS 2026-10-25b COPY-LIFT (Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
+ * FIELD BUGS 2026-10-25i COPY-LIFT (Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
  * Locked'"): A RECORD'S COPY OF ITS OWN, LIFTED BY THE SERVICE'S OWN HAND. The decorator's Discard wrote a home's chests
  * back (scenes/decor/decorTool.js CHEST-DRAFT), and every piece stored stood twice in one record - a `twice` copy, both
  * locked. A copy is lifted ONLY in the batch of a service act that itself leaves the record one of the piece (staff's
  * purge with `keep` - staffRealm.js: its batch destroys a copy of it wherever the save holds one, or staff's Remove took
  * one and keeps it): never on a checkpoint's word that the record shows it once, which no service can tell from a copy
  * moved where the record lists nothing - a deserter revenant's take (revenant.js RVN8: splitPack, and a kill's take,
- * pickTaken - neither takes a realm-locked piece now, AUDIT FB1025b F1, and a forged client's is the keep's to find),
- * a counter, the ground - and brought back after (AUDIT FB1025b). Of `pieces` (`{ key, fp }`, one of each the act
- * keeps), the keys liftable: a `twice` copy of `char`'s, no trail check found or found it innocent (AUDIT FB1025b F7: an
+ * pickTaken - neither takes a realm-locked piece now, AUDIT FB1025i F1, and a forged client's is the keep's to find),
+ * a counter, the ground - and brought back after (AUDIT FB1025i). Of `pieces` (`{ key, fp }`, one of each the act
+ * keeps), the keys liftable: a `twice` copy of `char`'s, no trail check found or found it innocent (AUDIT FB1025i F7: an
  * `unclear` one is staff's to settle first), its row `char`'s own, held and unclaimed and of that piece, no other
  * record's copy known. Every other copy stays locked for good.
  * @param {any} db @param {string} char @param {{ key: string, fp: string }[]} pieces
@@ -262,11 +262,11 @@ export async function ownCopiesLiftable(db, char, pieces) {
 const OWN_COPY_SQL = `d.kind = 'twice' AND (d.trail_found IS NULL OR d.trail_found = 'innocent')
   AND u.char_id = ?1 AND u.state = 'held' AND u.claim_char IS NULL
   AND NOT EXISTS (SELECT 1 FROM item_dupes o WHERE o.uid = d.uid AND o.char_id != ?1)`;
-/** AUDIT FB1025b F2: the copies of the keys in JSON `?4` the law lifts on `?1` now - what the lift's statement will take. */
+/** AUDIT FB1025i F2: the copies of the keys in JSON `?4` the law lifts on `?1` now - what the lift's statement will take. */
 const LIFTING_SQL = `SELECT d.uid AS uid FROM item_dupes d JOIN item_uids u ON u.uid = d.uid
   WHERE d.char_id = ?1 AND ${OWN_COPY_SQL} AND d.uid IN (SELECT value FROM json_each(?4))`;
 /** COPY-LIFT: `keys` (ownCopiesLiftable's) lifted on `char`, in the act's own batch - and said among its findings, a
- *  'dupe' with `lifted`, as the copy was when it came (chargeSteps). AUDIT FB1025b F2: the finding says what the lift's
+ *  'dupe' with `lifted`, as the copy was when it came (chargeSteps). AUDIT FB1025i F2: the finding says what the lift's
  *  own statement takes, asked by the same law in the same batch just before it - a row that moved since the ask (a
  *  peer's claim landed) is neither lifted nor said; none lifted, no finding. No keys, no statement. */
 export const ownCopyLiftSteps = (/** @type {any} */ db, /** @type {string} */ char, /** @type {string[]} */ keys, /** @type {number} */ nowS) => (!keys.length ? [] : [

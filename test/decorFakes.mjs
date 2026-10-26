@@ -11,7 +11,7 @@ import { decorCatalogue, collectDecor } from '../src/systems/decor/decorCatalogu
 import { DECOR_CAP, decorPrice } from '../src/net/decorLaw.js';
 import { PROP_MODEL_TYPE } from '../src/world/interior/interiorLayout.js';
 import { isFurnishing } from '../src/systems/decor/decorFurnish.js';
-import { createDecorPack } from '../src/systems/decor/decorPack.js';   // AUDIT FB1025b E1: the producer's own doors
+import { createDecorPack } from '../src/systems/decor/decorPack.js';   // AUDIT FB1025i E1: the producer's own doors
 import { decorMatrix, decorKeyOf, createDecorRoom } from '../src/scenes/decor/decorRoom.js';
 import { localAabb } from '../src/render/frustum.js';
 import { createHomeYards } from '../src/scenes/homeYards.js';
@@ -120,7 +120,7 @@ export const ACTIONS = new Map([['KeyW', 'MoveForwards'], ['KeyS', 'MoveBackward
  * put again by its id stands in its place, `holds` the ids of the pieces holding something. The wallet pays from and
  * credits `w.gold`, `hand.stick` is the host's stickAxes reading (null: no stick in hand), and `rays` each eye ray's
  * bucket filter. `radius(model)` the scan's measure of a model (null: unread). DECOR2a: `pack` the items carried -
- * packTake moves one of a stack out as a drop does, packGive puts one back through the pack's own door - AUDIT FB1025b E1: the
+ * packTake moves one of a stack out as a drop does, packGive puts one back through the pack's own door - AUDIT FB1025i E1: the
  * host's own doors (systems/decor/decorPack.js) over the rig's lists, never a fake that pushed where the host refuses.
  * DECOR2b: `furnishings` the furniture delivered - where a piece of furniture lives, as the host's decorHome has it:
  * taken out whole, given back there, never to the pack. DECOR2c: `state.normal` the surface's normal the eye's ray
@@ -162,7 +162,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     const tris = new Uint32Array([0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 3, 2, 6, 3, 6, 7, 0, 3, 7, 0, 7, 4, 1, 5, 6, 1, 6, 2]);
     collider.addMesh(decorKeyOf(p.id), at, tris, decorMatrix(p, [10, 0, 10]));
   };
-  // FIELD BUGS 2026-10-25b CHEST-DRAFT: what the storage pieces hold is the REAL room's store (scenes/decor/decorRoom.js
+  // FIELD BUGS 2026-10-25i CHEST-DRAFT: what the storage pieces hold is the REAL room's store (scenes/decor/decorRoom.js
   // itemsOf, itemsSnapshot, setItems) - the fake's no-op `setItems` and empty `itemsSnapshot` let "Discard puts the room
   // back" pass while the discard wrote every chest back as it stood when the draft opened. `chests` is that store.
   const chests = createDecorRoom({ meshes: {}, renderer: null, getTexture: async () => null, uploadRecord() {}, uploadRecordFrame() {}, collider: () => null, origin: () => [10, 0, 10] });
@@ -192,7 +192,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
   const pack = [];   // DECOR2a: the items carried - packTake moves one of a stack out, as a drop does
   const furnishings = [];   // DECOR2b: the furniture delivered (worldModes.js decorHome)
   const homeOf = (item) => (isFurnishing(item) ? furnishings : pack);
-  const ownDoors = createDecorPack(() => ({ items: pack, furnishings }));   // AUDIT FB1025b E1: the host's own (worldModes.js wires the same)
+  const ownDoors = createDecorPack(() => ({ items: pack, furnishings }));   // AUDIT FB1025i E1: the host's own (worldModes.js wires the same)
   const rays = [];   // each eye ray's bucket filter (player/collider.js raycastHit's fourth), or null
   let visit = 1;
   let cursorOff = 0;

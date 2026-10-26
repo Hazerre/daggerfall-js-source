@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b ROAD-SPARE (the Discord's #bug-reports, pepsiorcoke, "Player gets a bounty when defending
+// FIELD BUGS 2026-10-25i ROAD-SPARE (the Discord's #bug-reports, pepsiorcoke, "Player gets a bounty when defending
 // themselves against quest NPC's who attack": "Assassin's are attacking me for escorting another NPC and I choose to defend
 // myself and my escort target guards approach me with a hefty fee of 500+ gold").
 //
@@ -13,7 +13,7 @@
 // its Foe's wave minted as the host mints it and stood in the encounter pool, the street's pool and its law, the roads'
 // layer and its party, the caravan's report and charge, the court's loss and the watch's fine.
 //
-// AUDIT FB1025b (a cold lane's read of ROAD-SPARE): D1 - the road is the LIKELY cause, not a proven one (the reporter's
+// AUDIT FB1025i (a cold lane's read of ROAD-SPARE): D1 - the road is the LIKELY cause, not a proven one (the reporter's
 // save was not read), and the one other path to the same fine is DFU's own script: A0C00Y17's watch branch refused, its
 // `legal repute -20`, pinned here as intended. D2 - a stood traveller (LW7b, scenes/roadStands.js) cut down by another
 // hand is no deed of the player's and no report: the pool's death door names whose hand (`killedBy`). D3 - the fight that
@@ -181,7 +181,7 @@ test('ROAD-SPARE the bounty, measured: with the protection off a swing in the fi
     const behind = createRoadStrike({ roads: () => walled.roads, open: () => true, collider: { raycast: () => 0.5 }, cityGuards: walled.guards, hitEffects: { showBloodSplash: () => {} }, playerEntity: walled.p });
     assert.equal(behind(EYE, FWD), false, 'a wall before them');
     assert.deepEqual([[...far.slain], [...walled.slain]], [[], []]);
-    // AUDIT FB1025b D4: and off the open world (indoors, a dungeon, the living world off) the road takes no swing at all
+    // AUDIT FB1025i D4: and off the open world (indoors, a dungeon, the living world off) the road takes no swing at all
     const shut = await escortRoad();
     const indoors = createRoadStrike({ roads: () => shut.roads, open: () => false, collider: shut.rigOf().collider, cityGuards: shut.guards, hitEffects: { showBloodSplash: () => {} }, playerEntity: shut.p });
     assert.equal(indoors(EYE, FWD), false, 'not the open world: nobody');
@@ -209,7 +209,7 @@ test('ROAD-SPARE the host: world.js builds the road\'s strike over its own stree
   assert.deepEqual(tail({ crime: 'murder' }, ROAD_STRUCK), { bashed: 0, whoosh: 0, surfaced: 1, road: 0 }, 'a townsperson struck: the road never asked');
 });
 
-test('ROAD-SPARE (AUDIT FB1025b D1) the other road to the same fine, DFU\'s own and intended: The Escort\'s WATCH branch (`_S.01_`, two Warriors with a warrant) - struck, the questgiver asks "are you going to turn me over?", and No is `_S.17_`\'s `legal repute -20`: the face the watch knows and its stop\'s 600 gold, as DFU\'s script has it (the script\'s, not a mutant of the port\'s: the pin records that the port keeps it)', async () => {
+test('ROAD-SPARE (AUDIT FB1025i D1) the other road to the same fine, DFU\'s own and intended: The Escort\'s WATCH branch (`_S.01_`, two Warriors with a warrant) - struck, the questgiver asks "are you going to turn me over?", and No is `_S.17_`\'s `legal repute -20`: the face the watch knows and its stop\'s 600 gold, as DFU\'s script has it (the script\'s, not a mutant of the port\'s: the pin records that the port keeps it)', async () => {
   setValue('MeleeAttacks', 'MeleeAttackFriendlyProtection', true);
   const r = await escortRoad({ roll: 0.1, band: 'guards' });
   assert.deepEqual(r.assassins.map((f) => [f.mobileType, f.isQuestFoe, f.ai.isHostile]), [[144, true, true], [144, true, true]], 'two Warriors, the quest\'s');
@@ -247,7 +247,7 @@ async function standOnRoad() {
   return { foes, rec, after };
 }
 
-test('ROAD-SPARE (AUDIT FB1025b D2) a stood traveller cut down by another hand is no deed of the player\'s: the pool\'s death door names whose hand (`killedBy`), and only the player\'s kill is the stands\' slaying (the road\'s Murder report); a beast\'s, a peer\'s, an ally\'s is killed - dead for good, no report (mutants: the killer unrecorded; any death slain; another hand\'s death unsaid)', async () => {
+test('ROAD-SPARE (AUDIT FB1025i D2) a stood traveller cut down by another hand is no deed of the player\'s: the pool\'s death door names whose hand (`killedBy`), and only the player\'s kill is the stands\' slaying (the road\'s Murder report); a beast\'s, a peer\'s, an ally\'s is killed - dead for good, no report (mutants: the killer unrecorded; any death slain; another hand\'s death unsaid)', async () => {
   const beast = await standOnRoad();
   beast.rec.hurtFromFoe(10000, null, null);   // another foe's blow (MT-ii's cross-pool door)
   assert.equal(beast.rec.killedBy, 'other');
@@ -267,7 +267,7 @@ test('ROAD-SPARE (AUDIT FB1025b D2) a stood traveller cut down by another hand i
 const partnersFoe = (feet, o = {}) => ({ dead: false, puppet: 'peer-2', entity: { team: 'Criminals', mobileTeam: 'Criminals', ...(o.entity ?? {}) },
   ai: { isHostile: true, detected: false, inSight: false, targetIsLocalPlayer: false, wouldBeSpawned: false, feet, ...(o.ai ?? {}) } });
 
-test('ROAD-SPARE (AUDIT FB1025b D3) a party\'s fight is a fight near me: a peer\'s foe hunting my partner three metres off spares the street\'s walker and the road\'s traveller on my look ray, as my own foe would - the rest gate\'s own law unchanged; past the band, pacified, the player\'s ally or out of reach, no fight (mutants: the puppet unread; the band unread; any foe a fight; the hostility and the water unread; the rest\'s answer unread)', async () => {
+test('ROAD-SPARE (AUDIT FB1025i D3) a party\'s fight is a fight near me: a peer\'s foe hunting my partner three metres off spares the street\'s walker and the road\'s traveller on my look ray, as my own foe would - the rest gate\'s own law unchanged; past the band, pacified, the player\'s ally or out of reach, no fight (mutants: the puppet unread; the band unread; any foe a fight; the hostility and the water unread; the rest\'s answer unread)', async () => {
   const near = partnersFoe([3, 0, 0]);
   assert.equal(areEnemiesNearby([near]), false, 'the rest gate: no enemy near me - its own law, kept');
   assert.equal(fightNear([near], FEET), true, 'a fight near me');

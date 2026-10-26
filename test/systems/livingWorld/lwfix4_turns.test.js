@@ -171,7 +171,7 @@ test('LW-FIX4 one struck down on the road is never stood again (the roads\' part
   stands.frame(cands, { x: 0, z: 0 }, 5000);
   return Promise.resolve().then(() => {
     assert.equal(spawned, 1, 'drew on the player');
-    stands.stands()[0].rec.dead = true; stands.stands()[0].rec.corpse = true; stands.stands()[0].rec.killedBy = 'player';   // PIN MOVED (AUDIT LW-III): killed, a corpse; PIN MOVED (AUDIT FB1025b D2): by the player's hand
+    stands.stands()[0].rec.dead = true; stands.stands()[0].rec.corpse = true; stands.stands()[0].rec.killedBy = 'player';   // PIN MOVED (AUDIT LW-III): killed, a corpse; PIN MOVED (AUDIT FB1025i D2): by the player's hand
     stands.frame(cands, { x: 0, z: 0 }, 5001);
     assert.ok(slain.has(res.id), 'struck down');
     stands.frame(cands, { x: 0, z: 0 }, 5001.1);

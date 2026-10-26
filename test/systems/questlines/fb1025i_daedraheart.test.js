@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b (Discord #bug-reports, "Unable to turn in The Daedra's Heart", Mefwhesk: "Elyzabyth will not
+// FIELD BUGS 2026-10-25i (Discord #bug-reports, "Unable to turn in The Daedra's Heart", Mefwhesk: "Elyzabyth will not
 // let me turn the quest in"; Shortstori: "I bet its just a random daedra heart. That also didnt work in vanilla btw. It
 // has to be the 'special' one"). DFU's Q0C4XY04 (vendor/dfu-quests/Quests/Q0C4XY04.txt), run through the real bridge and
 // machine with the questFoeHost wiring the four hosts stand quest foes through, and taken off its body through the real
@@ -11,7 +11,7 @@
 //   - HEART-TAKEN: the journal strikes "take its heart" when the heart is the player's - never on DFU's `clicked item`,
 //     which a look at the row in a body's list fires (a menu closed unused, a take refused).
 //   - QUEST-MARK: the enhanced pack says which heart is the quest's, as DFU's green cell does.
-//   - AUDIT FB1025b: HEART-KEPT (B1, the report's likely cause) - a heart taken off one kind's body stays the player's
+//   - AUDIT FB1025i: HEART-KEPT (B1, the report's likely cause) - a heart taken off one kind's body stays the player's
 //     when a second kind is hurt; S0000503's hoard by the item held (B3); a save from before reads its mended lines
 //     afresh, once (B4); the trade rows' word (B6). The rig reads the host's own law for its item hooks (B2).
 import { test, describe } from 'node:test';
@@ -73,7 +73,7 @@ function rig({ on = true, name = 'Q0C4XY04', factionId = 0 } = {}) {
     classicSeconds: () => now, nowSeconds: () => now, worldSeconds: () => now,
     playerEntity: { name: 'Hero', level: 12, gender: 'female', career: { weaponArmorShieldsBitfield: 0, forbiddenMaterialsFlags: 0 }, skills: new Array(35).fill(30), stats: { strength: 60, intelligence: 50, willpower: 50, agility: 50, endurance: 50, personality: 50, speed: 50, luck: 50 }, items: pack },
     giveItemToPlayer: (it) => addItem(pack, it),
-    // AUDIT FB1025b B2: the host's own two reads (scenes/world.js `_heldItemIndex`, the law itemTransfer.js keeps) - a
+    // AUDIT FB1025i B2: the host's own two reads (scenes/world.js `_heldItemIndex`, the law itemTransfer.js keeps) - a
     // hand-built `pack.includes` could not see the heart pulled out of the pack onto a second kind (HEART-KEPT)
     removeItemFromPlayer: (it) => { const i = heldQuestRecordIndex(pack, it, { clones: true }); if (i >= 0) pack.splice(i, 1); },
     playerHasItem: (it) => heldQuestRecordIndex(pack, it, { clones: false }) >= 0,
@@ -133,7 +133,7 @@ function heartGiven(r) {
   return { fire, syms };
 }
 
-test('FIELD BUGS 2026-10-25b: Q0C4XY04 runs to its end - the four come in waves at the dungeon, the first hurt is given the quest\'s heart, its body holds it, and the questor takes it (the ask, the reward)', () => {
+test('FIELD BUGS 2026-10-25i: Q0C4XY04 runs to its end - the four come in waves at the dungeon, the first hurt is given the quest\'s heart, its body holds it, and the questor takes it (the ask, the reward)', () => {
   const r = rig({ on: true });
   r.tick(3);
   assert.equal(r.pool.length, 0, 'no wave before the player stands at _mondung_ (`pc at` sets _exitstarter_)');
@@ -164,7 +164,7 @@ test('FIELD BUGS 2026-10-25b: Q0C4XY04 runs to its end - the four come in waves 
   assert.ok(r.rec.rewards.some((it) => /Malachite/.test(it.name ?? '')), '`give pc _reward_`');
 });
 
-test('FIELD BUGS 2026-10-25b: the same with the questlines off - DFU\'s script whole: `toting` hands the heart in and pays', () => {
+test('FIELD BUGS 2026-10-25i: the same with the questlines off - DFU\'s script whole: `toting` hands the heart in and pays', () => {
   const r = rig({ on: false });
   assert.equal(r.quest.ql, null, 'DFU\'s quest');
   const { fire } = heartGiven(r);
@@ -192,7 +192,7 @@ function seducerBodies(n = 200) {
   return { first, hearts, n };
 }
 
-test('FIELD BUGS 2026-10-25b: a plain Daedra\'s Heart - a seducer\'s own loot leaves one beside the quest\'s about half the time - never hands in and never strikes the line, as in DFU (Item resources are per quest)', () => {
+test('FIELD BUGS 2026-10-25i: a plain Daedra\'s Heart - a seducer\'s own loot leaves one beside the quest\'s about half the time - never hands in and never strikes the line, as in DFU (Item resources are per quest)', () => {
   const bodies = seducerBodies();
   assert.ok(bodies.hearts > bodies.n / 4, `a seducer's own body holds a heart often (${bodies.hearts}/${bodies.n}) - lootThemes.js: its C1 roll is the heart`);
   const plain = bodies.first;
@@ -211,7 +211,7 @@ test('FIELD BUGS 2026-10-25b: a plain Daedra\'s Heart - a seducer\'s own loot le
   assert.ok(r.pack.includes(plain), 'and the heart is the player\'s still');
 });
 
-test('FIELD BUGS 2026-10-25b HEART-TAKEN: a press on the quest\'s heart that takes nothing (DFU\'s `clicked item` - a take refused, a menu closed unused) strikes nothing - the line is struck once the heart is the player\'s, and stays struck at the hand-in', () => {
+test('FIELD BUGS 2026-10-25i HEART-TAKEN: a press on the quest\'s heart that takes nothing (DFU\'s `clicked item` - a take refused, a menu closed unused) strikes nothing - the line is struck once the heart is the player\'s, and stays struck at the hand-in', () => {
   for (const look of ['refused', 'menu']) {
     const r = rig({ on: true });
     const { fire } = heartGiven(r);
@@ -243,16 +243,16 @@ test('FIELD BUGS 2026-10-25b HEART-TAKEN: a press on the quest\'s heart that tak
   }
 });
 
-test('FIELD BUGS 2026-10-25b HEART-TAKEN: a copy whose player never held the heart reads it taken at the hand-in (`_qlask_`, a party\'s resync carries it)', () => {
+test('FIELD BUGS 2026-10-25i HEART-TAKEN: a copy whose player never held the heart reads it taken at the hand-in (`_qlask_`, a party\'s resync carries it)', () => {
   const r = rig({ on: true });
   heartGiven(r);
   r.quest.getTask({ name: 'qlask' }).start();   // the hand-in, as a partner's copy carried it here
   r.tick(1, 1);
   assert.equal(r.objectives().heart, 'done');
-  assert.equal(r.objectives().bring, 'open', 'AUDIT FB1025b B5: and the heart to bring, its answer still to come');
+  assert.equal(r.objectives().bring, 'open', 'AUDIT FB1025i B5: and the heart to bring, its answer still to come');
 });
 
-test('FIELD BUGS 2026-10-25b HEART-KEPT (AUDIT FB1025b B1): the heart taken off the first body stays the player\'s when a second kind is hurt - GiveItem takes the quest\'s own record from the pack, never a foe\'s clone (GiveItem.cs:117-121, Contains(DaggerfallUnityItem)) - and the witches take it; the second kind\'s clone stays on its body, and the load sweeps one taken once its quest is done', () => {
+test('FIELD BUGS 2026-10-25i HEART-KEPT (AUDIT FB1025i B1): the heart taken off the first body stays the player\'s when a second kind is hurt - GiveItem takes the quest\'s own record from the pack, never a foe\'s clone (GiveItem.cs:117-121, Contains(DaggerfallUnityItem)) - and the witches take it; the second kind\'s clone stays on its body, and the load sweeps one taken once its quest is done', () => {
   for (const on of [true, false]) {
     const r = rig({ on });
     const { fire } = heartGiven(r);
@@ -311,7 +311,7 @@ const loadedRow = (r, { old = false } = {}) => {
   return { before, after: read(), q };
 };
 
-test('FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): a save from the build before keeps no latch the old binding wrote - its mend taken once at the load, the heart on the body reads untaken - and a latch this build wrote stands through a load', () => {
+test('FIELD BUGS 2026-10-25i HEART-TAKEN (AUDIT FB1025i B4): a save from the build before keeps no latch the old binding wrote - its mend taken once at the load, the heart on the body reads untaken - and a latch this build wrote stands through a load', () => {
   const r = rig({ on: true });
   const { fire } = heartGiven(r);
   fire.entity.health = 0;
@@ -324,7 +324,7 @@ test('FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): a save from the bui
   const old = loadedRow(r, { old: true });
   assert.deepEqual(old.before, { heart: 'open' }, 'read before its first tick: the untaken mend\'s latch does not stand');
   assert.deepEqual(old.after, { heart: 'open' }, 'the heart on the body is untaken, nothing to bring');
-  assert.deepEqual(old.q.ql.reread, ['fb1025b'], 'the mend taken');
+  assert.deepEqual(old.q.ql.reread, ['fb1025i'], 'the mend taken');
   // this build's latch: the heart held, then a load with an empty pack (the latch's alone)
   const r2 = rig({ on: true });
   const g = heartGiven(r2);
@@ -335,7 +335,7 @@ test('FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): a save from the bui
   assert.deepEqual(loadedRow(r2).after, { heart: 'done', bring: 'open' }, 'taken under this build: it stands, read once and never again');
 });
 
-test('FIELD BUGS 2026-10-25b QUEST-MARK: the enhanced pack says which heart is the quest\'s - on its row and on its card, as DFU\'s green cell does (questItemBackgroundColor); a plain heart says nothing of a quest', () => {
+test('FIELD BUGS 2026-10-25i QUEST-MARK: the enhanced pack says which heart is the quest\'s - on its row and on its card, as DFU\'s green cell does (questItemBackgroundColor); a plain heart says nothing of a quest', () => {
   const r = rig({ on: true });
   const { fire } = heartGiven(r);
   const quest = fire.entity.items.find(isHeart);
@@ -358,7 +358,7 @@ test('FIELD BUGS 2026-10-25b QUEST-MARK: the enhanced pack says which heart is t
     assert.equal(plainLines.some((l) => /Quest item/.test(l)), false, 'a plain heart\'s card names none');
     view.unmount();
   });
-  // AUDIT FB1025b B5: a quest's item no quest of this world holds (its quest set aside elsewhere, a host with no machine)
+  // AUDIT FB1025i B5: a quest's item no quest of this world holds (its quest set aside elsewhere, a host with no machine)
   // is still a quest's - the row's word and the card's bare line
   withDom((dom) => {
     const host = dom.mk('div'); dom.body.append(host);
@@ -380,7 +380,7 @@ const pressUntil = (dom, host, n) => {
   return subsOf(host);
 };
 
-test('FIELD BUGS 2026-10-25b QUEST-MARK (AUDIT FB1025b B6): the enhanced counter\'s and the player trade\'s rows say a quest\'s item too', () => {
+test('FIELD BUGS 2026-10-25i QUEST-MARK (AUDIT FB1025i B6): the enhanced counter\'s and the player trade\'s rows say a quest\'s item too', () => {
   const r = rig({ on: true });
   const { fire } = heartGiven(r);
   const quest = fire.entity.items.find(isHeart);
@@ -396,7 +396,7 @@ test('FIELD BUGS 2026-10-25b QUEST-MARK (AUDIT FB1025b B6): the enhanced counter
   });
   withDom((dom) => {
     const host = dom.mk('div'); dom.body.append(host);
-    const session = new TradeSession({ sid: 'fb1025b1', me: 'peerAAAA', peer: 'peerBBBB', peerName: 'Brenna', pack: createTradePack(e), send: () => true, near: () => true });
+    const session = new TradeSession({ sid: 'fb1025i1', me: 'peerAAAA', peer: 'peerBBBB', peerName: 'Brenna', pack: createTradePack(e), send: () => true, near: () => true });
     const view = mountEnhancedPlayerTrade(host, { session, deps: { items: () => e.items, entity: e, gold: () => e.goldPieces, onExit: () => {} } });
     const subs = pressUntil(dom, host, 2);
     assert.deepEqual(subs.map((x) => /quest item/.test(x)).sort(), [false, true], `the player trade's pack rows (${subs.join(' | ')})`);
@@ -421,7 +421,7 @@ const SIBLINGS = [
     handInNow: (r) => { r.at.clear(); r.tick(2); r.quest.getPerson({ name: 'qgfriend' }).setPlayerClicked(); r.tick(4, 1); },
   },
   {
-    // AUDIT FB1025b B3: the hoard by the item held alone - `_S.30_` asks on DFU's click (`when _S.05_ and not _S.16_`), so
+    // AUDIT FB1025i B3: the hoard by the item held alone - `_S.30_` asks on DFU's click (`when _S.05_ and not _S.16_`), so
     // its answers come to a look and a walk out as well as to a take; a party copy has the latch by the merge (qlState.js
     // mergeSharedState)
     name: 'S0000503', item: 'item', look: 'S.05', line: 'hoard', next: null, handIn: 'S.28', party: false,
@@ -436,7 +436,7 @@ const SIBLINGS = [
   },
 ];
 
-describe('FIELD BUGS 2026-10-25b HEART-TAKEN, its siblings: a press that takes nothing strikes nothing, a take strikes, a hand-in keeps it struck', () => {
+describe('FIELD BUGS 2026-10-25i HEART-TAKEN, its siblings: a press that takes nothing strikes nothing, a take strikes, a hand-in keeps it struck', () => {
   for (const s of SIBLINGS) {
     const own = (r) => r.quest.getItem({ name: s.item });
     const onBody = (f, r) => f.entity.items.find((it) => it.questItem && it.questUID === r.quest.uid && it.questSymbol?.name === s.item);
@@ -479,7 +479,7 @@ describe('FIELD BUGS 2026-10-25b HEART-TAKEN, its siblings: a press that takes n
       assert.equal(r.objectives()[s.line], 'done', `${s.name}: \`_${s.handIn}_\``);
     });
   }
-  test('S0000503 hoard (AUDIT FB1025b B3): a look at the item on the guardian\'s body and a walk out of the vault - `_S.30_` asks, and neither answer wins a hoard the player never took', () => {
+  test('S0000503 hoard (AUDIT FB1025i B3): a look at the item on the guardian\'s body and a walk out of the vault - `_S.30_` asks, and neither answer wins a hoard the player never took', () => {
     const s = SIBLINGS.find((x) => x.name === 'S0000503');
     for (const yes of [true, false]) {
       const r = rig({ on: true, name: s.name });

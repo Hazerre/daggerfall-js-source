@@ -5,7 +5,7 @@
     "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "new": "take its heart\",\"done\":{\"any\":[{\"task\":\"_S.01_\"},{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old done: DFU's `clicked item`, which a refused take or a menu closed unused fires"
   },
@@ -15,7 +15,7 @@
     "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "new": "take its heart\",\"done\":{\"any\":[{\"task\":\"_qlask_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the heart held never strikes it"
   },
@@ -25,7 +25,7 @@
     "old": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "new": "take its heart\",\"done\":{\"any\":[{\"item\":\"_heart_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "a copy whose player never held it (a party's) reads it untaken to the end"
   },
@@ -35,7 +35,7 @@
     "old": "while it still beats\",\"open\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "new": "while it still beats\",\"open\":{\"any\":[{\"task\":\"_S.01_\"},{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old open: a heart to bring that the player never took"
   },
@@ -45,7 +45,7 @@
     "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
     "new": "    quest: null,",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the skin as it was: the quest's heart drawn as the plain one"
   },
@@ -55,7 +55,7 @@
     "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
     "new": "    quest: item ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "a plain heart marked as the quest's"
   },
@@ -65,7 +65,7 @@
     "old": "    quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,",
     "new": "    quest: item?.questItem ? '' : null,",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the card says a quest's, never whose"
   },
@@ -75,7 +75,7 @@
     "old": "line.lit ? 'lit' : null, line.quest != null ? questWord() : null]",
     "new": "line.lit ? 'lit' : null, null]",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the row says nothing"
   },
@@ -85,7 +85,7 @@
     "old": "  if (line.quest != null) into.append(el('p', 'boundline', questLine(line.quest)));",
     "new": "  if (false) into.append(el('p', 'boundline', questLine(line.quest)));",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the card says nothing"
   },
@@ -95,7 +95,7 @@
     "old": "      if (this.parentQuest.hooks?.carriesQuestItem?.(item)) {\n        this.parentQuest.scheduleClickRearm(person);",
     "new": "      if (true) {\n        this.parentQuest.scheduleClickRearm(person);",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "TotingItemAndClickedNpc without ItemCollection.Contains(Item): a plain heart hands in"
   },
@@ -105,7 +105,7 @@
     "old": "      target.queueItem(item.daggerfallUnityItem);",
     "new": "      void item;",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "GiveItem's Foe arm: no foe ever carries the quest's heart"
   },
@@ -115,7 +115,7 @@
     "old": "    else enemy.addItemsToEntity?.(clonedItems);",
     "new": "    else void clonedItems;",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "AddItemQueue's drain: the queue never reaches the foe's items"
   },
@@ -125,7 +125,7 @@
     "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
     "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"task\":\"_S.03_\"},{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old done: DFU's `clicked item` (`_S.03_`)"
   },
@@ -135,7 +135,7 @@
     "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
     "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"task\":\"_reward_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the wrappings held never strike it"
   },
@@ -145,7 +145,7 @@
     "old": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"},{\"task\":\"_reward_\"}]}",
     "new": "off the mummy =mummy_ in ___mondung_\",\"done\":{\"any\":[{\"item\":\"_wrappings_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "a copy whose player never held them reads them untaken"
   },
@@ -155,7 +155,7 @@
     "old": "to _qgiver_ in ___qgiver_\",\"open\":{\"item\":\"_wrappings_\"}",
     "new": "to _qgiver_ in ___qgiver_\",\"open\":{\"any\":[{\"task\":\"_S.03_\"},{\"item\":\"_wrappings_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old open"
   },
@@ -165,7 +165,7 @@
     "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
     "new": "back from the giant in ___itemdung_\",\"done\":{\"task\":\"_pchasitem_\"}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old done: DFU's `clicked item` (`_pchasitem_`)"
   },
@@ -175,7 +175,7 @@
     "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
     "new": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"task\":\"_pcgetsgold_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the sapphire held never strikes it"
   },
@@ -185,7 +185,7 @@
     "old": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_pcgetsgold_\"}]}",
     "new": "back from the giant in ___itemdung_\",\"done\":{\"any\":[{\"item\":\"_item_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "a copy whose player never held it reads it untaken"
   },
@@ -195,7 +195,7 @@
     "old": "at __qgfriend_ in ___qgfriend_\",\"open\":{\"item\":\"_item_\"}",
     "new": "at __qgfriend_ in ___qgfriend_\",\"open\":{\"task\":\"_pchasitem_\"}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old open"
   },
@@ -205,7 +205,7 @@
     "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"item\":\"_item_\"}",
     "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"task\":\"_S.05_\"}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the old done: DFU's `clicked item` (`_S.05_`)"
   },
@@ -215,7 +215,7 @@
     "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"item\":\"_item_\"}",
     "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "the item held never strikes it"
   },
@@ -225,7 +225,7 @@
     "old": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"item\":\"_item_\"}",
     "new": "win its hoard\",\"open\":{\"task\":\"_S.19_\"},\"done\":{\"any\":[{\"item\":\"_item_\"},{\"task\":\"_S.28_\"},{\"task\":\"_S.29_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B3: the prompt's answers, which a look and a walk out reach"
   },
@@ -235,7 +235,7 @@
     "old": "return this.itemQueue.map((it) => (it?.questItem ? { ...it, questClone: true } : { ...it }));",
     "new": "return this.itemQueue.map((it) => ({ ...it }));",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B1: a clone as the quest's own record - GiveItem pulls the taken heart onto the second kind"
   },
@@ -245,7 +245,7 @@
     "old": "const own = list.findIndex((it) => same(it) && !it.questClone);",
     "new": "const own = list.findIndex((it) => same(it));",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B1: playerHasItem finds a foe's clone"
   },
@@ -255,7 +255,7 @@
     "old": "const same = (it) => !!it?.questItem && it.questUID",
     "new": "const same = (it) => false && !!it?.questItem && it.questUID",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B2: the lane's survivor, now in the law the rig reads"
   },
@@ -265,7 +265,7 @@
     "old": "return own >= 0 || !clones ? own : list.findIndex(same);",
     "new": "return own;",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B1: Item.Dispose's sweep leaves the clone in the pack"
   },
@@ -285,7 +285,7 @@
     "old": "const unmended = (st, o) => !!o?.reread && !(st?.reread ?? []).includes(o.reread);",
     "new": "const unmended = (st, o) => false && !!o?.reread && !(st?.reread ?? []).includes(o.reread);",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B4: an older save's latch stands"
   },
@@ -295,7 +295,7 @@
     "old": "  for (const m of mends) st.reread.push(m);",
     "new": "  void mends;",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B4: every read forgets the latch"
   },
@@ -305,7 +305,7 @@
     "old": "    const done = latched(st, st?.done, o) || holds(quest, o.done, probe);",
     "new": "    const done = !!st?.done?.includes(o.id) || holds(quest, o.done, probe);",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B4: the journal reads the old latch until the first tick"
   },
@@ -315,17 +315,17 @@
     "old": "    reread: idList(data.reread),",
     "new": "    reread: [],",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B4: a load takes the mend again, forgetting this build's latch"
   },
   {
     "name": "REREAD-heart-unnamed",
     "file": "src/systems/questlines/sheets/witches.json",
-    "old": "\"mark\":\"_mondung_\",\"reread\":\"fb1025b\"}",
+    "old": "\"mark\":\"_mondung_\",\"reread\":\"fb1025i\"}",
     "new": "\"mark\":\"_mondung_\"}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B4: the heart's mend unnamed"
   },
@@ -335,7 +335,7 @@
     "old": "while it still beats\",\"open\":{\"any\":[{\"item\":\"_heart_\"},{\"task\":\"_qlask_\"}]}",
     "new": "while it still beats\",\"open\":{\"any\":[{\"item\":\"_heart_\"}]}",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B5: a partner's copy at `_qlask_` reads nothing to bring"
   },
@@ -345,7 +345,7 @@
     "old": "line.lit ? 'lit' : null, line.quest != null ? questWord() : null]",
     "new": "line.lit ? 'lit' : null, line.quest ? questWord() : null]",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B5: a quest item no quest holds says nothing on its row"
   },
@@ -355,7 +355,7 @@
     "old": "  if (line.quest != null) into.append(el('p', 'boundline', questLine(line.quest)));",
     "new": "  if (line.quest) into.append(el('p', 'boundline', questLine(line.quest)));",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B5: nor on its card"
   },
@@ -365,7 +365,7 @@
     "old": ": t('inventory.quest.item', 'Quest item'));",
     "new": ": '');",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B5: the card's bare line emptied"
   },
@@ -375,7 +375,7 @@
     "old": "const sub = [line.material, line.word, line.quest != null ? questWord() : null].filter(Boolean).join(' · ');",
     "new": "const sub = [line.material, line.word, null].filter(Boolean).join(' · ');",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B6: the counter's row"
   },
@@ -385,7 +385,7 @@
     "old": "line.material, line.word, line.quest != null ? questWord() : null].filter(Boolean).join(' · ');",
     "new": "line.material, line.word, null].filter(Boolean).join(' · ');",
     "tests": [
-      "test/systems/questlines/fb1025b_daedraheart.test.js"
+      "test/systems/questlines/fb1025i_daedraheart.test.js"
     ],
     "note": "B6: the player trade's row"
   }

@@ -231,7 +231,7 @@ export function takeOut(node, piece) {
 }
 
 /**
- * AUDIT FB1025b F1: EVERY COPY OF THE MARKED PIECES A SAVE HOLDS, WHEREVER IT LIES - by ledger key, the record's own
+ * AUDIT FB1025i F1: EVERY COPY OF THE MARKED PIECES A SAVE HOLDS, WHEREVER IT LIES - by ledger key, the record's own
  * lists first and in their order (possessedItemLists: a keep keeps one of them), then whatever else the save's tree
  * holds: a deserter revenant's take (revenant.js RVN8), a pile on the ground, a shop's shelf, a dungeon's chest - lists
  * the checkpoint's ledger never reads, where a copy waited out a lift and came back. `listed` how many of `all` the
@@ -261,7 +261,7 @@ export function copiesOfKeys(save, keySet) {
 /** `keys` in parts of 80, so a statement's arguments stay under D1's bound with its own before them. @param {string[]} keys */
 const keyParts = (keys) => Array.from({ length: Math.ceil(keys.length / 80) }, (_, i) => keys.slice(i * 80, i * 80 + 80));
 const marksFrom = (/** @type {number} */ n, /** @type {number} */ from) => Array.from({ length: n }, (_, j) => `?${j + from}`).join(', ');
-/** AUDIT FB1025b F6: the print each key's ledger row holds. @param {any} db @param {string[]} keys */
+/** AUDIT FB1025i F6: the print each key's ledger row holds. @param {any} db @param {string[]} keys */
 async function rowPrints(db, keys) {
   const out = new Map();
   for (const part of keyParts(keys)) {
@@ -279,7 +279,7 @@ async function binCounts(db, player, keys) {
   }
   return out;
 }
-/** AUDIT FB1025b F1: the keys of `keys` staff's Remove took off `char` and keeps (staff_evidence, not put back).
+/** AUDIT FB1025i F1: the keys of `keys` staff's Remove took off `char` and keeps (staff_evidence, not put back).
  *  @param {any} db @param {string} char @param {string[]} keys */
 async function takenKeys(db, char, keys) {
   const out = new Set();
@@ -289,7 +289,7 @@ async function takenKeys(db, char, keys) {
   }
   return out;
 }
-/** AUDIT FB1025b F2: of `lifts`, those whose copy left `char`'s marks - read after the batch. @param {any} db @param {string} char @param {string[]} lifts */
+/** AUDIT FB1025i F2: of `lifts`, those whose copy left `char`'s marks - read after the batch. @param {any} db @param {string} char @param {string[]} lifts */
 async function liftedOf(db, char, lifts) {
   const left = new Set();
   for (const part of keyParts(lifts)) {
@@ -653,21 +653,21 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
 
   /**
    * DESTROY EVERY COPY MARKED ON THIS CHARACTER (the panel's button): the ledger's `item_dupes` rows for this character,
-   * every one of those pieces in the record - wherever its save holds one (AUDIT FB1025b F1: copiesOfKeys) - and the same
+   * every one of those pieces in the record - wherever its save holds one (AUDIT FB1025i F1: copiesOfKeys) - and the same
    * uids in chests of homes this account owns. Not kept for Put back, and no trail check - a hundred flagged rares is the
    * case the one-piece Remove cannot clear. A chest in a home this account does not own keeps its row. The record is
    * seized even when the preview found nothing in it: a withdraw can move a flagged chest row into the save after that
-   * read, and the sequence guard is what refuses the purge then - before the seizure, and after it (AUDIT FB1025b F3: a
+   * read, and the sequence guard is what refuses the purge then - before the seizure, and after it (AUDIT FB1025i F3: a
    * checkpoint landed between this act's read and the seizure's).
-   * FIELD BUGS 2026-10-25b COPY-LIFT: `keep: true` KEEPS ONE OF EACH - the record's own lists first (its pack before a
-   * room's chest), of them the first of the print its ledger row holds (AUDIT FB1025b F6), else the first - and only the
+   * FIELD BUGS 2026-10-25i COPY-LIFT: `keep: true` KEEPS ONE OF EACH - the record's own lists first (its pack before a
+   * room's chest), of them the first of the print its ledger row holds (AUDIT FB1025i F6), else the first - and only the
    * copies go: every other one the save holds, `hidden` counting those where the record lists nothing (a deserter
    * revenant's take - revenant.js RVN8 splitPack, and its kill's take, pickTaken - a pile on the ground, a shop's shelf),
-   * and the account's chests' of a piece it lifts (AUDIT FB1025b F5: one it does not lift may be the chest's real piece).
+   * and the account's chests' of a piece it lifts (AUDIT FB1025i F5: one it does not lift may be the chest's real piece).
    * The ledger's rows stay, and in the same batch a copy of the record's own is lifted (ledger.js ownCopiesLiftable) ONLY
-   * where the act itself leaves one (AUDIT FB1025b F1): this batch destroys a copy of it, or staff's Remove took one off
+   * where the act itself leaves one (AUDIT FB1025i F1): this batch destroys a copy of it, or staff's Remove took one off
    * this character and keeps it (staff_evidence) - never on the save's word that it shows the piece once. `lifted` is
-   * read after the batch (AUDIT FB1025b F2). Every other mark stands. The decorator's Discard made a pair of every piece a
+   * read after the batch (AUDIT FB1025i F2). Every other mark stands. The decorator's Discard made a pair of every piece a
    * home's chests held (decorTool.js CHEST-DRAFT), and the purge took both. What stays open: a copy sold at a counter
    * before the keep - gone from the save, nothing the act can count or destroy - leaves the sale's gold, and comes back
    * only as a second of the piece, locked again by the checkpoint that shows the two.
@@ -683,21 +683,21 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     const keys = flagged.map((d) => d.uid).filter((u) => typeof u === 'string');
     const keySet = new Set(keys);
     const keep = body.keep === true;   // COPY-LIFT
-    // AUDIT FB1025b F6: the print each key's ledger row holds - the piece the ledger saw - and the copy a keep keeps
+    // AUDIT FB1025i F6: the print each key's ledger row holds - the piece the ledger saw - and the copy a keep keeps
     const prints = keep ? await rowPrints(db, keys) : new Map();
     const keptOf = (/** @type {string} */ k, /** @type {any[]} */ all) => all.find((it) => ledgerPrintOf(it) === prints.get(k)) ?? all[0];
-    const found = copiesOfKeys(save, keySet);   // AUDIT FB1025b F1: every copy the save holds, wherever it lies
+    const found = copiesOfKeys(save, keySet);   // AUDIT FB1025i F1: every copy the save holds, wherever it lies
     let held = 0, listed = 0;
     for (const e of found.values()) { held += e.all.length; listed += e.listed; }
-    const hidden = held - listed;   // AUDIT FB1025b F1: where the record lists nothing - destroyed with the rest
+    const hidden = held - listed;   // AUDIT FB1025i F1: where the record lists nothing - destroyed with the rest
     const extra = held - found.size;   // COPY-LIFT: what a keep destroys of the record's
     const inBins = await binCounts(db, row.player, keys);   // the copies in chests of homes this account owns, by key
-    // AUDIT FB1025b F1: a lift only where this act leaves the record one - its batch destroys a copy (a second in the
+    // AUDIT FB1025i F1: a lift only where this act leaves the record one - its batch destroys a copy (a second in the
     // save, or in the account's chests), or staff's Remove took one off this character and keeps it
     const taken = keep ? await takenKeys(db, row.id, keys) : new Set();
     const asked = [...found].filter(([k, e]) => e.all.length > 1 || (inBins.get(k) ?? 0) > 0 || taken.has(k));
     const lifts = keep ? await ownCopiesLiftable(db, row.id, asked.map(([key, e]) => ({ key, fp: ledgerPrintOf(keptOf(key, e.all)) }))) : [];   // and the copies it lifts
-    const binKeys = keep ? lifts : keys;   // AUDIT FB1025b F5: a keep empties the chests of a piece it lifts alone
+    const binKeys = keep ? lifts : keys;   // AUDIT FB1025i F5: a keep empties the chests of a piece it lifts alone
     let bins = 0;
     for (const k of binKeys) bins += inBins.get(k) ?? 0;
     if (body.confirm !== true) {
@@ -713,7 +713,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
     if (body.seq !== row.seq) return said(act, row.player, detail, { error: 'seq' });
     const seized = await seizeRealmRecord(c, row.player, row.id, (s) => {
       const doomed = [];
-      for (const [k, e] of copiesOfKeys(s, keySet)) {   // AUDIT FB1025b F1: wherever each lies
+      for (const [k, e] of copiesOfKeys(s, keySet)) {   // AUDIT FB1025i F1: wherever each lies
         const kept = keep ? keptOf(k, e.all) : null;   // COPY-LIFT: one of each stays
         for (const it of e.all) if (it !== kept) doomed.push(it);
       }
@@ -721,7 +721,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       return null;
     }, { take: true, escrow: false });
     if ('error' in seized) return said(act, row.player, detail, { error: seized.error });
-    // AUDIT FB1025b F3: a checkpoint landed between this act's read and the seizure's - what was counted is not what it holds
+    // AUDIT FB1025i F3: a checkpoint landed between this act's read and the seizure's - what was counted is not what it holds
     if (seized.seq !== row.seq + 1) { await dropObjects(c.bucket, [seized.key]); return said(act, row.player, detail, { error: 'seq' }); }
     const steps = [...seized.steps];
     const seq = seized.seq;
@@ -747,7 +747,7 @@ export async function staffRealm(ctx, env, path, body, who, audit) {
       return said(act, row.player, detail, { error: 'seq' });
     }
     await dropObjects(c.bucket, [seized.prev]);
-    const lifted = keep ? await liftedOf(db, row.id, lifts) : [];   // AUDIT FB1025b F2: what the batch lifted, read after it
+    const lifted = keep ? await liftedOf(db, row.id, lifts) : [];   // AUDIT FB1025i F2: what the batch lifted, read after it
     return said(act, row.player, { ...detail, from: row.seq, to: seq }, { ok: true, seq, dupes: keys.length, held, hidden, bins, ...(keep ? { keep, extra, lifted } : {}), playing: false });
   }
 

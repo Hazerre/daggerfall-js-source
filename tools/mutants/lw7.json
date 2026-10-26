@@ -831,9 +831,9 @@
     "new": "            void livingStrikeRoad;",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js",
-      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+      "test/systems/livingWorld/fb1025i_roadspare.test.js"
     ],
-    "note": "FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
+    "note": "FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
   },
   {
     "name": "LW7-host-road-reach",
@@ -842,9 +842,9 @@
     "new": "    if (!near) return false;",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js",
-      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+      "test/systems/livingWorld/fb1025i_roadspare.test.js"
     ],
-    "note": "FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
+    "note": "FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
   },
   {
     "name": "LW7-host-road-wall",
@@ -853,9 +853,9 @@
     "new": "    if (false) return false;",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js",
-      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+      "test/systems/livingWorld/fb1025i_roadspare.test.js"
     ],
-    "note": "FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
+    "note": "FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
   },
   {
     "name": "LW7-host-road-tally",
@@ -864,9 +864,9 @@
     "new": "    playerWeaponHitEntity",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js",
-      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+      "test/systems/livingWorld/fb1025i_roadspare.test.js"
     ],
-    "note": "FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
+    "note": "FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
   },
   {
     "name": "LW7-host-road-racial",
@@ -875,9 +875,9 @@
     "new": "    return ROAD_STRUCK;",
     "tests": [
       "test/systems/livingWorld/lw7_deeds.test.js",
-      "test/systems/livingWorld/fb1025b_roadspare.test.js"
+      "test/systems/livingWorld/fb1025i_roadspare.test.js"
     ],
-    "note": "FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
+    "note": "FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the road's strike moved to its own module"
   },
   {
     "name": "LW7-host-tone",

@@ -87,6 +87,6 @@
     "tests": [
       "test/scenes/fb0929_raidguards.test.js"
     ],
-    "note": "A stopped swing surfaces the HUD and skips the whoosh. FIELD BUGS 2026-10-25b ROAD-SPARE (re-aimed by content): the line reads the road's struck answer too."
+    "note": "A stopped swing surfaces the HUD and skips the whoosh. FIELD BUGS 2026-10-25i ROAD-SPARE (re-aimed by content): the line reads the road's struck answer too."
   }
 ]

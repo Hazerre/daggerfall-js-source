@@ -346,7 +346,7 @@ test('NODE-GLINT the programs: the mask\'s vertex stage is the billboard program
   assert.match(NODE_MASK_FS, /bayer4\(gl_FragCoord\.xy\) \+ 0\.03125 >= vFade/, 'the handover\'s screen-door');
   const vs = NODE_GLINT_VS, fs = NODE_GLINT_FS;
   assert.ok(vs.startsWith('#version 300 es') && fs.startsWith('#version 300 es'));
-  // PIN MOVED (FIELD BUGS 2026-10-25b NODE-CROWN, AUDIT FB1025b C1): a glint's life is one law both stages read (the
+  // PIN MOVED (FIELD BUGS 2026-10-25i NODE-CROWN, AUDIT FB1025i C1): a glint's life is one law both stages read (the
   // vertex stage its spot, the fragment stage its turn - no turn handed on, a big crown's twelve in a herb's six's varyings)
   for (const st of [vs, fs]) {
     assert.ok(st.includes('uint glintSeed() { return uint(uSeed * 1009.0 + 0.5) * 2654435761u; }') && st.includes('  uint seed = glintSeed();'), 'each node its own seed');
@@ -496,7 +496,7 @@ test('NODE-GLINT the draw over a fake GL: nothing to light touches nothing; each
   assert.deepEqual(u('uSheen').map((v) => +v[0].toFixed(9)), want.map((v) => +v.toFixed(9)), 'the sheen by its distance');
   assert.ok(want[0] < want[1], 'nearer, fainter');
   const reach = u('uGlint').map((v) => v[0]), shares = u('uInner'), holds = u('uHold').map((v) => v[0]);
-  // PIN MOVED (FIELD BUGS 2026-10-25b NODE-CROWN, AUDIT FB1025b C1): the herb's six at its picture's reach, as they were;
+  // PIN MOVED (FIELD BUGS 2026-10-25i NODE-CROWN, AUDIT FB1025i C1): the herb's six at its picture's reach, as they were;
   // the 3D tree's grown by its crown on screen - its standing width (6 m) and height (10 m) at its root, 12 m off
   const crown = NG.crownSidePx(PROJ, 12, 6, 10, 640, 480);
   assert.deepEqual(u('uCount'), [[GLINT_COUNT], [NG.glintCrownCount(480, crown)]], 'a flat\'s six; a big crown\'s more');
@@ -573,7 +573,7 @@ test('AUDIT NODE-GLINT the boxes: a node behind the eye draws nothing (it was a 
   const frame = { eye: [0, 1.6, 0], radius: 140, band: 20, gpu: { vb: 'vb', ib: 'ib' }, cut: new Set([handle]), runs: [{ run: { handle }, scale: [1, 1.2, 1], size: [6, 10], sway: 0, subs: [] }] };
   const set = { trees: new Float32Array([0, ...c, 1.5, 0]), centers: [c], handles: [handle], ox: 0, oy: 0, oz: 0 };
   r.draw([{ alpha: 1, seed: 0.5, at: c, rgb: [1, 1, 1], mark: { pictures: [{ batch: { ...forest, size: { w: 30, h: 40 }, lptProto: handle }, first: 0, count: 1, centers: [c], center: c, entry: { lowPolyTrees: set } }] } }], fakeRenderer(gl, [frame]), 0);   // a far picture larger than its crown: had its box stood, it would show
-  // PIN MOVED (FIELD BUGS 2026-10-25b NODE-CROWN): the run's size is its prototype's standing size, its own scale (1.2
+  // PIN MOVED (FIELD BUGS 2026-10-25i NODE-CROWN): the run's size is its prototype's standing size, its own scale (1.2
   // up) in it already (world/lowPolyTrees.js readLowPolyTrees) - its height the size at the row's scale, never the 1.2 again
   const reach = 6 * GLINT_TREE_REACH * 1.5, h = 10 * 1.5;
   assert.deepEqual(got(r), expect([2 - reach, 0, -20 - reach, 2 + reach, h, -20 + reach]), 'the crown at its row\'s scale, the far flat\'s box none');

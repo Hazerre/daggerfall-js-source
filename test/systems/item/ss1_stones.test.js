@@ -554,7 +554,7 @@ test('SS5 the enhanced pack: a ware\'s card offers Dismantle, which asks first -
     press(actOf('Dismantle'));
     assert.ok(dialog(), 'and asks first');
     assert.equal(dialog().attrs.role, 'alertdialog');
-    assert.ok(dismantleAsk(wareName(name, w), 6).every((line) => said().includes(line)), 'the question, and what it gives back');   // PIN MOVED (AUDIT FB1025b A8): the ware named with its set
+    assert.ok(dismantleAsk(wareName(name, w), 6).every((line) => said().includes(line)), 'the question, and what it gives back');   // PIN MOVED (AUDIT FB1025i A8): the ware named with its set
     press(dialogAct('Keep'));
     assert.equal(dialog(), null, 'Keep puts the question away');
     assert.ok(e.items.includes(w), 'and the ware stays');
@@ -580,7 +580,7 @@ test('SS5 the enhanced pack: a ware\'s card offers Dismantle, which asks first -
     open(itemLongName(lockedWare));
     press(actOf('Dismantle'));
     assert.equal(dialog(), null, 'a locked ware asks nothing');
-    assert.ok(said().includes(lockedText(wareName(itemLongName(lockedWare), lockedWare))), 'and says why');   // PIN MOVED (AUDIT FB1025b A8)
+    assert.ok(said().includes(lockedText(wareName(itemLongName(lockedWare), lockedWare))), 'and says why');   // PIN MOVED (AUDIT FB1025i A8)
     assert.ok(e.items.includes(lockedWare));
   });
   const worn = ware(5);
@@ -603,7 +603,7 @@ test('SS5 the classic pack: Remove over the ground offers a ware\'s dismantle in
   const w = ware(2), name = itemLongName(w), n = dismantleStones(w);
   const yes = at(w);
   assert.ok(yes.win.inputBox instanceof YesNoBoxWindow, 'the question');
-  assert.deepEqual(yes.win.inputBox.rows.map((r) => r.text), [boundText(wareName(name, w)), DISMANTLE_INSTEAD(n)]);   // PIN MOVED (AUDIT FB1025b A8)
+  assert.deepEqual(yes.win.inputBox.rows.map((r) => r.text), [boundText(wareName(name, w)), DISMANTLE_INSTEAD(n)]);   // PIN MOVED (AUDIT FB1025i A8)
   assert.ok(yes.bag.includes(w), 'nothing moves before the answer');
   yes.win.input('KeyY');
   assert.equal(yes.win.inputBox, null);
@@ -857,7 +857,7 @@ test('AUDIT SS the enhanced question at the keyboard and the mouse: it holds the
       press(dialog().querySelectorAll('.act').find((x) => x.textContent === 'Dismantle'));
       assert.equal(dialog(), null);
       assert.ok(e.items.includes(a), 'the ware stays');
-      assert.ok(textOf(dom.body).includes(lockedText(wareName(itemLongName(a), a))), 'and the pack says why');   // PIN MOVED (AUDIT FB1025b A8)
+      assert.ok(textOf(dom.body).includes(lockedText(wareName(itemLongName(a), a))), 'and the pack says why');   // PIN MOVED (AUDIT FB1025i A8)
       setLocked(a, false);
       // Y dismantles
       open();

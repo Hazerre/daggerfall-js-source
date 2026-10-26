@@ -430,7 +430,7 @@ registered custom pieces or the player's level: the WB5 spoils read the player's
 must not. The record of what a character bought rides that character's SAVE, not the device, so it travels with the
 pack it describes: a save from before a sale holds its stones and its unmarked offer alike.
 
-**What "Bought" says** (FIELD BUGS 2026-10-25b BOUGHT-YOURS; #bug-reports, "Can't buy this piece": "I did dismantle the
+**What "Bought" says** (FIELD BUGS 2026-10-25i BOUGHT-YOURS; #bug-reports, "Can't buy this piece": "I did dismantle the
 other chest i bought days ago, but still i cant buy this one"). A Legendary wears its base record's name, so a name comes
 back on another day under another set: The Warden, a chest, was Malacath's on 2026-10-22 and Mora's on 2026-10-25. A
 mark is its offer's own id, the day in it, so an older sale never blocks today's and a dismantle frees nothing (SS5).

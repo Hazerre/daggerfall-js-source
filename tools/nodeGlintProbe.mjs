@@ -13,7 +13,7 @@
 // picture a glint holds its place as the eye moves a pixel at a time. GLINT-LIGHT: and it is as bright as the light where
 // the node stands (the renderer's own flatLightAt) - whole at a clear noon, a quarter at night and still clear, held at the
 // night's by the flats' floor in a black mine, and no sheen crossing the far picture at night. NODE-CROWN (FIELD BUGS
-// 2026-10-25b): and the 3D tree, a prefab the mod scales (its run as the door makes it), lit to its top. So: the repo's own modules served as they are (no bundler), a floor, the node's own picture
+// 2026-10-25i): and the 3D tree, a prefab the mod scales (its run as the door makes it), lit to its top. So: the repo's own modules served as they are (no bundler), a floor, the node's own picture
 // drawn by a stand-in of the billboard placement (depth written, cut at a half), the pass drawn by its own class over
 // them, and the frame read back.
 //
@@ -184,7 +184,7 @@ try {
   check('the GL baseline handed back: depth LESS and written, blend off, faces culled', first.state.depthFunc && first.state.depthMask && !first.state.blend && first.state.cull, JSON.stringify(first.state));
   const reach = Math.ceil(first.reach) + 1;
   check('a glint\'s reach on screen is its law\'s (a few pixels, never past the image\'s most)', first.reaches[0] > 1 && first.reaches[0] <= p.reachMax, `the herb's ${first.reaches[0].toFixed(2)} px of ${p.reachMax.toFixed(2)}`);
-  // NODE-CROWN (AUDIT FB1025b C1, the report's "Needs to be size aware"): a big 3D crown's glints grown - twice as many,
+  // NODE-CROWN (AUDIT FB1025i C1, the report's "Needs to be size aware"): a big 3D crown's glints grown - twice as many,
   // twice the reach; the herb's six as they were
   check('NODE-CROWN: a big 3D crown glints twice as many, reaching twice as far; the herb its six', first.counts[0] === 6 && first.counts[1] === 12 && Math.abs(first.reaches[1] - p.crownMax) < 1e-6, `counts ${first.counts.join(', ')}; the tree's reach ${first.reaches[1].toFixed(2)} px of ${p.crownMax.toFixed(2)}`);
   // NODE-CROWN: the tree's rows on screen (row 0 the bottom), and the top two fifths of them - its crown's upper reach
@@ -220,9 +220,9 @@ try {
     }
   }
   check('over the glints\' lives the herb glints, and the tree', herb > 40 && tree > 40, `herb ${herb} px, tree ${tree} px over ${frames} frames`);
-  // FIELD BUGS 2026-10-25b NODE-CROWN ("Big trees hide resource node particles"): a prefab of the mod's own scale glints to
+  // FIELD BUGS 2026-10-25i NODE-CROWN ("Big trees hide resource node particles"): a prefab of the mod's own scale glints to
   // its top - its scale counted once (it stood the crown at its scale's share of the tree: half of this one, the top bare)
-  check('NODE-CROWN (AUDIT FB1025b C1): the big crown\'s glint hearts a frame more than the herb\'s six make', treeHearts > herbHearts * 1.3, `the tree's ${(treeHearts / frames).toFixed(2)} a frame, the herb's ${(herbHearts / frames).toFixed(2)}`);
+  check('NODE-CROWN (AUDIT FB1025i C1): the big crown\'s glint hearts a frame more than the herb\'s six make', treeHearts > herbHearts * 1.3, `the tree's ${(treeHearts / frames).toFixed(2)} a frame, the herb's ${(herbHearts / frames).toFixed(2)}`);
   check('NODE-CROWN: a scaled prefab\'s 3D tree glints to its top - its crown\'s upper two fifths lit', treeTop > 40 && treeTop < tree, `${treeTop} px of the tree's ${tree} in its rows ${Math.ceil(crownFrom)}-${treeHi} (the tree ${treeLo}-${treeHi})`);
   check('light only added: no pixel darker', darker === 0, `${darker} px`);
   check(`within a glint's reach (${reach} px) of the picture: a glint, not a halo`, farOff === 0, `${farOff} of ${touched} past it`);

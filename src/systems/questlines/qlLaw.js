@@ -98,7 +98,7 @@ export function bindingSymbols(b, out = []) {
 /** The open binding a sheet omits: an objective with no `open` is open from the start. */
 const ALWAYS = Object.freeze({ started: true });
 
-/** FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): A MENDED BINDING READS ITS OBJECTIVE AFRESH, ONCE. An objective
+/** FIELD BUGS 2026-10-25i HEART-TAKEN (AUDIT FB1025i B4): A MENDED BINDING READS ITS OBJECTIVE AFRESH, ONCE. An objective
  *  whose binding was mended names the mend (`reread`); a state that has not taken it - a save, or a party copy, from a
  *  build before the mend - holds that objective's latch from the OLD binding (Q0C4XY04's heart, struck on a look at the
  *  body's row), so its latch does not stand until the state takes the mend (observe), which forgets it: the mended
@@ -156,7 +156,7 @@ export function observe(quest, sheet, probe0 = {}, { settle = false, ending = fa
   const moved = { done: [], failed: [], chose: [], outcome: null };
   const st = isStamped(quest) ? quest.ql : null;
   if (!st || !sheet) return moved;
-  // HEART-TAKEN (AUDIT FB1025b B4): a mend this state has not taken - its objectives' latches forgotten, the mend taken
+  // HEART-TAKEN (AUDIT FB1025i B4): a mend this state has not taken - its objectives' latches forgotten, the mend taken
   st.reread ??= [];
   const mends = new Set();
   for (const o of sheet.objectives ?? []) {

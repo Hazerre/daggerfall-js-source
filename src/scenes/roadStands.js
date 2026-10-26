@@ -15,7 +15,7 @@
 //    the player's reaches), until the fight has been done CALM_S, and they go back to their party.
 // THE END IS WHAT HAPPENS. A foe the player cut down is SLAIN - the character's hand (`slay`, seen: their party stood by -
 // the road's Murder report, LW11), and their party's living turned against the player (`slain` - its other armed now
-// hostile, if they were not); AUDIT FB1025b D2: one another hand cut down - a beast, a peer, an ally (the pool's
+// hostile, if they were not); AUDIT FB1025i D2: one another hand cut down - a beast, a peer, an ally (the pool's
 // `killedBy`) - is KILLED (`killed`: dead for good, no report, nobody's regard moved). A friend cut down
 // DIED at the player's side (`died` - their place empty for it; their town talks of it). The dead are the pool's own (a
 // corpse to search). A stand left - the player past KEEP_M from where it was stood, nothing able to stand (indoors, the
@@ -126,7 +126,7 @@ export function createRoadStands(deps) {
         // here too, never a slaying (a crime the caravan reports) nor a death at the player's side
         if (s.rec?.dead && !killed(s.rec)) { stands.delete(id); continue; }
         if (s.rec?.dead) {
-          // AUDIT FB1025b D2: SLAIN BY THE PLAYER'S OWN HAND ALONE - the pool's death door names whose (`killedBy`); a foe
+          // AUDIT FB1025i D2: SLAIN BY THE PLAYER'S OWN HAND ALONE - the pool's death door names whose (`killedBy`); a foe
           // a beast, a peer or an ally cut down is KILLED (`killed` - dead for good, no report, nobody's regard moved)
           if (s.kind === 'foe' && s.rec.killedBy === 'player') {
             deps.slay(s.res, t, true);   // struck down before their party

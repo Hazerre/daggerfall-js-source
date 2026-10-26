@@ -2480,7 +2480,7 @@ Pinned by `test/player/propbodies.test.js` (the real motor and collider walking 
 crown, through a felled tree; the clamp; the foot; which flats; the index; the hosts by source) and
 `tools/mutants/propbodies.json` (26, all dead). Port-Ledger A, THE SOLID FLATS STAND BODIES.
 
-## SIGN-PASS - a shop's sign stands where its post does (FIELD BUGS 2026-10-25b)
+## SIGN-PASS - a shop's sign stands where its post does (FIELD BUGS 2026-10-25i)
 
 ajaegerson, #bug-reports, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns its
 really easy to fix just return and move a bit but kinda annoying it stops you"; Harlander: "Even going on foot you can
@@ -2500,10 +2500,10 @@ and `exterior.js`); the interior and dungeon hosts stand no sign. The same lines
 stops remain, every one at a post. The port's own boards hang the same way - the Stable's, the Joinery's and the
 Shipyard's gate boards at 2.4 m (no rider could ride in under them), the Wagon Yard's over its opening and the
 Shipyard's crew board under its eaves (`merchantYardModels.js` `signboard`, assemble's `solid`; both yard hosts collide
-it). A departure from DFU: Port-Ledger A. Pinned by `test/world/fb1025b_signsnag.test.js` and
-`tools/mutants/fb1025b_signsnag.json` (its 17 SIGN-PASS mutants, all dead).
+it). A departure from DFU: Port-Ledger A. Pinned by `test/world/fb1025i_signsnag.test.js` and
+`tools/mutants/fb1025i_signsnag.json` (its 17 SIGN-PASS mutants, all dead).
 
-## RAIL-HANG - a fence's rail is no floor (FIELD BUGS 2026-10-25b)
+## RAIL-HANG - a fence's rail is no floor (FIELD BUGS 2026-10-25i)
 
 The same thread's fences: the town's split-rail fences (41206-41208) are a post and two wedge rails, a flat face to the
 street and two slopes behind it to a back edge 0.55 m up for the lower rail. Square at the rails from behind, every
@@ -2523,5 +2523,5 @@ now, as SH1 has every surface over a step - measured, a jump from the walk at an
 where the walk did (`audit0929_actions` PIN MOVED). And three older laws' pins, all level strides, no longer told their
 law from this one (the straddle WW-LID S gave the sideways pass, its refused rung L, MO-1's face slope - each mutant
 passed them): each gains a stroke with a vertical part, where its law alone holds (`fb0929d_waterwalk`,
-`auditdisc28_motion`, PIN MOVED). Pinned by `test/player/fb1025b_railhang.test.js` and
-`tools/mutants/fb1025b_signsnag.json` (its 7 RAIL-HANG mutants, all dead).
+`auditdisc28_motion`, PIN MOVED). Pinned by `test/player/fb1025i_railhang.test.js` and
+`tools/mutants/fb1025i_signsnag.json` (its 7 RAIL-HANG mutants, all dead).

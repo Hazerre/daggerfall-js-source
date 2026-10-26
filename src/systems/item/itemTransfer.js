@@ -182,7 +182,7 @@ export function keepsQuestItem(entity, res) {
 }
 
 /**
- * FIELD BUGS 2026-10-25b HEART-KEPT (AUDIT FB1025b B1): WHERE A QUEST'S OWN RECORD `dfItem` STANDS IN `items` - the
+ * FIELD BUGS 2026-10-25i HEART-KEPT (AUDIT FB1025i B1): WHERE A QUEST'S OWN RECORD `dfItem` STANDS IN `items` - the
  * host's playerHasItem and removeItemFromPlayer (scenes/world.js). DFU looks it up by its UID
  * (ItemCollection.Contains(DaggerfallUnityItem) and RemoveItem, ItemCollection.cs:157-163 and :278-287), and the port's
  * item IS its UID: the record itself. A load restores the pack's copy and the resource's record apart (AUDIT 24), so a

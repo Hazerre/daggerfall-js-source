@@ -156,7 +156,7 @@ test('DECOR-BATCH a hall\'s draft is not the wagon\'s: Leave them behind puts th
   assert.deepEqual(rig.standing.map((p) => p.id).sort(), ['new', 'wagon']);
 });
 
-test('DECOR-BATCH a copy\'s access waits until Confirm has written the piece - and a chest\'s goes through the record\'s act, as a press of it does (AUDIT FB1025b E2)', async () => {
+test('DECOR-BATCH a copy\'s access waits until Confirm has written the piece - and a chest\'s goes through the record\'s act, as a press of it does (AUDIT FB1025i E2)', async () => {
   const use = [];
   const acts = [];
   const AT = { lease: 'L1', seq: 7 };   // the act's checkpoint, as realmSaves.js realmGoldAct hands it to its call

@@ -11,7 +11,7 @@
 // REST arm is live through the alert state.
 
 import { mobileTeamOf } from '../characters/enemy/enemyTargets.js';   // MT-ii: :709's MobileEnemy.Team read
-import { wouldBeSpawnedInClassic } from '../characters/enemy/enemyMotor.js';   // AUDIT FB1025b D3: the classic spawn band, for fightNear
+import { wouldBeSpawnedInClassic } from '../characters/enemy/enemyMotor.js';   // AUDIT FB1025i D3: the classic spawn band, for fightNear
 import { CLIMATES } from '../formats/mapsFile.js';
 import { ENCOUNTER_TABLES } from '../characters/encounterTables.js';
 import { encounterTable } from '../characters/encounterTableDoor.js';   // DEX3: the table a mod's write left, DFU's otherwise
@@ -373,7 +373,7 @@ export function areEnemiesNearby(foes, { resting = false, includingPacified = fa
   return false;
 }
 
-/** AUDIT FB1025b D3: A FIGHT NEAR ME - PROTECT-FIGHT's own question (scenes/cityGuards.js playerSparesPerson: under
+/** AUDIT FB1025i D3: A FIGHT NEAR ME - PROTECT-FIGHT's own question (scenes/cityGuards.js playerSparesPerson: under
  *  Protect Bystanders a fight passes the townspeople and, since ROAD-SPARE, the road's travellers by), not the rest's. It
  *  was AreEnemiesNearby above, whose band (`wouldBeSpawned`) a foe's own senses raise - and a PEER's foe is a puppet in my
  *  pool that runs none (exteriorFoes.js latches `targetIsLocalPlayer` from its stream, `_pupMine`), so a party's fight with

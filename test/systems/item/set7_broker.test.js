@@ -285,7 +285,7 @@ test('SET7 the window: the purse (and its locked stones) and the turn of the day
       assert.equal(one(rows[0], 'tile').textContent.length, 2, 'no picture: its initials');
       const buys = rows.map((r) => one(r, 'broker-buy'));
       assert.equal(buys[1].textContent, 'Bought');
-      assert.equal(buys[1].attrs.title, 'You bought this one today. You can buy each piece once a day.', 'the whole reason in its title (PIN MOVED, FIELD BUGS 2026-10-25b BOUGHT-YOURS: whose sale it was, and that it is the day\'s)');
+      assert.equal(buys[1].attrs.title, 'You bought this one today. You can buy each piece once a day.', 'the whole reason in its title (PIN MOVED, FIELD BUGS 2026-10-25i BOUGHT-YOURS: whose sale it was, and that it is the day\'s)');
       assert.equal(buys[1].attrs['aria-disabled'], 'true', 'a refused offer reads refused');
       assert.equal(buys[1].attrs.disabled, undefined, 'MENU-ORDER: and is never disabled - a finger has no hover');
       assert.ok(rows[1].classList.contains('no-bought'));

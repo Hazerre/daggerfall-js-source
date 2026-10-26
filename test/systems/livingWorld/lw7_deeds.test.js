@@ -384,8 +384,8 @@ test('LW7 the streaming host: every resident\'s place by the lives (`livingCycle
   // WATCH-FIX: PIN MOVED - every marked guard followed every frame in the lane, its end deciding (test/systems/livingWorld/watchfix_watch.test.js)
   assert.match(w, /const livingWatchStep = \(\) => watchStep\(_livingWatchTurned, cityGuards\.guards, \{ resolve: livingResidentOf, localOf: livingLocalOf \}\);/);
   assert.match(w, /if \(livingWorldOn\(\)\) \{ livingWatchStep\(\); livingPeerWatchStep\(\); \}/);
-  // PIN MOVED (FIELD BUGS 2026-10-25b ROAD-SPARE): the road's strike is scenes/livingWorld/roadStrike.js (run by execution in
-  // test/systems/livingWorld/fb1025b_roadspare.test.js) - the host builds it and offers it a swing that met nobody in the street
+  // PIN MOVED (FIELD BUGS 2026-10-25i ROAD-SPARE): the road's strike is scenes/livingWorld/roadStrike.js (run by execution in
+  // test/systems/livingWorld/fb1025i_roadspare.test.js) - the host builds it and offers it a swing that met nobody in the street
   assert.match(w, /const livingStrikeRoad = createRoadStrike\(\{ roads: \(\) => livingRoads, open: \(\) => livingWorldOn\(\) && _mode\(\) === 'exterior', collider, cityGuards, hitEffects, playerEntity \}\);/);
   assert.match(w, /r \|\|= livingStrikeRoad\(cam\.pos, lookFwd\);[^\n]*\n\s*if \(r\?\.crime \|\| r\?\.struck\) surfacePlayer\(\);/);
   const rs = rd('src/scenes/livingWorld/roadStrike.js');

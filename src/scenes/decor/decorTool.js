@@ -376,7 +376,7 @@ export const eyePoint = (collider, eye, dir, skip = null) => eyeHit(collider, ey
  *   pack(), identity() - DECOR2a: the items carried, and who carries them (a worn item's picture reads the body)
  *   furnishings()    - DECOR2b: the furniture delivered and standing nowhere
  *   packHas(item), packTake(item), packGive(item) - whether it is still carried; one of it out of the pack (the
- *                      moved record, as a drop moves it - or null; AUDIT FB1025b E9: never one worn); an item back
+ *                      moved record, as a drop moves it - or null; AUDIT FB1025i E9: never one worn); an item back
  *                      in (DECOR2b: furniture, to the deliveries - where it lives), answering the record that holds it
  *                      (a stack it joined)
  *   homeDecor, character() - the account service's door and the character that writes (online homes)
@@ -1317,7 +1317,7 @@ export function createDecorTool(deps) {
   /** DECOR-BATCH: an online home, a guild hall included, stages into the room and writes once, on Confirm. A palace
    *  keeps one write a piece. A wagon stages the same way and pays on Confirm, into the save. The revision is the
    *  list's, read when the session opens, never a zero sent before it answers.
-   *  FIELD BUGS 2026-10-25b CHEST-DRAFT ("I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'"):
+   *  FIELD BUGS 2026-10-25i CHEST-DRAFT ("I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'"):
    *  the draft stages PIECES and the owner's own things it moves (`moves`, in order) - never what a storage piece holds,
    *  which the inventory window moves at once and the save keeps as it lies. The draft kept a picture of every chest and
    *  Discard wrote it back: a piece taken out since stood in the chest AND the pack, and the next checkpoint locked both
@@ -1347,7 +1347,7 @@ export function createDecorTool(deps) {
       : Promise.resolve();
     draft = {
       key, rev: usesBatch(r) ? null : 0, txn: mintDecorTxn(), before,
-      owns: pool.ownSnapshot?.() ?? null, moves: [], asked,   // AUDIT FB1025b E1: { op: 'out' (set down) | 'in' (taken down), id, item }, in order
+      owns: pool.ownSnapshot?.() ?? null, moves: [], asked,   // AUDIT FB1025i E1: { op: 'out' (set down) | 'in' (taken down), id, item }, in order
     };
     return draft;
   }
@@ -1410,7 +1410,7 @@ export function createDecorTool(deps) {
     for (const p of roomPieces()) {
       if (d.before.has(p.id)) continue;
       // CHEST-DRAFT: what the chests hold stays as it lies; a piece the draft stood and takes away again gives back what
-      // was put in it - to the pack, never lost under an id no piece stands for (AUDIT FB1025b E6: the pack, as the own
+      // was put in it - to the pack, never lost under an id no piece stands for (AUDIT FB1025i E6: the pack, as the own
       // things the draft set down go back to it - the goods were the player's to hand a moment ago - and said)
       if (pool.holdsAny?.(p.id)) {
         for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);
@@ -1420,8 +1420,8 @@ export function createDecorTool(deps) {
     }
     for (const p of d.before.values()) pool.put(snapPiece(p));
     pool.setOwn?.(d.owns);
-    // CHEST-DRAFT (AUDIT FB1025b E1): the draft's own moves of the owner's things, undone last first - one set down and
-    // taken down again in it is in the pack, where it is: neither given back on top of itself nor taken. AUDIT FB1025b
+    // CHEST-DRAFT (AUDIT FB1025i E1): the draft's own moves of the owner's things, undone last first - one set down and
+    // taken down again in it is in the pack, where it is: neither given back on top of itself nor taken. AUDIT FB1025i
     // E3: one the draft took down that is no longer in the pack (stored, sold, dropped - or E9, worn) is where it went,
     // and its piece stays taken down for Confirm to take down, said; standing it again was a second of it
     const still = [];
@@ -1464,7 +1464,7 @@ export function createDecorTool(deps) {
       if (!kind) { usePending.delete(id); continue; }
       const names = mode === 'friends' ? circle.friends : mode === 'party' ? circle.party : [];
       const body = { mapId: r.mapId, buildingKey: r.buildingKey, character: deps.character?.(), op: 'set', id, kind, mode, names };
-      // CHEST-DRAFT (AUDIT FB1025b E2): a chest's Access moves what it holds into the service's bin (decorAccess.js
+      // CHEST-DRAFT (AUDIT FB1025i E2): a chest's Access moves what it holds into the service's bin (decorAccess.js
       // moveChest) - through the record's act, as a press of it does (cycleUse): the save checkpointed first, so the
       // service moves what the chest holds now, and the goods leave the save's list only on its word that they moved.
       // Asked with no record, it moved none of what was stored since the last checkpoint, and the list was cleared.
@@ -1741,7 +1741,7 @@ export function createDecorTool(deps) {
       if (!moved) return false;
       pool.put(piece);
       pool.keepOwn(piece.id, moved);
-      draft?.moves.push({ op: 'out', id: piece.id, item: moved });   // AUDIT FB1025b E1
+      draft?.moves.push({ op: 'out', id: piece.id, item: moved });   // AUDIT FB1025i E1
       publishDraft();
       deps.say?.(t('decor.tool.setAside', '{name} set aside. Confirm keeps it.', { name: p.entry.name }));
       if (placing === p) { const fly = [...p.fly]; endPlacing(); beginBrowse(fly); }
@@ -1916,7 +1916,7 @@ export function createDecorTool(deps) {
       const d = openDraft();
       pool.remove(piece.id);
       const item = pool.takeOwn?.(piece.id) ?? null;
-      // CHEST-DRAFT (AUDIT FB1025b E1): in the draft's order, for a Discard - as the record the pack holds it in (a stack it joined)
+      // CHEST-DRAFT (AUDIT FB1025i E1): in the draft's order, for a Discard - as the record the pack holds it in (a stack it joined)
       if (item) d?.moves.push({ op: 'in', id: piece.id, item: deps.packGive?.(item) ?? item });
       publishDraft();
       deps.say?.(t('decor.tool.setAsideDown', '{name} set aside. Confirm takes it down.', { name }));

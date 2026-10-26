@@ -578,7 +578,7 @@ function faceNyTurned(tri, R) {
   return l > 0 ? Math.abs(R[1] * nx + R[4] * ny + R[7] * nz) / l : 0;
 }
 
-/** FIELD BUGS 2026-10-25b RAIL-HANG: whether a triangle's own plane stands OVER a point of its bucket's frame - along the
+/** FIELD BUGS 2026-10-25i RAIL-HANG: whether a triangle's own plane stands OVER a point of its bucket's frame - along the
  *  world's up from it (in a turned bucket, R's second row, as faceNyTurned reads the slope) - which is the floor PH1
  *  means, one the body has sunk under. A fence rail's under slope met from the street (41206-41208: a face sloping up and
  *  back from the street face's foot) has its plane under the sphere's centre, yet the quad's diagonal edge, met past the
@@ -707,7 +707,7 @@ export class Collider {
      *  parts it holds back from the body are a bucket's not yet stood, and leave with the bucket; null for none */
     this.late = null;
     this._poseCount = 0;   // SEA-DROPS: moved by posesMoved - the posed movers' boxes are kept while it stands
-    this._floorCeil = Infinity;   // FIELD BUGS 2026-10-25b RAIL-HANG: a walking step's ceiling for PH1's floor while it resolves (_moveStep)
+    this._floorCeil = Infinity;   // FIELD BUGS 2026-10-25i RAIL-HANG: a walking step's ceiling for PH1's floor while it resolves (_moveStep)
   }
 
   /** SEA-DROPS: THE POSED MOVERS MAY STAND ELSEWHERE NOW - every bucket laid with addMesh's `posed` has its world box made
@@ -1724,7 +1724,7 @@ export class Collider {
           // own normal (PhysX's CctCharacterController testSlope) - so the face's own plane must be floor-sloped too,
           // |n.y| >= cos(slopeLimit), facing-blind as every test here is. A floor's edge is still its floor's; a
           // wall's edge is the wall's, and meets the plain push below.
-          // FIELD BUGS 2026-10-25b RAIL-HANG (Harlander: "Even going on foot you can get hung up on shop signs and
+          // FIELD BUGS 2026-10-25i RAIL-HANG (Harlander: "Even going on foot you can get hung up on shop signs and
           // fences"): AND NEVER OVER THE STAND CEILING - SH1's law holds for this floor as for the wall above. A body
           // walking into a fence's rail from behind (41206-41208: a wedge whose back edge stands 0.55 m up) met the
           // rail's upper slope just over its lower sphere's centre, and this arm set it ON the rail - 0.39 m up, 0.55 for
@@ -2087,7 +2087,7 @@ export class Collider {
     feet[0] += dx;
     feet[2] += dz;
     const hOut = { grounded: false, hitCeiling: false, pushedDown: false };
-    // FIELD BUGS 2026-10-25b RAIL-HANG: and a WALKING body (no fall in its step: velY is 0 on the ground) is set on no
+    // FIELD BUGS 2026-10-25i RAIL-HANG: and a WALKING body (no fall in its step: velY is 0 on the ground) is set on no
     // floor over a step by its sideways pass or its ladder - PH1's (_resolveSphere's floorAbove: a fence's rail met from
     // behind) under SH1's stand ceiling, for that floor alone; its walls as they were. A falling body's catch of a lip is
     // the arm's as it was (a running jump's reach, net/eliteGates/egSpanLaw.js egJumpReach, is measured on it).

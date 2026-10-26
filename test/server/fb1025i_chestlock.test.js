@@ -1,4 +1,4 @@
-// FIELD BUGS 2026-10-25b CHEST-DRAFT and COPY-LIFT (#bug-reports, Giljabrar, "Storage in the Decoration update may be
+// FIELD BUGS 2026-10-25i CHEST-DRAFT and COPY-LIFT (#bug-reports, Giljabrar, "Storage in the Decoration update may be
 // Realm Locking items": "I placed 89 rare/legendary items in a chest to await being ID'd this afternoon, and when I went
 // to retrieve them they were all 'Realm Locked'"). The decorator's draft kept a picture of every chest the room held and
 // its Discard wrote the picture back (scenes/decor/decorTool.js): a piece taken out of a chest since stood in the chest
@@ -10,9 +10,9 @@
 // checkpoint stamps them (systems/item/itemIds.js stampItemIds), the save as the host composes it (systems/sceneCache.js),
 // and the real Worker's checkpoint. And COPY-LIFT: a record's copy of its own is lifted only by the service's own hand -
 // staff's purge with `keep`, which itself leaves the record one (ledger.js ownCopiesLiftable, staffpanel3realm.test.js) -
-// and never on a checkpoint's word that the record shows it once: AUDIT FB1025b, a duper's copy moved where the record
+// and never on a checkpoint's word that the record shows it once: AUDIT FB1025i, a duper's copy moved where the record
 // lists nothing (a deserter revenant's take, a counter, the ground) and brought back after stays locked throughout.
-// AUDIT FB1025b CHEST-DRAFT E1-E9: the owner's own things through a draft on the host's own pack doors
+// AUDIT FB1025i CHEST-DRAFT E1-E9: the owner's own things through a draft on the host's own pack doors
 // (systems/decor/decorPack.js) - set down and taken down again, a stack joined, one gone or put on since - a staged chest's
 // Access through the record's act, a kept chest's mid-draft, and a save's room's strays given back.
 import { test } from 'node:test';
@@ -164,10 +164,10 @@ test('CHEST-DRAFT a chest the draft stood and Discard takes away gives back what
   assert.deepEqual(rig.standing.map((p) => p.id), [], 'the chest goes');
   assert.deepEqual(keysOf(rig.pack), keysOf(P), 'what it held is the pack\'s again');
   assert.deepEqual(rig.chests.itemsSnapshot(), {}, 'and the scene writes nothing under its id');
-  assert.ok(rig.said.some((l) => /^What the .+ held is back in your pack\.$/.test(l)), `and said (AUDIT FB1025b E6): ${JSON.stringify(rig.said)}`);
+  assert.ok(rig.said.some((l) => /^What the .+ held is back in your pack\.$/.test(l)), `and said (AUDIT FB1025i E6): ${JSON.stringify(rig.said)}`);
 });
 
-test('CHEST-DRAFT an own thing the draft took down, stored in a chest since, is not stood again by Discard - one of it, in the chest; its piece stays taken down, said, and Confirm takes it down (AUDIT FB1025b E3)', async () => {
+test('CHEST-DRAFT an own thing the draft took down, stored in a chest since, is not stood again by Discard - one of it, in the chest; its piece stays taken down, said, and Confirm takes it down (AUDIT FB1025i E3)', async () => {
   const [ring] = rares(1, 30);
   const sent = [];
   const rig = homeRig(sent);
@@ -206,7 +206,7 @@ test('CHEST-DRAFT an own thing the draft took down and still in the pack stands 
   assert.deepEqual([rig.pack.length, rig.owned.size, ledgerKeyOf(rig.owned.get('o1'))], [0, 1, ledgerKeyOf(ring)]);
 });
 
-test('CHEST-DRAFT E1 (AUDIT FB1025b): an own thing the draft set down and took down again is the pack\'s after Discard, once - the pack\'s own door refuses a record it holds, and the take that followed it lost the only one', async () => {
+test('CHEST-DRAFT E1 (AUDIT FB1025i): an own thing the draft set down and took down again is the pack\'s after Discard, once - the pack\'s own door refuses a record it holds, and the take that followed it lost the only one', async () => {
   const rig = homeRig();
   rig.pack.push(ruby());
   const id = await setDownOwn(rig, 'Ruby');
@@ -246,7 +246,7 @@ test('CHEST-DRAFT E1: an own ruby the draft took down joined the pack\'s rubies 
   assert.deepEqual([countOf(rig.pack, 0), rig.owned.get('o1')?.stackCount], [2, 1], 'one of the three back up, two carried');
 });
 
-test('CHEST-DRAFT E9 (AUDIT FB1025b): an own weapon the draft took down and the player put on since is never pulled out from under its wearer by Discard - worn, in the pack; its piece left down for Confirm, and said', async () => {
+test('CHEST-DRAFT E9 (AUDIT FB1025i): an own weapon the draft took down and the player put on since is never pulled out from under its wearer by Discard - worn, in the pack; its piece left down for Confirm, and said', async () => {
   const [blade] = rares(1, 80);
   const sent = [];
   const rig = homeRig(sent);
@@ -306,7 +306,7 @@ async function homeService({ act = true } = {}) {
   return { rig, bin, inRecord, checkpoint, locked };
 }
 
-test('CHEST-DRAFT E2 (AUDIT FB1025b): a chest the draft stood, stored in while decorating and its Access set before Confirm - its goods move into the service\'s bin through the record\'s act, out of the save only on its word; none lost, none twice', async () => {
+test('CHEST-DRAFT E2 (AUDIT FB1025i): a chest the draft stood, stored in while decorating and its Access set before Confirm - its goods move into the service\'s bin through the record\'s act, out of the save only on its word; none lost, none twice', async () => {
   const h = await homeService();
   h.rig.pack.push(...rares(3, 120));
   decorate(h.rig);
@@ -333,7 +333,7 @@ test('CHEST-DRAFT E2: with no record to act on, a staged chest\'s Access is not 
   assert.ok(h.rig.said.includes('It could not be kept.'));
 });
 
-test('CHEST-DRAFT E7 (AUDIT FB1025b): a kept chest\'s Access pressed while a draft stands moves its goods into the bin, and a Discard after leaves it as it lies - empty; each good once', async () => {
+test('CHEST-DRAFT E7 (AUDIT FB1025i): a kept chest\'s Access pressed while a draft stands moves its goods into the bin, and a Discard after leaves it as it lies - empty; each good once', async () => {
   const h = await homeService();
   decorate(h.rig);
   h.rig.standing.push(piece({ id: 'c1', model: 41811, storage: true }));
@@ -349,7 +349,7 @@ test('CHEST-DRAFT E7 (AUDIT FB1025b): a kept chest\'s Access pressed while a dra
   assert.deepEqual(h.locked, [], 'the realm locks none');
 });
 
-test('CHEST-DRAFT E8 (AUDIT FB1025b): a save\'s room gives back what its record kept under pieces it no longer stands - a draft left by the door, not discarded - to the pack, and said; what stands keeps its own', () => {
+test('CHEST-DRAFT E8 (AUDIT FB1025i): a save\'s room gives back what its record kept under pieces it no longer stands - a draft left by the door, not discarded - to the pack, and said; what stands keeps its own', () => {
   const room = createDecorRoom({ meshes: {}, renderer: null, getTexture: async () => null, uploadRecord() {}, uploadRecordFrame() {}, collider: () => null, origin: () => [0, 0, 0] });
   const [kept, stray, g1, g2] = rares(4, 150);
   const placed = [piece({ id: 'o1', model: null, flat: [209, 0] }), { ...CHEST }];
@@ -366,12 +366,12 @@ test('CHEST-DRAFT E8 (AUDIT FB1025b): a save\'s room gives back what its record 
 });
 
 /** A sworn revenant gone over to the feud, carrying `took` - the more valuable half of the pack it was given
- *  (systems/revenant/revenant.js splitPack - which kept a realm-locked piece until AUDIT FB1025b F1; a forged client's
+ *  (systems/revenant/revenant.js splitPack - which kept a realm-locked piece until AUDIT FB1025i F1; a forged client's
  *  now), on its record and in the save, read by no list the record holds (systems/item/possessedItems.js), given back when
  *  it falls. */
 const deserter = (took) => ({ modData: { Revenant: { list: [{ id: 'rv1', sworn: false, defeated: false, took }] } } });
 
-test('COPY-LIFT the exploit (AUDIT FB1025b): a pair locked stays locked when one copy goes where the record lists nothing - a deserter\'s take, a counter - and when it comes back; no route moves either', async () => {
+test('COPY-LIFT the exploit (AUDIT FB1025i): a pair locked stays locked when one copy goes where the record lists nothing - a deserter\'s take, a counter - and when it comes back; no route moves either', async () => {
   const r = await realm();
   try {
     const c = await r.seat('duper');
@@ -388,7 +388,7 @@ test('COPY-LIFT the exploit (AUDIT FB1025b): a pair locked stays locked when one
   } finally { r.done(); }
 });
 
-test('COPY-LIFT the law the keep act lifts by: a record\'s copy of its own, its row its own, held and unclaimed, of the piece kept, no other record\'s copy known, no trail check or one that found it innocent (AUDIT FB1025b F7: never one found unclear) - lifted in the act\'s batch and said; every other copy stays, and a lift of none says nothing', async () => {
+test('COPY-LIFT the law the keep act lifts by: a record\'s copy of its own, its row its own, held and unclaimed, of the piece kept, no other record\'s copy known, no trail check or one that found it innocent (AUDIT FB1025i F7: never one found unclear) - lifted in the act\'s batch and said; every other copy stays, and a lift of none says nothing', async () => {
   const r = await realm();
   try {
     const A = await r.seat('aldric'), B = await r.seat('brenna');
@@ -416,14 +416,14 @@ test('COPY-LIFT the law the keep act lifts by: a record\'s copy of its own, its 
     const findings = r.dupeFindings(A).length;
     await r.s.env.DB.batch(ownCopyLiftSteps(r.s.env.DB, A.R.id, keysOf([k1, k2, k3, k4, k5, k7, k8, k9]), T0));   // keys the law refuses, handed to it
     assert.equal(r.copies(A).length, 9, 'the statement asks the law again: none of them lifted');
-    assert.equal(r.dupeFindings(A).length, findings, 'AUDIT FB1025b F2: no lift, no finding');
+    assert.equal(r.dupeFindings(A).length, findings, 'AUDIT FB1025i F2: no lift, no finding');
     assert.deepEqual(ownCopyLiftSteps(r.s.env.DB, A.R.id, [], T0), [], 'and no keys, no statement in the act\'s batch');
     const once = await r.put(A, [k0, k1, k2, k3, k4, k5, other, k7, k8, k9, k10]);
     assert.deepEqual(sorted(once.locked), sorted(keysOf([k1, k2, k3, k4, k5, k6, k7, k8, k9])), 'k0 and k10 trade again; every other piece locked');
   } finally { r.done(); }
 });
 
-test('COPY-LIFT (AUDIT FB1025b F1): no revenant takes a realm-locked piece - a kill\'s take (RVN8 pickTaken) draws around it, a deserter keeps none (splitPack asks the same), and one taken before comes home at the load', () => {
+test('COPY-LIFT (AUDIT FB1025i F1): no revenant takes a realm-locked piece - a kill\'s take (RVN8 pickTaken) draws around it, a deserter keeps none (splitPack asks the same), and one taken before comes home at the load', () => {
   const [locked, free] = rares(2, 160);
   setRealmLocked([ledgerKeyOf(locked)]);
   try {

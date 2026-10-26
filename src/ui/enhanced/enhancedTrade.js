@@ -812,7 +812,7 @@ function itemRow(item, from) {
   row.append(tile);
   const mid = el('span', 'itemname');
   mid.append(el('span', null, line.name + (line.stack ? ` ×${line.stack}` : '')));
-  const sub = [line.material, line.word, line.quest != null ? questWord() : null].filter(Boolean).join(' · ');   // QUEST-MARK (AUDIT FB1025b B6): a quest's item says so, as the pack's row does
+  const sub = [line.material, line.word, line.quest != null ? questWord() : null].filter(Boolean).join(' · ');   // QUEST-MARK (AUDIT FB1025i B6): a quest's item says so, as the pack's row does
   if (sub) mid.append(el('small', null, sub));
   row.append(mid);
   row.append(el('span', 'itemwt', `${line.weight.toFixed(2)} kg`));

@@ -162,7 +162,7 @@ export class Foe extends QuestResource {
 
   /** GetClonedItemQueue (Foe.cs:254-265): null when empty, else a
    *  clone per item - "Original item UIDs will remain on Foe in
-   *  their item queue." FIELD BUGS 2026-10-25b HEART-KEPT (AUDIT FB1025b
+   *  their item queue." FIELD BUGS 2026-10-25i HEART-KEPT (AUDIT FB1025i
    *  B1): CloneAll gives each clone a UID of its own, so the record the
    *  player takes off a body is never the quest's own under
    *  Contains(DaggerfallUnityItem) - the port's item IS its UID, and a

@@ -1,6 +1,6 @@
 // @ts-check
 // DECOR2a/DECOR2b: THE OWNER'S OWN THINGS' DOORS - where one lives while it stands nowhere, one of it out of the pack to
-// stand in a room, one given back. Moved out of the interior host (scenes/worldModes.js) by AUDIT FB1025b CHEST-DRAFT E1
+// stand in a room, one given back. Moved out of the interior host (scenes/worldModes.js) by AUDIT FB1025i CHEST-DRAFT E1
 // (HOST-SPLIT: the host shrinks), so the decorator's pins stand on the producer's own doors (test/decorFakes.mjs): the
 // rig's give pushed where the host's refuses a record the pack already holds (inventory.js addItem), and its take
 // spliced where the host's moves one as a drop does - and a Discard that gave before it took lost the only copy.
@@ -21,7 +21,7 @@ export function createDecorPack(entity) {
   }
   /** DECOR2a: ONE OF THE PLAYER'S OWN THINGS OUT OF THE PACK, to stand in a room - one of a stack, moved as a drop
    *  moves it (itemTransfer.js applyTransfer: a lit torch stops lighting the player, a stack splits one off) - or null
-   *  when it is no longer carried. AUDIT FB1025b E9: or worn - a piece in a slot is never pulled out of the pack from
+   *  when it is no longer carried. AUDIT FB1025i E9: or worn - a piece in a slot is never pulled out of the pack from
    *  under its wearer (decorItems.js offers none to set down; a Discard asks after one taken down and put on since). */
   function decorPackTake(/** @type {any} */ item) {
     if (isFurnishing(item)) {   // DECOR2b: a delivered piece leaves the deliveries whole
@@ -36,7 +36,7 @@ export function createDecorPack(entity) {
     return applyTransfer(item, { ok: true, amount: 1 }, pack, [], { entity: entity(), fromLocal: true }) ?? null;
   }
   /** DECOR2a: one of the player's own things back where it lives - taken down, or its room sold: the pack, or (DECOR2b)
-   *  a piece of furniture delivered again. Answers the record that holds it now - AUDIT FB1025b E1: a candle given back
+   *  a piece of furniture delivered again. Answers the record that holds it now - AUDIT FB1025i E1: a candle given back
    *  joins the pack's stack of candles (inventory.js addItem), and the draft takes one off THAT stack to undo it. */
   function decorPackGive(/** @type {any} */ item) {
     if (isFurnishing(item)) { decorHome(item).push(item); return item; }
@@ -47,7 +47,7 @@ export function createDecorPack(entity) {
 }
 
 /**
- * AUDIT FB1025b E8: WHAT A ROOM'S RECORD KEEPS UNDER PIECES IT DOES NOT STAND, back to its owner - a room whose pieces are
+ * AUDIT FB1025i E8: WHAT A ROOM'S RECORD KEEPS UNDER PIECES IT DOES NOT STAND, back to its owner - a room whose pieces are
  * the save's (an offline house, a ship, a caravan): a draft left by its door and not discarded (the exit pressed while
  * decorating, the page closed) wrote what its staged pieces held and stood - the chests' goods and the owner's own things -
  * under ids its saved picture never stood again, out of reach for good. An online home's list stands its own (HOLD-KEPT,

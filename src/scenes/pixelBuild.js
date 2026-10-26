@@ -98,7 +98,7 @@ import { colliderBlocked, dryGround, witchesDressingBreathing } from '../world/w
 import { wodRockUvs } from '../world/worldOfDaggerfall/wodRockUv.js';
 import { WodSpawner } from '../world/worldOfDaggerfall/wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
-import { solidIndicesOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25b SIGN-PASS: a shop's sign solid where it stands, never where it hangs
+import { solidIndicesOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign solid where it stands, never where it hangs
 
 /** @param {any} host */
 export function createPixelBuild(host) {

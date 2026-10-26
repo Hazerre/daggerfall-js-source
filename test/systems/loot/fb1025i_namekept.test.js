@@ -1,10 +1,10 @@
-// NAME-KEPT (FIELD BUGS 2026-10-25b item 1, `bible/01-Overview/bugs/Field-Bugs-2026-10-25b.md`). SaberGGaming, in
+// NAME-KEPT (FIELD BUGS 2026-10-25i item 1, `bible/01-Overview/bugs/Field-Bugs-2026-10-25i.md`). SaberGGaming, in
 // #bug-reports: "if you've renamed your item it will revert it back into its original name like 'Sabers mule's ring
 // of ...'". The Reforge (lootRarity.js reforgeAffix, one roll at the Mages Guild and with Essence) named the piece
 // again from its TEMPLATE: a name the Item Maker gave (RenameItem) was lost, a Masterwork's own name (its maker's
 // mark names it) took the ladder's words its mint withholds, and a crafted jewel lost its metal and gem ("Silver
 // Ring" to "Ring"). Now a name is the ladder's - its words around its base, read off the piece - or the piece's own,
-// which stands (AUDIT FB1025b A1-A5: the first law parsed a name by the lines it had, and kept a curse's or an unset
+// which stands (AUDIT FB1025i A1-A5: the first law parsed a name by the lines it had, and kept a curse's or an unset
 // gem's word stale, an older reforge's damage, a partial rename's word). Every piece from its real producer (TEST THE
 // SHAPE THE PRODUCER MINTS): the jeweller's mint, the Item Maker's window, the loot ladder, the curse, the questline's
 // named reward, the Imbue, the save's load.
@@ -128,7 +128,7 @@ test('NAME-KEPT: a name an older reforge built with a set gem\'s word (AUDIT GEM
   } finally { LR._setSocketForTests(null); }
 });
 
-test('NAME-KEPT (AUDIT FB1025b A1): a cursed piece - its curse\'s line added after its name, often in a slot its own lines left empty - is named by every line it has at its next reforge, never kept stale', () => {
+test('NAME-KEPT (AUDIT FB1025i A1): a cursed piece - its curse\'s line added after its name, often in a slot its own lines left empty - is named by every line it has at its next reforge, never kept stale', () => {
   on();
   let n = 0;
   for (let s = 1; s <= 3000 && n < 10; s++) {
@@ -142,7 +142,7 @@ test('NAME-KEPT (AUDIT FB1025b A1): a cursed piece - its curse\'s line added aft
   assert.ok(n >= 3, `${n} cursed rings`);
 });
 
-test('NAME-KEPT (AUDIT FB1025b A2): a name an older reforge built with a set gem\'s word, the gem since unset, is named by its own lines at the next reforge - the word that outlived the gem goes, never doubled', () => {
+test('NAME-KEPT (AUDIT FB1025i A2): a name an older reforge built with a set gem\'s word, the gem since unset, is named by its own lines at the next reforge - the word that outlived the gem goes, never doubled', () => {
   on();
   LR._setSocketForTests(1000);
   try {
@@ -165,7 +165,7 @@ test('NAME-KEPT (AUDIT FB1025b A2): a name an older reforge built with a set gem
   } finally { LR._setSocketForTests(null); }
 });
 
-test('NAME-KEPT (AUDIT FB1025b A3): a crafted name an older reforge broke - the report\'s Masterwork with the ladder\'s words, a jewel without its metal - is its own base\'s again: at the next reforge, and on load (repairCraftedNames, once)', () => {
+test('NAME-KEPT (AUDIT FB1025i A3): a crafted name an older reforge broke - the report\'s Masterwork with the ladder\'s words, a jewel without its metal - is its own base\'s again: at the next reforge, and on load (repairCraftedNames, once)', () => {
   on();
   const oldLaw = (it) => { it.name = LR.rarityName(it, it.rarity, it.affixes.filter((a) => a.gem == null)); return it; };   // the reforge before NAME-KEPT
   const master = oldLaw(mule());
@@ -192,7 +192,7 @@ test('NAME-KEPT (AUDIT FB1025b A3): a crafted name an older reforge broke - the 
   assert.equal(LR.repairCraftedNames(list), 0, 'a second load finds nothing to do');
 });
 
-test('NAME-KEPT (AUDIT FB1025b A5, A6): a rename that keeps a word of the ladder\'s ("Porter\'s Pride", "Porter\'s", "Porter\'sRing") is the player\'s own and stands', () => {
+test('NAME-KEPT (AUDIT FB1025i A5, A6): a rename that keeps a word of the ladder\'s ("Porter\'s Pride", "Porter\'s", "Porter\'sRing") is the player\'s own and stands', () => {
   on();
   let it = null;
   for (let s = 1; s < 300 && !it; s++) { const r = ring(3, s); if (r.affixes.length === 1 && r.affixes[0].id === 'weight') it = r; }
@@ -211,7 +211,7 @@ test('NAME-KEPT (AUDIT FB1025b A5, A6): a rename that keeps a word of the ladder
   }
 });
 
-test('NAME-KEPT (AUDIT FB1025b A4): the Imbue at the Reforge keeps a name of the piece\'s own - a questline\'s named reward - and names a ladder-named piece by the ladder', () => {
+test('NAME-KEPT (AUDIT FB1025i A4): the Imbue at the Reforge keeps a name of the piece\'s own - a questline\'s named reward - and names a ladder-named piece by the ladder', () => {
   on();
   const named = { name: 'Seal of the Hour', kind: 'jewel', base: 'Ring' };
   let reward = null;

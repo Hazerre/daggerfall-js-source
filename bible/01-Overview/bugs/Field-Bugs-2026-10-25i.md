@@ -1,17 +1,17 @@
-# FIELD BUGS 2026-10-25b - seven #bug-reports threads
+# FIELD BUGS 2026-10-25i - seven #bug-reports threads
 
 Seven threads from the Discord's #bug-reports, handed over by the owner as phone screenshots. Read on main's
 `745ddb5c1`, with the freeware's data (`tools/fetch-data.sh`), each by a reader of its own beside this one; the owner
-then asked "Audit this" (AUDIT FB1025b, below). The pins are named under each fix, the mutants
-`tools/mutants/fb1025b_*.json`.
+then asked "Audit this" (AUDIT FB1025i, below). The pins are named under each fix, the mutants
+`tools/mutants/fb1025i_*.json`.
 
 | | Report | What it was | Done |
 |---|---|---|---|
 | 1 | SaberGGaming, "Reforging 'Mule' items ... reverts name": "the carrying capacity doesnt get rerolled into something new if you reforge it. Not only that but if you've renamed your item it will revert it back into its original name" | Two halves. The line given its own kind back was REFORGE-REPLACE's (#1265, on main that morning). The name was this slice's: the reforge named the piece again from its template | NAME-KEPT |
 | 2 | pepsiorcoke, "Player gets a bounty when defending themselves against quest NPC's who attack": "Assassin's are attacking me for escorting another NPC and I choose to defend myself and my escort target guards approach me with a hefty fee of 500+ gold" | Not the quest (measured: its attackers' deaths charge nothing). The likely path, not proven on the reporter's save: a swing past an attacker landed on a road traveller - Protect Bystanders never covered the road | ROAD-SPARE |
 | 3 | Paofrenetico, "Can't buy this piece": "I did dismantle the other chest i bought days ago, but still i cant buy this one" | The law worked: today's The Warden (Mora's) was bought today; the one from 2026-10-22 was another offer (Malacath's) under the same Legendary name. The refusal's words misled | BOUGHT-YOURS |
-| 4 | Mefwhesk, "Unable to turn in The Daedra's Heart": "Elyzabyth will not let me turn the quest in" | The quest's own heart counts, never a plain one (the thread's reply was right). The likely cause, found by AUDIT FB1025b: a second kind of daedra hurt after the take pulled the quest's heart OUT of the pack onto its body - DFU keeps it. And two lies of the port's: the journal struck "take its heart" on a look at the body's row, and the Enhanced pack drew the quest's heart as a plain one | HEART-KEPT, HEART-TAKEN, QUEST-MARK |
-| 5 | kvassdrit, "Big trees hide resource node particles": "Needs to be size aware or have a completely different visual" | A 3D tree's crown box counted its prototype's scale twice: a temperate tree glinted on its lower half, a swamp's mostly in the air above; and a big crown's glints were a herb's six at a herb's reach (AUDIT FB1025b C1) | NODE-CROWN |
+| 4 | Mefwhesk, "Unable to turn in The Daedra's Heart": "Elyzabyth will not let me turn the quest in" | The quest's own heart counts, never a plain one (the thread's reply was right). The likely cause, found by AUDIT FB1025i: a second kind of daedra hurt after the take pulled the quest's heart OUT of the pack onto its body - DFU keeps it. And two lies of the port's: the journal struck "take its heart" on a look at the body's row, and the Enhanced pack drew the quest's heart as a plain one | HEART-KEPT, HEART-TAKEN, QUEST-MARK |
+| 5 | kvassdrit, "Big trees hide resource node particles": "Needs to be size aware or have a completely different visual" | A 3D tree's crown box counted its prototype's scale twice: a temperate tree glinted on its lower half, a swamp's mostly in the air above; and a big crown's glints were a herb's six at a herb's reach (AUDIT FB1025i C1) | NODE-CROWN |
 | 6 | Giljabrar, "Storage in the Decoration update may be Realm Locking items": "I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'" | The decorator's Discard wrote a snapshot of every chest back, so a piece stood in the chest and the pack and the ledger locked both; in #1223's build across rooms. No route lifted a lock | CHEST-DRAFT, COPY-LIFT |
 | 7 | ajaegerson, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns"; Harlander: "Even going on foot you can get hung up on shop signs and fences." | A shop sign's board, arm and brace hang over the street at 1.65-2.4 m, inside a rider's 2.6 m body (a wagon's driver is one) and the lowest inside a walker's; all of it was solid. And a split-rail fence's rail, met from the side, was read as a floor the body had sunk under, and the walker set on it, wedged | SIGN-PASS, RAIL-HANG |
 
@@ -27,7 +27,7 @@ So a name the Item Maker gave was lost; a Masterwork's own name (the maker's mar
 `name` "Silver Ring") took the ladder's words its mint withholds ("Saber's Mule's Ring of the Ward" - the report's
 card); and a crafted jewel lost its metal and gem ("Silver Ring" to "Ring").
 
-FIXED (as AUDIT FB1025b left it - the first cut parsed a name by the lines it had, A1-A5 below). A name is the ladder's
+FIXED (as AUDIT FB1025i left it - the first cut parsed a name by the lines it had, A1-A5 below). A name is the ladder's
 - at most one of its tier's prefix words and one suffix word around the piece's BASE, read off the piece: a crafted
 jewel's recipe name, a Masterwork's bare template, else the RRI word and the template, and an older save's bare
 template besides (`lootRarity.js:"export function linesName(item, tier, was = item) {"`) - or it is the piece's own and
@@ -38,10 +38,10 @@ again), never a found one (a curse's line is added after its name by design).
 
 NOT DONE. A name already reverted to the ladder's cannot be given back: nothing kept the player's.
 
-PINS: `test/systems/loot/fb1025b_namekept.test.js` (9: the report's ring through the jeweller's mint and the Item
+PINS: `test/systems/loot/fb1025i_namekept.test.js` (9: the report's ring through the jeweller's mint and the Item
 Maker's window at both doors; a Masterwork's name; a ladder name's words round "Silver Ring"; an old gem word, set and
 unset; a cursed piece; the old law's damage, at a reforge and on load; renames that keep a ladder word; the Imbue).
-Mutants `tools/mutants/fb1025b_namekept.json` (14: 13 dead, 1 equivalent as recorded - a Masterwork's RRI word, '' with
+Mutants `tools/mutants/fb1025i_namekept.json` (14: 13 dead, 1 equivalent as recorded - a Masterwork's RRI word, '' with
 the mods off). Re-aimed by content: gem1's AUDIT-GEM-named-by-the-gem, loot9's LOOT9-name-stays.
 
 ## ROAD-SPARE (2) - `src/scenes/livingWorld/roadStrike.js`, `src/scenes/world.js`
@@ -59,14 +59,14 @@ Protect Bystanders on, a fight passes the townspeople by) was asked of the stree
 In an escort's fight a swing at an attacker just past reach killed the traveller on the look line - a caravan's own
 merchant in an LW11 escort - in one hit; the road reported a Murder (`caravanHost.js` slain), the region's law fell 20
 at the town, and the watch, knowing the face under -10, asked 500 + 5 x 20 = 600 gold. The reporter's save was not
-read: the road is the LIKELY cause, not a proven one (AUDIT FB1025b D1). The one other path to the same fine is DFU's
+read: the road is the LIKELY cause, not a proven one (AUDIT FB1025i D1). The one other path to the same fine is DFU's
 own and stands: the warrant branch refused (`_S.01_`'s two Warriors, `_S.17_`'s `legal repute -20`) - measured to -20,
 a face the watch knows and its stop's 600 gold, pinned as intended.
 
 FIXED. The road's strike is its own module (out of `bootWorld`, 9 logical lines), and asks the street's law: a
 traveller it spares stops the swing - nothing killed, nothing reported, no door behind them bashed (AUDIT 29g)
 (`roadStrike.js:"if (cityGuards.playerSparesPerson(near.entry.person)) return ROAD_SPARED;"`). No fight, or the
-protection off, and a blow at a traveller is DFU's one-hit civilian. AUDIT FB1025b D2: a stood traveller (LW7b) another
+protection off, and a blow at a traveller is DFU's one-hit civilian. AUDIT FB1025i D2: a stood traveller (LW7b) another
 hand cut down - a beast, a peer, an ally - is KILLED, never the player's slain (no report): the pool's death door names
 whose hand (`exteriorFoes.js` `killedBy`, the watch pool's own word) and `roadStands.js` slays on the player's kill
 alone. D3: the fight that spares is a fight near the player (`encounters.js` `fightNear`: AreEnemiesNearby's answer,
@@ -80,7 +80,7 @@ NOT DONE. A0C00Y17's warrant branch (`_S.17_`, -20 for refusing the watch) is DF
 companies (`dungeonDivers.js`): a hostile member cut down by another hand is still the player's slain - the lives' turn
 and the company's regard, never a report, so no fine comes of it; the dungeon's pool names no killer.
 
-PINS: `test/systems/livingWorld/fb1025b_roadspare.test.js` (6). Mutants `tools/mutants/fb1025b_roadspare.json` (22, all
+PINS: `test/systems/livingWorld/fb1025i_roadspare.test.js` (6). Mutants `tools/mutants/fb1025i_roadspare.json` (22, all
 dead). Moved: `lw7_deeds`', PVP-BLOOD's, `lw7b_beyond`'s, `lwfix4_turns`' and PROTECT-FIGHT's host pins. Re-aimed by
 content: LW7's five road records, AUDIT29g-spared-surfaces, LW7b-friend-died-unmade and LW7b-host-died-unwired,
 PROTECT-FIGHT's two host records, HOST-SPLIT-a-ceiling-under-its-host. bootWorld's ceiling 36,389 -> 36,365.
@@ -100,14 +100,14 @@ frees nothing (SS5), and "Bought" on `20751:3` is a sale of today's Warden on th
 "Bought today", named no buyer, and a player holding the older Warden read it as "you have one already".
 
 FIXED. The refusal reads "You bought this one today. You can buy each piece once a day." - the note a press of Bought
-says, and the button's title and name; the button keeps "Bought". AUDIT FB1025b A8: a dismantle names the ware's set - "Dismantle
+says, and the button's title and name; the button keeps "Bought". AUDIT FB1025i A8: a dismantle names the ware's set - "Dismantle
 The Warden (Mora's Mantle)?" (`sigilBroker.js` wareName, both packs), since either reading of "I did dismantle the
 other chest" leaves the screenshot as it is.
 
 NOT DONE. The Broker's words are still English literals (L10N4's count for the file unchanged).
 
-PINS: `test/systems/item/fb1025b_brokerbought.test.js` (3); set7_broker's two pins of the old word moved, and ss1_stones'
-five of the dismantle's words (A8). Mutants `tools/mutants/fb1025b_brokerbought.json` (9, all dead).
+PINS: `test/systems/item/fb1025i_brokerbought.test.js` (3); set7_broker's two pins of the old word moved, and ss1_stones'
+five of the dismantle's words (A8). Mutants `tools/mutants/fb1025i_brokerbought.json` (9, all dead).
 
 ## HEART-TAKEN, HEART-KEPT and QUEST-MARK (4) - `src/systems/questlines/sheets/`, `src/systems/item/itemTransfer.js`, `src/ui/enhanced/enhancedInventory.js`
 
@@ -121,7 +121,7 @@ held copy (ReleaseQuestItemForReoffer). Any other Daedra's Heart is no quest's. 
 of the heart's row in a body's list - the remote list sends the click before the take (DaggerfallInventoryWindow.cs:2027-2037).
 The classic list paints a quest item's cell green (questItemBackgroundColor).
 
-WHAT THE PORT DID. Three faults of its own, the first the report's likely cause (AUDIT FB1025b B1). The host's
+WHAT THE PORT DID. Three faults of its own, the first the report's likely cause (AUDIT FB1025i B1). The host's
 playerHasItem read a quest's item by its quest and symbol alone (`world.js`'s `_heldItemIndex`, AUDIT 24's, so a save's
 two restored copies still meet), so the heart taken off the first kind's body was pulled out of the pack onto the
 second kind the player hurt: the pack held no quest heart, the witches asked nothing, and the journal stayed struck -
@@ -147,7 +147,7 @@ holds - and each is struck now by the item held: N0B00Y06's wrappings or its `_r
 `_pcgetsgold_` (each `toting`, reached only holding it; B5: the two next lines open on the item alone, their own done
 showing them), S0000503's hoard by its `_item_` alone (B3: `_S.30_` asks on DFU's click, `when _S.05_ and not _S.16_`,
 so a look and a walk out reached `_S.28_`, `take _item_ from pc`, and `_S.29_`; a party copy has the latch by the merge,
-`qlState.js` mergeSharedState). A SAVE FROM BEFORE (B4): each rebound objective names its mend (`"reread":"fb1025b"`), and
+`qlState.js` mergeSharedState). A SAVE FROM BEFORE (B4): each rebound objective names its mend (`"reread":"fb1025i"`), and
 a state that has not taken it forgets that objective's latch once at its first read
 (`qlLaw.js:"const unmended = (st, o) => !!o?.reread && !(st?.reread ?? []).includes(o.reread);"`); a fresh state takes it
 at once, and a latch this build wrote stands through a load (`06-Systems/Questlines-Arc.md` 2.2). QUEST-MARK: a quest's
@@ -164,9 +164,9 @@ A resync from a partner still on a build before this one can merge an old latch 
 union; the mend is per state). An older save loaded in S0000503's "kept" window (`_S.29_` made the item permanent, the
 mage not yet down) reads the hoard open until the quest ends.
 
-PINS: `test/systems/questlines/fb1025b_daedraheart.test.js` (15; the rig reads the host's own law, B2). PIN MOVED:
+PINS: `test/systems/questlines/fb1025i_daedraheart.test.js` (15; the rig reads the host's own law, B2). PIN MOVED:
 `test/scenes/audit24_lifetimes.test.js` (the held read, now in itemTransfer.js), `test/systems/fb1011_tradeloc.test.js`
-(the player trade's row words). Mutants `tools/mutants/fb1025b_daedraheart.json` (39, all dead); re-aimed by content:
+(the player trade's row words). Mutants `tools/mutants/fb1025i_daedraheart.json` (39, all dead); re-aimed by content:
 `fb1011_tradeloc.json` TRADE-LOC-II-a, `hostsplit.json` HOST-SPLIT-a, `ql4_flow.json` AUDIT-QL-FLOW-REWARD-15 (all dead).
 
 ## NODE-CROWN (5) - `src/render/nodeGlint.js`
@@ -180,10 +180,10 @@ WHAT THE PORT DID. A Logging node within 120 m is its 3D tree (Low Poly Trees, o
 within 140 m). The glint boxed its crown at the run's standing size times the tree's row scale times the prototype's
 scale - and the standing size already carries that scale (`world/lowPolyTrees.js` readLowPolyTrees, `m.max[1] * sy`).
 The climates stand 95 Tree records (with the woodland sets' winter archives), 93 with a prototype, 74 of those scaled
-(AUDIT FB1025b C2: this said 88 of 116, the pin loop's count): the temperate and mountain woods' mostly 0.5-0.8 glinted
+(AUDIT FB1025i C2: this said 88 of 116, the pin loop's count): the temperate and mountain woods' mostly 0.5-0.8 glinted
 only to half to four fifths of their height (504_16's 16 m tree to 8 m, its upper crown never), the swamp's, the
 desert's and a winter wood's 15 (1.1-4.2) over a box up to four times their height, most of their glints' tries in the
-air. Not the depth: the light is drawn after the trees. And (AUDIT FB1025b C1, the report's "size aware") a big crown's
+air. Not the depth: the light is drawn after the trees. And (AUDIT FB1025i C1, the report's "size aware") a big crown's
 glints were a herb's - six at most at a herb's reach: the light of their cores a picture's pixel 12 times sparser than a
 near herb's at 30 m, 53 times at 12 m (the audit lane's probe, the real door's tree with the player's atlases).
 
@@ -198,10 +198,10 @@ glints take the varyings six and their turns took.
 NOT DONE. A near tall crown past the screen's top spends about a tenth of its tries off the screen (C4); a small crown's
 count steps a glint at a time as the eye nears; the crown box's depth is `reach` (C5).
 
-PINS: `test/scenes/fb1025b_nodecrown.test.js` (4: the report's 504_16 through the loader, the shader and the pass; every
+PINS: `test/scenes/fb1025i_nodecrown.test.js` (4: the report's 504_16 through the loader, the shader and the pass; every
 climate's Tree records at a row scale of 0.8 and 1.2, their counts by value; the growth's law; 504_16 at 30 and 12 m, its
 far flat, a herb and a small far crown); `tools/nodeGlintProbe.mjs` (33: a half-scale prefab's top two fifths lit; the
-big crown twelve at twice the reach, its hearts more than the herb's). Mutants `tools/mutants/fb1025b_nodecrown.json`
+big crown twelve at twice the reach, its hearts more than the herb's). Mutants `tools/mutants/fb1025i_nodecrown.json`
 (24, all dead). Moved: nodeglint's boxes, programs and draw pins; nodeglint.json's seed and room records re-aimed.
 
 ## CHEST-DRAFT and COPY-LIFT (6) - `src/scenes/decor/decorTool.js`, `server-account/src/ledger.js`, `server-account/src/staffRealm.js`
@@ -217,7 +217,7 @@ so every piece was locked while it sat untouched in the home - the report. #1262
 within-visit one stayed. And no lock could lift: a known copy is never judged again, and staff's purge destroyed both.
 
 FIXED. The draft stages pieces and its own moves of the owner's things, never chest contents; a chest the draft placed
-and Discard removes gives its goods back to the pack, and says so. AUDIT FB1025b (lane E): the owner's moves are one
+and Discard removes gives its goods back to the pack, and says so. AUDIT FB1025i (lane E): the owner's moves are one
 ordered journal, undone last first (`decorTool.js:"for (const [i, m] of [...d.moves.entries()].reverse()) {"`) - a
 thing set down and taken down in one draft stays in the pack (the pack's door refuses a record it holds, and the take
 that followed lost the only copy; a ruby given again joined its stack, four of three), a thing taken down joins the
@@ -231,7 +231,7 @@ goods into the bin, and a Discard after leaves the chest as it lies. A draft lef
 ship, a caravan - the exit pressed, the page closed) wrote its staged own things and chests' goods under pieces the
 saved room never stands; the next visit gives them back to the pack, said
 (`worldModes.js:"if (!(interiorHome || _seatHallVisit)) returnUnstood(interiorDecor, placed, decorPackGive, say);"`).
-COPY-LIFT: a record's own `twice` copy is lifted only by staff's purge with `keep: true`, and (AUDIT FB1025b lane F)
+COPY-LIFT: a record's own `twice` copy is lifted only by staff's purge with `keep: true`, and (AUDIT FB1025i lane F)
 only where the act itself leaves the record one: the keep finds every copy the save holds wherever it lies - a
 deserter's take, the ground, a shop's shelf (`staffRealm.js:"export function copiesOfKeys(save, keySet) {"`, said as
 `hidden`) - keeps the ledger's own piece (the first of its row's print) and destroys the rest, and lifts where its batch
@@ -257,9 +257,9 @@ reads the pack alone. A copy sold at a counter before the keep is gone from the 
 sale's gold stays, and the piece bought back is a second of one, locked again. A copy staff took more than 30 days
 before (its evidence deleted) is no copy the keep can count. A copy of any other kind stays locked for good.
 
-PINS: `test/server/fb1025b_chestlock.test.js` (17), `test/server/staffpanel3realm.test.js` (the keep, and lane F's
+PINS: `test/server/fb1025i_chestlock.test.js` (17), `test/server/staffpanel3realm.test.js` (the keep, and lane F's
 seven: the deserter's take, the ground, a triple, the ledger's print, a claim's chest, the race, the seizure's read),
-`test/systems/decor/decordraft.test.js` (a copy's Access through the act). Mutants `tools/mutants/fb1025b_chestlock.json`
+`test/systems/decor/decordraft.test.js` (a copy's Access through the act). Mutants `tools/mutants/fb1025i_chestlock.json`
 (64, all dead); the bug's own two-site shape (the open's picture, the Discard's write-back) run by hand: three pins fail. `test/decorFakes.mjs`'s chests are the real `createDecorRoom`
 store now - the fake's no-op `setItems` was why "Discard puts the room back" passed while the bug shipped.
 
@@ -296,9 +296,9 @@ NOT DONE. A board is out of the collider for everything, so rays and missiles pa
 bottom 0.15 m. A POI-authored 437xx model (poiHost) is not filtered. Open PR #1241's houseSigns.js declares the same
 range: fold the two exports into one when both land.
 
-PINS: `test/world/fb1025b_signsnag.test.js` (8) and `test/player/fb1025b_railhang.test.js` (4), on made meshes and on
-ARENA2's own signs, fences and TVRNBM04, through the real motor; mutants `tools/mutants/fb1025b_signsnag.json` (24,
+PINS: `test/world/fb1025i_signsnag.test.js` (8) and `test/player/fb1025i_railhang.test.js` (4), on made meshes and on
+ARENA2's own signs, fences and TVRNBM04, through the real motor; mutants `tools/mutants/fb1025i_signsnag.json` (24,
 all dead). PIN MOVED: audit0929_actions (the throne a jump), arena1_model, fb1019f_rockclear, rockclear.json;
 strengthened: fb0929d_waterwalk (WW-LID S, L), auditdisc28_motion (MO-1).
 
-## AUDIT FB1025b - pending
+## AUDIT FB1025i - pending

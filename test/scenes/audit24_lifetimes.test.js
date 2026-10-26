@@ -342,7 +342,7 @@ test('audit24: a quest item is found by QUEST IDENTITY, not object identity', ()
   // SEPARATELY, so afterwards they are two objects with equal content
   // and nothing relinks them. The tombstone sweep and `give item to`
   // silently no-opped on every quest item already carried.
-  // PIN MOVED (FIELD BUGS 2026-10-25b HEART-KEPT): the law left bootWorld for systems/item/itemTransfer.js
+  // PIN MOVED (FIELD BUGS 2026-10-25i HEART-KEPT): the law left bootWorld for systems/item/itemTransfer.js
   // heldQuestRecordIndex - read there, and the host's two hooks read through it (playerHasItem never a foe's clone)
   const world = hostText('src/scenes/world.js');
   assert.match(world, /const _heldItemIndex = \(dfItem, clones = true\) => heldQuestRecordIndex\(playerEntity\.items, dfItem, \{ clones \}\);/);

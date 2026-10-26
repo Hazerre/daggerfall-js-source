@@ -358,7 +358,7 @@ test('DECOR2a the host (worldModes.js) by source: the tool\'s pack is the player
   const m = src('src/scenes/worldModes.js');
   assert.match(m, /pack: \(\) => playerEntity\.items \?\? \[\], identity: \(\) => playerEntity,/);
   assert.match(m, /packHas: \(item\) => decorHome\(item\)\.includes\(item\), packTake: \(item\) => decorPackTake\(item\), packGive: \(item\) => decorPackGive\(item\),/);   // DECOR2b: furniture lives among the deliveries
-  // PIN MOVED (AUDIT FB1025b E1): the doors are systems/decor/decorPack.js's, over the host's entity
+  // PIN MOVED (AUDIT FB1025i E1): the doors are systems/decor/decorPack.js's, over the host's entity
   const pk = src('src/systems/decor/decorPack.js');
   assert.match(m, /createDecorPack\(\(\) => playerEntity\)/);
   assert.match(pk, /return applyTransfer\(item, \{ ok: true, amount: 1 \}, pack, \[\], \{ entity: entity\(\), fromLocal: true \}\) \?\? null;/, 'as a drop moves it');

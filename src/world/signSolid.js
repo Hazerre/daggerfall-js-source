@@ -1,5 +1,5 @@
 // @ts-check
-// FIELD BUGS 2026-10-25b SIGN-PASS (#bug-reports, ajaegerson, "Caravans get caught on shop signs": "Sometimes they do
+// FIELD BUGS 2026-10-25i SIGN-PASS (#bug-reports, ajaegerson, "Caravans get caught on shop signs": "Sometimes they do
 // when travelling through towns its really easy to fix just return and move a bit but kinda annoying it stops you";
 // Harlander: "Even going on foot you can get hung up on shop signs and fences"): A SHOP'S SIGN IS SOLID WHERE IT
 // STANDS, NEVER WHERE IT HANGS.

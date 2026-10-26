@@ -368,7 +368,7 @@
     "tests": [
       "test/systems/loot9_reforge.test.js"
     ],
-    "note": "AUDIT BAL/GEM (PIN MOVED, 2026-10-10): its line changed with the audit's fix; re-aimed by content. NAME-KEPT (FIELD BUGS 2026-10-25b, AUDIT FB1025b): re-aimed again at linesName's call."
+    "note": "AUDIT BAL/GEM (PIN MOVED, 2026-10-10): its line changed with the audit's fix; re-aimed by content. NAME-KEPT (FIELD BUGS 2026-10-25i, AUDIT FB1025i): re-aimed again at linesName's call."
   },
   {
     "name": "LOOT9-price-stays",

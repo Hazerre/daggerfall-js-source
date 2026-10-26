@@ -688,7 +688,7 @@
     "tests": [
       "test/systems/gem1_sockets.test.js"
     ],
-    "note": "NAME-KEPT (FIELD BUGS 2026-10-25b, PIN MOVED; reworked by AUDIT FB1025b): the reforge's name is ladderName's; re-aimed by content at its own-lines filter."
+    "note": "NAME-KEPT (FIELD BUGS 2026-10-25i, PIN MOVED; reworked by AUDIT FB1025i): the reforge's name is ladderName's; re-aimed by content at its own-lines filter."
   },
   {
     "name": "AUDIT-GEM-an-enchanted-stone",

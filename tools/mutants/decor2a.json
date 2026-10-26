@@ -459,7 +459,7 @@
     "tests": [
       "test/systems/decor2a.test.js"
     ],
-    "note": "AUDIT FB1025b E1 (PIN MOVED): re-aimed by content - the doors moved to systems/decor/decorPack.js."
+    "note": "AUDIT FB1025i E1 (PIN MOVED): re-aimed by content - the doors moved to systems/decor/decorPack.js."
   },
   {
     "name": "DECOR2a-the-save-forgetting-them",

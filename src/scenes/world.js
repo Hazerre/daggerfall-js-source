@@ -111,7 +111,7 @@ import { LivingTown, LINE_HEAD_M as LIVING_HEAD_M } from '../systems/livingWorld
 import { REGULAR_HEAD_M as CARD_REGULAR_HEAD_M } from '../world/card/cardRegulars.js';   // CARDS4b: a seated regular's line over his head
 import { livingWorldOn } from '../systems/livingWorld/livingSwitch.js';
 import { makeQuarry } from '../systems/livingWorld/quarry.js';   // WATCH-PROTECTS: a townsperson as a monster's quarry
-import { createRoadStrike } from './livingWorld/roadStrike.js';   // LW7: a swing at the road's travellers - FIELD BUGS 2026-10-25b ROAD-SPARE: under the street's law of who a blow passes by
+import { createRoadStrike } from './livingWorld/roadStrike.js';   // LW7: a swing at the road's travellers - FIELD BUGS 2026-10-25i ROAD-SPARE: under the street's law of who a blow passes by
 import { patrolHalts } from '../systems/standing.js';   // WATCH-KNOWS: the living watch's word by the law - one whose face it knows (FIELD BUGS 2026-10-21d PATROL-GRACE: outside the grace an answered law gives)
 import { LIVING_WORLD_VENDOR } from '../systems/livingWorld/relations.js';   // LW2: how the living world regards this character (modData `LivingWorld`)
 import { characterRelations } from '../systems/livingWorld/regardClock.js';   // FIELD BUGS 2026-10-21d REGARD-OWN: counted in the character's own days
@@ -4095,7 +4095,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ready: () => !!walkMode && !!playerSpawned && !_loading && !modes?.transitioning && _mode() === 'exterior' && !playerAfloat(),
       sceneOf: (nx, nz) => tvSceneOf(nx, nz, 0),
       relations: () => livingRelations,
-      slay: livingRoadSlay, killed: livingKilled, died: livingDied,   // AUDIT FB1025b D2: a stood foe another hand cut down is killed, never the player's slain (no report)
+      slay: livingRoadSlay, killed: livingKilled, died: livingDied,   // AUDIT FB1025i D2: a stood foe another hand cut down is killed, never the player's slain (no report)
       deadAt: livingDeadAt,   // AUDIT-B4: one a hand took is never stood again (the roads' parties are read once a second)
       fighting: () => hccThreats().some((q) => Math.hypot(q[0] - player.pos[0], q[2] - player.pos[2]) <= FIGHT_NEAR_M),
       say: (text) => townTalk.say(text),
@@ -10910,7 +10910,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     raidHere: () => raidDefendingHere(),   // RAID-GUARDS: a raid on in this town spares its defenders every blow of the player's
     guardScale: () => (wildHere() ? ZONE_WATCH_SCALE : 1),   // ZONE-WATCH (systems/wild/wildZone.js ZONE_WATCH_SCALE): the open zone's towns post their watch ten times as strong
     levelBonus: () => seatEdicts.guardLevelBonus(Math.floor(skyMinutes())),   // SEAT1d: a Curfew's night watch - AUDIT SEATS-3 E1: the sky's night (TIME1), the one the town sees
-    fightHere: () => fightNear([...cityGuards.guards, ...exteriorFoes.foes], player.pos),   // PROTECT-FIGHT: under the protection, a fight spares the street's walkers - AUDIT FB1025b D3: a fight near me, a peer's foes too (encounters.js fightNear)
+    fightHere: () => fightNear([...cityGuards.guards, ...exteriorFoes.foes], player.pos),   // PROTECT-FIGHT: under the protection, a fight spares the street's walkers - AUDIT FB1025i D3: a fight near me, a peer's foes too (encounters.js fightNear)
     oneVoice: () => livingWorldOn(), windowUp: () => townTalk.overlayActive,   // HALT-ONE: the living watch calls as one, and nobody under a window (cityGuards.js)
     viewYaw: () => cam.yaw,   // WATCH-LEAVES: a defender walking off goes behind the view the street's walkers come and go behind (population.update's yaw)
     say: (l) => townTalk.say(l),   // C-slice: equipment breaks speak
@@ -11443,7 +11443,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const p of built.values()) p.population?.peerLend?.(_livingPeerWatch);
   };
   /** LW7: a swing that met no one in the street, at the road's travellers - DFU's one-hit civilian, struck down for good
-   *  (the roads' deed); FIELD BUGS 2026-10-25b ROAD-SPARE: one the street's law spares (Protect Bystanders in a fight, a
+   *  (the roads' deed); FIELD BUGS 2026-10-25i ROAD-SPARE: one the street's law spares (Protect Bystanders in a fight, a
    *  raid) stops it. The law is scenes/livingWorld/roadStrike.js; the road is the open world's alone, so is its blood. */
   const livingStrikeRoad = createRoadStrike({ roads: () => livingRoads, open: () => livingWorldOn() && _mode() === 'exterior', collider, cityGuards, hitEffects, playerEntity });
   /** SpawnCityGuards(FALSE) - the WITNESS arm, the other half of the
@@ -19588,7 +19588,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     addItem(playerEntity.items, card);
     try { townTalk.say(`The guild adds a card to your reward: ${iliacCardName(card).replace(/^Card: /, '')}.`); } catch { /* no talk host yet: the card is in the pack */ }
   };
-  const _heldItemIndex = (dfItem, clones = true) => heldQuestRecordIndex(playerEntity.items, dfItem, { clones });   // HEART-KEPT (FIELD BUGS 2026-10-25b): the law's own home (itemTransfer.js) - never a foe's clone for playerHasItem
+  const _heldItemIndex = (dfItem, clones = true) => heldQuestRecordIndex(playerEntity.items, dfItem, { clones });   // HEART-KEPT (FIELD BUGS 2026-10-25i): the law's own home (itemTransfer.js) - never a foe's clone for playerHasItem
   // E6: `QuestMachine.Instance.GetComponent<DaggerfallAudioSource>()`
   // (PlaySound.cs:112) - ONE source for every PlaySound action in every
   // running quest, which is what makes the busy-skip a shared gate

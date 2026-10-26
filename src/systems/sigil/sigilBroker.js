@@ -518,7 +518,7 @@ export function dismantleWare(item, { items }) {
 }
 /** The dismantle's words: the question (the enhanced pack's), the classic pack's offer where its drop was refused, the
  *  worn piece's refusal, and what was done (BROKER_SOLD's shape). */
-/** AUDIT FB1025b A8: A WARE BY ITS NAME AND ITS SET - a Legendary wears its base record's name, so two days' offers can
+/** AUDIT FB1025i A8: A WARE BY ITS NAME AND ITS SET - a Legendary wears its base record's name, so two days' offers can
  *  share one ("The Warden" was Malacath's on 2026-10-22 and Mora's on 2026-10-25), and a dismantle asked of "The Warden"
  *  could not say which. "The Warden (Mora's Mantle)"; a piece of no set, its name. */
 export const wareName = (name, item) => { const set = setById(item?.sigil?.set)?.name; return set ? `${name} (${set})` : name; };
@@ -527,7 +527,7 @@ export const DISMANTLE_INSTEAD = (n) => `Dismantle it for ${stonesText(n)} inste
 export const DISMANTLE_WORN = (name) => `Take off ${name} before dismantling it.`;
 export const DISMANTLED = (name, n) => `Dismantled: ${name}, for ${stonesText(n)}.`;
 
-/** The words a refused offer wears, and the set an offer belongs to by name. FIELD BUGS 2026-10-25b BOUGHT-YOURS
+/** The words a refused offer wears, and the set an offer belongs to by name. FIELD BUGS 2026-10-25i BOUGHT-YOURS
  *  (#bug-reports, "Can't buy this piece": "I did dismantle the other chest i bought days ago, but still i cant buy this
  *  one"): 'bought' says whose sale it was and that it is the day's. "Bought today" read as "you have one already" - a
  *  Legendary wears its base record's name, so another day's offer comes back under it (2026-10-22's Warden was

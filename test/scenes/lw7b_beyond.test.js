@@ -31,7 +31,7 @@ function standRig({ ready = true, fighting = false } = {}) {
     remove: (rec) => { pool.delete(rec); removed.push(rec); },
     inPool: (rec) => pool.has(rec),
     ready: () => can.ready, sceneOf: (nx, nz) => [nx / 40, 0, nz / 40],
-    relations: () => rel, slay: (res, t, seen) => slays.push({ res, t, seen }), killed: (res, t) => killeds.push({ res, t }), died: (res, t) => dieds.push({ res, t }),   // AUDIT FB1025b D2: another hand's kill (fb1025b_roadspare.test.js)
+    relations: () => rel, slay: (res, t, seen) => slays.push({ res, t, seen }), killed: (res, t) => killeds.push({ res, t }), died: (res, t) => dieds.push({ res, t }),   // AUDIT FB1025i D2: another hand's kill (fb1025i_roadspare.test.js)
     fighting: () => can.fighting, say: (t) => said.push(t),
   });
   return { stands, pool, spawned, removed, said, slays, dieds, killeds, rel, can };
@@ -76,7 +76,7 @@ test('LW7b an armed enemy draws: a member who counts the player HOSTILE within D
   await settle();
   assert.equal(far.spawned.length, 0, 'past DRAW_M, from the sky, nothing able to stand, nowhere');
   // cut down: slain, seen, their party's living turned; the body the pool's own
-  rec.dead = true; rec.corpse = true; rec.killedBy = 'player';   // PIN MOVED (AUDIT LW-III): killed as the pool kills - dead, a corpse; PIN MOVED (AUDIT FB1025b D2): by the player's own hand, as the pool's death door names it
+  rec.dead = true; rec.corpse = true; rec.killedBy = 'player';   // PIN MOVED (AUDIT LW-III): killed as the pool kills - dead, a corpse; PIN MOVED (AUDIT FB1025i D2): by the player's own hand, as the pool's death door names it
   rig.stands.frame([], HERE, T + 2);
   assert.deepEqual(rig.slays, [{ res: BO, t: T + 2, seen: true }]);
   assert.equal(rig.rel.regard(CY.id, DAY), Math.max(-100, EVENTS.struck + EVENTS.slain), 'their party turned against the player');
@@ -92,7 +92,7 @@ test('LW7b an armed enemy draws: a member who counts the player HOSTILE within D
   await settle();
   cull.spawned[0].dead = true;
   cull.stands.frame([], HERE, T + 1);
-  assert.deepEqual([cull.slays, cull.killeds, cull.dieds], [[], [], []], 'culled: no slaying - nor, AUDIT FB1025b D2, another hand\'s kill: no death at all, back with their party');
+  assert.deepEqual([cull.slays, cull.killeds, cull.dieds], [[], [], []], 'culled: no slaying - nor, AUDIT FB1025i D2, another hand\'s kill: no death at all, back with their party');
   assert.ok(!cull.stands.stood(BO.id), 'and the stand over');
   // let go: the player gone past KEEP_M, nothing able to stand
   const go = standRig();
