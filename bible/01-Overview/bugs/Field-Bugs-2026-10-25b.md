@@ -13,7 +13,7 @@ then asked "Audit this" (AUDIT FB1025b, below). The pins are named under each fi
 | 4 | Mefwhesk, "Unable to turn in The Daedra's Heart": "Elyzabyth will not let me turn the quest in" | The quest's own heart counts, never a plain one (the thread's reply was right). The likely cause, found by AUDIT FB1025b: a second kind of daedra hurt after the take pulled the quest's heart OUT of the pack onto its body - DFU keeps it. And two lies of the port's: the journal struck "take its heart" on a look at the body's row, and the Enhanced pack drew the quest's heart as a plain one | HEART-KEPT, HEART-TAKEN, QUEST-MARK |
 | 5 | kvassdrit, "Big trees hide resource node particles": "Needs to be size aware or have a completely different visual" | A 3D tree's crown box counted its prototype's scale twice: a temperate tree glinted on its lower half, a swamp's mostly in the air above; and a big crown's glints were a herb's six at a herb's reach (AUDIT FB1025b C1) | NODE-CROWN |
 | 6 | Giljabrar, "Storage in the Decoration update may be Realm Locking items": "I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'" | The decorator's Discard wrote a snapshot of every chest back, so a piece stood in the chest and the pack and the ledger locked both; in #1223's build across rooms. No route lifted a lock | CHEST-DRAFT, COPY-LIFT |
-| 7 | ajaegerson, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns"; Harlander: "Even going on foot you can get hung up on shop signs and fences." | (pending) | (pending) |
+| 7 | ajaegerson, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns"; Harlander: "Even going on foot you can get hung up on shop signs and fences." | A shop sign's board, arm and brace hang over the street at 1.65-2.4 m, inside a rider's 2.6 m body (a wagon's driver is one) and the lowest inside a walker's; all of it was solid. And a split-rail fence's rail, met from the side, was read as a floor the body had sunk under, and the walker set on it, wedged | SIGN-PASS, RAIL-HANG |
 
 ## NAME-KEPT (1) - `src/systems/loot/lootRarity.js`
 
@@ -227,6 +227,42 @@ PINS: `test/server/fb1025b_chestlock.test.js` (8), `test/server/staffpanel3realm
 `tools/mutants/fb1025b_chestlock.json` (25, all dead). `test/decorFakes.mjs`'s chests are the real `createDecorRoom`
 store now - the fake's no-op `setItems` was why "Discard puts the room back" passed while the bug shipped.
 
-## (7) - pending
+## SIGN-PASS and RAIL-HANG (7) - `src/world/signSolid.js`, `src/scenes/pixelBuild.js`, `src/scenes/exterior.js`, the yards' models, `src/player/collider.js`
+
+WHAT DFU DOES. A shop's sign (ARCH3D 43700-43755, three frames of nineteen boards) is a town block's misc model; all
+668 in BLOCKS.BSA are. RMBLayout.AddProps combines it into the block's mesh, and CreateCombinedMeshGameObject gives that
+mesh one MeshCollider, so the whole sign is solid. A CharacterController stands on nothing above its stepOffset.
+
+WHAT THE PORT DID. Both town hosts collided the sign whole. Its board, arm and brace hang over the street from 1.65 m
+(43718-43736), 2.1 m (43700-43717) and 2.4 m (43737-43755), inside a rider's 2.6 m capsule (`RIDE_HEIGHT`; a wagon's
+driver is one) and the lowest inside a walker's 1.8 m. Measured through the real motor on TVRNBM04, MARKAA00 and
+GEMSAM00, 545 of 2,927 open lines past their signs stopped a rider and 131 a walker; a journey's feelers, at the knee,
+saw none of it. The port's own gate boards, 2.4 m up under their beams, kept every Cart out of the Stable, the Joinery
+and the Shipyard. Separately, PH1's one-way floor read a split-rail fence's rail (41206-41208), met from the side, as a
+floor the body had sunk under: a walker from behind was set ON the lower rail's back edge (0.39 m, wedged under the
+upper rail - 130 of 130 stations), and a runner from the street on its under slope in a 0.28 m band a panel.
+
+FIXED. A sign's triangle whose every corner stands `signSolid.js:"export const SIGN_HANG_M = 1;"` over the sign's foot
+hangs - drawn, never solid; the posts stand. Both town hosts ask it
+(`pixelBuild.js:"late.add(gateKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), local,"`, `exterior.js`):
+after it, 51 rider and 83 walker stops remain, every one at a post. The yards' boards hang the same way (the
+signboard and assemble's `solid`, both yard hosts). A walking step hands PH1's floor SH1's stand ceiling in its
+sideways pass and ladder (`collider.js:"    this._floorCeil = dy === 0 ? standCeil : Infinity;"`), and that floor
+must have its own plane over the sphere's centre (`planeOver`); a fall's lip catch is as it was (egJumpReach is
+measured on it). No fence station hangs now, and a 0.45 m ledge is still stepped. N0000037's 0.58 m throne seat is a
+jump now, as SH1's own law has it ("0.55 through 1.2 blocked flat" - it had been walked onto through the same
+loophole). THE FOUR HOSTS: world.js and exterior.js wired; worldModes.js's interiors and dungeonContext.js place no
+sign (0 of BLOCKS.BSA's 668); the Collider's law is all four's. SIGN-PASS is a departure (Port-Ledger section A);
+RAIL-HANG is not.
+
+NOT DONE. A board is out of the collider for everything, so rays and missiles pass it too - DFU's arrow meets a sign
+(the owner's call: a bodies-only filter would keep rays meeting it). A walker's 1.8 m capsule passes the lowest family's
+bottom 0.15 m. A POI-authored 437xx model (poiHost) is not filtered. Open PR #1241's houseSigns.js declares the same
+range: fold the two exports into one when both land.
+
+PINS: `test/world/fb1025b_signsnag.test.js` (8) and `test/player/fb1025b_railhang.test.js` (4), on made meshes and on
+ARENA2's own signs, fences and TVRNBM04, through the real motor; mutants `tools/mutants/fb1025b_signsnag.json` (24,
+all dead). PIN MOVED: audit0929_actions (the throne a jump), arena1_model, fb1019f_rockclear, rockclear.json;
+strengthened: fb0929d_waterwalk (WW-LID S, L), auditdisc28_motion (MO-1).
 
 ## AUDIT FB1025b - pending
