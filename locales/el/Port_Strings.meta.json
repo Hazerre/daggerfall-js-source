@@ -2974,6 +2974,11 @@
   "tr": "ac73f1be1e7e",
   "by": "claude-in-session"
  },
+ "account.refusal.yardTownFull": {
+  "en": "0f069e781d8b",
+  "tr": "88d9f4dd7f27",
+  "by": "claude-in-session"
+ },
  "account.wear.aura": {
   "en": "af0854de67de",
   "tr": "8becaa5aa7a0",
@@ -3007,6 +3012,26 @@
  "account.wear.worn": {
   "en": "109ed08cf9d2",
   "tr": "77a6d2c45049",
+  "by": "claude-in-session"
+ },
+ "body.beast.feet": {
+  "en": "0dd8f94fcd11",
+  "tr": "22dd616726ca",
+  "by": "claude-in-session"
+ },
+ "body.beast.helm": {
+  "en": "03e076d67d37",
+  "tr": "5ac419c103e7",
+  "by": "claude-in-session"
+ },
+ "body.beast.noFootwear": {
+  "en": "d46a8065cd6f",
+  "tr": "c03481c9de68",
+  "by": "claude-in-session"
+ },
+ "body.beast.noHelm": {
+  "en": "48cfe45d7058",
+  "tr": "9a428debc7b2",
   "by": "claude-in-session"
  },
  "broker.owed": {
@@ -4624,6 +4649,46 @@
   "tr": "67173c97751d",
   "by": "claude-in-session"
  },
+ "features.beast.asWorn": {
+  "en": "40e8504e77a2",
+  "tr": "1e9783578bbe",
+  "by": "claude-in-session"
+ },
+ "features.beast.hidden": {
+  "en": "d4c2792a7245",
+  "tr": "ff7fa34f7abf",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.note": {
+  "en": "397daa6dd5f8",
+  "tr": "f777b9a2721d",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.shafts": {
+  "en": "f7bc5ba3047e",
+  "tr": "f966ca2ba793",
+  "by": "claude-in-session"
+ },
+ "features.beastFeet.title": {
+  "en": "eb4eb88aad3d",
+  "tr": "fb8bd9019bb7",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.note": {
+  "en": "2d9ad05572f7",
+  "tr": "e671ed7832ba",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.open": {
+  "en": "37bdf89e17b8",
+  "tr": "3f7196793a8b",
+  "by": "claude-in-session"
+ },
+ "features.beastHelm.title": {
+  "en": "bfa995fb5091",
+  "tr": "324cc3515fdc",
+  "by": "claude-in-session"
+ },
  "features.blood.effect": {
   "en": "a3c978782b89",
   "tr": "4726ae8ec89d",
@@ -5702,6 +5767,16 @@
  "holdings.wagon.boons.sound": {
   "en": "71476c661351",
   "tr": "a3b51ba841cc",
+  "by": "claude-in-session"
+ },
+ "items.gold.sharedFull": {
+  "en": "7eb608a65f56",
+  "tr": "fd0ac1d8c147",
+  "by": "claude-in-session"
+ },
+ "items.gold.sharedRoom": {
+  "en": "8b7260715010",
+  "tr": "d797600e30d6",
   "by": "claude-in-session"
  },
  "ketch.arrived": {
@@ -7592,6 +7667,11 @@
  "menu.online.noSaves": {
   "en": "49ccf5086e2f",
   "tr": "ca38584ac265",
+  "by": "claude-in-session"
+ },
+ "menu.online.realmCopyOffline": {
+  "en": "9e528bcd7339",
+  "tr": "f98a5e543cd0",
   "by": "claude-in-session"
  },
  "menu.online.relay": {
@@ -10319,6 +10399,26 @@
   "tr": "31a46ad2f741",
   "by": "claude-in-session"
  },
+ "party.travel.followOnceAble": {
+  "en": "314d66a59d0d",
+  "tr": "2e771f2dff78",
+  "by": "claude-in-session"
+ },
+ "party.travel.noRoomBeside": {
+  "en": "cbaaddfcd442",
+  "tr": "44633bd305ed",
+  "by": "claude-in-session"
+ },
+ "party.travel.theLeader": {
+  "en": "5f1102735a26",
+  "tr": "102fa120cbce",
+  "by": "claude-in-session"
+ },
+ "party.travel.yourLeader": {
+  "en": "c48711f615f3",
+  "tr": "8751d9486076",
+  "by": "claude-in-session"
+ },
  "pause.ask.hint": {
   "en": "3b4376983a26",
   "tr": "64cdee82ac8d",
@@ -10769,6 +10869,11 @@
   "tr": "6dbcdd07db9b",
   "by": "claude-in-session"
  },
+ "player.sealedDoor": {
+  "en": "91d5e853b118",
+  "tr": "526c8c44d22e",
+  "by": "claude-in-session"
+ },
  "portal.buy.ask": {
   "en": "da8ce194bdac",
   "tr": "04a29ea18324",
@@ -11022,6 +11127,21 @@
  "quest.remain.min": {
   "en": "a47d8efbcf4d",
   "tr": "352313cf1629",
+  "by": "claude-in-session"
+ },
+ "realm.stranded": {
+  "en": "0c41402dad0b",
+  "tr": "21b1ce680179",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.reachedAgain": {
+  "en": "353bb0bc3f8c",
+  "tr": "e855ff64f5bf",
+  "by": "claude-in-session"
+ },
+ "realm.unsaved.warning": {
+  "en": "e500f6e7323b",
+  "tr": "3483b72ba83a",
   "by": "claude-in-session"
  },
  "reforge.note": {
