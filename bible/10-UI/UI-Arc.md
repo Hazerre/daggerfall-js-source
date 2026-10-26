@@ -1603,6 +1603,12 @@ all as they stood before INTRO3's merge (#906). `systems/introScore.js` and its 
 nothing plays. The song player's INTRO3 work stays too, since the Elite Gates' scores use it (`egroar_score.test.js`).
 The sections above, INTRO3 to INTRO3d, are history.
 
+MAIN-RED (2026-10-26): `tools/introProbe.mjs` and `tools/introCapture.mjs` wait two minutes for the intro, not 30s. In
+the dev server the door asks about 15,900 modules (BOOT1's world.js warm-up among them) before the intro's code runs
+and asks for its recording: 34s measured on a warm server and 51s on a cold one, the recording itself landing at once.
+The `cinematic` check had timed out on every run since 2026-10-25. A built page is a few chunks, so players never
+wait this; only the probes do.
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac
