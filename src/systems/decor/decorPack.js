@@ -7,6 +7,7 @@
 import { isFurnishing, ownBackLines } from './decorFurnish.js';
 import { applyTransfer } from '../item/itemTransfer.js';
 import { addItem } from '../inventory.js';
+import { t } from '../textManager.js';   // the room's words, in the player's language
 
 /**
  * The doors over `entity()` (the player's entity, read at each call - a load replaces it).
@@ -63,6 +64,6 @@ export function returnUnstood(room, pieces, give, say) {
   const own = (room.ownIds?.() ?? []).filter((/** @type {string} */ id) => !standing.has(id)).map((/** @type {string} */ id) => room.takeOwn(id)).filter(Boolean);
   const back = [...own, ...(room.takeUnserved?.(pieces) ?? [])];
   for (const it of back) give(it);
-  if (back.length) say?.(ownBackLines(back, (n) => (n === 1 ? 'One of your things was no longer here and went back to your pack.' : `${n} of your things were no longer here and went back to your pack.`)));
+  if (back.length) say?.(ownBackLines(back, (n) => t('decor.tool.strayBack', '{n, plural, one {One of your things was no longer here and went back to your pack.} other {# of your things were no longer here and went back to your pack.}}', { n })));
   return back;
 }

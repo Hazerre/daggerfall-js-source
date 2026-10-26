@@ -1414,7 +1414,7 @@ export function createDecorTool(deps) {
       // things the draft set down go back to it - the goods were the player's to hand a moment ago - and said)
       if (pool.holdsAny?.(p.id)) {
         for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);
-        deps.say?.(`What the ${entryOf(p).name} held is back in your pack.`);   // English until the catalog's pass (locales/en)
+        deps.say?.(t('decor.tool.discardGaveBack', 'What the {name} held is back in your pack.', { name: entryOf(p).name }));
       }
       pool.remove(p.id);
     }
@@ -1434,7 +1434,7 @@ export function createDecorTool(deps) {
       pool.takeOwn?.(m.id);
       pool.remove(m.id);
       still.push(m);
-      deps.say?.(`${itemLongName(m.item) || DECOR_KINDS.decor} is no longer in your pack, or is worn. Confirm takes its piece down.`);   // English until the catalog's pass
+      deps.say?.(t('decor.tool.discardNotInPack', '{name} is no longer in your pack, or is worn. Confirm takes its piece down.', { name: itemLongName(m.item) || DECOR_KINDS.decor }));
     }
     for (const id of [...usePending]) if (!d.before.has(id)) { usePending.delete(id); useMode.delete(id); useRank.delete(id); }
     d.moves = still;
