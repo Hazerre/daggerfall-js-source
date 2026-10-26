@@ -61,7 +61,7 @@ test('U60: the root document is a page about the game, and the game is at /play/
   // picture and nothing else is one. It is the GAME's own file, which the
   // build carries for the front door already - one copy, so public/brand/
   // stays untracked and the site cannot show a logo the game does not.
-  const LOGO = '<h1 class="wordmark"><img src="./src/assets/branding/dfo-online.png" alt="DFO Online" width="1680" height="1410" /></h1>';
+  const LOGO = '<h1 class="wordmark"><img src="./src/assets/branding/dfo-online.png" alt="DFO Online" width="1232" height="1034" /></h1>';
   assert.equal(landing.split(LOGO).length, 2, 'the wordmark is the product\'s logo, once');
   const drawn = landing.replace(LOGO, '').replace(/url\(data:font\/woff2;base64,[A-Za-z0-9+/=]+\)/g, '');
   assert.doesNotMatch(drawn, /<img\s|<canvas|<video|<picture|url\(/i, 'beyond the logo, the landing page draws nothing but CSS');

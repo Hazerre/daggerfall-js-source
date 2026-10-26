@@ -32,7 +32,7 @@ const STYLE = `${PIXELIFY_FIVE_FACE}
 .intro-credit p{margin:0;font-size:clamp(11px,1.15vw,15px);text-transform:uppercase;letter-spacing:.26em;text-shadow:0 2px 12px #000}
 .intro-credit img{display:block;max-width:62vw;max-height:29dvh;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 3px 14px #0008)}
 .intro-credit[data-credit=nexus] img{max-width:45vw;max-height:17dvh}
-/* BR5: the box keeps BR4's height - 86vw and 1240px x 850/2112 x 526/322 for the DFO mark's 1.63:1; BR6: x 1680/1410 for the dragon mark's 1.19:1 */
+/* BR5: the box keeps BR4's height - 86vw and 1240px x 850/2112 x 526/322 for the DFO mark's 1.63:1; BR6: x 1232/1034 for the dragon mark's 1.19:1 */
 .intro-title{position:absolute;left:50%;top:48%;width:min(41.2vw,595px);opacity:0;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity,filter}
 .intro-title .brand-logo{display:block;width:100%;height:auto}
 .intro-title-fallback{font-size:clamp(28px,7vw,100px);text-align:center;margin:0;letter-spacing:.05em}

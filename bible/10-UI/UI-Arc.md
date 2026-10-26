@@ -23,25 +23,27 @@ name, the alt text, the file's path and every surface that draws it are
 BR5's, so the swap is the file and the boxes it fills.
 
 - THE FILE. His 2000 x 1434 WebP, real alpha, cut to the 1680 x 1410 its paint
-  covers - no pixel outside it has any alpha, every pixel inside is his,
-  unchanged (decoded, cropped, written as PNG and squeezed losslessly; the
-  crop compared equal pixel for pixel). It stays
+  covers - no pixel outside it has any alpha - then SCALED to 1232 x 1034 at his
+  word ("Go", asked whether to), the same 56:47 to the pixel, so every box
+  below is the cut's. Lanczos over premultiplied alpha, so no dark fringe on
+  the door's night; written as PNG and squeezed losslessly. It stays
   `src/assets/branding/dfo-online.png`, so the front door, the masthead, the
   intro film, the landing page and the desktop launcher (which serves the same
-  file, `LAUNCHER_LOGO`) all change with it and no path moves. It is
-  1,277,935 bytes where BR5's was 155,092: his source was a lossy WebP, and a
-  lossless cut of it keeps the noise. A smaller cut would have to resample his
-  pixels, which BR5's law forbids without his say.
+  file, `LAUNCHER_LOGO`) all change with it and no path moves. The unscaled
+  cut was 1,277,935 bytes where BR5's was 155,092 - his source was a lossy
+  WebP, and a lossless cut keeps its noise - and BR5's law (every pixel his,
+  unchanged) left a resample to his say; the scaled file is 785,060 bytes. The
+  widest box that draws it is the film's 595px, so 1232 covers it at 2x.
 - THE BOXES KEEP THEIR HEIGHT (BR5's law). The mark is 1.19:1 where BR5's was
   1.63:1, so every width narrows to the height it had: the door 540 x
-  769/2112 x 1680/1410 = `min(234px, 36.4vw)`; a short landscape screen
+  769/2112 x 1232/1034 = `min(234px, 36.4vw)`; a short landscape screen
   `min(171px, 24.3vw)`; the masthead `43.4%` of its column; the film
   `min(41.2vw, 595px)` and on a short screen `min(35.5vw, 480px)` (all read
   off the file's own IHDR by `test/ui/brand.test.js`); the film on a phone
   `68.6vw` (BR5's 94vw at the new ratio - unpinned there, as before); the
   landing page `min(234px, 46.7vw)` (the door's px, and BR5's 64vw at the new
   ratio); the launcher stays 76px high, its width auto. Both pages reserve the
-  file's own 1680 x 1410.
+  file's own 1232 x 1034.
 - THE CORNERS' BAND (SUPPORT1) follows the door's width: the wordmark reaches
   under a corner mark at every width under 234 + 2 x 234, so the band now ends
   at 701 (788 under BR5's mark, 1007 under BR4's).

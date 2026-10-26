@@ -99,7 +99,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-short-screen-width-at-the-old-ratio",
@@ -109,7 +109,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-masthead-full-width",
@@ -119,7 +119,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-empty-rows-pulled-again",
@@ -129,7 +129,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-film-box-at-the-old-ratio",
@@ -139,7 +139,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-film-short-box-at-the-old-ratio",
@@ -149,7 +149,7 @@
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
+    "note": "BR5: the rebrand to DFO Online (2026-10-11); BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
   },
   {
     "name": "BR5-setting-names-the-game",

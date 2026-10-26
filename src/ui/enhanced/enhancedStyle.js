@@ -2364,8 +2364,8 @@ ${badgeCss()}
    stood 540 x 769/2112 tall, and the same height at the new ratio is
    540 x 769/2112 x 526/322 = 321px wide (84vw -> 50vw; the short landscape
    screen's 394px -> 234, 56vw -> 33.3vw).
-   BR6: the dragon mark is 1680 x 1410 (1.19:1), painted to its edges too;
-   the same heights at its ratio are 540 x 769/2112 x 1680/1410 = 234px
+   BR6: the dragon mark is 1232 x 1034 (1.19:1), painted to its edges too;
+   the same heights at its ratio are 540 x 769/2112 x 1232/1034 = 234px
    (36.4vw), and the short landscape screen's 171px (24.3vw). */
 .px-wordmark:has(.brand-logo) { width: min(234px, 36.4vw); line-height: 0; flex-shrink: 0; }
 .brand-logo { display: block; width: 100%; height: auto; object-fit: contain;
@@ -2374,7 +2374,7 @@ ${badgeCss()}
    (BR4's file less its empty rows); the DFO mark spends the same height at
    769/2112 x 526/322 = 59.5% of the width, centred. No margin pulls
    anything up any more - the file has no empty rows. BR6: the dragon
-   mark's 1.19:1 spends that height at 769/2112 x 1680/1410 = 43.4%. */
+   mark's 1.19:1 spends that height at 769/2112 x 1232/1034 = 43.4%. */
 .brand-home .brand-logo { width: 43.4%; margin: 0 auto; }
 .brand-home { display: block; width: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; }
 .brand-home:focus-visible { outline: 2px solid var(--brass); outline-offset: 6px; }
