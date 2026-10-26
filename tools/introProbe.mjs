@@ -199,7 +199,7 @@ try {
   let release;
   const blocked = new Promise(resolve => { release = resolve; });
   await sp.route('**/theme.mp3*', async route => { await blocked; await route.continue().catch(() => {}); });
-  await sp.goto(`${base}?introdebug`); await sp.waitForSelector('.intro-skip');
+  await sp.goto(`${base}?introdebug`); await sp.waitForSelector('.intro-skip', { timeout: 120000 });   // MAIN-RED: a dev page, as ready()
   await sp.locator('.intro-skip').click(); await sp.waitForSelector('#intro', { state: 'detached' });
   check('skip works while audio is still loading', await sp.locator('.px-menu button').count() > 0);
   release();
