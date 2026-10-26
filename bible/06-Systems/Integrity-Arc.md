@@ -514,9 +514,12 @@ locked.
 **COPY-LIFT (FIELD BUGS 2026-10-25b, Giljabrar: "I placed 89 rare/legendary items in a chest ... they were all 'Realm
 Locked'").** The decorator's Discard wrote a home's chests back as they stood when its draft opened
 (`scenes/decor/decorTool.js` CHEST-DRAFT): a piece taken out since stood in the chest and the pack, a key shown twice in
-one record - and in #1223's build a Discard in the ship's or the caravan's decorator stood the home's chests there, a
-copy of everything stored. Such a pair is repaired by staff's purge with `keep: true`: one of each kept (its own lists
-before a room's chest), only the copies destroyed - in the record and the account's chests - and, in the same batch, a
+one record - and in #1223's build a Discard in another room's decorator (a ship's, a caravan's, an offline house's)
+stood the home's pieces there in place of that room's own, with its chests and its own-things record: a copy of
+everything the chests held and of each own thing standing in the home, and the other room's own things lost (in no
+record: staff give one back fresh, Add an item, on the player's word). Such a pair is repaired by staff's purge with
+`keep: true`: one of each kept (its own lists before a room's chest), only the copies destroyed wherever the save holds
+them - the record's every list, the rooms' chests and own things, and the account's chests - and, in the same batch, a
 `twice` copy the act leaves one of lifted where its row is the record's own, held and unclaimed and of the piece kept,
 no other record's copy is known and no trail check called it a copier's
 (`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`), said as a `dupe` finding with `lifted`.

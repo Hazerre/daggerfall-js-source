@@ -5,15 +5,16 @@
     "old": "    pool.setOwn?.(d.owns);",
     "new": "    pool.setItems?.(d.items);\n    pool.setOwn?.(d.owns);",
     "tests": ["test/server/fb1025b_chestlock.test.js"],
-    "why": "the field bug's shape, its picture gone with the fix: the Discard writes the chests' record back - what was stored since the draft opened is lost"
+    "why": "a stand-in for the field bug: the Discard writes the chests' record over with a picture the draft no longer takes (setItems of nothing) - every chest the room has emptied, what each held lost. The bug's own shape is two sites - the open's picture (openDraft) and the Discard's write-back - which one record cannot carry; AUDIT FB1025b E5 ran it by hand over this pin file (the 'items: pool.itemsSnapshot()' picture and its setItems): three pins fail - the report's, the stored-since and the own-thing-stored-since"
   },
   {
     "name": "FB1025B-CHEST-DRAFT-STAGED-CHEST-GOODS-LOST",
     "file": "src/scenes/decor/decorTool.js",
-    "old": "      if (pool.holdsAny?.(p.id)) for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);\n",
+    "old": "        for (const it of pool.itemsOf?.(p.id)?.splice(0) ?? []) deps.packGive?.(it);\n",
     "new": "",
     "tests": ["test/server/fb1025b_chestlock.test.js"],
-    "why": "a chest the draft stood and Discard takes away keeps what was put in it, under an id no piece stands for"
+    "why": "a chest the draft stood and Discard takes away keeps what was put in it, under an id no piece stands for",
+    "note": "AUDIT FB1025b E6 (PIN MOVED): the give-back is a block with its line now; re-aimed by content."
   },
   {
     "name": "FB1025B-CHEST-DRAFT-STAGED-CHEST-GOODS-TWICE",
@@ -26,23 +27,156 @@
   {
     "name": "FB1025B-CHEST-DRAFT-OWN-STOOD-AGAIN",
     "file": "src/scenes/decor/decorTool.js",
-    "old": "    for (const { id, item } of d.packIn) if (!deps.packTake?.(item)) pool.takeOwn?.(id);",
-    "new": "    for (const { item } of d.packIn) deps.packTake?.(item);",
+    "old": "      if (got) { pool.keepOwn?.(m.id, got); continue; }\n      pool.takeOwn?.(m.id);\n",
+    "new": "      if (got) { pool.keepOwn?.(m.id, got); continue; }\n",
     "tests": ["test/server/fb1025b_chestlock.test.js"],
-    "why": "the shape that shipped: an own thing taken down and stored since stands again beside the chest's"
+    "why": "the shape that shipped: an own thing taken down and stored since stands again beside the chest's",
+    "note": "AUDIT FB1025b E1 (PIN MOVED): packIn is the ordered journal (moves); the shipped shape - its record restored by the draft's picture of the room's own and left standing - re-aimed there."
   },
   {
     "name": "FB1025B-CHEST-DRAFT-OWN-NEVER-AGAIN",
     "file": "src/scenes/decor/decorTool.js",
-    "old": "if (!deps.packTake?.(item)) pool.takeOwn?.(id);",
-    "new": "{ deps.packTake?.(item); pool.takeOwn?.(id); }",
-    "tests": ["test/server/fb1025b_chestlock.test.js"]
+    "old": "      if (got) { pool.keepOwn?.(m.id, got); continue; }",
+    "new": "      if (got) { pool.takeOwn?.(m.id); continue; }",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "an own thing the draft took down and still in the pack is pulled out of it by Discard and stood nowhere - lost",
+    "note": "AUDIT FB1025b E1 (PIN MOVED): re-aimed at the journal."
   },
   {
     "name": "FB1025B-CHEST-DRAFT-PACKIN-NO-PIECE",
     "file": "src/scenes/decor/decorTool.js",
-    "old": "d?.packIn.push({ id: piece.id, item })",
-    "new": "d?.packIn.push({ id: null, item })",
+    "old": "d?.moves.push({ op: 'in', id: piece.id,",
+    "new": "d?.moves.push({ op: 'in', id: null,",
+    "tests": ["test/server/fb1025b_chestlock.test.js"],
+    "why": "the take-down journalled under no piece: Discard keeps the thing under no id, beside the draft's picture of it under its own - two of it in the room's record",
+    "note": "AUDIT FB1025b E1 (PIN MOVED): re-aimed at the journal."
+  },
+  {
+    "name": "FB1025B-E1-IN-UNPAIRED",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      if (m.op === 'in' && d.moves.some((o, j) => j < i && o.op === 'out' && o.id === m.id)) continue;\n",
+    "new": "",
+    "why": "AUDIT FB1025b E1: a thing the draft set down and took down again is taken out of the pack by Discard and kept under a piece no one stands - the gem lost",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E1-OUT-UNPAIRED",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      if (m.op === 'out' && d.moves.some((o, j) => j > i && o.op === 'in' && o.id === m.id)) continue;\n",
+    "new": "",
+    "why": "AUDIT FB1025b E1: a thing the draft set down and took down again is given back by Discard on top of itself - one ruby of three given again to the stack it joined, four",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E1-GIVE-ANSWERS-ITSELF",
+    "file": "src/systems/decor/decorPack.js",
+    "old": "    return addItem(entity().items, item);",
+    "new": "    addItem(entity().items, item);\n    return item;",
+    "why": "AUDIT FB1025b E1: the pack's door answers the thing it was handed, not the stack it joined - a Discard cannot find the ruby taken down, and its piece goes down for good",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E1-IN-JOURNALS-ITSELF",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "item: deps.packGive?.(item) ?? item });",
+    "new": "item }); deps.packGive?.(item);",
+    "why": "AUDIT FB1025b E1: the take-down journals the record it gave, not the stack it joined",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E3-PIECE-STANDS",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      pool.takeOwn?.(m.id);\n      pool.remove(m.id);\n",
+    "new": "      pool.takeOwn?.(m.id);\n",
+    "why": "AUDIT FB1025b E3: a piece whose thing is gone from the pack stands again over nothing - a free piece of it, and Confirm never takes it down",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E3-FORGOTTEN",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      still.push(m);\n",
+    "new": "",
+    "why": "AUDIT FB1025b E3: the failed take-down leaves the journal - a second Discard stands the piece again with the draft's picture of the thing, a second of it beside the chest's",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E3-SILENT",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      deps.say?.(`${itemLongName(m.item) || DECOR_KINDS.decor} is no longer in your pack, or is worn. Confirm takes its piece down.`);",
+    "new": "",
+    "why": "AUDIT FB1025b E3: a piece that does not stand again after Discard, and nothing said why",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E9-WORN-PULLED",
+    "file": "src/systems/decor/decorPack.js",
+    "old": "    if (!pack.includes(item) || item?.equipSlot != null) return null;",
+    "new": "    if (!pack.includes(item)) return null;",
+    "why": "AUDIT FB1025b E9: a weapon taken down and put on since is pulled out of the pack by Discard while it is worn - stood in the room and in its wearer's hand",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E2-NO-ACT",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "      const act = kind === 'storage' ? deps.realm?.() : null;",
+    "new": "      const act = null;",
+    "why": "AUDIT FB1025b E2: a staged chest's Access asked with no act - never moved, never kept",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E2-REALM-NULL",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "call: (/** @type {any} */ at) => deps.homeDecor.use({ ...body, realm: at }) })",
+    "new": "call: () => deps.homeDecor.use({ ...body, realm: null }) })",
+    "why": "AUDIT FB1025b E2: the act's checkpoint taken and the ask not naming it - the service refuses to move what the chest holds",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E2-GOODS-KEPT-BOTH",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "apply: (/** @type {any} */ a) => keepChestGoods(id, a),",
+    "new": "apply: () => {},",
+    "why": "AUDIT FB1025b E2: the goods moved into the service's bin and left in the save's chest - two of each",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E6-SILENT",
+    "file": "src/scenes/decor/decorTool.js",
+    "old": "        deps.say?.(`What the ${entryOf(p).name} held is back in your pack.`);",
+    "new": "",
+    "why": "AUDIT FB1025b E6: what a staged chest held handed to the pack by Discard, and nothing said",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E8-UNASKED",
+    "file": "src/scenes/worldModes.js",
+    "old": "    if (!(interiorHome || _seatHallVisit)) returnUnstood(interiorDecor, placed, decorPackGive, say);\n",
+    "new": "",
+    "why": "AUDIT FB1025b E8: a save's room restored with its strays kept under pieces it never stands again - a draft left by the door loses what it set down",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E8-OWN-KEPT",
+    "file": "src/systems/decor/decorPack.js",
+    "old": "  const back = [...own, ...(room.takeUnserved?.(pieces) ?? [])];",
+    "new": "  const back = [...(room.takeUnserved?.(pieces) ?? [])];",
+    "why": "AUDIT FB1025b E8: the owner's own things under an unstood piece stay there",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E8-GOODS-KEPT",
+    "file": "src/systems/decor/decorPack.js",
+    "old": "  const back = [...own, ...(room.takeUnserved?.(pieces) ?? [])];",
+    "new": "  const back = [...own];",
+    "why": "AUDIT FB1025b E8: a staged chest's goods under an unstood piece stay there",
+    "tests": ["test/server/fb1025b_chestlock.test.js"]
+  },
+  {
+    "name": "FB1025B-E8-SILENT",
+    "file": "src/systems/decor/decorPack.js",
+    "old": "  if (back.length) say?.(",
+    "new": "  if (!back.length) say?.(",
+    "why": "AUDIT FB1025b E8: things handed back to the pack at the door, and nothing said",
     "tests": ["test/server/fb1025b_chestlock.test.js"]
   },
   {
@@ -118,7 +252,10 @@
     "file": "server-account/src/ledger.js",
     "old": "(!keys.length ? [] : [",
     "new": "(true ? [] : [",
-    "tests": ["test/server/fb1025b_chestlock.test.js", "test/server/staffpanel3realm.test.js"],
+    "tests": [
+      "test/server/fb1025b_chestlock.test.js",
+      "test/server/staffpanel3realm.test.js"
+    ],
     "why": "a locked copy stays locked for good - the reporter's pieces never come back"
   },
   {
@@ -126,7 +263,10 @@
     "file": "server-account/src/ledger.js",
     "old": "JSON.stringify({ lifted: keys.slice(0, 40), count: keys.length })",
     "new": "JSON.stringify({ count: keys.length })",
-    "tests": ["test/server/fb1025b_chestlock.test.js", "test/server/staffpanel3realm.test.js"]
+    "tests": [
+      "test/server/fb1025b_chestlock.test.js",
+      "test/server/staffpanel3realm.test.js"
+    ]
   },
   {
     "name": "FB1025B-KEEP-IGNORED",

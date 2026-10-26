@@ -11,6 +11,7 @@ import { decorCatalogue, collectDecor } from '../src/systems/decor/decorCatalogu
 import { DECOR_CAP, decorPrice } from '../src/net/decorLaw.js';
 import { PROP_MODEL_TYPE } from '../src/world/interior/interiorLayout.js';
 import { isFurnishing } from '../src/systems/decor/decorFurnish.js';
+import { createDecorPack } from '../src/systems/decor/decorPack.js';   // AUDIT FB1025b E1: the producer's own doors
 import { decorMatrix, decorKeyOf, createDecorRoom } from '../src/scenes/decor/decorRoom.js';
 import { localAabb } from '../src/render/frustum.js';
 import { createHomeYards } from '../src/scenes/homeYards.js';
@@ -119,7 +120,8 @@ export const ACTIONS = new Map([['KeyW', 'MoveForwards'], ['KeyS', 'MoveBackward
  * put again by its id stands in its place, `holds` the ids of the pieces holding something. The wallet pays from and
  * credits `w.gold`, `hand.stick` is the host's stickAxes reading (null: no stick in hand), and `rays` each eye ray's
  * bucket filter. `radius(model)` the scan's measure of a model (null: unread). DECOR2a: `pack` the items carried -
- * packTake moves one of a stack out (a copy of one; the whole item when it is the last), packGive puts one back.
+ * packTake moves one of a stack out as a drop does, packGive puts one back through the pack's own door - AUDIT FB1025b E1: the
+ * host's own doors (systems/decor/decorPack.js) over the rig's lists, never a fake that pushed where the host refuses.
  * DECOR2b: `furnishings` the furniture delivered - where a piece of furniture lives, as the host's decorHome has it:
  * taken out whole, given back there, never to the pack. DECOR2c: `state.normal` the surface's normal the eye's ray
  * answers (null: none, as before), and the renderer's decal pass and texture cache, faked - `decals` every batch made
@@ -190,6 +192,7 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
   const pack = [];   // DECOR2a: the items carried - packTake moves one of a stack out, as a drop does
   const furnishings = [];   // DECOR2b: the furniture delivered (worldModes.js decorHome)
   const homeOf = (item) => (isFurnishing(item) ? furnishings : pack);
+  const ownDoors = createDecorPack(() => ({ items: pack, furnishings }));   // AUDIT FB1025b E1: the host's own (worldModes.js wires the same)
   const rays = [];   // each eye ray's bucket filter (player/collider.js raycastHit's fourth), or null
   let visit = 1;
   let cursorOff = 0;
@@ -240,15 +243,8 @@ export function toolRig({ room = { kind: 'house', where: 'Your house' }, gold = 
     homeDecor, character: () => 'char-me', visit: () => visit,
     realm: () => realm,   // REALM P2.2b: a realm character's act on its record (systems/realmSaves.js realmGoldAct), none unless a pin hands one
     pack: () => pack, identity: () => null, furnishings: () => furnishings, packHas: (item) => homeOf(item).includes(item),
-    packTake: (item) => {
-      const list = homeOf(item);
-      const i = list.indexOf(item);
-      if (i < 0) return null;
-      if (list === pack && (item.stackCount ?? 1) > 1) { item.stackCount -= 1; return { ...item, stackCount: 1 }; }
-      list.splice(i, 1);
-      return item;
-    },
-    packGive: (item) => { homeOf(item).push(item); },
+    packTake: (item) => ownDoors.decorPackTake(item),
+    packGive: (item) => ownDoors.decorPackGive(item),
     openSlot: (o) => slots.push(['open', o]), closeSlot: (o) => slots.push(['close', o]),
     say: (l) => said.push(l), refusal: (word) => `refused: ${word}`, now,
     ...(doorsHere ? { doorsHere } : {}), ...(walls ? { walls } : {}),   // HOME-DOORS

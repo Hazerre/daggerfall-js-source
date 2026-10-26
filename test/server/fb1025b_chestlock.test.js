@@ -12,12 +12,19 @@
 // staff's purge with `keep`, which itself leaves the record one (ledger.js ownCopiesLiftable, staffpanel3realm.test.js) -
 // and never on a checkpoint's word that the record shows it once: AUDIT FB1025b, a duper's copy moved where the record
 // lists nothing (a deserter revenant's take, a counter, the ground) and brought back after stays locked throughout.
+// AUDIT FB1025b CHEST-DRAFT E1-E9: the owner's own things through a draft on the host's own pack doors
+// (systems/decor/decorPack.js) - set down and taken down again, a stack joined, one gone or put on since - a staged chest's
+// Access through the record's act, a kept chest's mid-draft, and a save's room's strays given back.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../../server-account/src/index.js';
 import { standService, T0 } from '../accountDb.mjs';
-import { seatRealm, freshSave } from '../realmSeat.mjs';
-import { toolRig } from '../decorFakes.mjs';
+import { seatRealm, freshSave, recordOf } from '../realmSeat.mjs';
+import { readFileSync } from 'node:fs';
+import { toolRig, settle, all, one, rows } from '../decorFakes.mjs';
+import { createDecorRoom } from '../../src/scenes/decor/decorRoom.js';
+import { returnUnstood } from '../../src/systems/decor/decorPack.js';
+import { equipItem } from '../../src/systems/equip.js';
 import { DUPE_GRACE_S, piecesRefusal, ownCopiesLiftable, ownCopyLiftSteps } from '../../server-account/src/ledger.js';
 import { ledgerPrintOf } from '../../server-account/src/judge.js';
 import { createSceneCache, cacheScene, snapshotSceneCache } from '../../src/systems/sceneCache.js';
@@ -42,11 +49,33 @@ function rares(n, from = 0) {
 }
 const keysOf = (items) => items.map(ledgerKeyOf);
 
-/** The decorator in an online home, its Confirm the service's batch. */
-const homeRig = () => toolRig({
+/** The decorator in an online home, its Confirm the service's batch (each body kept in `sent`). */
+const homeRig = (sent = []) => toolRig({
   room: HOME, gold: 5000,
-  homeDecor: { list: async () => ({ ok: true, data: { rev: 1, pieces: [] } }), batch: async (b) => ({ ok: true, data: { rev: b.rev + 1, gold: 0 } }) },
+  homeDecor: { list: async () => ({ ok: true, data: { rev: 1, pieces: [] } }), batch: async (b) => { sent.push(b); return { ok: true, data: { rev: b.rev + 1, gold: 0 } }; } },
 });
+/** A Ruby (an ingredient: rubies stack) and a candle record of `n` (candles do not). */
+const ruby = (n = 1) => ({ templateIndex: 0, group: 'Gems', stackCount: n });
+const candles = (n) => ({ templateIndex: 253, group: 'UselessItems2', stackCount: n });
+const countOf = (list, t) => list.filter((it) => it.templateIndex === t).reduce((n, it) => n + (it.stackCount ?? 1), 0);
+/** One of the player's own things set down as the player sets it down - the panel's "Your things", chosen, Place, and
+ *  the placement kept (Interact): staged, in a room whose draft stages (scenes/decor/decorTool.js commitOwn). Answers its piece's id. */
+async function setDownOwn(rig, name) {
+  rig.frame();
+  assert.equal(rig.tool.openPanel(), true);
+  for (let i = 0; i < 6; i++) { rig.frame({ overlayUp: true }); await settle(); }
+  const root = rig.doc.body.children.find((c) => c.className === 'dfdecor');
+  if (one(root, 'dfdecor-card').dataset.mode !== 'own') all(root, 'dfdecor-chip').find((c) => /^Your things/.test(c.textContent)).fire('click');
+  rows(root).find((r) => one(r, 'dfdecor-row-name').textContent.startsWith(name)).fire('click');
+  all(root, 'dfdecor-btn').find((b) => b.textContent === 'Place').fire('click');
+  rig.frame(); await settle(); rig.frame();
+  rig.win.fire('keydown', { code: 'KeyE', target: rig.doc.body });
+  await settle();
+  const id = rig.standing.find((p) => rig.owned.has(p.id))?.id;
+  assert.ok(id, `${name} set down (${JSON.stringify(rig.said)})`);
+  return id;
+}
+const OWN_GONE = /is no longer in your pack, or is worn\. Confirm takes its piece down\.$/;
 /** The decorator opened (its draft with it), as the player's button opens it. */
 function decorate(rig) {
   rig.frame();
@@ -133,11 +162,13 @@ test('CHEST-DRAFT a chest the draft stood and Discard takes away gives back what
   assert.deepEqual(rig.standing.map((p) => p.id), [], 'the chest goes');
   assert.deepEqual(keysOf(rig.pack), keysOf(P), 'what it held is the pack\'s again');
   assert.deepEqual(rig.chests.itemsSnapshot(), {}, 'and the scene writes nothing under its id');
+  assert.ok(rig.said.some((l) => /^What the .+ held is back in your pack\.$/.test(l)), `and said (AUDIT FB1025b E6): ${JSON.stringify(rig.said)}`);
 });
 
-test('CHEST-DRAFT an own thing the draft took down, stored in a chest since, is not stood again by Discard - one of it, in the chest', async () => {
+test('CHEST-DRAFT an own thing the draft took down, stored in a chest since, is not stood again by Discard - one of it, in the chest; its piece stays taken down, said, and Confirm takes it down (AUDIT FB1025b E3)', async () => {
   const [ring] = rares(1, 30);
-  const rig = homeRig();
+  const sent = [];
+  const rig = homeRig(sent);
   rig.standing.push({ ...CHEST }, piece({ id: 'o1', model: null, flat: [209, 0], item: { t: ring.templateIndex } }));
   rig.owned.set('o1', ring);
   decorate(rig);
@@ -148,6 +179,17 @@ test('CHEST-DRAFT an own thing the draft took down, stored in a chest since, is 
   rig.tool.discardDraft();
   assert.equal(rig.owned.has('o1'), false, 'not stood again beside the chest\'s');
   assert.deepEqual(keysOf(rig.chests.itemsOf('c1')), [ledgerKeyOf(ring)]);
+  assert.deepEqual(rig.standing.map((p) => p.id), ['c1'], 'E3: its piece stays down - standing with nothing kept under it was a free piece of it');
+  assert.ok(rig.said.some((l) => OWN_GONE.test(l)), `and said: ${JSON.stringify(rig.said)}`);
+  rig.tool.discardDraft();
+  assert.deepEqual([rig.owned.has('o1'), rig.standing.map((p) => p.id)], [false, ['c1']], 'a second Discard stands no copy of it from the draft\'s picture of the room\'s own');
+  assert.equal(await rig.tool.confirmDraft(), true);
+  assert.deepEqual(sent.at(-1)?.drop, ['o1'], 'the take-down the draft\'s still: Confirm takes it down');
+  const r = await realm();
+  try {
+    const c = await r.seat('giljabrar');
+    assert.deepEqual((await r.put(c, rig.pack, rig.chests.itemsSnapshot())).locked, [], 'once, and locked by none');
+  } finally { r.done(); }
 });
 
 test('CHEST-DRAFT an own thing the draft took down and still in the pack stands again on Discard, as it was', async () => {
@@ -159,7 +201,166 @@ test('CHEST-DRAFT an own thing the draft took down and still in the pack stands 
   rig.tool.act('remove', 'o1');
   await new Promise((done) => { setTimeout(done, 0); });
   rig.tool.discardDraft();
-  assert.deepEqual([rig.pack.length, ledgerKeyOf(rig.owned.get('o1'))], [0, ledgerKeyOf(ring)]);
+  assert.deepEqual([rig.pack.length, rig.owned.size, ledgerKeyOf(rig.owned.get('o1'))], [0, 1, ledgerKeyOf(ring)]);
+});
+
+test('CHEST-DRAFT E1 (AUDIT FB1025b): an own thing the draft set down and took down again is the pack\'s after Discard, once - the pack\'s own door refuses a record it holds, and the take that followed it lost the only one', async () => {
+  const rig = homeRig();
+  rig.pack.push(ruby());
+  const id = await setDownOwn(rig, 'Ruby');
+  assert.deepEqual([countOf(rig.pack, 0), rig.owned.has(id)], [0, true], 'out of the pack, standing');
+  assert.equal(rig.tool.act('remove', id), true);
+  await settle();
+  assert.equal(countOf(rig.pack, 0), 1, 'taken down: the pack\'s');
+  assert.equal(rig.tool.discardDraft(), true);
+  assert.deepEqual([countOf(rig.pack, 0), rig.owned.size, rig.standing.length], [1, 0, 0], 'one ruby, in the pack');
+});
+
+test('CHEST-DRAFT E1: one of three set down by the draft and taken down by it - three after Discard: never two (a candle: its record refused again), never four (a ruby: given again onto the stack it had joined)', async () => {
+  for (const [name, t, three] of [['Candle', 253, candles(3)], ['Ruby', 0, ruby(3)]]) {
+    const rig = homeRig();
+    rig.pack.push(three);
+    const id = await setDownOwn(rig, name);
+    assert.equal(countOf(rig.pack, t), 2, `${name}: one of the three out`);
+    assert.equal(rig.tool.act('remove', id), true);
+    await settle();
+    assert.equal(countOf(rig.pack, t), 3, `${name}: taken down`);
+    rig.tool.discardDraft();
+    assert.deepEqual([countOf(rig.pack, t), rig.owned.size, rig.standing.length], [3, 0, 0], name);
+  }
+});
+
+test('CHEST-DRAFT E1: an own ruby the draft took down joined the pack\'s rubies - Discard stands it again with one off that stack, and the pack keeps the rest', async () => {
+  const rig = homeRig();
+  rig.standing.push(piece({ id: 'o1', model: null, flat: [209, 0], item: { t: 0 } }));
+  rig.owned.set('o1', ruby());
+  rig.pack.push(ruby(2));
+  decorate(rig);
+  assert.equal(rig.tool.act('remove', 'o1'), true);
+  await settle();
+  assert.deepEqual([rig.pack.length, countOf(rig.pack, 0)], [1, 3], 'it joined the stack');
+  rig.tool.discardDraft();
+  assert.deepEqual(rig.standing.map((p) => p.id), ['o1'], 'standing again');
+  assert.deepEqual([countOf(rig.pack, 0), rig.owned.get('o1')?.stackCount], [2, 1], 'one of the three back up, two carried');
+});
+
+test('CHEST-DRAFT E9 (AUDIT FB1025b): an own weapon the draft took down and the player put on since is never pulled out from under its wearer by Discard - worn, in the pack; its piece left down for Confirm, and said', async () => {
+  const [blade] = rares(1, 80);
+  const sent = [];
+  const rig = homeRig(sent);
+  rig.standing.push(piece({ id: 'o1', model: null, flat: [209, 0], item: { t: blade.templateIndex } }));
+  rig.owned.set('o1', blade);
+  decorate(rig);
+  assert.equal(rig.tool.act('remove', 'o1'), true);
+  await settle();
+  equipItem({ items: rig.pack }, blade);
+  assert.notEqual(blade.equipSlot ?? null, null, 'put on');
+  rig.tool.discardDraft();
+  assert.deepEqual([rig.pack.includes(blade), blade.equipSlot != null, rig.owned.has('o1'), rig.standing.map((p) => p.id)], [true, true, false, []], 'worn and carried, never standing too');
+  assert.ok(rig.said.some((l) => OWN_GONE.test(l)), `said: ${JSON.stringify(rig.said)}`);
+  assert.equal(await rig.tool.confirmDraft(), true);
+  assert.deepEqual(sent.at(-1)?.drop, ['o1']);
+});
+
+const HOME_AT = { mapId: 1291010263, buildingKey: 0x10203 };
+const HOME_SCENE = homeSceneName(HOME_AT.mapId, HOME_AT.buildingKey);
+/** An online home of a realm character's own in the real Worker, the decorator over it: Confirm's batch lands each put as the
+ *  service places a piece, Access asks the service's own route, and the record's act (systems/realmSaves.js realmGoldAct)
+ *  checkpoints the save as it stands - the pack, what the chests hold - before it asks. `act: false`: no record to act on. */
+async function homeService({ act = true } = {}) {
+  const s = await standService();
+  const who = await s.registered('giljabrar');
+  const R = await seatRealm(s.env, who.secret, 'giljabrar', { name: 'giljabrar', level: 9, goldPieces: 1_000_000, items: [] });
+  assert.equal((await s.call('/v1/homes/claim', { ...HOME_AT, region: 17, price: 42000, layout: null, character: R.id, realm: R.at() }, who.secret)).status, 200, 'the home is hers');
+  const answer = (res) => (res.body?.ok ? { ok: true, data: res.body } : { ok: false, error: res.body?.error });
+  const locked = [];
+  let rig = null;
+  const checkpoint = async () => {
+    const live = recordOf(s.env, R.id);
+    const cache = createSceneCache();
+    cacheScene(cache, HOME_SCENE, { decor: [], decorItems: rig.chests.itemsSnapshot() });
+    const at = R.at();
+    const res = await worker.fetch(new Request(`https://accounts.invalid/v1/realm/${R.id}/data`, {
+      method: 'PUT', headers: { authorization: `Bearer ${who.secret}`, 'x-realm-lease': at.lease, 'x-realm-seq': String(at.seq + 1), 'x-realm-summary': JSON.stringify({ level: 9 }) },
+      body: JSON.stringify({ ...live, items: rig.pack.map((it) => ({ ...it })), sceneCache: snapshotSceneCache(cache) }),
+    }), s.env);
+    assert.equal(res.status, 200, 'checkpointed');
+    locked.push(...((await res.json()).locked ?? []));
+  };
+  rig = toolRig({
+    room: { kind: 'home', where: 'Your home', ...HOME_AT }, gold: 5000,
+    homeDecor: {
+      list: async () => ({ ok: true, data: { rev: 1, pieces: [] } }),
+      batch: async (b) => {
+        for (const p of b.put) assert.equal((await s.call('/v1/homes/decor/place', { ...HOME_AT, character: R.id, realm: R.at(), piece: p }, who.secret)).status, 200, `${p.id} placed`);
+        return { ok: true, data: { rev: b.rev + 1, gold: 0 } };
+      },
+      use: async (body) => answer(await s.call('/v1/homes/decor/use', { ...body, character: R.id }, who.secret)),
+    },
+    realm: act ? async (o) => { await checkpoint(); const res = await o.call(R.at()); if (res?.ok) o.apply?.(res); return res; } : null,
+  });
+  const bin = () => s.env.DB._raw.prepare('SELECT COUNT(*) AS n FROM decor_bin').get().n;
+  const inRecord = (id) => (recordOf(s.env, R.id)?.sceneCache?.scenes ?? []).reduce((n, sc) => n + (sc?.decorItems?.[id]?.length ?? 0), 0);
+  return { rig, bin, inRecord, checkpoint, locked };
+}
+
+test('CHEST-DRAFT E2 (AUDIT FB1025b): a chest the draft stood, stored in while decorating and its Access set before Confirm - its goods move into the service\'s bin through the record\'s act, out of the save only on its word; none lost, none twice', async () => {
+  const h = await homeService();
+  h.rig.pack.push(...rares(3, 120));
+  decorate(h.rig);
+  h.rig.standing.push(piece({ id: 'c9', model: 41811, storage: true }));   // a new chest, not kept yet
+  moveAll(h.rig.pack, h.rig.chests.itemsOf('c9'), false);   // stored while decorating - no checkpoint since
+  assert.equal(h.rig.tool.act('access', 'c9'), true);   // Who may use: Friends - kept for Confirm
+  await settle();
+  assert.equal(await h.rig.tool.confirmDraft(), true);
+  assert.deepEqual([h.rig.chests.itemsOf('c9').length, h.rig.pack.length, h.bin(), h.inRecord('c9')], [0, 0, 3, 0], 'the three in the bin, and nowhere else');
+  await h.checkpoint();
+  assert.deepEqual(h.locked, [], 'and the realm locks none');
+});
+
+test('CHEST-DRAFT E2: with no record to act on, a staged chest\'s Access is not kept, and said - its goods stay in it', async () => {
+  const h = await homeService({ act: false });
+  h.rig.pack.push(...rares(3, 130));
+  decorate(h.rig);
+  h.rig.standing.push(piece({ id: 'c9', model: 41811, storage: true }));
+  moveAll(h.rig.pack, h.rig.chests.itemsOf('c9'), false);
+  assert.equal(h.rig.tool.act('access', 'c9'), true);
+  await settle();
+  assert.equal(await h.rig.tool.confirmDraft(), true);
+  assert.deepEqual([h.rig.chests.itemsOf('c9').length, h.bin()], [3, 0], 'in the chest still - the list was cleared on the service\'s ok for none it moved');
+  assert.ok(h.rig.said.includes('It could not be kept.'));
+});
+
+test('CHEST-DRAFT E7 (AUDIT FB1025b): a kept chest\'s Access pressed while a draft stands moves its goods into the bin, and a Discard after leaves it as it lies - empty; each good once', async () => {
+  const h = await homeService();
+  decorate(h.rig);
+  h.rig.standing.push(piece({ id: 'c1', model: 41811, storage: true }));
+  assert.equal(await h.rig.tool.confirmDraft(), true);   // the chest kept: the service's piece
+  h.rig.chests.itemsOf('c1').push(...rares(3, 140));
+  h.rig.standing.push({ ...BED });   // a change not kept yet
+  assert.equal(h.rig.tool.act('access', 'c1'), true);   // Who may use: Friends - the goods to the service's bin
+  for (let i = 0; i < 500 && h.rig.chests.itemsOf('c1').length; i++) await settle();   // the press's act: a checkpoint and the route, the Worker's own awaits
+  assert.deepEqual([h.rig.chests.itemsOf('c1').length, h.bin()], [0, 3], 'moved');
+  assert.equal(h.rig.tool.discardDraft(), true);
+  assert.deepEqual([h.rig.chests.itemsOf('c1').length, h.bin(), h.rig.standing.map((p) => p.id)], [0, 3, ['c1']], 'the chest as it lies, the bed gone');
+  await h.checkpoint();
+  assert.deepEqual(h.locked, [], 'the realm locks none');
+});
+
+test('CHEST-DRAFT E8 (AUDIT FB1025b): a save\'s room gives back what its record kept under pieces it no longer stands - a draft left by the door, not discarded - to the pack, and said; what stands keeps its own', () => {
+  const room = createDecorRoom({ meshes: {}, renderer: null, getTexture: async () => null, uploadRecord() {}, uploadRecordFrame() {}, collider: () => null, origin: () => [0, 0, 0] });
+  const [kept, stray, g1, g2] = rares(4, 150);
+  const placed = [piece({ id: 'o1', model: null, flat: [209, 0] }), { ...CHEST }];
+  room.setOwn({ o1: kept, o9: stray });
+  room.setItems({ c1: [g1], c8: [g2] });
+  const back = [];
+  const said = [];
+  returnUnstood(room, placed, (it) => back.push(it), (l) => said.push(l));
+  assert.deepEqual(keysOf(back), keysOf([stray, g2]), 'the staged own thing and the staged chest\'s good');
+  assert.deepEqual([room.ownIds(), Object.keys(room.itemsSnapshot())], [['o1'], ['c1']], 'what stands keeps its own');
+  assert.deepEqual(said, ['2 of your things were no longer here and went back to your pack.']);
+  const host = readFileSync(new URL('../../src/scenes/worldModes.js', import.meta.url), 'utf8');
+  assert.match(host, /interiorDecor\.setOwn\(data\.decorOwn\);[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*if \(!\(interiorHome \|\| _seatHallVisit\)\) returnUnstood\(interiorDecor, placed, decorPackGive, say\);/, 'the host asks it of a save\'s room as it restores it - an online home\'s list does its own');
 });
 
 /** A sworn revenant gone over to the feud, carrying `took` - the more valuable half of the pack it was given
