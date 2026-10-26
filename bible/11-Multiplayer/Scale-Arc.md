@@ -1778,6 +1778,14 @@ content, all dead:
 - SCALE5c-told-unkept, -unknown-unsaid, -census-the-bus-own and -bus-any-channel;
 - SCALE5d-layer-unread and -channel-given-layer.
 
+**GATE-COURTS (2026-10-26, `World-Bosses.md` section 29).** A night is now up to sixteen courts of fifty, each a fight of
+its own in an object of its own (`gate:<day>`, `gate:<day>.<k>`), seated by the first court's book: past a court's
+fifty a newcomer fights another Warden instead of crowding round the one. Each court keeps the copies above past its own
+sockets (COURT_COPY_RE names every court's). A court past the first, fifty and its parties' slack, reaches them only with
+a full night's watchers; the first court is every newcomer's door until its book sends it on (`go`), so a burst past
+SOCKETS_MAX at the gate's opening reaches the first court's copies (AUDIT GATE-COURTS P9b, `World-Bosses.md` section
+30: this said only a full night's watchers did).
+
 ## SCALE4h: built (2026-10-11, this branch - acct112, no migration, no drop)
 
 The plan's eighth slice: "A player's hot rows (the session, the play clock, the Renown tally, the rate windows) off the
@@ -3447,8 +3455,8 @@ the Cloudflare token: "Use it", then "Do everything. No band aids. No short fixe
   never another deploy's build. Rows past KEPT_BOARD_MAX_BYTES are kept as none and read as they stand, said once an
   isolate (2 B7: a row past D1's 2 MB would refuse the clock's whole page). A town standing yard pieces with no version
   row is read as it stands (one index probe asked of such a town alone), and its next yard write of any kind makes the
-  row - past any version its rows were kept at, so a version row lost and counted again never meets old rows (2 B4). A decor route builds its town as
-  it answers; the minute's clock (`yard-snap`) builds YARDS_SETTLE_A_MINUTE towns a cascade left stale or a deploy left in
+  row - past any version its rows were kept at, so a version row lost and counted again never meets old rows (2 B4). A decor route that moves a yard builds its town as
+  it answers; using a chest does not. The minute's clock (`yard-snap`) builds YARDS_SETTLE_A_MINUTE towns a cascade left stale or a deploy left in
   another shape. The build reads in `idx_home_decor_yard_order`'s order, no sort; 0039's `idx_home_decor_yard`, its
   prefix, is dropped. The backfill builds every town in today's shape, so the deploy reads them at once.
 - **VENDOR-BOARD** (`market.js` vendorBoard, migration 0137): the region's board every caller reads alike is one row,
