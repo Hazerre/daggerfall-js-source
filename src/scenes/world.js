@@ -246,7 +246,7 @@ import { PLAYED_STEP_MAX_SECONDS } from '../systems/quest/clock.js';   // WORLD7
 import { mintQuestFoeWave, placeFoeEnv, entityOccupancy, questFoeGender, reviveQuestBehaviour, heldSpots, holdSpotWhile, questBoxHoldsFoes, questShareTag, partnerStandsQuestFoes, questBehaviourFor, adoptsOrphanQuestFoe, isPrivateQuestFoe, KeptKillLedger, creditKeptKills, questPrivateTag, partyQuestFoe, partyOnlyQuestShare } from './quest/questFoeHost.js';   // B1   // AUDIT 63r F24: SerializableEnemy.cs:206-217's quest-link arm, the one home both hosts use
 import { ENEMY_BASICS, enemyLevelOf } from '../characters/enemy/enemyBasics.js';   // MERGE: FinalizeFoe's Flying lift reads the behaviour flag
 import { markFoeReach } from '../systems/foeReach.js';   // WATER-FOES: a foe in the water reaches no one aboard
-import { intermittentEnemySpawn, setEnemyAlert, areEnemiesNearby, foeHostile, foeAlerted } from '../systems/encounters.js';   // OW6: foeHostile, the one hostility gate   // CAMP-ROLL: REST5's quietNights moved with the carried night's sequence (scenes/shared.js restCampNight)
+import { intermittentEnemySpawn, setEnemyAlert, areEnemiesNearby, foeHostile, foeAlerted, fightNear } from '../systems/encounters.js';   // OW6: foeHostile, the one hostility gate   // CAMP-ROLL: REST5's quietNights moved with the carried night's sequence (scenes/shared.js restCampNight)
 import { nightDue, setNightListener, nightStamp, nightKindOf, isNightStamp, carriedNightEnd, REST_ACT_TEXT, campStamp, campMarkOf } from '../systems/rest/restAct.js';   // REST5: the party's night   // AUDIT REST-PARTY: and where it was slept   // AUDIT REST II: the mark asked lazily (P5), and what a carried night says (P3)
 import { createNightWatch, carriedNightAction, createCampWatch, campPasses } from '../systems/party/partyRestLaw.js';   // AUDIT REST-PARTY: the party's night, pinned by execution   // AUDIT REST II P1/P2: its watch   // CAMP-ROLL: the camp's one roll
 import { ambushNight } from '../systems/rest/restAct.js';   // AUDIT REST-PARTY A1: a resting encounter stood breaks the night that rolled it
@@ -4095,7 +4095,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ready: () => !!walkMode && !!playerSpawned && !_loading && !modes?.transitioning && _mode() === 'exterior' && !playerAfloat(),
       sceneOf: (nx, nz) => tvSceneOf(nx, nz, 0),
       relations: () => livingRelations,
-      slay: livingRoadSlay, died: livingDied,
+      slay: livingRoadSlay, killed: livingKilled, died: livingDied,   // AUDIT FB1025b D2: a stood foe another hand cut down is killed, never the player's slain (no report)
       deadAt: livingDeadAt,   // AUDIT-B4: one a hand took is never stood again (the roads' parties are read once a second)
       fighting: () => hccThreats().some((q) => Math.hypot(q[0] - player.pos[0], q[2] - player.pos[2]) <= FIGHT_NEAR_M),
       say: (text) => townTalk.say(text),
@@ -10910,7 +10910,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     raidHere: () => raidDefendingHere(),   // RAID-GUARDS: a raid on in this town spares its defenders every blow of the player's
     guardScale: () => (wildHere() ? ZONE_WATCH_SCALE : 1),   // ZONE-WATCH (systems/wild/wildZone.js ZONE_WATCH_SCALE): the open zone's towns post their watch ten times as strong
     levelBonus: () => seatEdicts.guardLevelBonus(Math.floor(skyMinutes())),   // SEAT1d: a Curfew's night watch - AUDIT SEATS-3 E1: the sky's night (TIME1), the one the town sees
-    fightHere: () => areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]),   // PROTECT-FIGHT: under the protection, a fight spares the street's walkers
+    fightHere: () => fightNear([...cityGuards.guards, ...exteriorFoes.foes], player.pos),   // PROTECT-FIGHT: under the protection, a fight spares the street's walkers - AUDIT FB1025b D3: a fight near me, a peer's foes too (encounters.js fightNear)
     oneVoice: () => livingWorldOn(), windowUp: () => townTalk.overlayActive,   // HALT-ONE: the living watch calls as one, and nobody under a window (cityGuards.js)
     viewYaw: () => cam.yaw,   // WATCH-LEAVES: a defender walking off goes behind the view the street's walkers come and go behind (population.update's yaw)
     say: (l) => townTalk.say(l),   // C-slice: equipment breaks speak

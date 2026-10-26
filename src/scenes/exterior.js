@@ -145,7 +145,7 @@ import { preloadRestArt } from '../ui/restWindow.js';   // S40: rest above groun
 import { createRestWindow } from '../ui/restDoor.js';   // RESTDOOR1: the enhanced/native fork, same law as ui/tradeDoor.js
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN: the fourth host's rest asks too
-import { setEnemyAlert, areEnemiesNearby, intermittentEnemySpawn } from '../systems/encounters.js';
+import { setEnemyAlert, areEnemiesNearby, intermittentEnemySpawn, fightNear } from '../systems/encounters.js';
 import { revenantToReturn, revenantSpawnOptions, revenantPresence, takeRevenantNotice, revenantSay, releaseRevenantStand, revenantRoutSweep, revenantRoutedEvent } from '../systems/revenant/revenant.js';   // REVENANT: the world host's twin - who comes back, and what the player is told
 import { createStandingWatch, installLegalNotices } from './standingHost.js';   // REP1: the watch's stop; REP5: the law's notices
 import { setForagingHost } from '../systems/foraging/foragingInstall.js';   // FORAGE1: Foraging's reaches into the world, this host's answers
@@ -2001,7 +2001,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     renderer, collider, fetchBytes, getTexture, uploadRecordFrame, playerEntity, audio, hitEffects,
     playerWeaponSheathed: () => !!weaponRig.playerWeapon.sheathed,   // AUDIT 24 (wave 42): pacification's drawn-weapon penalty
     shake: (k) => betterAmbience.weaponKick(k),   // AUDIT TELL H6: my blow that staggers a watchman kicks the camera
-    fightHere: () => areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]),   // PROTECT-FIGHT: world.js's twin
+    fightHere: () => fightNear([...cityGuards.guards, ...exteriorFoes.foes], player.pos),   // PROTECT-FIGHT: world.js's twin (AUDIT FB1025b D3: encounters.js fightNear)
     say: (l) => townTalk.say(l),   // C-slice: equipment breaks speak
     currentMinute: () => Math.floor(playerTicker.ownMinutes),   // AUDIT 23 (hosts-3): a guard's poison anchors at NOW, not 0
     makeAreaHostile: _makeEnemiesHostile,   // ROAD-G G1: DaggerfallEntityBehaviour.cs:255-258 - a struck PASSIVE watchman turns the area

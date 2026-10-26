@@ -59,20 +59,31 @@ Protect Bystanders on, a fight passes the townspeople by) was asked of the stree
 In an escort's fight a swing at an attacker just past reach killed the traveller on the look line - a caravan's own
 merchant in an LW11 escort - in one hit; the road reported a Murder (`caravanHost.js` slain), the region's law fell 20
 at the town, and the watch, knowing the face under -10, asked 500 + 5 x 20 = 600 gold. The reporter's save was not
-read: this is the one path found by which a fight in self-defence ends in a fine without a blow meant for anyone.
+read: the road is the LIKELY cause, not a proven one (AUDIT FB1025b D1). The one other path to the same fine is DFU's
+own and stands: the warrant branch refused (`_S.01_`'s two Warriors, `_S.17_`'s `legal repute -20`) - measured to -20,
+a face the watch knows and its stop's 600 gold, pinned as intended.
 
 FIXED. The road's strike is its own module (out of `bootWorld`, 9 logical lines), and asks the street's law: a
 traveller it spares stops the swing - nothing killed, nothing reported, no door behind them bashed (AUDIT 29g)
 (`roadStrike.js:"if (cityGuards.playerSparesPerson(near.entry.person)) return ROAD_SPARED;"`). No fight, or the
-protection off, and a blow at a traveller is DFU's one-hit civilian. A departure, extending PROTECT-FIGHT's (Port-Ledger
-section A). THE FOUR HOSTS: `world.js` wired; `exterior.js` stands no living roads; `worldModes.js` and
-`dungeonContext.js` never hold a road traveller.
+protection off, and a blow at a traveller is DFU's one-hit civilian. AUDIT FB1025b D2: a stood traveller (LW7b) another
+hand cut down - a beast, a peer, an ally - is KILLED, never the player's slain (no report): the pool's death door names
+whose hand (`exteriorFoes.js` `killedBy`, the watch pool's own word) and `roadStands.js` slays on the player's kill
+alone. D3: the fight that spares is a fight near the player (`encounters.js` `fightNear`: AreEnemiesNearby's answer,
+or a hostile foe in the classic spawn band of the player's feet whatever its target), so a party member's foes - puppets
+in this pool, which run no senses of this player's - count; the rest gate keeps its own law. Both street hosts ask it.
+A departure, PROTECT-FIGHT's extended (its Port-Ledger section A row, the one home). THE FOUR HOSTS: `world.js` wired
+(the strike, the stands' other hand, the fight); `exterior.js` the fight (it stands no living roads); `worldModes.js`
+and `dungeonContext.js` never hold a road traveller and spare no street walker.
 
-NOT DONE. A0C00Y17's warrant branch (`_S.17_`, -20 for refusing the watch) is DFU's design and stays.
+NOT DONE. A0C00Y17's warrant branch (`_S.17_`, -20 for refusing the watch) is DFU's design and stays. The deep's
+companies (`dungeonDivers.js`): a hostile member cut down by another hand is still the player's slain - the lives' turn
+and the company's regard, never a report, so no fine comes of it; the dungeon's pool names no killer.
 
-PINS: `test/systems/livingWorld/fb1025b_roadspare.test.js` (3). Mutants `tools/mutants/fb1025b_roadspare.json` (9, all
-dead). Moved: `lw7_deeds`' and PVP-BLOOD's source pins. Re-aimed by content: LW7's five road records and
-AUDIT29g-spared-surfaces.
+PINS: `test/systems/livingWorld/fb1025b_roadspare.test.js` (6). Mutants `tools/mutants/fb1025b_roadspare.json` (22, all
+dead). Moved: `lw7_deeds`', PVP-BLOOD's, `lw7b_beyond`'s, `lwfix4_turns`' and PROTECT-FIGHT's host pins. Re-aimed by
+content: LW7's five road records, AUDIT29g-spared-surfaces, LW7b-friend-died-unmade and LW7b-host-died-unwired,
+PROTECT-FIGHT's two host records, HOST-SPLIT-a-ceiling-under-its-host. bootWorld's ceiling 36,389 -> 36,365.
 
 ## BOUGHT-YOURS (3) - `src/systems/sigil/sigilBroker.js`
 
