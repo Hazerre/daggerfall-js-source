@@ -94,62 +94,62 @@
   {
     "name": "BR5-door-width-at-the-old-ratio",
     "file": "src/ui/enhanced/enhancedStyle.js",
-    "old": ".px-wordmark:has(.brand-logo) { width: min(321px, 50vw);",
-    "new": ".px-wordmark:has(.brand-logo) { width: min(540px, 84vw);",
+    "old": ".px-wordmark:has(.brand-logo) { width: min(234px, 36.4vw);",
+    "new": ".px-wordmark:has(.brand-logo) { width: min(321px, 50vw);",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-short-screen-width-at-the-old-ratio",
     "file": "src/ui/enhanced/enhancedStyle.js",
-    "old": ".px-wordmark:has(.brand-logo) { width: min(234px, 33.3vw); }",
-    "new": ".px-wordmark:has(.brand-logo) { width: min(394px, 56vw); }",
+    "old": ".px-wordmark:has(.brand-logo) { width: min(171px, 24.3vw); }",
+    "new": ".px-wordmark:has(.brand-logo) { width: min(234px, 33.3vw); }",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-masthead-full-width",
     "file": "src/ui/enhanced/enhancedStyle.js",
-    "old": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }",
+    "old": ".brand-home .brand-logo { width: 43.4%; margin: 0 auto; }",
     "new": ".brand-home .brand-logo { width: 100%; margin: 0 auto; }",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-empty-rows-pulled-again",
     "file": "src/ui/enhanced/enhancedStyle.js",
-    "old": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }",
-    "new": ".brand-home .brand-logo { width: 59.5%; margin: 0 auto; }\n.px-wordmark .brand-logo, .brand-home .brand-logo { margin-bottom: calc(-100% * 81 / 2112); }",
+    "old": ".brand-home .brand-logo { width: 43.4%; margin: 0 auto; }",
+    "new": ".brand-home .brand-logo { width: 43.4%; margin: 0 auto; }\n.px-wordmark .brand-logo, .brand-home .brand-logo { margin-bottom: calc(-100% * 81 / 2112); }",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-film-box-at-the-old-ratio",
     "file": "src/ui/intro/introScreen.js",
-    "old": "width:min(56.5vw,815px);",
-    "new": "width:min(86vw,1240px);",
+    "old": "width:min(41.2vw,595px);",
+    "new": "width:min(56.5vw,815px);",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-film-short-box-at-the-old-ratio",
     "file": "src/ui/intro/introScreen.js",
-    "old": ".intro-title{width:min(48.7vw,657px)}",
-    "new": ".intro-title{width:min(74vw,1000px)}",
+    "old": ".intro-title{width:min(35.5vw,480px)}",
+    "new": ".intro-title{width:min(48.7vw,657px)}",
     "tests": [
       "test/ui/brand.test.js"
     ],
-    "note": "BR5: the rebrand to DFO Online (2026-10-11)"
+    "note": "BR5: the rebrand to DFO Online (2026-10-11) BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1680 x 1410."
   },
   {
     "name": "BR5-setting-names-the-game",

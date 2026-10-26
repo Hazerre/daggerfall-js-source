@@ -3,6 +3,9 @@
 // cut to its painted bounds and nothing else (every pixel inside is his,
 // unchanged; no pixel outside them had any alpha). It draws as it is: no
 // blend mode, because its dark outlines and shadow are the art.
+// BR6 (Mac, 2026-10-26): the dragon mark replaces it the same way - his
+// 2000 x 1434 file cut to the 1680 x 1410 its paint covers, every pixel
+// inside unchanged and none outside with any alpha.
 import { t } from '../systems/textManager.js';   // L10N4: the mark's alt text in the player's language
 
 export const BRAND_LOGO_URL = new URL('../assets/branding/dfo-online.png', import.meta.url).href;
@@ -15,8 +18,8 @@ export function brandMark(doc = document) {
   image.src = BRAND_LOGO_URL;
   image.alt = brandLogoAlt();
   image.className = 'brand-logo';
-  image.width = 526;
-  image.height = 322;
+  image.width = 1680;
+  image.height = 1410;
   image.draggable = false;
   return image;
 }

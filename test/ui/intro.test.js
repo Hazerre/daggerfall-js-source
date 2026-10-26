@@ -16,8 +16,9 @@ test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; 
   // (real alpha; INTRO2's JPEG had a black backing to screen away). BR5
   // (2026-10-11): his DFO Online logo, its 800 x 600 file cut to the 526 x 322
   // its paint covers - every pixel inside his, unchanged, and none outside
-  // with any alpha.
-  assert.equal(createHash('sha256').update(read('src/assets/branding/dfo-online.png')).digest('hex'), 'd27cf6f8fa6b6147be5fb36bdb2ebbe9deb22823d456826394f7fa9aa9dbba25');
+  // with any alpha. BR6 (2026-10-26): his dragon mark, the same way - its
+  // 2000 x 1434 file cut to the 1680 x 1410 its paint covers.
+  assert.equal(createHash('sha256').update(read('src/assets/branding/dfo-online.png')).digest('hex'), '7fed291d934bc44f4579a7e967d597caeb11cbe2d710c76501a1e5ad7c9db64c');
   const track = read('src/assets/intro/theme.mp3');
   assert.equal(createHash('sha256').update(track).digest('hex'), 'c8eb0eccf3265244c0f4424d26efee835d40cccf4e11a66744ec4b284d8392e3');
 
@@ -206,7 +207,7 @@ test('INTRO2: the shared logo has accessible text and its exact natural aspect r
   assert.equal(logo.tag, 'img'); assert.equal(logo.alt, 'DFO Online');   // BR5: the product's name alone - the mark names no other game
   // BR4: the element's size is the FILE's, read from its own IHDR - a new
   // logo dropped in without its dimensions reddens here, not in a layout
-  // (BR5's did: 2112 x 850 to 526 x 322).
+  // (BR5's did: 2112 x 850 to 526 x 322; BR6's: to 1680 x 1410).
   const png = read('src/assets/branding/dfo-online.png');
   assert.equal(png.toString('latin1', 12, 16), 'IHDR');
   assert.deepEqual([logo.width, logo.height], [png.readUInt32BE(16), png.readUInt32BE(20)]);
