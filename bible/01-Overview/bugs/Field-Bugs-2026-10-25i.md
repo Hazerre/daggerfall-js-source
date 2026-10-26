@@ -386,7 +386,13 @@ every lane of a slice had reported, each by the slice's own author but lane A's 
 | F7 | nit | Two survivors | FIXED: `unclear` does not lift; no lift, no finding |
 | F8 | nit | acct190's history line overwritten | FIXED |
 | F9 | doc | The docs false under F1, F2, F5 | FIXED |
-| G1-G8 | - | (lane G's findings - see below) | (pending) |
+| G1 | blocker | RAIL-HANG's cap stopped walkers at the dungeons' block-seam ramps (0.501-0.505 m under the next floor) - 458 of 1,597 crossings over ten dungeons lost, Privateer's Hold among them | FIXED: the cap is gone; 1,597 of 1,597 cross, pinned on Privateer's Hold's own seam |
+| G2 | should-fix | The cap made every bench (0.55 m), bed (0.61 m) and the throne a jump, and a gutter trapped | FIXED: the law is the headroom alone - PH1 sets a walking body on a floor only where it fits standing (`collider.js` `_standsOn`, three body rays), else the floor is a wall; benches, beds and the throne as before |
+| G3 | should-fix | signSolid.js re-declared #1241's sign range | FIXED: it imports `houseSigns.js` isShopSignModel |
+| G4 | should-fix | SIGN-PASS's departure had no Ledger row | FIXED: the row, Port-Status's tally, 19 cites moved by citeShift and the rest by hand |
+| G5 | should-fix | Every ray passed the boards: activation, arrows, spells, foe sight, the camera | FIXED: a hung board is a sight triangle - every ray meets it, no body does |
+| G6 | should-fix | Foes (gravity in every step) still hung on fences | FIXED: `move` takes `onGround`, EnemyMotor's walk passes it (20 of 20 to 0) |
+| G7, G8 | nit | Survivors; `_floorCeil` without finally | FIXED |
 
 Found sound, among the lanes' own checks: REFORGE-REPLACE (#1265) replaces carrying capacity at both doors; the Broker's
 sale law marks nothing it did not give, on every save, clock and checkpoint path, and the screenshot is 2026-10-25's
