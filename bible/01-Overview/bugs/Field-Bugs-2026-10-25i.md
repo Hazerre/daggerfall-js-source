@@ -302,4 +302,62 @@ ARENA2's own signs, fences and TVRNBM04, through the real motor; mutants `tools/
 all dead). PIN MOVED: audit0929_actions (the throne a jump), arena1_model, fb1019f_rockclear, rockclear.json;
 strengthened: fb0929d_waterwalk (WW-LID S, L), auditdisc28_motion (MO-1).
 
-## AUDIT FB1025i - pending
+## AUDIT FB1025i (2026-10-25/26) - the slices, read cold
+
+The owner: "Audit this". Seven cold lanes, A-F on the frozen head `225ab25c9` and G on `e2d83ca560` once item 7 landed
+(Home.md's DO NOT FIX WHILE THE VERIFIER IS READING: each read its own worktree, nothing edited), each reproducing its
+findings against the real modules, the real Worker and the freeware's data before reporting them. The fixes came after
+every lane of a slice had reported, each by the slice's own author but lane A's (the lead's own slice). Verdicts:
+
+| Id | Severity | Finding | Verdict |
+|---|---|---|---|
+| A1 | should-fix | NAME-KEPT parsed a name by the lines it had: a cursed Rare's curse line (added after its name) froze its name stale, about a fifth to a quarter of them | FIXED: a name is the ladder's when it is its words around the piece's BASE, read off the piece (linesName) |
+| A2 | should-fix | A name an older reforge gave a set gem's word kept it for good once the gem was unset, sometimes doubled | FIXED: the same law |
+| A3 | should-fix | Names the old law had broken stayed broken - the reporter's own ring | FIXED: the same law at a reforge, and on load for a crafted piece (repairCraftedNames) |
+| A4 | should-fix | The Imbue still named a questline's reward from its template (on main before) | FIXED: the Imbue asks linesName |
+| A5 | should-fix | A partial rename ("Porter's Pride") read as the ladder's and cut | FIXED: the same law |
+| A6 | nit | Four mutants of NAME-KEPT survived | FIXED: the law rewritten, its 14 mutants 13 dead, 1 equivalent as recorded |
+| A7 | nit | The record the pins cited did not exist at the head | FIXED: this record |
+| A8 | nit | A dismantle asked of either Warden read alike | FIXED: wareName names the set, both packs |
+| A9 | nit | The Broker's words are English literals | OPEN: as they were (L10N4's count) |
+| B1 | blocker | A second kind of daedra hurt after the take pulled the quest's heart OUT of the pack onto its body (the host matched by quest and symbol; DFU's GiveItem by the record) - the report's likely cause | FIXED: HEART-KEPT - a foe's copy is marked `questClone`, and the held read is the quest's own record's (`itemTransfer.js` heldQuestRecordIndex, out of bootWorld) |
+| B2 | should-fix | The pin's rig hand-built the held read, so it could not see B1 | FIXED: the rig reads the host's own law |
+| B3 | should-fix | S0000503's hoard struck on a look and a walk out | FIXED: struck by its item held alone |
+| B4 | should-fix | A save from before kept the old latch | FIXED: each rebound objective names a mend (`reread`), read again once |
+| B5 | nit | Pin gaps; two redundant open terms | FIXED |
+| B6 | nit | The Enhanced trade rows drew a quest item unmarked | FIXED |
+| B7 | nit | No record | FIXED: this record, Questlines-Arc 2.2 |
+| C1 | should-fix | The report's "size aware" was left open, called the owner's call on no record | FIXED: a 3D crown's glints grow with its size on screen, bounded at twice (6 to 12, up to 28 px at 1080 rows); herbs and flats unchanged pixel for pixel |
+| C2 | nit | The doc's counts were the pin loop's | FIXED: 95 records, 93 with a prototype, 74 scaled |
+| C3 | nit | A clamp of the row's scale survived | FIXED: 0.8 and 1.2 pinned |
+| C4 | nit | A crown past the top of the screen spends a tenth of its tries off it | OPEN: named |
+| C5 | nit | The crown box's depth is its reach (before this branch) | OPEN: named |
+| D1 | should-fix | A0C00Y17's watch branch refused is the same 600-gold stop with no stray blow | FIXED: the road named the likely cause, not a proven one; the branch pinned as DFU's own |
+| D2 | should-fix | A stood hostile road traveller killed by anyone was the player's Murder | FIXED: the pool names whose hand (`killedBy`); a slaying on the player's kill alone |
+| D3 | should-fix | Online, a fight on a party member near me was no fight to PROTECT-FIGHT | FIXED: `encounters.js` fightNear, a peer's puppets in the classic spawn band too |
+| D4 | nit | The strike's `open()` gate was held by a text pin alone | FIXED |
+| D5 | nit | bootWorld's ceiling did not come down | FIXED: at the host as measured |
+| D6 | nit | Two Ledger rows for one departure | FIXED: one row, PROTECT-FIGHT's |
+| E1 | blocker | An own thing the draft set down and took down again was LOST on Discard (on main before) | FIXED: the owner's moves one journal, undone in reverse (`systems/decor/decorPack.js`) |
+| E2 | blocker | flushStagedUse deleted a staged chest's goods on Confirm (#1223) | FIXED: its Access through the realm's act |
+| E3 | should-fix | Discard stood a piece again with no item behind it | FIXED: the take-down kept staged, said |
+| E4 | should-fix | #1223's cross-room Discard also replaced the other room's pieces and own things | FIXED (docs): named; the keep covers own-thing pairs |
+| E5, E6, E7 | nit | A mutant's why; the give-back unsaid; a second path unpinned | FIXED |
+| E8 | unproven | A draft left mid-flight stranded a caravan's staged goods | FIXED: proven by reading; returnUnstood at the restore |
+| E9 | unproven | A thing taken down and then equipped was pulled out while worn | FIXED: proven; decorPackTake refuses it |
+| F1 | blocker | The keep could launder a copy: it lifted on the possessed lists' count, and a copy off them (a deserter's take, the ground) survived it | FIXED: the keep walks the whole save and lifts only where its own act leaves one, or on a staff Remove's evidence; `revenantMayTake` refuses a realm-locked piece |
+| F2 | should-fix | `lifted` said what the re-check refused | FIXED: written by the DELETE's own rule, re-read after |
+| F3 | should-fix | The confirm's seq guard read the preview's row (on main before) | FIXED |
+| F5 | should-fix | The keep could delete the account chest's only live piece | FIXED: a bin copy is an extra only where the lift is the record's |
+| F6 | should-fix | The kept copy's print was unpinned, and a wrong-print copy could be kept | FIXED: the first whose print is the row's |
+| F7 | nit | Two survivors | FIXED: `unclear` does not lift; no lift, no finding |
+| F8 | nit | acct190's history line overwritten | FIXED |
+| F9 | doc | The docs false under F1, F2, F5 | FIXED |
+| G1-G8 | - | (lane G's findings - see below) | (pending) |
+
+Found sound, among the lanes' own checks: REFORGE-REPLACE (#1265) replaces carrying capacity at both doors; the Broker's
+sale law marks nothing it did not give, on every save, clock and checkpoint path, and the screenshot is 2026-10-25's
+stock; Q0C4XY04's waves, its foes' heart and `toting` as DFU's; `run.size` scaled on every path that builds a run;
+ROAD-SPARE's swing tail identical in 20 cases; the decorator's Discard after CHEST-DRAFT keeps every chest as it lies;
+ledgerStep byte for byte main's, and the lift's SQL re-asked inside its own DELETE; the 1 m sign line parts all 56
+records.
