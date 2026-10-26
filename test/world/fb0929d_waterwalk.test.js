@@ -176,6 +176,39 @@ test('WW-LID H: the head never rises through a face - a floor the body straddles
   assert.ok(under[1] + 0.9 <= 1.0 + 1e-3, `pushed under it, not set on it (${under[1].toFixed(3)})`);
 });
 
+// PIN MOVED (FIELD BUGS 2026-10-25b RAIL-HANG, player/collider.js): a LEVEL stride's floor is under the step ceiling now
+// (a walking step's sideways pass and ladder), so the strides above, all level, no longer tell WW-LID's own laws from
+// that one - measured, the straddle dropped and the refused rung ignored each passed them. A stroke with a vertical part
+// (a swimmer's rise or sink, the bug's own) is WW-LID's alone: the same lintel, and the rib from its high side.
+test('WW-LID S, L at a stroke with a vertical part: the HIGH room\'s lintel over the head\'s centre is never stood on rising or sinking (147 of 2480 strides were, the straddle dropped), and the steep rib met from its high side sinking is never climbed into the ceiling (858 of 3255, the refused rung ignored)', () => {
+  const lintel = doorway(6);
+  for (const dy of [0.004, -0.004]) {
+    let lifted = 0;
+    for (const y of range(2.10, 2.25, 0.005)) {
+      for (const x of range(-0.45, -0.30, 0.01)) {
+        for (const [dx, dz] of STRIDES) {
+          const feet = new Float32Array([x, y, 0.2]);
+          lintel.move(feet, dx, dy, dz, 0.9, false);
+          if (feet[1] > y + dy + 0.1) lifted++;
+        }
+      }
+    }
+    assert.equal(lifted, 0, `a stroke of ${dy}: set on the lintel ${lifted} times`);
+  }
+  const rib = ribRoom(2.7, 3.0);
+  let bad = 0;
+  for (const y of range(2.2, 2.3, 0.005)) {
+    for (const z of range(0.3, 0.9, 0.02)) {
+      for (const [dx, dz] of [[0, -0.094], [0.055, -0.077], [0.02, -0.12], [0, -0.05], [0, -0.2]]) {
+        const feet = new Float32Array([0, y, z]);
+        rib.move(feet, dx, -0.004, dz, 0.9, false);
+        if (feet[1] + 0.9 > 3.2 + 1e-3 || feet[2] < 0.3 - 0.36) bad++;
+      }
+    }
+  }
+  assert.equal(bad, 0, `the rib climbed into the ceiling or passed ${bad} times`);
+});
+
 const ARENA2 = process.env.ARENA2_PATH;
 const skipReal = !ARENA2 || !existsSync(join(ARENA2, 'BLOCKS.BSA')) ? 'ARENA2_PATH has no BLOCKS.BSA' : false;
 

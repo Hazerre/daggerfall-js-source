@@ -326,13 +326,15 @@ export function createPortHost({
   function colliderGeometry(pl) {
     const parts = [modelOf(pl.site.kind)];
     for (const p of peopleOf(pl.site)) parts.push(boxTriangles([p.at[0] - KEEPER_HALF, p.at[1], p.at[2] - KEEPER_HALF], [p.at[0] + KEEPER_HALF, p.at[1] + KEEPER_HEIGHT, p.at[2] + KEEPER_HALF]));
-    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + p.indices.length, 0);
+    const solidOf = (p) => p.solid ?? p.indices;   // FIELD BUGS 2026-10-25b SIGN-PASS: a model's hung signboard no solid (merchantYardModels.js assemble)
+    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + solidOf(p).length, 0);
     const positions = new Float32Array(count), indices = new Uint32Array(icount);
     let v = 0, i = 0;
     for (const p of parts) {
       positions.set(p.positions, v);
-      for (let j = 0; j < p.indices.length; j++) indices[i + j] = p.indices[j] + v / 3;
-      v += p.positions.length; i += p.indices.length;
+      const ix = solidOf(p);
+      for (let j = 0; j < ix.length; j++) indices[i + j] = ix[j] + v / 3;
+      v += p.positions.length; i += ix.length;
     }
     return { positions, indices };
   }

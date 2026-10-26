@@ -203,13 +203,15 @@ export function createMerchantYards({
     parts.push(boxTriangles([k[0] - KEEPER_HALF, 0, k[1] - KEEPER_HALF], [k[0] + KEEPER_HALF, KEEPER_HEIGHT, k[1] + KEEPER_HALF]));
     for (const h of P.horses) parts.push(turnedBox(h[0], h[1], [h[2], h[3]], HORSE_BOX_SIZE, HORSE_BOX_CENTER));
     for (const w of y.wagons) if (w.box) parts.push(boxTriangles([w.box[0], w.box[1], w.box[2]], [w.box[3], w.box[4], w.box[5]]));
-    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + p.indices.length, 0);
+    const solidOf = (p) => p.solid ?? p.indices;   // FIELD BUGS 2026-10-25b SIGN-PASS: a model's hung signboard no solid (merchantYardModels.js assemble)
+    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + solidOf(p).length, 0);
     const positions = new Float32Array(count), indices = new Uint32Array(icount);
     let v = 0, i = 0;
     for (const p of parts) {
       positions.set(p.positions, v);
-      for (let j = 0; j < p.indices.length; j++) indices[i + j] = p.indices[j] + v / 3;
-      v += p.positions.length; i += p.indices.length;
+      const ix = solidOf(p);
+      for (let j = 0; j < ix.length; j++) indices[i + j] = ix[j] + v / 3;
+      v += p.positions.length; i += ix.length;
     }
     return { positions, indices };
   }

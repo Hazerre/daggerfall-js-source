@@ -11,8 +11,8 @@
   {
     "name": "RC-the-towns-models-past-the-gate",
     "file": "src/scenes/pixelBuild.js",
-    "old": "          late.add(gateKey, cpu.positions, cpu.indices, local,\n",
-    "new": "          collider.addMesh(gateKey, cpu.positions, cpu.indices, local,\n",
+    "old": "          late.add(gateKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), local,\n",
+    "new": "          collider.addMesh(gateKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), local,\n",
     "tests": [
       "test/world/worldOfDaggerfall/fb1019f_rockclear.test.js"
     ]
