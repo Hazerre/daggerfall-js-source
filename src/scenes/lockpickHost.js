@@ -60,7 +60,7 @@ export const LOCKPICK_HOST_WORDS = Object.freeze({
  *   `overlay` the door (a test's stand-in)
  */
 export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverlay?.(w), line = (l) => talk?.say?.(l), player = playerEntity, say = setMidScreenText, audio = bus, changed = surfacePlayer,
-  gentle = () => getPref('gentleActs') === true, reduced = defaultReduced, rolls = Math.random, overlay = createLockpickOverlay }) {
+  gentle = () => getPref('gentleActs') === true, reduced = defaultReduced, rolls = () => Math.random(), overlay = createLockpickOverlay }) {   // `rolls` read at the roll, not at the host's making
   let ear = null, dead = false;
   /** @type {any} */
   let open = null;

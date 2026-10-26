@@ -11220,7 +11220,7 @@
   "by": "claude-in-session"
  },
  "features.resourceHighlights.note": {
-  "en": "d699c309e3b8",
+  "en": "68e4aecdf531",
   "tr": "40d73cac9818",
   "by": "claude-in-session"
  },
@@ -12922,6 +12922,11 @@
  "gate.vanguard.rises": {
   "en": "3f06c90930ce",
   "tr": "274d62fe7854",
+  "by": "claude-in-session"
+ },
+ "gather.stop.gone": {
+  "en": "b38759e7e8df",
+  "tr": "81e0dc601ceb",
   "by": "claude-in-session"
  },
  "growth.captain.lead": {
@@ -15480,13 +15485,18 @@
   "by": "claude-in-session"
  },
  "lock.act.auto": {
-  "en": "4d553c0a2276",
-  "tr": "b214959bbad4",
+  "en": "9ad8019e286d",
+  "tr": "b4f7766a797b",
+  "by": "claude-in-session"
+ },
+ "lock.act.autoWhy": {
+  "en": "23db6b9492c0",
+  "tr": "fc730e6e714f",
   "by": "claude-in-session"
  },
  "lock.act.leave": {
-  "en": "ec650a2bf3bc",
-  "tr": "fdaed8700d06",
+  "en": "7e3520a97331",
+  "tr": "7784f888774f",
   "by": "claude-in-session"
  },
  "lock.meta.picks": {
@@ -15509,6 +15519,21 @@
   "tr": "ece30dfcdb58",
   "by": "claude-in-session"
  },
+ "lock.pad.choose": {
+  "en": "9c74deeec2f1",
+  "tr": "5c34e7d10275",
+  "by": "claude-in-session"
+ },
+ "lock.pad.cursor": {
+  "en": "e0629dd619f7",
+  "tr": "0c2623028f87",
+  "by": "claude-in-session"
+ },
+ "lock.pad.press": {
+  "en": "9ecb503f5cb1",
+  "tr": "78621d55acb2",
+  "by": "claude-in-session"
+ },
  "lock.what.chest": {
   "en": "80da3dd6587e",
   "tr": "4bdf3d12b8a6",
@@ -15525,18 +15550,28 @@
   "by": "claude-in-session"
  },
  "lock.window.gentle": {
-  "en": "680a266e09a9",
-  "tr": "0dff3e7d8eb4",
+  "en": "8795c64d49e8",
+  "tr": "0e42f6b2f5cb",
+  "by": "claude-in-session"
+ },
+ "lock.window.gentlePress": {
+  "en": "6d99fb5e0108",
+  "tr": "90e9fe3b81fc",
   "by": "claude-in-session"
  },
  "lock.window.keys": {
-  "en": "cc073fdacacb",
-  "tr": "a8bac089b4ca",
+  "en": "4d109368d6fd",
+  "tr": "d4daa810d5a0",
+  "by": "claude-in-session"
+ },
+ "lock.window.keysGentle": {
+  "en": "e6b659ba6d8d",
+  "tr": "5551f01e4469",
   "by": "claude-in-session"
  },
  "lock.window.start": {
-  "en": "af1fb8d5ba4c",
-  "tr": "c92376cb7c7e",
+  "en": "3b5d14bc3918",
+  "tr": "45b0cc6409b7",
   "by": "claude-in-session"
  },
  "lock.window.title": {
@@ -15550,8 +15585,8 @@
   "by": "claude-in-session"
  },
  "lock.word.break": {
-  "en": "0d3633cce1dc",
-  "tr": "1dbc079fb910",
+  "en": "dd6e868a6d10",
+  "tr": "b02af2351f12",
   "by": "claude-in-session"
  },
  "lock.word.breakLast": {
@@ -15560,13 +15595,13 @@
   "by": "claude-in-session"
  },
  "lock.word.falseSet": {
-  "en": "b4ef31ff450f",
-  "tr": "58d6e9fbca62",
+  "en": "322e864f8c63",
+  "tr": "2af9bad6aa2b",
   "by": "claude-in-session"
  },
  "lock.word.lift": {
-  "en": "b68f07cf4ed9",
-  "tr": "55222ac9062e",
+  "en": "4ac2010ec776",
+  "tr": "a2a57418df74",
   "by": "claude-in-session"
  },
  "lock.word.none": {
@@ -15590,8 +15625,8 @@
   "by": "claude-in-session"
  },
  "lock.word.springy": {
-  "en": "414852cd3f24",
-  "tr": "c99cf2cb5508",
+  "en": "993c37c3639b",
+  "tr": "64cabe9f3a9a",
   "by": "claude-in-session"
  },
  "lockpick.item.use": {

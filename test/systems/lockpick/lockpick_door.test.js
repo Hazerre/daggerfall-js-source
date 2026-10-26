@@ -4,7 +4,8 @@
 // locked House1's front door in Steal mode, and the real door and window (ui/lockpickDoor.js, ui/lockpickWindow.js) stand
 // over test/lockDom.mjs:
 //   A1 / A5 - the window opens at the door; picked, CG2's tally lands, the success line is said and the door is entered.
-//   A3 - a death screen taking the slot in the opened lock's hold runs no tail; the player's own Leave does.
+//   A3 - a death screen taking the slot in the opened lock's hold runs no tail; the player's own Leave does; a death
+//        mid-pick under a slot that is overwritten, never disposed, takes the window down by its own frame.
 //   A8 - Gentle work's timing presses are inert; the door closes once, its `done` true before its `onClose`; the last
 //        pick's `out` cancels the machine.
 import { test } from 'node:test';
@@ -105,6 +106,15 @@ test('AUDIT LOCKPICK A3: opened, then a death screen takes the slot in the hold 
     assert.equal(tail, want, how);
     assert.equal(dom.listeners(), 0, `${how}: no listener left`);
   }
+  // dead mid-pick where the slot is overwritten, never disposed (an interior's): the window's own frame sees it and goes
+  const r = rig();
+  r.host.inside({ lock: 4, key: 'door:1:dead', onOpen: () => assert.fail('no tail') });
+  dom.frames(0.1);
+  assert.ok(dom.doc.getElementById('lockpick-host'), 'standing');
+  r.player.health = 0;
+  dom.frames(0.1);
+  assert.equal(dom.doc.getElementById('lockpick-host'), null, 'dead under it: the window goes (mutant: `gone` unread)');
+  assert.equal(dom.listeners(), 0);
 });
 
 test('AUDIT LOCKPICK A8: Gentle work\'s timing presses are inert; the door closes once, `done` before its `onClose`; the last pick\'s `out` cancels the machine (mutants: Gentle still times; the door closes twice; done read late; out leaves the machine live)', () => {

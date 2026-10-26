@@ -4,8 +4,8 @@
 // tumblers, so the seven clips are ours (tools/lockSfx.mjs -> public/sfx/lock-*.wav, provenance in public/sfx/SOURCES.md),
 // registered on the bus under string keys the climb's way (player/climb/climbSounds.js) and played flat at the ear - the
 // lock is in the player's hands. Off with the port's own sounds (systems/enhancedSounds.js - the enhanced skin's ES1
-// switch), the window says DFU's button click where a pin sets and nothing else, the gathering's classic law
-// (systems/professions/profSounds.js).
+// switch), the window says DFU's button click where a pin sets and DFU's own sounds where a pick slips or snaps, the
+// gathering's classic law (systems/professions/profSounds.js).
 import { APP_ROOT } from '../appRoot.js';
 import { enhancedSoundsOn } from '../enhancedSounds.js';
 import { SOUND } from '../soundClips.js';
@@ -30,8 +30,11 @@ export const LOCK_CUES = Object.freeze({
   open: Object.freeze(['set', 0.8]), 'false-set': Object.freeze(['false', 0.7]), slip: Object.freeze(['slip', 0.6]),
   break: Object.freeze(['snap', 0.85]), already: Object.freeze(['tick', 0.3]),
 });
-/** The classic skin's: DFU's button click where a pin sets, nothing else. */
-export const LOCK_CLASSIC_CUES = Object.freeze({ set: SOUND.ButtonClick, open: SOUND.ButtonClick, 'false-set': SOUND.ButtonClick });
+/** The classic skin's: DFU's button click where a pin sets, opens or false-sets - and AUDIT LOCKPICK C13, DFU's own
+ *  sounds for what costs: a snapped pick a blade's parry ring, a slip a short blade's scrape. */
+export const LOCK_CLASSIC_CUES = Object.freeze({
+  set: SOUND.ButtonClick, open: SOUND.ButtonClick, 'false-set': SOUND.ButtonClick, break: SOUND.Parry6, slip: SOUND.EquipShortBlade,
+});
 /** A clip's pitch moved by up to this either way, so a run of lifts never rings as one sample. */
 export const LOCK_PITCH_JITTER = 0.05;
 

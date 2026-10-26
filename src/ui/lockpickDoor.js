@@ -9,7 +9,7 @@
 // Both skins open it - a lock is picked offline on the classic skin as online on the enhanced - so it is no lazy chunk of
 // the enhanced skin's: the window is small and imported whole. A page with no document answers null.
 import { registerOverlay } from './enhanced/enhancedOverlays.js';
-import { mountLockpickWindow } from './lockpickWindow.js';
+import { mountLockpickWindow, lockKeyAct } from './lockpickWindow.js';
 
 /** The overlay standing now, or null. */
 let _open = null;
@@ -55,11 +55,13 @@ export function createLockpickOverlay(deps) {
   const overlay = {
     isChoiceWindow: true,
     get done() { return fired; },
-    /** A host's mapped press - the gamepad's, where a host routes one (the keyboard is the window's own capture). */
+    /** A host's press: an action word, or - a choice window's - the raw key code a host hands it (townTalk's and
+     *  input.js routeKey's `overlay.input(e.code, e)`); AUDIT LOCKPICK C3: both are read (LOCK_KEYS). The window's own
+     *  capture takes a key first, so a code reaches here only from a host that met it elsewhere. */
     input(a) {
-      if (a === 'left' || a === 'right') view?.act(a);
-      else if (a === 'up' || a === 'confirm' || a === 'select') view?.act('press');
-      else if (a === 'back') close(true);
+      if (a === 'back' || a === 'Escape') { close(true); return; }
+      const k = a === 'up' || a === 'confirm' || a === 'select' ? 'press' : a === 'left' || a === 'right' ? a : lockKeyAct(String(a ?? ''));
+      if (k) view?.act(k);
     },
     click() { /* the window is a fixed div over the canvas; pointers never get here */ },
     wheel() {},

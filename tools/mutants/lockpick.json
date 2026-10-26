@@ -335,20 +335,23 @@
   {
     "name": "LOCKPICK-tail-before-shut",
     "file": "src/scenes/lockpickHost.js",
-    "old": "        onClose: () => { if (open === ov) open = null; if (opened && !dead) onOpen(); },",
-    "new": "        onClose: () => { if (open === ov) open = null; },",
+    "old": "        onClose: (/** @type {boolean} */ self) => { if (open === ov) open = null; if (opened && self && !dead && !(player?.health <= 0)) onOpen(); },",
+    "new": "        onClose: (/** @type {boolean} */ self) => { if (open === ov) open = null; },",
     "tests": [
-      "test/systems/lockpick/lockpick.test.js"
+      "test/systems/lockpick/lockpick.test.js",
+      "test/systems/lockpick/lockpick_door.test.js"
     ]
   },
   {
     "name": "LOCKPICK-dead-host-tail",
     "file": "src/scenes/lockpickHost.js",
-    "old": "if (opened && !dead) onOpen();",
-    "new": "if (opened) onOpen();",
+    "old": "if (opened && self && !dead && !(player?.health <= 0)) onOpen();",
+    "new": "if (opened && self && !(player?.health <= 0)) onOpen();",
     "tests": [
       "test/systems/lockpick/lockpick.test.js"
-    ]
+    ],
+    "equivalent": true,
+    "why": "since AUDIT LOCKPICK A3 a host's dispose closes its window as a replacement (`onClose(false)`), so the tail is refused by `self` before `dead` is read; `!dead` stays for a window shut by its own hold after its host is gone, which the dispose has already closed"
   },
   {
     "name": "LOCKPICK-two-at-once",

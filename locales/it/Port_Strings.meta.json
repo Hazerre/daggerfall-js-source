@@ -11220,7 +11220,7 @@
   "by": "claude-in-session"
  },
  "features.resourceHighlights.note": {
-  "en": "d699c309e3b8",
+  "en": "68e4aecdf531",
   "tr": "b763b6b0c2c3",
   "by": "claude-in-session"
  },
@@ -12922,6 +12922,11 @@
  "gate.vanguard.rises": {
   "en": "3f06c90930ce",
   "tr": "65ac58a7ca88",
+  "by": "claude-in-session"
+ },
+ "gather.stop.gone": {
+  "en": "b38759e7e8df",
+  "tr": "3179d772a7e5",
   "by": "claude-in-session"
  },
  "growth.captain.lead": {
@@ -15480,13 +15485,18 @@
   "by": "claude-in-session"
  },
  "lock.act.auto": {
-  "en": "4d553c0a2276",
-  "tr": "d8379cd5ae6e",
+  "en": "9ad8019e286d",
+  "tr": "320e3baf60df",
+  "by": "claude-in-session"
+ },
+ "lock.act.autoWhy": {
+  "en": "23db6b9492c0",
+  "tr": "eefb38430cfb",
   "by": "claude-in-session"
  },
  "lock.act.leave": {
-  "en": "ec650a2bf3bc",
-  "tr": "fd0af7e93b19",
+  "en": "7e3520a97331",
+  "tr": "0f701479802f",
   "by": "claude-in-session"
  },
  "lock.meta.picks": {
@@ -15509,6 +15519,21 @@
   "tr": "1a0b5b6ce38d",
   "by": "claude-in-session"
  },
+ "lock.pad.choose": {
+  "en": "9c74deeec2f1",
+  "tr": "1309cbbc2837",
+  "by": "claude-in-session"
+ },
+ "lock.pad.cursor": {
+  "en": "e0629dd619f7",
+  "tr": "ebe51da70f3a",
+  "by": "claude-in-session"
+ },
+ "lock.pad.press": {
+  "en": "9ecb503f5cb1",
+  "tr": "76630d519a8d",
+  "by": "claude-in-session"
+ },
  "lock.what.chest": {
   "en": "80da3dd6587e",
   "tr": "a9aff12fe9ac",
@@ -15525,18 +15550,28 @@
   "by": "claude-in-session"
  },
  "lock.window.gentle": {
-  "en": "680a266e09a9",
-  "tr": "d15a5cedfe43",
+  "en": "8795c64d49e8",
+  "tr": "280113c95791",
+  "by": "claude-in-session"
+ },
+ "lock.window.gentlePress": {
+  "en": "6d99fb5e0108",
+  "tr": "39e1fd82b11f",
   "by": "claude-in-session"
  },
  "lock.window.keys": {
-  "en": "cc073fdacacb",
-  "tr": "6d98cc896c6a",
+  "en": "4d109368d6fd",
+  "tr": "bc7e4b038684",
+  "by": "claude-in-session"
+ },
+ "lock.window.keysGentle": {
+  "en": "e6b659ba6d8d",
+  "tr": "11ec3ed90b28",
   "by": "claude-in-session"
  },
  "lock.window.start": {
-  "en": "af1fb8d5ba4c",
-  "tr": "95f6ee6d05c8",
+  "en": "3b5d14bc3918",
+  "tr": "04cbc9659cb9",
   "by": "claude-in-session"
  },
  "lock.window.title": {
@@ -15550,8 +15585,8 @@
   "by": "claude-in-session"
  },
  "lock.word.break": {
-  "en": "0d3633cce1dc",
-  "tr": "1304c72246d1",
+  "en": "dd6e868a6d10",
+  "tr": "9f371e4f2596",
   "by": "claude-in-session"
  },
  "lock.word.breakLast": {
@@ -15560,13 +15595,13 @@
   "by": "claude-in-session"
  },
  "lock.word.falseSet": {
-  "en": "b4ef31ff450f",
-  "tr": "74fc9d43e80f",
+  "en": "322e864f8c63",
+  "tr": "ac1b98453530",
   "by": "claude-in-session"
  },
  "lock.word.lift": {
-  "en": "b68f07cf4ed9",
-  "tr": "3c056c181a5c",
+  "en": "4ac2010ec776",
+  "tr": "052a761690de",
   "by": "claude-in-session"
  },
  "lock.word.none": {
@@ -15590,8 +15625,8 @@
   "by": "claude-in-session"
  },
  "lock.word.springy": {
-  "en": "414852cd3f24",
-  "tr": "e684ab866cb5",
+  "en": "993c37c3639b",
+  "tr": "2b4bfbfa44d5",
   "by": "claude-in-session"
  },
  "lockpick.item.use": {
@@ -15606,7 +15641,7 @@
  },
  "lockpick.item.what": {
   "en": "40871861c009",
-  "tr": "f0a3a8f8ca23",
+  "tr": "7326fb0fb126",
   "by": "claude-in-session"
  },
  "lootBanner.honour.aura": {

@@ -2,8 +2,8 @@
   {
     "name": "AUDITGATHER-F1-seat-unread",
     "file": "src/net/profBook.js",
-    "old": "|| (h.carry === true && SEAT_REFUSALS.includes(r?.error))) {",
-    "new": "|| false) {",
+    "old": "const seatHeld = h.carry === true && SEAT_REFUSALS.includes(r?.error) && (h.tries | 0) > 0;",
+    "new": "const seatHeld = false;",
     "tests": [
       "test/systems/auditgather.test.js"
     ]
@@ -11,8 +11,8 @@
   {
     "name": "AUDITGATHER-F1-carry-unasked",
     "file": "src/net/profBook.js",
-    "old": "|| (h.carry === true && SEAT_REFUSALS.includes(r?.error))) {",
-    "new": "|| SEAT_REFUSALS.includes(r?.error)) {",
+    "old": "const seatHeld = h.carry === true && SEAT_REFUSALS.includes(r?.error) &&",
+    "new": "const seatHeld = SEAT_REFUSALS.includes(r?.error) &&",
     "tests": [
       "test/systems/auditgather.test.js"
     ]
@@ -40,7 +40,7 @@
   {
     "name": "AUDITGATHER-F3-bound-unread",
     "file": "server-account/src/professions.js",
-    "old": "const school = net.school && Number((await haulsStatement(db, player.id, day).first())?.n ?? 0) < SCHOOL_HAULS_DAY;",
+    "old": "const school = net.school && Number((await schoolsStatement(db, player.id, day).first())?.n ?? 0) < SCHOOL_HAULS_DAY;",
     "new": "const school = net.school;",
     "tests": [
       "test/net/auditgather_service.test.js"
@@ -67,8 +67,8 @@
   {
     "name": "AUDITGATHER-F5-turn-ends-nothing",
     "file": "src/scenes/gatherHost.js",
-    "old": "if (was && was.kind !== 'haul' && was.kind !== 'body' && was.day !== d) {",
-    "new": "if (was && was.kind !== 'haul' && was.kind !== 'body' && was.day === d) {",
+    "old": "if (was && was.kind !== 'haul' && was.kind !== 'body' && was.day !== d) goneAct();",
+    "new": "if (was && was.kind !== 'haul' && was.kind !== 'body' && was.day === d) goneAct();",
     "tests": [
       "test/systems/auditgather.test.js"
     ]

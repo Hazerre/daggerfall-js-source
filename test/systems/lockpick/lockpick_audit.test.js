@@ -133,7 +133,7 @@ test('AUDIT LOCKPICK A9: the host hands the machine Lockpicking (the sense) and 
   assert.equal(actions.lockpicked(door), false);
 });
 
-test('AUDIT LOCKPICK A4: a building\'s door a Lock spell locked is picked as DFU picks it - the graph wired to the window, opened through its own seam and DFU\'s line said where the graph has none; worldModes wires the interior\'s graph (mutants: the interior unwired; the line unsaid; the door left shut)', () => {
+test('AUDIT LOCKPICK A4: a building\'s door a Lock spell locked is picked as DFU picks it - the graph wired to the window, opened through its own seam and DFU\'s line said where the graph has none; worldModes wires the interior\'s graph and dungeonContext the dungeon\'s (mutants: the interior unwired; the dungeon unwired; the line unsaid; the door left shut)', () => {
   const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
   const CUBE = { positions: new Float32Array([0, 0, 0, 1, 0, 0, 1, 1, 0]), indices: new Uint32Array([0, 1, 2]) };
   const actions = new ActionSystem({ addMesh: () => {}, removeBucket: () => {}, raycast: () => Infinity });   // interiorContext.js's own: no hooks of its own
@@ -158,6 +158,8 @@ test('AUDIT LOCKPICK A4: a building\'s door a Lock spell locked is picked as DFU
     const W = readFileSync(new URL('../../../src/scenes/worldModes.js', import.meta.url), 'utf8');
     assert.match(W, /wireDoorSpells\(ctx\.actions, playerEntity, \(t\) => townTalk\?\.say\?\.\(t\)\);\n\s*lockHost\.wire\(ctx\.actions, `inner:\$\{interiorBuilding\?\.buildingKey \?\? 0\}`\);/, 'the interior\'s graph wired beside its door spells');
     assert.match(W, /const lockHost = createLockpickHost\(\{ talk: townTalk, mount: mountServiceWindow \}\);/, 'in the mode\'s own slot');
+    const DC = readFileSync(new URL('../../../src/scenes/dungeonContext.js', import.meta.url), 'utf8');
+    assert.match(DC, /\n  lockpick\.wire\(actions, `door:\$\{dfLocation\?\.mapTableData\?\.mapId \?\? 0\}`\);/, 'and the dungeon\'s graph, by the same `wire`');
     res();
   }, OPEN_HOLD_MS + 40));
 });
@@ -192,6 +194,8 @@ test('AUDIT LOCKPICK B4: online, a counter\'s picks stand back by what a purchas
     const some = [lockpicks(20)];
     assert.equal(restockLockpicks(some, 3), 1); assert.equal(lockpickCount(some), 23);
     assert.equal(restockLockpicks(some, 0), 0);
+    const near = [lockpicks(23)];
+    assert.equal(restockLockpicks(near, 5), 1); assert.equal(lockpickCount(near), ENDLESS_LOCKPICK_STACK, 'stood back to the whole, never past it');
   } finally { globalThis.location = saved; }
 });
 

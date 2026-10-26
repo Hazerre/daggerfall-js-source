@@ -90,7 +90,9 @@ test('ROAD-B: a bash skips the Open spell, the mode ladder and the Lockpicking t
   assert.match(ARM, /if \(!opened && !isBash\) \{\n\s*const lockpick = skillValue\(playerEntity, SKILLS\.Lockpicking\);/);
   // PIN MOVED (LOCKPICK, bible/06-Systems/Lockpicking.md): the tally is the lock's window's now (scenes/lockpickHost.js -
   // a snap or an open), and the window is opened only from inside the ladder the bash skips
-  const pick = ARM.indexOf('if (!picked) return lockpick.frontDoor({');
+  // PIN MOVED (AUDIT LOCKPICK A1, bible/01-Overview/audits/Audit-Lockpick.md): the host is `lockHost` - the ladder's own
+  // `lockpick` (the skill) shadowed it, and every front-door pick threw
+  const pick = ARM.indexOf('if (!picked) return lockHost.frontDoor({');
   const ladder = ARM.indexOf('if (!opened && !isBash) {\n          const lockpick');
   assert.ok(ladder > 0 && pick > ladder, 'the pick is inside the ladder the bash skips');
   assert.equal(ARM.includes('tallySkill(playerEntity, SKILLS.Lockpicking'), false, 'no roll\'s tally is left beside the window\'s');

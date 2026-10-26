@@ -401,7 +401,7 @@ test('LOCKPICK window: its chambers stand evenly inside the housing and a point 
   assert.match(LOCK_WORDS.title('the chest'), /the chest/);
 });
 
-test('LOCKPICK ear: seven clips of ours, each shipped and accounted for; every answer its cue; the classic skin DFU\'s click alone', () => {
+test('LOCKPICK ear: seven clips of ours, each shipped and accounted for; every answer its cue; the classic skin DFU\'s click, and DFU\'s own sounds for a slip and a snap (AUDIT LOCKPICK C13)', () => {
   assert.deepEqual(Object.keys(LOCK_SFX), ['tick', 'spring', 'set', 'false', 'slip', 'snap']);
   const files = Object.values(LOCK_SFX_FILES);
   assert.equal(files.length, 7);
@@ -418,7 +418,9 @@ test('LOCKPICK ear: seven clips of ours, each shipped and accounted for; every a
   assert.equal(on.cue('break'), 'lock:snap'); assert.equal(on.cue(null), null); assert.equal(on.cue('nothing'), null);
   const off = createLockEar({ audio, on: () => false });
   assert.equal(off.cue('set'), SOUND.ButtonClick); assert.equal(off.cue('lift'), null);
-  assert.deepEqual(Object.keys(LOCK_CLASSIC_CUES), ['set', 'open', 'false-set']);
+  assert.deepEqual(Object.keys(LOCK_CLASSIC_CUES), ['set', 'open', 'false-set', 'break', 'slip']);
+  assert.equal(off.cue('break'), SOUND.Parry6, 'a snapped pick is heard off the port\'s sounds');
+  assert.equal(off.cue('slip'), SOUND.EquipShortBlade, 'and a slip');
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
