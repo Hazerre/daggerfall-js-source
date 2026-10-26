@@ -23,7 +23,8 @@ const drained = (room) => room.state.getWebSockets().length === 0 && !room._vsoc
  */
 export async function flushAtDrain(room) {
   const posts = [];
-  if (room._grants?.timer) posts.push(room._grantFlush());
+  const grants = room._grants;   // HIBERNATE: a window armed no timer - its rows alone say it is due
+  if (grants && (grants.timer || grants.w?.rows.size || grants.w?.tallies.size)) posts.push(room._grantFlush());
   const staffNet = room._staffNet;
   if (staffNet && (staffNet.timer || staffNet.rows.size || staffNet.foes.size || staffNet.retry)) posts.push(staffNetFlush(room));
   const staffReact = room._staffReact;

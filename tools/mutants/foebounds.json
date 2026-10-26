@@ -415,8 +415,8 @@
   {
     "name": "GRANT-DOOR-socket-word-dropped",
     "file": "server/src/index.js",
-    "old": "...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, name: who.name,",
-    "new": "id: m.id, name: who.name,",
+    "old": "...(m.gv >= GRANT_HELLO_LAW && streamsFoes(a.key) ? { gv: 1 } : {}), id: m.id, sc: m.secret, name: who.name,",
+    "new": "id: m.id, sc: m.secret, name: who.name,",
     "why": "the hello's word never kept on the socket",
     "tests": [
       "test/net/grantdoor_relay.test.js"

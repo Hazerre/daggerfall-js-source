@@ -107,7 +107,8 @@ test('AUDIT SCALE II R2-1 R2-2 R2-12: the id\'s secret is the bus\'s to ask - a 
     const mal = await link('mallory', SOCIAL_ROOM, { peer: `peer-${v}`, secret: 'mallorys-own-secret', hs: undefined });
     assert.equal(mal.closed?.reason, 'id taken', 'a hello on the bus with the id and another secret');
     assert.equal(victim.closed, null, 'the player\'s socket on its shard stands (it was closed `replaced`, for good)');
-    assert.equal(await bus.store.get(`secret:peer-${v}`), `secret-of-peer-${v}`, 'the bus keeps the id\'s secret, as the hub always did');
+    assert.equal(await bus.room._secretOf(`peer-${v}`), `secret-of-peer-${v}`, 'the bus keeps the id\'s secret on the socket');
+    assert.equal(await bus.store.get(`secret:peer-${v}`), undefined, 'and not in storage');
     const squat = await link(w, H.hubOfSubject(`acct-${w}`), { peer: `peer-${v}`, secret: 'squatters-own' });
     assert.equal(squat.closed?.reason, 'id taken', 'a hello on another shard with the id - the bus closes it there');
     assert.deepEqual(holders(bus, `peer-${v}`), [`v:acct-${v}`], 'one holder of the id: the player');
@@ -125,7 +126,7 @@ test('AUDIT SCALE II R2-1 R2-2 R2-12: the id\'s secret is the bus\'s to ask - a 
     const mal = await link('mallory', bus, { peer: `peer-${v}`, secret: 'mallorys-own-secret', hs: undefined });
     assert.equal(mal.closed?.reason, 'id taken', 'a region\'s bus the same');
     assert.equal(victim.closed, null);
-    assert.equal(await W.room(bus).store.get(`secret:peer-${v}`), `secret-of-peer-${v}`);
+    assert.equal(await W.room(bus).room._secretOf(`peer-${v}`), `secret-of-peer-${v}`);
   });
 });
 

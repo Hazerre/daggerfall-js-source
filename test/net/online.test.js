@@ -106,7 +106,7 @@ test('ONLINE1: the pose - changed past a hair, eased between two with the yaw by
   assert.match(DEFAULT_SERVER, /^wss:\/\/daggerfall-online\./, 'the relay this port hosts');
 });
 
-test('ONLINE1: the session over a fake socket, on its own clock - hello on open, a pose at most POSE_HZ when moved and a heartbeat regardless, the welcome merged, join, pose, leave, a walk eased and a jump snapped, the silent peer hidden not dropped, the relay\'s frames checked (mutants: tick fed the frame\'s clock, a pose every frame, the welcome wiping the peers, a peer dropped for standing still)', () => {
+test('ONLINE1: the session over a fake socket, on its own clock - hello on open, a pose at most POSE_HZ when moved and a heartbeat when someone is here, the welcome merged, join, pose, leave, a walk eased and a jump snapped, the silent peer hidden not dropped, the relay\'s frames checked (mutants: tick fed the frame\'s clock, a pose every frame, the welcome wiping the peers, a peer dropped for standing still)', () => {
   const { FakeWS, sockets } = fakeSocketClass();
   let now = 1_700_000_000_000;   // Date.now()-sized: a tick(now) fed a rAF stamp would freeze everything
   const s = new OnlineSession({ url: 'wss://relay.test/', name: 'Mac', look: { race: 'Nord', gender: 'male', faceIndex: 2, items: [] }, id: 'mac-0001', secret: 'shh-shh-shh-0001', WebSocketImpl: FakeWS, now: () => now });
@@ -122,8 +122,11 @@ test('ONLINE1: the session over a fake socket, on its own clock - hello on open,
   assert.equal(s.sendPose(pose(2)), true); now += 20; assert.equal(s.sendPose(pose(3)), false, 'twenty ms later: throttled');
   now += 100; assert.equal(s.sendPose(pose(3)), true, 'a tenth of a second: sent'); now += 100; assert.equal(s.sendPose(pose(3)), false, 'unmoved: not sent');
   assert.equal(sockets[0].sent.filter((m) => m.t === 'pose').length, 2); assert.equal(POSE_HZ, 10);
-  now += HEARTBEAT_MS; assert.equal(s.sendPose(pose(3)), true, 'unmoved past the heartbeat: sent anyway - the socket\'s keepalive and the peers\' clock');
-  assert.equal(s.stats.poses, 3);
+  now += HEARTBEAT_MS; assert.equal(s.sendPose(pose(3)), false, 'alone in a cell: an unmoved heartbeat wakes nobody');
+  assert.equal(s.stats.poses, 2);
+  sockets[0].receive({ t: 'join', id: 'nye-0001', name: 'Nye', n: 2 });
+  assert.equal(s.sendPose(pose(3)), true, 'someone joined: the standing pose goes at once');
+  sockets[0].receive({ t: 'leave', id: 'nye-0001', n: 1 });
   // the roster, a join, a pose, easing, a leave - all on the session's clock, ticked with NO argument
   const far = pose(20 * PIXEL_UNITS);   // twenty pixels off: in the roster, past the relay's range
   sockets[0].receive({ t: 'welcome', id: 'mac-0001', peers: [{ id: 'bob-0001', name: 'Bob', look: {}, pose: pose(10) }, { id: 'zed-0001', name: 'Zed', look: {}, pose: far }, { id: 'mac-0001', name: 'me' }] });
