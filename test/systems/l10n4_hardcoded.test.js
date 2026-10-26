@@ -677,8 +677,8 @@ const HARDCODED = {
   'src/ui/ink/inkDungeonSolid.js': 6,
   'src/ui/input.js': 2,
   'src/ui/inputMessageBox.js': 1,
-  'src/ui/intro/introLandscape.js': 6,
   'src/ui/intro/introScreen.js': 3,
+  'src/ui/intro/introShaders.js': 2,   // INTRO4: introLandscape.js's 6 moved with its shaders - two GLSL sources the scan reads as words
   'src/ui/inventoryDoor.js': 1,
   'src/ui/joystickControlsWindow.js': 1,
   'src/ui/legacy/legacyModelChoice.js': 26,
@@ -786,6 +786,7 @@ const HARDCODED = {
   'src/world/buildingNames.js': 2,
   'src/world/caravanRoomModel.js': 1,
   'src/world/card/cardRegulars.js': 10,
+  'src/world/imperialCity.js': 23,   // TOWN-SHAPES TS5: 'Lake Rumare' names the lake's slices ('Rumare Shore' the land past it) - proper names, as the districts'
   'src/world/ships/carrackModel.js': 7,
   'src/world/ships/carrackRig.js': 2,
   'src/world/eliteGates/egHall.js': 1,

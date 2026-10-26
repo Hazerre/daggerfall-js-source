@@ -1621,6 +1621,97 @@ the first 14 s) - the silence the owner hears was not reproduced here, so this r
 working rather than a fault found. Pin: `test/ui/intro.test.js` INTRO-REVERT II (the context's hint, the file's sha256).
 THEME-BUFFER's own pin and its mutants BUF1 are retired.
 
+#### INTRO4 (2026-10-26): the White-Gold Tower to Tamriel
+
+The owner: *"Overhaul the main intro sequence to be more in line with the elder scrolls game oblivion and still zoom
+out into the entire map of tamriel. Utilize the imperial city we have built for this. I want this to be as detailed as
+possible"*. Asked where it should land - the Imperial City is TESA's and stands only on the open #1184 - the owner chose
+main, with the city's landmark modules brought over (below).
+
+THE FILM, on INTRO2's recording, cut to its bars. `tools/introAudioCheck.mjs` measures the decoded master's onsets: a
+bar is 1.888 s from the 19 s beat, phrases of eight, and the film cuts on five more downbeats - every one reproduced
+from the MP3 at 0 ms (`ui/intro/introCue.js`):
+
+| Time (s) | Sample | The shot | The narrator (`menu.intro.narration1`-`5`) |
+|---|---|---|---|
+| 0 | - | Pre-dawn over the far shore of Lake Rumare, Talos Bridge beside, the Tower a silhouette with its windows lit; the credits | - |
+| 11.712 | 140544 | The mist breaks; the sun clears the horizon behind the Tower; the camera cranes over the city wall, over Talos's dragon, up the Tower's west face | "Four hundred and five years since Tiber Septim forged the Empire, Tamriel endures." |
+| 19.168 | 230016 | INTRO2b's beat: the crest - over the crown, the gilt spire, the city's wheel below; the flare | - |
+| 19.2-26.7 | - | The orbit north round the crown, opening onto the districts | "From the White-Gold Tower, the Emperor holds nine provinces as one." |
+| 26.709 | 320512 | Bar 4: the dive over the Arena District's Colosseum and out across the walls | "But in the west, a murdered king walks the streets of Daggerfall, and the Iliac Bay drifts toward war." |
+| 34.240 | 410880 | Bar 8: the ascent - the city's wheel, the cloud deck, Cyrodiil, the continent, turning north and down | "Beneath its waters, a power that once broke kingdoms waits for a hand to wake it." |
+| 45.568 | 546816 | Bar 14: the map's words and borders | "Nine provinces. A thousand roads. The story of this age is yours to write." |
+| 49.344 | 592128 | Bar 16: the mark lands (INTRO2c's flight from the depth, unchanged) | - |
+
+The narrator is Oblivion's device - a voice over the Imperial City - in the port's own words of 3E 405 (Uriel Septim VII's
+throne, Lysandus dead at Cryngaine Field, the Numidium waiting in the Bay), five lines in the player's language (`t()`; the
+25 languages drafted in-session, `tools/l10nInSession.mjs`), one at a time, each held at least 4.3 s, never across a cut,
+a credit or the mark. The morning is the film's too: night under the credits (stars, Masser and Secunda), the sun up as
+the mist breaks and low and gold through the flight (`introSunAt`, `introAtmosphereAt`).
+
+DEPARTURE FROM INTRO2, named: the mark landed on the 19 s beat (INTRO2b, Mac: "the logo needs to drop with the beat that
+happens around the 19 second mark"). That beat is the crest now, and the mark lands thirty seconds later on the third
+phrase's downbeat - the film is two and a half times INTRO2's, and Oblivion's opening keeps its title for the end.
+INTRO2's own landscape of the Bay (`introMap.js` `buildIliac`, its ranges and sea floor) is retired with it; the Bay's
+authored shape and the seeded noise stay (below, and `ui/tamrielInk.js`).
+
+THE IMPERIAL CITY IS TESA'S. `world/imperialCity.js`, `world/capitalShapes.js` and `world/capitalImperial.js` are
+#1184's own files byte for byte at its head (`4d8200b01`), at their own paths, so that branch's merge finds them already
+here (they import only `spawnedDungeons.js`, `meshReader.js` and `detStandIns.js`, as main has them). What the film
+draws is theirs (`ui/intro/introCity.js`): all thirteen landmarks' own meshes by their own builders (the Tower, the
+palace wall and tombs, the city wall and watch towers, the district walls, the Colosseum, the Temple of the One, Talos,
+the Nine Divines, the Prison, the University, the Waterfront, Talos Bridge), each vertex carrying its picture's record;
+the ground by the city's tile law (`imperialTile`, 8 m a texel over 6 km); its trees by its tree law (`imperialTree`,
+tile by tile). Two things it cannot have, and stands in for: Daggerfall's city blocks (BLOCKS.BSA is the player's and
+the front door runs before the picker) - so on every cell the plan gives one of Daggerfall's blocks the film stands
+houses of that trade's size (a temple and its bell tower, a guild hall, a Mages' tower, a street of houses), 5,073 of
+them; and the capitals' painted pictures (`capitalModels.js` `capitalArt`, which needs half of TESA) - so the film's
+shader paints each record as its material (marble veined, gilt ribbed and mirroring the sky, ashlar coursed, slate, bronze
+with its patina). The woods past the lake are the film's own groves.
+
+THE CONTINENT (`ui/intro/introTamriel.js`) is `world/tamriel/tamrielGeography.js`'s authored Tamriel rasterised once
+(1280 x 800, four texels a picture unit): the provinces' rings by scanline, a signed distance to the coast frayed by
+noise, the ranges' lift (widened for the film's foothills) and each province's land - its open ground, woods and dry
+country by the lore (the Alik'r inland, Skyrim's tundra, Morrowind's ash, Black Marsh's fens, Elsweyr's badlands,
+Valenwood's unbroken wood). Inside the Bay's rectangle, the hole the geography leaves for WOODS.WLD, it is INTRO2's
+authored bay (`seaDistance`, Balfiera and all), eased in from the rectangle's edge. The rivers and the cities are drawn
+by the shader from the geography's own points (a stroke and a dot at any height), the borders inked in gold at the end,
+the Imperial City a gold mark, and the map's words (`INTRO_MAP_LABELS`: the nine provinces, the seas, the Imperial City -
+the geography's names, no word of the film's) placed over it by the front door each frame, hidden from a screen reader as
+the credits are.
+
+THE RENDERER (`ui/intro/introLandscape.js`, `ui/intro/introShaders.js`): the continent first at its own scale, then the
+depth cleared and the city drawn over it (its ground fading at 24-38 km into the continent's own colour); camera-relative
+throughout, so 5,000 km of continent and a metre of parapet keep their precision; a 2048 shadow map from the low sun over
+the city (the Tower's shadow runs kilometres west at the ascent); MSAA; an analytic sky, height fog and the lake's mist;
+the lake mirroring the sky, the Tower and the city wall analytically; birds wheeling about the crown; a cloud deck the
+ascent climbs through; a last pass for the bloom, the sun's rays and the grade. The heavy build runs in the intro's
+worker (`ui/intro/introBuildWorker.js`, `introBuild.js`): the city first (the gate waits for it - the film never opens on
+an empty lake), the continent a second or two later (a one-texel sea stands in until it lands); no Worker, or one that
+fails, builds the same arrays on the page. The passes stand down by height (the houses and trees under 60 km, the shadow
+under 40, the landmarks under 400, the sea above 60 km, the cloud deck between 1.4 and 30 km), the shadow map is drawn
+again only when the sun has moved, a tree under a pixel and a half tall is folded away, and the twelve programs compile
+beside the gate (`render/glProgram.js` `startPrograms`, KHR_parallel_shader_compile) - never a frozen page while the
+driver compiles.
+
+Unchanged: the gate, the credits, the hold and the hand-off to the menu, reduced motion (the last frame held, the words
+over it, the mark appearing on its beat), INTRO2c's mark and recoil, the recording and its session (INTRO-REVERT II).
+
+PINS: `test/ui/intro4_film.test.js` (12: the cut on the recording's samples and bars; the narrator; every frame of the
+flight clear of the Tower, the walls, their towers and the Colosseum by IMPERIAL's own measures; the last frame holding
+every vertex of the land inside the letterbox, north up, at 16:9, 21:9 and 4:3; the morning; the landmarks being TESA's
+meshes vertex for vertex; houses only and always on Daggerfall's cells; the trees the city's law; the ground the tile law;
+the continent's provinces, seas, Balfiera, borders, snow and rivers; the map's words; the build's worker and fallback),
+`test/ui/intro.test.js` (INTRO4's landing on bar 16, the camera's continuity held to its height, the ground grid).
+Mutants: `tools/mutants/intro4.json` (20, all dead). `tools/introAudioCheck.mjs` measures all six landmarks;
+`tools/introProbe.mjs` waits for the longer film and shoots its shots, the narrator's line and the nine names, and
+reads the logo's 0.78 s approach on a frozen page at its own time as well as live (SwiftShader presents no frame inside
+it: one run drew 47.69 s, then 52.09 s - the live read names that gap and the frozen read carries the check);
+`tools/introCapture.mjs` renders the whole film (8 frames a second at 960 x 540); the intro workflow runs the new tests
+and watches the city's and the geography's modules (45 minutes now). NOT SEEN: the film on a hardware GPU - every frame
+here was SwiftShader's, which draws one in 3 to 7 s at 1280 x 720 (INTRO2's in about 0.45 s); the probes wait for it
+accordingly (three minutes a wait).
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac
