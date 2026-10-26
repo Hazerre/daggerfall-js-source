@@ -1609,6 +1609,18 @@ and asks for its recording: 34s measured on a warm server and 51s on a cold one,
 The `cinematic` check had timed out on every run since 2026-10-25. A built page is a few chunks, so players never
 wait this; only the probes do.
 
+#### INTRO-REVERT II (2026-10-26): the theme's path as INTRO2 left it
+
+The owner: *"Intro music currently isnt working. We need to revert before we started tinkering with this"*. After
+INTRO-REVERT one change to the theme's path was left: THEME-BUFFER (`01-Overview/bugs/Field-Bugs-2026-10-24.md`), which
+asked the theme's own AudioContext for `latencyHint: 'playback'`. It is undone, so `systems/introTheme.js` is INTRO2's file
+byte for byte (`6f501bf5d`, the merge before #906) and `'interactive'` again; `src/assets/intro/theme.mp3` and
+`ui/intro/introCue.js`'s landmarks were already INTRO2's. Measured before the change, in headless Chromium over the built
+page: the recording fetched (200), decoded and played under the film (its RMS at the destination 0.012 to 0.072 over
+the first 14 s) - the silence the owner hears was not reproduced here, so this restores the last state the owner heard
+working rather than a fault found. Pin: `test/ui/intro.test.js` INTRO-REVERT II (the context's hint, the file's sha256).
+THEME-BUFFER's own pin and its mutants BUF1 are retired.
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac

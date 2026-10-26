@@ -10,6 +10,9 @@ import { buildIliac, SEA_LEVEL, seaDistance, BALFIERA } from '../../src/ui/intro
 import { brandMark } from '../../src/ui/brandMark.js';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url));
+/** INTRO-REVERT II (the owner, 2026-10-26: "Intro music currently isnt working. We need to revert before we started
+ *  tinkering with this"): systems/introTheme.js as INTRO2 left it, before INTRO3's #906 and THEME-BUFFER. */
+const INTRO2_THEME_SHA256 = '6954cf4c01f2a32e098a08c4ae4edb81b00823573076fd1c74c2f9c5ac24c8ec';
 
 test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; timing cannot drift behind a replacement track', () => {
   // BR4 (2026-09-27) shipped Mac's earlier cut as he supplied it
@@ -131,6 +134,17 @@ test('INTRO2: generated mesh indices remain within the grid and geography has se
   assert.ok(map.height.some(h => h === SEA_LEVEL)); assert.ok(map.height.some(h => h > SEA_LEVEL + 60));
   assert.ok(seaDistance(BALFIERA.x, BALFIERA.y) > 0);
   assert.deepEqual(buildIliac({ w: 64, h: 40 }), map, 'same boot, same geography');
+});
+
+test('INTRO-REVERT II: the theme plays on the context it had before INTRO3 - interactive, as INTRO2 built it (THEME-BUFFER undone)', () => {
+  const made = [];
+  const had = globalThis.AudioContext;
+  globalThis.AudioContext = class { constructor(o) { made.push(o); } };
+  try { new IntroTheme({ subscribe: () => () => {} }).makeContext(); }
+  finally { if (had === undefined) delete globalThis.AudioContext; else globalThis.AudioContext = had; }
+  assert.deepEqual(made, [{ latencyHint: 'interactive' }]);
+  // and the file is the one INTRO2 shipped, byte for byte (6f501bf5d, the merge before INTRO3's #906)
+  assert.equal(createHash('sha256').update(read('src/systems/introTheme.js')).digest('hex'), INTRO2_THEME_SHA256);
 });
 
 test('INTRO2: audible clock uses the device timestamp, with a latency-aware fallback', () => {
