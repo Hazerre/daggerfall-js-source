@@ -47,8 +47,8 @@
  {
   "name": "COURTWATCH-kept-past-the-court",
   "file": "src/net/gate/gateLink.js",
-  "old": "leave() { state = GATE_STATE_EMPTY; watching = false; },",
-  "new": "leave() { state = GATE_STATE_EMPTY; },",
+  "old": "leave() { state = GATE_STATE_EMPTY; watching = false; courts.clear(); },",
+  "new": "leave() { state = GATE_STATE_EMPTY; courts.clear(); },",
   "tests": [
    "test/net/gate/courtwatch.test.js"
   ]
@@ -258,7 +258,7 @@
  {
   "name": "COURTWATCH-state-not-handed",
   "file": "server/src/index.js",
-  "old": "{ asked.set(ws, now); if (f) this._send(ws, JSON.stringify({ t: 'gate', ...GATE_SEAM.stateOf(f) })); }",
+  "old": "{ asked.set(ws, now); if (f && !f.fell && !f.wrath) this._send(ws, JSON.stringify({ t: 'gate', ...GATE_SEAM.stateOf(f) })); }",
   "new": "{ asked.set(ws, now); }",
   "tests": [
    "test/net/gate/courtwatch.test.js"

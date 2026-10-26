@@ -24,7 +24,8 @@
 /** The fighters a court seats before the book opens the next (the owner's choice). */
 export const GATE_COURT_FIGHTERS = 50;
 /** The most courts a night opens - court indices 0 to GATE_COURTS_MAX - 1. GATE_COURTS_MAX x GATE_COURT_FIGHTERS fighters
- *  a night; past them a newcomer is the last court's watcher ('the court is full', COURT-WATCH), as a full court's was. */
+ *  a night; past them a newcomer is the first court's watcher ('the court is full', COURT-WATCH - AUDIT GATE-COURTS C5: it
+ *  stands at the door it asked at), as a full court's was. */
 export const GATE_COURTS_MAX = 16;
 /** How far over GATE_COURT_FIGHTERS a court seats a newcomer whose party fights there: a whole party (net/wire.js
  *  PARTY_MAX, 8 - pinned equal) stands in one court whoever of it came first. */
@@ -32,6 +33,14 @@ export const GATE_PARTY_SLACK = 7;
 /** How long a seat the book gave but its court has not seen joined is held: a page sent on to its court that never
  *  arrives (a tab closed, a link lost) gives its seat back, so a court is never full of fighters who are not there. */
 export const GATE_SEAT_PENDING_MS = 60_000;
+/** AUDIT GATE-COURTS P10: how long the first court keeps an account's party as the hub said it - a full night's watcher
+ *  asks for a seat every COURT_WATCH_ASK_MS, and asked the hub each time. */
+export const GATE_MATES_KEEP_MS = 60_000;
+/** AUDIT GATE-COURTS R3: how long past the wrath the book waits before it says a night some court won - a kill landed
+ *  just before the wrath is told the book at the kill, inside one internal call (ROOM_CALL_MS's own scale), so its
+ *  receipts are the book's before the rite's own are minted; under GATE_COLLAPSE_MS (10 s), when the night is forgotten,
+ *  with a retry's room. */
+export const GATE_NIGHT_GRACE_MS = 3_000;
 
 /**
  * @typedef {[number, number, number]} GateSeat   [court, when the book gave it, 1 once its court saw it joined]
@@ -65,23 +74,27 @@ export const courtsJoined = (book) => new Set(Object.values(book.s).filter((s) =
 
 /**
  * THE SEAT: the court `sub` fights in tonight, or null for none (every court that may take it is full, or the gate no
- * longer admits a newcomer). Records the seat it gives - joined at once where it is the court that asked (`asked`, the
- * court about to seat it), pending where the page must go on to it - and lets go of the pending seats that lapsed.
- *   - A seat it holds is its court whatever that court did since (won, or full): one court a night.
+ * longer admits a newcomer). Records the seat it gives - JOINED only where the court that asked is its court and says its
+ * fight takes a newcomer now (`can`: its Warden stands and the gate admits - AUDIT GATE-COURTS R4/C3: a seat marked
+ * joined that no fight took held the night open to the wrath), else pending - and lets go of the pending seats that
+ * lapsed.
+ *   - A seat it holds is its court whatever that court did since (won, or full): one court a night. But a PENDING seat in
+ *     a court that has won since is no seat (AUDIT GATE-COURTS R2/P5: the page was sent on to a Warden already fallen,
+ *     whose court refuses it) - it is placed again, as a newcomer.
  *   - A newcomer (`admits` - the gate's window, net/gate/gateLaw.js gateAdmits) is seated in the lowest court where one
  *     of its party (`mates`, the hub's members) holds a live seat, that has not won and seats fewer than
  *     GATE_COURT_FIGHTERS + GATE_PARTY_SLACK; else in the lowest court that has not won and seats fewer than
  *     GATE_COURT_FIGHTERS.
  * @param {GateBook} book
  * @param {string} sub
- * @param {{asked: number, now: number, admits: boolean, mates?: ReadonlyArray<string>}} o
+ * @param {{asked: number, now: number, admits: boolean, can?: boolean, mates?: ReadonlyArray<string>}} o
  * @returns {number|null}
  */
-export function placeSeat(book, sub, { asked, now, admits, mates = [] }) {
+export function placeSeat(book, sub, { asked, now, admits, can = false, mates = [] }) {
   for (const [k, s] of Object.entries(book.s)) if (k !== sub && !seatLive(s, now)) delete book.s[k];
   const had = book.s[sub];
-  if (had && seatLive(had, now)) {
-    if (had[0] === asked) had[2] = 1;
+  if (had && seatLive(had, now) && !(had[2] !== 1 && book.f[had[0]])) {
+    if (had[0] === asked && can) had[2] = 1;
     return had[0];
   }
   if (!admits) return null;
@@ -94,7 +107,7 @@ export function placeSeat(book, sub, { asked, now, admits, mates = [] }) {
   }
   for (let c = 0; court === null && c < GATE_COURTS_MAX; c++) if (open(c, GATE_COURT_FIGHTERS)) court = c;
   if (court === null) return null;
-  book.s[sub] = [court, now, court === asked ? 1 : 0];
+  book.s[sub] = [court, now, court === asked && can ? 1 : 0];
   return court;
 }
 
@@ -110,9 +123,9 @@ export function courtFell(book, court, { at, top, n, rs }) {
 }
 
 /**
- * IS THE NIGHT DONE? After the seal (no newcomer can open a court), once every court a fighter joined has won; or at the
- * wrath, once any has (the rest are cast back with it). Never while a court that seated a fighter still fights before
- * the wrath - its gate stands in the world for it.
+ * IS THE NIGHT DONE? After the seal (no newcomer can open a court), once every court a fighter joined has won; or
+ * GATE_NIGHT_GRACE_MS past the wrath, once any has (the rest are cast back with it). Never while a court that seated a
+ * fighter still fights before the wrath - its gate stands in the world for it.
  * @param {GateBook} book
  * @param {number} now
  * @param {{sealAt: number, wrathAt: number}} t   the night's times (net/gate/gateLaw.js gateTimes)
@@ -120,7 +133,7 @@ export function courtFell(book, court, { at, top, n, rs }) {
 export function nightDone(book, now, t) {
   const won = Object.keys(book.f).length;
   if (!won) return false;
-  if (now >= t.wrathAt) return true;
+  if (now >= t.wrathAt + GATE_NIGHT_GRACE_MS) return true;
   if (now < t.sealAt) return false;
   for (const c of courtsJoined(book)) if (!book.f[c]) return false;
   return true;
@@ -148,7 +161,7 @@ export function riteOnly(book, helpers) {
   return [...new Set(helpers)].filter((h) => !had.has(h));
 }
 
-/** When the book next needs its beat: the seal, then the wrath, while the night is not said done; null after.
+/** When the book next needs its beat: the seal, then the wrath's grace, while the night is not said done; null after.
  *  @param {GateBook} book @param {{sealAt: number, wrathAt: number}} t @param {number} now */
-export const bookNextAt = (book, t, now) => (book.end ? null : now < t.sealAt ? t.sealAt : now < t.wrathAt ? t.wrathAt : null);
+export const bookNextAt = (book, t, now) => (book.end ? null : now < t.sealAt ? t.sealAt : now < t.wrathAt + GATE_NIGHT_GRACE_MS ? t.wrathAt + GATE_NIGHT_GRACE_MS : null);
 

@@ -314,15 +314,19 @@ export function createGateLink({ now, say = () => {}, onFell = () => {}, onRecei
       if (g.k === 'no') { say(gateRefusalText(g.m)); onRefused(g.m); return; }   // GATE-RELOAD: in what the word means
       if (g.k === 'st' && g.me === 1) watching = false;   // COURT-WATCH: my `in` answered - the seat mine
       if (g.k === 'rcpt') { const c = readReceipt(g.r); if (c) { receipts.set(c.d, g.r); onReceipt(g.r); } return; }   // one a day: the receipt says which
-      // GATE-COURTS: the court the book seats me in - the host's room is that court's from the next frame (`room`)
-      if (g.k === 'go') { courts.set(g.d, g.c); return; }
+      // GATE-COURTS: the court the book seats me in - the host's room is that court's from the next frame (`room`); AUDIT
+      // GATE-COURTS C8: and nothing of this court's fight is carried into that one
+      if (g.k === 'go') { courts.set(g.d, g.c); state = GATE_STATE_EMPTY; watching = false; return; }
       // GATE-COURTS: a court's kill, said once - its gate stands for the night's other courts, so it moves no fall
       if (g.k === 'cf') { const k = `${g.d}.${g.c}`; if (!courtFalls.has(k)) { courtFalls.add(k); onFell(g.d, { at: g.at, top: g.top, n: g.n, c: g.c, cs: g.cs ?? 0 }); } return; }
       // the night's fall is the hub's word (it names its day) - a court's own `fell` folds its fight alone (GATE-COURTS: the
       // gate stands until every court is done); said in words only where no court's kill was
+      // AUDIT GATE-COURTS C1: and the night's word folds no court - a court still fighting at the wrath stood its Warden
+      // fallen under another court's best three
       if (g.k === 'fell' && g.d !== undefined) {
         const day = g.d;
         if (Number.isSafeInteger(day) && !falls.has(day)) { const f = { at: g.at, top: g.top, n: g.n }; falls.set(day, f); if (![...courtFalls].some((k) => k.startsWith(`${day}.`))) onFell(day, f); }
+        return;
       }
       state = foldGate(state, g, now(), place);
     },
@@ -332,11 +336,17 @@ export function createGateLink({ now, say = () => {}, onFell = () => {}, onRecei
     fellAt: (day) => falls.get(day)?.at ?? null,
     /** GATE-COURTS: the room of the court I fight in on `day` - the one the book seats me in, else the first. */
     room: (day) => gateRoomKey(day, courts.get(day) ?? 0),
+    /** AUDIT GATE-COURTS C6: a gate a staff landing names, with the court I stand in (`c`) - and, landing, the court it names
+     *  kept as mine for its day, so staff stand where their player does. */
+    withCourt: (gate) => ({ ...gate, c: courts.get(gate.day) ?? 0 }),
+    seatFor: (gate) => { if (Number.isSafeInteger(gate?.c) && gate.c > 0) courts.set(gate.day, gate.c); return gate; },
     /** A day's receipt, or null (WB5 rolls the spoils off its seed and carries it to the account service). */
     receipt: (day) => receipts.get(day) ?? null,
     /** COURT-WATCH: whether I watch this court - it was full when I asked, and no answer has given me a seat since. */
     watching: () => watching,
-    /** Out of the court: its state forgotten (the falls and the receipts are kept - they outlive the court). */
-    leave() { state = GATE_STATE_EMPTY; watching = false; },
+    /** Out of the court: its state forgotten (the falls and the receipts are kept - they outlive the court). AUDIT GATE-COURTS
+     *  C2: and the court the book sent me to - the next way in is the first court's, whose book says my court again (a court
+     *  that refused me, its Warden fallen before I came, is never asked again in a loop). */
+    leave() { state = GATE_STATE_EMPTY; watching = false; courts.clear(); },
   };
 }

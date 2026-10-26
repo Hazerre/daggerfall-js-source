@@ -11,13 +11,14 @@ import { readFileSync } from 'node:fs';
 
 import { fakeRooms } from '../../fakeRoom.mjs';
 import * as C from '../../../src/net/gate/gateCourts.js';
-import { gateTimes, gateRoomKey, gateCourtOfRoom, isGateRoom, gateBossOf } from '../../../src/net/gate/gateLaw.js';
+import { gateTimes, gateRoomKey, gateCourtOfRoom, isGateRoom, gateBossOf, GATE_COLLAPSE_MS } from '../../../src/net/gate/gateLaw.js';
 import { COURT_COPY_RE, isCourtCopy, courtOfCopy } from '../../../src/net/hubShards.js';
-import { validGateOut, GATE_BRAIN_V, GATE_BRAIN_MIN, SOCIAL_ROOM, PARTY_MAX, GATE_INTERNAL_PARTY, GATE_INTERNAL_FELL, RITE_INTERNAL_DAY } from '../../../src/net/wire.js';
+import { validGateOut, GATE_BRAIN_V, GATE_BRAIN_MIN, SOCIAL_ROOM, PARTY_MAX, GATE_INTERNAL_PARTY, GATE_INTERNAL_FELL, GATE_INTERNAL_SEAT, GATE_INTERNAL_COURT, RITE_INTERNAL_DAY, GATE_TELL_RETRY_MS } from '../../../src/net/wire.js';
 import { COURT_CENTRE, BRAIN_TICK_MS, HIT_KINDS } from '../../../src/net/gate/gateBrain.js';
-import { readReceipt } from '../../../src/net/gate/gateReceipt.js';
+import { readReceipt, mintReceipt } from '../../../src/net/gate/gateReceipt.js';
 import { createGateLink } from '../../../src/net/gate/gateLink.js';
-import { courtFellLine, fellLine } from '../../../src/systems/gate/gateOmen.js';
+import { courtFellLine, fellLine, createGateOmen, SEAL_SAY_HOLD_MS } from '../../../src/systems/gate/gateOmen.js';
+import { validStaffDestination, staffDestinationKey } from '../../../src/net/staffTeleport.js';
 import { fellPost } from '../../../src/net/gate/gateHerald.js';
 
 const src = (p) => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
@@ -44,22 +45,33 @@ test('GATE-COURTS the law: fifty a court, sixteen courts a night, a whole party\
   for (const c of [-1, 16, 1.5, '1', null]) assert.equal(C.courtOk(c), false, String(c));
 });
 
-test('GATE-COURTS the seat: the lowest court with room that has not won, fifty a court; a seat held is its court for the night; joined where its court asked, pending where the page goes on - and a pending one lapses (mutants: the cap; a won court seated; a seat moved; never joined; never lapsing)', () => {
+test('GATE-COURTS the seat: the lowest court with room that has not won, fifty a court; a seat held is its court for the night; JOINED only where its own court asked and its fight takes it (AUDIT GATE-COURTS R4/C3), pending otherwise - a pending one lapses, and one whose court has won since is placed again (R2/P5) (mutants: the cap; a won court seated; a seat moved; never joined; joined unasked; the law joins whatever the fight; a new seat joined whatever the fight; a new seat joined unasked; never lapsing; a pending seat in a won court kept)', () => {
   const b = C.bookNew(DAY);
   const t0 = 1000;
-  for (let i = 0; i < C.GATE_COURT_FIGHTERS; i++) assert.equal(C.placeSeat(b, `a${i}`, { asked: 0, now: t0, admits: true }), 0);
-  assert.equal(C.placeSeat(b, 'b0', { asked: 0, now: t0, admits: true }), 1, 'the fifty-first: the second court');
+  assert.equal(C.GATE_SEAT_PENDING_MS, 60_000, 'a minute');
+  for (let i = 0; i < C.GATE_COURT_FIGHTERS; i++) assert.equal(C.placeSeat(b, `a${i}`, { asked: 0, now: t0, admits: true, can: true }), 0);
+  assert.equal(b.s.a0[2], 1, 'seated where it asked, its fight taking it: joined');
+  assert.equal(C.placeSeat(b, 'b0', { asked: 0, now: t0, admits: true, can: true }), 1, 'the fifty-first: the second court');
   assert.deepEqual(b.s.b0, [1, t0, 0], 'pending - asked by the first, its court the second');
-  assert.equal(C.placeSeat(b, 'b0', { asked: 2, now: t0 + 10, admits: true }), 1, 'asked by any court: its own');
+  assert.equal(C.placeSeat(b, 'b0', { asked: 2, now: t0 + 10, admits: true, can: true }), 1, 'asked by any court: its own');
   assert.equal(b.s.b0[2], 0, 'still pending - another court asked');
-  assert.equal(C.placeSeat(b, 'b0', { asked: 1, now: t0 + 20, admits: true }), 1);
-  assert.equal(b.s.b0[2], 1, 'joined once its own court asked');
+  assert.equal(C.placeSeat(b, 'b0', { asked: 1, now: t0 + 15, admits: true }), 1);
+  assert.equal(b.s.b0[2], 0, 'its own court asked, but its fight would not take it now: still pending');
+  assert.equal(C.placeSeat(b, 'b0', { asked: 1, now: t0 + 20, admits: true, can: true }), 1);
+  assert.equal(b.s.b0[2], 1, 'joined once its own court asked and could seat it');
+  const n0 = C.bookNew(DAY);
+  assert.equal(C.placeSeat(n0, 'x', { asked: 0, now: t0, admits: true }), 0);
+  assert.equal(n0.s.x[2], 0, 'a newcomer its own court cannot take now is given its seat pending');
   assert.deepEqual(C.courtCounts(b, t0 + 20).slice(0, 3), [50, 1, 0]);
   assert.equal(C.placeSeat(b, 'a3', { asked: 5, now: t0 + 30, admits: false }), 0, 'sealed: a seat held is still its court');
   assert.equal(C.placeSeat(b, 'zz', { asked: 0, now: t0 + 30, admits: false }), null, 'sealed: no newcomer');
   // a court that won seats nobody new
+  assert.equal(C.placeSeat(b, 'b1', { asked: 0, now: t0 + 35, admits: true }), 1, 'b1 sent on to the second court');
   C.courtFell(b, 1, { at: 5, top: ['x'], n: 1, rs: ['b0'] });
   assert.equal(C.placeSeat(b, 'c0', { asked: 0, now: t0 + 40, admits: true }), 2, 'the second won: the third');
+  assert.equal(C.placeSeat(b, 'b0', { asked: 0, now: t0 + 41, admits: true }), 1, 'a JOINED seat is its court whatever it did since');
+  assert.equal(C.placeSeat(b, 'b1', { asked: 0, now: t0 + 42, admits: true }), 2, 'a PENDING seat whose court has won since is placed again');
+  assert.equal(C.placeSeat(b, 'b1', { asked: 0, now: t0 + 43, admits: false }), 2, 'and held there, sealed or not');
   // a pending seat lapses: its court has room again
   const p = C.bookNew(DAY);
   for (let i = 0; i < C.GATE_COURT_FIGHTERS; i++) C.placeSeat(p, `p${i}`, { asked: 3, now: t0, admits: true });
@@ -90,7 +102,7 @@ test('GATE-COURTS the party: a newcomer sits in the lowest court where a mate ho
   assert.equal(C.placeSeat(b, 'self', { asked: 0, now: t0, admits: true, mates: ['self'] }), 2, 'its own name is no mate');
 });
 
-test('GATE-COURTS the night: done after the seal once every court a fighter JOINED has won, or at the wrath once any has; its word the courts that won of the courts it held, the first to win\'s best three, every winner\'s fighters; the rite\'s own to those no court paid (mutants: before the seal; a pending court counted; the wrath unread; the sum)', () => {
+test('GATE-COURTS the night: done after the seal once every court a fighter JOINED has won, or GATE_NIGHT_GRACE_MS past the wrath once any has; its word the courts that won of the courts it held, the first to win\'s best three, every winner\'s fighters; the rite\'s own to those no court paid (mutants: before the seal; a pending court counted; the wrath unread; no grace; the grace unbeaten; the minute; the sum)', () => {
   const b = C.bookNew(DAY);
   assert.equal(C.nightDone(b, TT.sealAt, TT), false, 'nobody won: no night to say');
   b.s.a = [0, 1, 1]; b.s.b = [1, 1, 1]; b.s.c = [2, 1, 0];
@@ -107,10 +119,15 @@ test('GATE-COURTS the night: done after the seal once every court a fighter JOIN
   w.s.a = [0, 1, 1]; w.s.b = [1, 1, 1];
   C.courtFell(w, 1, { at: 1, top: [], n: 1, rs: [] });
   assert.equal(C.nightDone(w, TT.wrathAt - 1, TT), false);
-  assert.equal(C.nightDone(w, TT.wrathAt, TT), true, 'at the wrath: the rest are cast back');
+  assert.equal(C.GATE_NIGHT_GRACE_MS, 3_000);
+  assert.equal(C.GATE_SEAT_PENDING_MS, 60_000, 'a seat given and never joined holds a minute');
+  assert.equal(C.GATE_MATES_KEEP_MS, 60_000, 'a party the hub said kept a minute');
+  assert.ok(C.GATE_NIGHT_GRACE_MS < GATE_COLLAPSE_MS, 'said before the night is forgotten');
+  assert.equal(C.nightDone(w, TT.wrathAt + C.GATE_NIGHT_GRACE_MS - 1, TT), false, 'AUDIT GATE-COURTS R3: a kill just before the wrath has its grace to reach the book');
+  assert.equal(C.nightDone(w, TT.wrathAt + C.GATE_NIGHT_GRACE_MS, TT), true, 'past the wrath\'s grace: the rest are cast back');
   assert.equal(C.bookNextAt(w, TT, TT.openAt), TT.sealAt);
-  assert.equal(C.bookNextAt(w, TT, TT.sealAt), TT.wrathAt);
-  assert.equal(C.bookNextAt(w, TT, TT.wrathAt), null);
+  assert.equal(C.bookNextAt(w, TT, TT.sealAt), TT.wrathAt + C.GATE_NIGHT_GRACE_MS);
+  assert.equal(C.bookNextAt(w, TT, TT.wrathAt + C.GATE_NIGHT_GRACE_MS), null);
   w.end = 5;
   assert.equal(C.bookNextAt(w, TT, TT.openAt), null, 'said: nothing owed');
   assert.equal(C.isBook(w), true); assert.equal(C.isBook({ d: 1 }), false); assert.equal(C.isBook(null), false);
@@ -140,7 +157,8 @@ async function night(fn, { start = TT.openAt + 1000, party = {} } = {}) {
     return await quiet(async () => {
       const world = fakeRooms({ now: () => clock });
       const get = world.ROOMS.get;
-      world.ROOMS.get = (id) => { const o = get(id); return id === SOCIAL_ROOM ? { fetch: async (req) => (new URL(req.url).pathname === GATE_INTERNAL_PARTY ? new Response(JSON.stringify({ m: party[(await req.clone().json()).a] ?? [] })) : o.fetch(req)) } : o; };
+      // `party: null` - the hub's own party door, a real party formed through its frames (AUDIT GATE-COURTS P3)
+      if (party) world.ROOMS.get = (id) => { const o = get(id); return id === SOCIAL_ROOM ? { fetch: async (req) => (new URL(req.url).pathname === GATE_INTERNAL_PARTY ? new Response(JSON.stringify({ m: party[(await req.clone().json()).a] ?? [] })) : o.fetch(req)) } : o; };
       const court = (c) => world.room(gateRoomKey(DAY, c));
       const say = (R, ws, o) => R.raw(ws, JSON.stringify({ t: 'gate', ...o }));
       let n = 0;
@@ -177,8 +195,9 @@ test('GATE-COURTS the relay: the first court seats fifty, the fifty-first is sen
     const back = court(0).connect(); await court(0).hello(back, id(50), at(0, 3));
     await say(court(0), back, { k: 'in', lv: 10, bv: GATE_BRAIN_V }); await settle();
     assert.deepEqual(gates(back, 'go'), [{ t: 'gate', k: 'go', d: DAY, c: 1 }]);
-    await tick([0, 1], 4);
-    assert.ok(gates(there, 'hp').length + gates(there, 'st').length + gates(there, 'atk').length > 0, 'the second court beats on its own');
+    there.sent.length = 0;
+    await tick([0, 1], 24);
+    assert.ok(gates(there, 'st').length + gates(there, 'mv').length + gates(there, 'atk').length > 0, 'the second court beats on its own (AUDIT GATE-COURTS P6: its own beats, the join\'s answer cleared first)');
     // after the seal a court's own fighter is its own court's to admit (no book there - its fight's seat)
     set(TT.sealAt + 1000);
     const again = court(1).connect(); await court(1).hello(again, id(50), at(0, 3));
@@ -358,4 +377,349 @@ test('GATE-COURTS the wiring: the host\'s room is the court the book seats me in
   const frame = r.slice(r.indexOf('  async _gateFrame(ws, a, m, now) {'));
   assert.ok(frame.indexOf('await this._gateSentOn(ws, a, f, now)') > 0 && frame.indexOf('await this._gateSentOn(ws, a, f, now)') < frame.indexOf('if (!f) { f = this._fight = GATE_SEAM.new('), 'asked before the fight is made');
   assert.ok(r.includes('if (!f) return this._gateBookTick();'), 'a first court\'s book beats with no fight of its own');
+});
+
+// ═══ AUDIT GATE-COURTS (2026-10-26) ════════════════════════════════════════════════════════════
+// The owner: "Audit this". Three cold lanes (the relay; the law, the wire and the client; the pins, the record and the
+// cost) - bible/11-Multiplayer/World-Bosses.md section 30. Each finding's pin below fails on the code before its fix.
+
+const inWord = { k: 'in', lv: 10, bv: GATE_BRAIN_V };
+/** The Warden of court `c` a blow from falling, `ws` its fighter who stood the fight. */
+const killIn = async (R, ws, sub) => { const f = R.room._fight; f.players[sub].stoodMs = 1e9; f.hp = 1; await R.raw(ws, JSON.stringify({ t: 'gate', k: 'hit', q: 1, d: 10, r: HIT_KINDS.Spell })); await settle(); };
+/** The doors' answers on the way to `id` changed as `answer(req)` says (a Response, or undefined for the room's own). */
+const doors = (world, id, answer) => { const get = world.ROOMS.get; world.ROOMS.get = (n) => { const o = get(n); return n === id ? { fetch: async (req) => (await answer(req)) ?? o.fetch(req) } : o; }; return () => { world.ROOMS.get = get; }; };
+
+test('AUDIT GATE-COURTS R1 the relay: two newcomers whose `in`s land together at a court with no fight yet both fight its ONE fight - the fight is read again after the book is asked (mutants: the fight not read again)', async () => {
+  await night(async ({ court, into, say }) => {
+    for (let i = 0; i < 50; i++) await into(0, id(i));
+    await into(0, id(50)); await into(0, id(51));
+    const R = court(1);
+    const a = R.connect(); await R.hello(a, id(50), at(0, 3));
+    const b = R.connect(); await R.hello(b, id(51), at(1, 3));
+    await Promise.all([say(R, a, inWord), say(R, b, inWord)]);
+    await settle();
+    const both = [`acct-${id(50)}`, `acct-${id(51)}`];
+    assert.deepEqual(Object.keys(R.room._fight.players).sort(), both, 'one fight holds both');
+    assert.deepEqual(Object.keys(R.store.get('gatefight').players).sort(), both, 'and storage keeps that one');
+  });
+});
+
+test('AUDIT GATE-COURTS R2/P5 the relay: the book hears a court\'s kill AT the kill - a newcomer that moment is never seated before a fallen Warden; a page sent on before a court\'s kill, refused at its door after it, is placed again at the first court (mutants: the book told on the next beat; told only once said; a pending seat in a won court kept)', async () => {
+  await night(async ({ court, into }) => {
+    const a = await into(0, id(1));
+    await killIn(court(0), a, `acct-${id(1)}`);
+    assert.ok(court(0).store.get('gatebook').f[0], 'the first court\'s kill in its book before any beat');
+    const n = await into(0, id(2));
+    assert.deepEqual(gates(n, 'go').map((m) => m.c), [1], 'a newcomer the same moment: the second court');
+    assert.equal(court(0).room._fight.players[`acct-${id(2)}`], undefined);
+  });
+  await night(async ({ court, into }) => {
+    for (let i = 0; i < 50; i++) await into(0, id(i));
+    await into(0, id(50));
+    const b = await into(1, id(50));
+    const late = await into(0, id(60));
+    assert.deepEqual(gates(late, 'go').map((m) => m.c), [1], 'sent on to the second court while its Warden stands');
+    await killIn(court(1), b, `acct-${id(50)}`);
+    assert.ok(court(0).store.get('gatebook').f[1], 'the second court\'s kill told the book at the kill');
+    const R = court(1), door = R.connect(); await R.hello(door, id(60), at(0, 3));
+    assert.deepEqual(door.sent, [{ t: 'error', m: 'the gate is closing' }], 'its court refuses it - its Warden fell before it came');
+    const again = await into(0, id(60));
+    assert.deepEqual(gates(again, 'go').map((m) => m.c), [2], 'the first court places it again: the third court');
+  });
+});
+
+test('AUDIT GATE-COURTS R4/C3 the relay: a seat is JOINED only where its court\'s fight takes it - a page sent on before the seal whose `in` lands after it is refused, its seat stays pending, and the night is said at the seal (mutants: joined whatever the fight; the court\'s word ignored; the word unsent)', async () => {
+  await night(async ({ court, into, say, set, fire, hub }) => {
+    const h = hub.connect(); await hub.hello(h, id(900));
+    const a = await into(0, id(0));
+    for (let i = 1; i < 50; i++) await into(0, id(i));
+    await killIn(court(0), a, `acct-${id(0)}`);
+    set(TT.sealAt - 1000);   // sent on a moment before the seal - its seat still live (GATE_SEAT_PENDING_MS) when its `in` lands
+    await into(0, id(70));
+    const R = court(1), n = R.connect(); await R.hello(n, id(70), at(0, 3));
+    set(TT.sealAt + 100);
+    await say(R, n, inWord); await settle();
+    assert.deepEqual(gates(n, 'no').map((m) => m.m), ['the gate is sealed']);
+    assert.equal(court(0).store.get('gatebook').s[`acct-${id(70)}`][2], 0, 'pending - no fight took it');
+    await fire(0);
+    assert.equal(gates(h, 'fell').length, 1, 'the night at the seal: the second court never held a fighter');
+  });
+});
+
+test('AUDIT GATE-COURTS R3 the hub: a receipt of the rite alone never goes over a same-day receipt the account holds - neither kept nor handed (mutants: the rite\'s own written over a court\'s)', async () => {
+  await night(async ({ hub }) => {
+    const sub = `acct-${id(9)}`;
+    const h = hub.connect(); await hub.hello(h, id(9), null, { name: id(9), acct: sub, asecret: `secret-of-${sub}` });
+    const nowS = Math.floor(Date.now() / 1000), subtle = globalThis.crypto.subtle;
+    const won = await mintReceipt({ d: DAY, b: gateBossOf(DAY).id, s: sub, c: 7, x: 'stood', l: 10 }, null, { subtle, nowS });
+    const rite = await mintReceipt({ d: DAY, b: gateBossOf(DAY).id, s: sub, c: 8, x: 'rite' }, null, { subtle, nowS });
+    const door = (body) => hub.room.fetch(new Request(`https://relay.internal${GATE_INTERNAL_FELL}`, { method: 'POST', body: JSON.stringify(body) }));
+    await door({ d: DAY, c: 1, at: 10, top: [], n: 1, rc: [[sub, won]], here: [] });
+    await door({ d: DAY, night: 1, at: 20, top: [], n: 1, w: 1, cs: 1, rc: [[sub, rite]], here: [] });
+    assert.equal(hub.store.get(`gaterc:${sub}`).r, won, 'the court\'s kept');
+    assert.deepEqual(gates(h, 'rcpt').map((m) => readReceipt(m.r).x), ['stood'], 'and only it handed');
+  });
+});
+
+test('AUDIT GATE-COURTS R5/P10 the relay: a socket sent on is answered the same `go` for COURT_WATCH_ASK_MS without the book asked or written; the book is written only when a seat changed it (mutants: the go unthrottled; the book written unchanged)', async () => {
+  await night(async ({ world, court, into, say }) => {
+    for (let i = 0; i < 50; i++) await into(0, id(i));
+    let writes = 0, calls = 0;
+    const put = court(0).state.storage.put.bind(court(0).state.storage);
+    court(0).state.storage.put = async (k, v) => { if (k === 'gatebook') writes++; return put(k, v); };
+    const n = await into(0, id(50));
+    assert.equal(writes, 1, 'the seat given: one write');
+    for (let i = 0; i < 5; i++) await say(court(0), n, inWord);
+    await settle();
+    assert.deepEqual(gates(n, 'go').map((m) => m.c), [1, 1, 1, 1, 1, 1], 'the same court each time');
+    assert.equal(writes, 1, 'and nothing written for the asks');
+    const undo = doors(world, gateRoomKey(DAY), (req) => { if (new URL(req.url).pathname === GATE_INTERNAL_SEAT) calls++; });
+    const stray = await into(2, id(3));
+    for (let i = 0; i < 4; i++) await say(court(2), stray, inWord);
+    await settle(); undo();
+    assert.equal(calls, 1, 'a court past the first asks the book once');
+    assert.equal(writes, 1, 'a seat held asked again: unchanged, unwritten');
+  });
+});
+
+test('AUDIT GATE-COURTS P1 the relay: the night is said until the hub answers - the same word and the same rite\'s receipts, kept with the night\'s moment before they are said, once (mutants: told although unanswered; the night\'s moment unkept; no retry)', async () => {
+  await night(async ({ world, court, into, fire, tick, hub, set }) => {
+    const h = hub.connect(); await hub.hello(h, id(900));
+    const a = await into(0, id(1));
+    await killIn(court(0), a, `acct-${id(1)}`);
+    await tick([0], 2);
+    let refused = 0;
+    const undo = doors(world, SOCIAL_ROOM, async (req) => { if (new URL(req.url).pathname === GATE_INTERNAL_FELL && (await req.clone().json()).night && refused++ === 0) return new Response('no', { status: 503 }); });
+    set(TT.sealAt);
+    await fire(0);
+    const book = court(0).store.get('gatebook');
+    assert.equal(book.end, TT.sealAt, 'the night\'s moment kept');
+    assert.equal(book.told, 0, 'not told - the hub did not answer');
+    assert.equal(gates(h, 'fell').length, 0);
+    assert.equal(court(0).alarm.at, TT.sealAt + GATE_TELL_RETRY_MS, 'a beat to tell it again');
+    await tick([0], Math.ceil(GATE_TELL_RETRY_MS / BRAIN_TICK_MS) + 1);
+    undo();
+    assert.equal(court(0).store.get('gatebook').told, 1);
+    assert.equal(gates(h, 'fell').length, 1, 'said');
+    assert.equal(gates(h, 'fell')[0].at, TT.sealAt, 'the same night');
+    await tick([0], 40);
+    assert.equal(gates(h, 'fell').length, 1, 'once');
+  });
+});
+
+test('AUDIT GATE-COURTS P2 the relay: a court\'s kill is told the book until it hears; the last court to win after the seal has the night said within a retry, never at the wrath (mutants: told although unheard; told although it threw; the retry unarmed; the court door arming nothing)', async () => {
+  await night(async ({ world, court, into, tick, hub, set, now }) => {
+    const h = hub.connect(); await hub.hello(h, id(900));
+    const a = await into(0, id(0));
+    for (let i = 1; i < 50; i++) await into(0, id(i));
+    await into(0, id(50));
+    const b = await into(1, id(50));
+    await tick([0, 1], 2);
+    await killIn(court(0), a, `acct-${id(0)}`);
+    await tick([0, 1], 2);
+    set(TT.sealAt + 10);
+    await tick([0, 1], 2);
+    assert.equal(gates(h, 'fell').length, 0, 'the second court still fights');
+    let refused = 0;
+    // refused twice - the kill's own try throws, the next beat's is answered 503: only the retry that beat arms delivers it
+    const undo = doors(world, gateRoomKey(DAY), (req) => { if (new URL(req.url).pathname !== GATE_INTERNAL_COURT) return undefined; const k = refused++; if (k === 0) throw new Error('the first court is down'); return k === 1 ? new Response('no', { status: 503 }) : undefined; });
+    await killIn(court(1), b, `acct-${id(50)}`);
+    assert.equal(court(0).store.get('gatebook').f[1], undefined, 'the book did not hear');
+    assert.equal(court(1).store.get('gatefight').booked, undefined, 'and the court knows it');
+    await tick([0, 1], Math.ceil(GATE_TELL_RETRY_MS / BRAIN_TICK_MS) + 2);
+    undo();
+    assert.equal(refused, 3, 'asked a third time');
+    assert.ok(court(0).store.get('gatebook').f[1], 'told again until heard');
+    await tick([0, 1], Math.ceil(GATE_TELL_RETRY_MS / BRAIN_TICK_MS) + 2);
+    assert.equal(gates(h, 'fell').length, 1, 'the night said');
+    assert.ok(now() < TT.wrathAt, 'long before the wrath');
+  });
+});
+
+test('AUDIT GATE-COURTS P3 the relay: a REAL party, formed through the hub\'s own frames - a mate arriving when the first court holds exactly fifty sits with its party past the fifty; the hub asked once for it, not again for a seat it holds (mutants: the hub\'s party never read; the first court\'s fifty no reason to ask; asked again at the confirmation)', async () => {
+  await night(async ({ world, hub, court, into, set, now }) => {
+    const sock = {};
+    for (const n of [40, 99]) { const ws = hub.connect(); await hub.hello(ws, id(n), null, { name: id(n), acct: `acct-${id(n)}`, asecret: `secret-of-acct-${id(n)}` }); sock[n] = ws; }
+    await hub.raw(sock[40], JSON.stringify({ t: 'social', k: 'party.invite', peer: id(99) }));
+    const pid = sock[99].sent.filter((m) => m.t === 'social' && m.k === 'invite').at(-1)?.party;
+    assert.ok(pid, 'invited');
+    await hub.raw(sock[99], JSON.stringify({ t: 'social', k: 'party.accept', party: pid }));
+    let asked = 0;
+    doors(world, SOCIAL_ROOM, (req) => { if (new URL(req.url).pathname === GATE_INTERNAL_PARTY) asked++; });
+    for (let i = 0; i < 50; i++) await into(0, id(i));
+    assert.equal(C.courtCounts(court(0).store.get('gatebook'), Date.now())[0], 50, 'exactly fifty, no court past the first');
+    const mate = await into(0, id(99));
+    assert.ok(gates(mate, 'st').some((m) => m.me === 1), 'seated with its party in the first court');
+    assert.equal(asked, 1, 'the hub asked its party');
+    const stranger = await into(0, id(98));
+    assert.deepEqual(gates(stranger, 'go').map((m) => m.c), [1]);
+    const before = asked;
+    await into(1, id(98));
+    assert.equal(asked, before, 'its seat confirmed in its court: the hub not asked again');
+    set(now() + C.GATE_MATES_KEEP_MS + 1);   // the party the hub said has lapsed (GATE_MATES_KEEP_MS); the seat, joined, has not
+    assert.ok(now() < TT.sealAt);
+    const back = await into(0, id(98));
+    assert.deepEqual(gates(back, 'go').map((m) => m.c), [1], 'back at the first court\'s door: its own court');
+    assert.equal(asked, before, 'a seat held: the hub not asked');
+  }, { party: null });
+});
+
+test('AUDIT GATE-COURTS P4 the relay: the rite\'s own waits for the hub to say the helpers; a helper who fought in a court past the first holds that court\'s receipt and no rite\'s own (mutants: the night said with no helpers heard; the court pays nobody; a court\'s payees dropped at the book\'s door)', async () => {
+  await night(async ({ world, court, into, fire, tick, hub, set }) => {
+    const h = hub.connect(); await hub.hello(h, id(900));
+    let silent = true;
+    doors(world, SOCIAL_ROOM, (req) => (new URL(req.url).pathname === RITE_INTERNAL_DAY ? (silent ? new Response('busy', { status: 503 }) : new Response(JSON.stringify({ h: [`acct-${id(50)}`, `acct-${id(77)}`] }))) : undefined));
+    const a = await into(0, id(0));
+    for (let i = 1; i < 50; i++) await into(0, id(i));
+    await into(0, id(50));
+    const b = await into(1, id(50));
+    await tick([0, 1], 2);
+    await killIn(court(0), a, `acct-${id(0)}`);
+    await killIn(court(1), b, `acct-${id(50)}`);
+    await tick([0, 1], 2);
+    set(TT.sealAt);
+    await fire(0);
+    assert.equal(court(0).store.get('gatebook').end, 0, 'the hub said no helpers: the night waits');
+    assert.equal(gates(h, 'fell').length, 0);
+    silent = false;
+    await tick([0], Math.ceil(GATE_TELL_RETRY_MS / BRAIN_TICK_MS) + 1);
+    assert.equal(gates(h, 'fell').length, 1, 'said once the helpers are heard');
+    const rc = new Map(court(0).store.get('gatebook').rc);
+    assert.ok(rc.has(`acct-${id(77)}`), 'the helper who fought nowhere: the rite\'s own');
+    assert.equal(rc.has(`acct-${id(50)}`), false, 'the helper who fought in the second court: its court\'s, never the rite\'s');
+  });
+});
+
+test('AUDIT GATE-COURTS P7 the relay: a first court whose book outlives its fight says the night on its own alarm and forgets the book at the day\'s end; the seat door arms the alarm (mutants: the book\'s tick asleep; the book kept; the seat door arming nothing)', async () => {
+  await night(async ({ court, fire, hub, set }) => {
+    const h = hub.connect(); await hub.hello(h, id(900));
+    const book = C.bookNew(DAY);
+    book.s[`acct-${id(1)}`] = [0, Date.now(), 1];
+    C.courtFell(book, 0, { at: Date.now(), top: ['Ann'], n: 1, rs: [`acct-${id(1)}`] });
+    court(0).store.set('gatebook', book);
+    await court(0).state.storage.setAlarm(TT.sealAt);   // the alarm its book armed, as a wake after a deploy finds it
+    set(TT.sealAt);
+    await fire(0);
+    assert.equal(gates(h, 'fell').length, 1, 'no fight of its own: the book\'s beat said the night');
+    set(TT.wrathAt + GATE_COLLAPSE_MS);
+    await fire(0);
+    assert.equal(court(0).store.has('gatebook'), false, 'the day over: the book forgotten');
+  });
+  await night(async ({ court }) => {
+    const res = await court(0).room.fetch(new Request(`https://relay.internal${GATE_INTERNAL_SEAT}`, { method: 'POST', body: JSON.stringify({ d: DAY, s: `acct-${id(1)}`, c: 3 }) }));
+    assert.deepEqual(await res.json(), { c: 0 });
+    assert.equal(court(0).alarm.at, TT.sealAt, 'the seat door arms the book\'s next moment');
+  });
+});
+
+test('AUDIT GATE-COURTS P8 the doors, the words and the bounds: the seat and court doors refuse what is not a seat or a court past the first; a newcomer sealed out and closed out in their own words; the night\'s `cs` bounded; the herald\'s post says its courts (mutants: the seat door unchecked; the court door takes the first; the count unchecked; sealed or closing one word; the courts dropped from the post; the courts dropped from the send; `cs` unbounded)', async () => {
+  assert.equal(validGateOut({ k: 'fell', d: DAY, at: 5, top: [], n: 1, cs: C.GATE_COURTS_MAX + 1 }), null, 'cs past the courts');
+  await night(async ({ court, into, say, set }) => {
+    const door = (path, body) => court(0).room.fetch(new Request(`https://relay.internal${path}`, { method: 'POST', body: JSON.stringify(body) }));
+    assert.equal((await door(GATE_INTERNAL_SEAT, { d: DAY, s: 'x', c: C.GATE_COURTS_MAX })).status, 400, 'a court past the last');
+    assert.equal((await door(GATE_INTERNAL_SEAT, { d: DAY, s: '', c: 1 })).status, 400, 'no account');
+    assert.equal((await door(GATE_INTERNAL_COURT, { d: DAY, c: 0, at: 1, n: 1 })).status, 400, 'the first court tells its own book');
+    assert.equal((await door(GATE_INTERNAL_COURT, { d: DAY, c: 2, at: 1, n: -1 })).status, 400, 'a count');
+    const R = court(0), a = R.connect(); await R.hello(a, id(1), at(0, 3));
+    set(TT.sealAt + 1);
+    await say(R, a, inWord); await settle();
+    assert.deepEqual(gates(a, 'no').map((m) => m.m), ['the gate is sealed'], 'sealed out');
+  });
+  await night(async ({ court, into, say, set }) => {
+    const f = await into(0, id(0));
+    await killIn(court(0), f, `acct-${id(0)}`);
+    const R = court(0), a = R.connect(); await R.hello(a, id(1), at(0, 3));
+    set(TT.sealAt + 1);
+    await say(R, a, inWord); await settle();
+    assert.deepEqual(gates(a, 'no').map((m) => m.m), ['the gate is closing'], 'its Warden fallen: closing');
+  });
+  const realFetch = globalThis.fetch, posts = [];
+  globalThis.fetch = async (url, init) => { posts.push(JSON.parse(init.body)); return { ok: true, status: 204 }; };
+  try {
+    await night(async ({ hub, fire }) => {
+      hub.env.GATE_DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/123456789/abcDEF_-x';
+      await hub.room.fetch(new Request(`https://relay.internal${GATE_INTERNAL_FELL}`, { method: 'POST', body: JSON.stringify({ d: DAY, night: 1, at: Date.now(), top: ['Ann'], n: 9, w: 2, cs: 3, rc: [], here: [] }) }));
+      await hub.fire();
+    });
+  } finally { globalThis.fetch = realFetch; }
+  assert.ok(posts.some((p) => JSON.stringify(p).includes(`${gateBossOf(DAY).name} has fallen in 2 of 3 courts`)), 'the herald posted the night with its courts');
+});
+
+test('AUDIT GATE-COURTS C5/P10 the relay: a full night\'s watcher in a first court whose Warden has fallen is handed no fallen fight (it would stop asking); the watcher\'s party asked of the hub once a minute, not every ask (mutants: a fallen fight handed; the party asked every time)', async () => {
+  await night(async ({ world, court, into, say, set, now }) => {
+    let asked = 0;
+    doors(world, SOCIAL_ROOM, (req) => { if (new URL(req.url).pathname === GATE_INTERNAL_PARTY) asked++; });
+    const book = C.bookNew(DAY);
+    for (let c = 1; c < C.GATE_COURTS_MAX; c++) for (let i = 0; i < C.GATE_COURT_FIGHTERS; i++) book.s[`acct-c${c}.${i}`] = [c, now(), 1];
+    court(0).store.set('gatebook', book);
+    const first = await into(0, id(0));
+    for (let i = 1; i < 50; i++) await into(0, id(i));
+    await killIn(court(0), first, `acct-${id(0)}`);
+    asked = 0;   // each of the fifty asked its own party - the watcher's are counted from here
+    const w = await into(0, id(50));
+    assert.deepEqual(gates(w, 'no').map((m) => m.m), ['the court is full']);
+    assert.equal(gates(w, 'st').length, 0, 'no fallen fight handed');
+    set(now() + 15_500);
+    await say(court(0), w, inWord); await settle();
+    assert.equal(gates(w, 'no').length, 2, 'asked again');
+    assert.equal(asked, 1, 'the hub asked its party once');
+  });
+});
+
+test('AUDIT GATE-COURTS C6 staff: a staff landing names the court its player stands in, and lands there - the relay seats staff in no book (mutants: the court dropped from the landing; a court past the last landed; one key for every court; the court unnamed; the court not kept landing; the host names no court; the host lands in the first court; staff sent on by the book)', async () => {
+  const link = createGateLink({ now: () => 0 });
+  link.word({ k: 'go', d: DAY, c: 5 });
+  const gate = { day: DAY, px: 10, py: 20, spot: [1, 2], near: 'X' };
+  assert.deepEqual(link.withCourt(gate), { ...gate, c: 5 });
+  const dest = { kind: 'gate', pixel: { x: 10, y: 20 }, pos: [0, 0, 0], yaw: 0, pitch: 0, gate: { ...gate, c: 5 } };
+  assert.equal(validStaffDestination(dest)?.gate?.c, 5, 'carried');
+  assert.equal(validStaffDestination({ ...dest, gate: { ...gate, c: C.GATE_COURTS_MAX } }), null, 'bounded');
+  assert.equal(staffDestinationKey(dest), `gate:${DAY}.5`);
+  const staffLink = createGateLink({ now: () => 0 });
+  assert.equal(staffLink.seatFor(validStaffDestination(dest).gate).c, 5);
+  assert.equal(staffLink.room(DAY), gateRoomKey(DAY, 5), 'staff land in the player\'s court');
+  const w = src('src/scenes/world.js');
+  assert.ok(w.includes("dest = { ...dest, kind: 'gate', gate: gateLink?.withCourt?.(gate) ?? gate };"), 'the host names the court on its landing');
+  assert.ok(w.includes("entered = await modes?.enterGateArena?.(gateLink?.seatFor?.(d.gate) ?? d.gate);"), 'and lands staff in it');
+  await night(async ({ court, say }) => {
+    const R = court(5), s = R.connect(); await R.hello(s, id(1), at(0, 3), { glyphs: ['dev'] });
+    await say(R, s, inWord); await settle();
+    assert.equal(gates(s, 'go').length, 0, 'never sent on');
+    assert.ok(R.room._fight.players[`acct-${id(1)}`], 'fights where it stands');
+    assert.equal(court(0).store.get('gatebook'), undefined, 'and no book seated it');
+  });
+});
+
+test('AUDIT GATE-COURTS C1/C2/C8 the link: the night\'s word folds no court\'s fight; leaving the court forgets the court the book sent me to; `go` carries nothing of one court into the next (mutants: the night folded; the court kept; a court carried)', () => {
+  const st = { k: 'st', d: DAY, b: 'ruhn', ph: 1, h: 5, m: 10, x: 0, z: 0, yw: 0, mv: null, atk: null, sh: 0, wr: 9e12, n: 1, fell: null, wrath: null, md: null, ct: 0, xa: [], cx: null, su: 0, rk: 0, op: 0 };
+  const link = createGateLink({ now: () => 0 });
+  link.word(st);
+  link.word({ k: 'fell', d: DAY, at: 9, top: ['Ann'], n: 50, w: 1, cs: 2 });
+  assert.equal(link.state().fell, null, 'my court still fights - another court\'s best three never fold into it');
+  assert.equal(link.fellAt(DAY), 9);
+  link.word({ k: 'go', d: DAY, c: 3 });
+  assert.equal(link.state().day, null, 'the court I leave by `go` carries nothing');
+  link.word(st);
+  link.leave();
+  assert.equal(link.room(DAY), gateRoomKey(DAY), 'out of the court: the first court\'s book is asked again');
+});
+
+test('AUDIT GATE-COURTS C4/C7 the words and the move: the seal\'s line waits for the night\'s word, and is never said once the gate collapses with it; the move between courts takes no room\'s hold (mutants: the seal said at once; the hold kept)', () => {
+  const said = [];
+  let clock = TT.sealAt, fell = null;
+  const omen = createGateOmen({ now: () => clock, site: (d) => ({ day: d, place: 'Copperham, Wrothgarian Mountains', near: 'Copperham', px: 1, py: 1, spot: [0, 0], ring: { cx: 1, cy: 1, r: 2 } }), say: (s) => said.push(s), localTime: () => '00:00', fellAt: () => fell });
+  omen.frame();
+  assert.equal(said.filter((s) => s.includes('has sealed')).length, 0, 'held at the seal');
+  clock = TT.sealAt + SEAL_SAY_HOLD_MS;
+  omen.frame();
+  assert.equal(said.filter((s) => s.includes('has sealed')).length, 1, 'said once the hold is over');
+  const quiet2 = [];
+  let clock2 = TT.sealAt;
+  const omen2 = createGateOmen({ now: () => clock2, site: (d) => ({ day: d, place: 'P', near: 'N', px: 1, py: 1, spot: [0, 0], ring: { cx: 1, cy: 1, r: 2 } }), say: (s) => quiet2.push(s), localTime: () => '00:00', fellAt: () => fell });
+  omen2.frame();
+  fell = TT.sealAt + 500;
+  clock2 = TT.sealAt + SEAL_SAY_HOLD_MS;
+  omen2.frame();
+  assert.deepEqual(quiet2.filter((s) => s.includes('has sealed') || s.includes('Covenant tears')), [], 'the gate collapsed with the night: neither the seal nor the wrath said');
+  assert.match(src('src/scenes/world.js'), /\(isGateRoom\(key\) && isGateRoom\(online\.room\)\) \|\|/, 'a move between a night\'s courts takes no hold');
 });

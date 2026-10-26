@@ -101,6 +101,9 @@ export function gateSkyNear(distM) {
 /** The sky a gate burns over an eye `distM` metres off at `nowMs`: its life's weight by its reach. Pure. */
 export const gateSkyWeight = (t, nowMs, fellAt, distM) => gateSkyPhaseWeight(t, nowMs, fellAt) * gateSkyNear(distM);
 
+/** AUDIT GATE-COURTS C4: how long past the seal its line waits for the night's word (the first court's book says it at
+ *  the seal where every court has won; a hub that missed it is told again GATE_TELL_RETRY_MS on, net/wire.js). */
+export const SEAL_SAY_HOLD_MS = 6_000;
 /** WB3b: the kill, said to everyone online (the hub's word): who stood where, and who struck hardest. */
 export const fellLine = ({ near, boss, top }) => `${boss} has fallen at Dagon's Breach ${near ? `near ${near}` : 'in the wilds'}${top?.length ? `, struck down by ${top.length > 1 ? `${top.slice(0, -1).join(', ')} and ${top[top.length - 1]}` : top[0]}` : ''}. The breach collapses.`;   // WB13b: "in the wilds" where this screen never found the site, as Discord says it
 /** GATE-COURTS (net/gate/gateCourts.js): a court's kill, said to everyone online (the hub's `cf`) - its court by its number
@@ -193,6 +196,9 @@ export function createGateOmen({ now, site, say, localTime = () => null, fellAt 
       current = { t, phase, site: s };
       if (!s) return current;
       const line = SAYS[phase];
+      // AUDIT GATE-COURTS C4: the seal's line waits SEAL_SAY_HOLD_MS - on a night whose every court has won, the night's
+      // word comes at the seal, and "it collapses at midnight" was said a moment before it collapsed
+      if (line === 'seal' && now() - t.sealAt < SEAL_SAY_HOLD_MS) return current;
       // a gate collapsing because its boss FELL says no wrath: the relay's own line (WB3) said the fall
       const rank = LINE_ORDER.indexOf(line);
       if (line && (t.day !== saidDay || rank > saidRank) && !(line === 'wrath' && Number.isFinite(fell))) {

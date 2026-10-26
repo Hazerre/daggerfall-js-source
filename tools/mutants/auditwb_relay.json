@@ -193,7 +193,7 @@
   {
     "name": "AUDWB-A10-no-beat-to-retry",
     "file": "server/src/index.js",
-    "old": "    await this.state.storage.setAlarm(Math.min(f.said && (!f.told || !f.booked) ? now + GATE_TELL_RETRY_MS : here",
+    "old": "    await this.state.storage.setAlarm(Math.min((f.said && !f.told) || (f.fell && !f.booked) ? now + GATE_TELL_RETRY_MS : here",
     "new": "    await this.state.storage.setAlarm(Math.min(here",
     "tests": [
       "test/net/gate/auditwb_relay.test.js"

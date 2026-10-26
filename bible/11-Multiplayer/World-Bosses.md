@@ -2972,19 +2972,25 @@ account fights in. Nothing else decides it - every court asks the book before a 
 (`server/src/index.js` _gateSentOn, _gateSeatOf; another court asks through GATE_INTERNAL_SEAT), so an account
 fights in ONE court a night and holds one receipt a night, as it always has. placeSeat's law:
 - A seat held is its court for the night, whatever that court did since (won, or full). A fighter who leaves and comes
-  back, from any court's door, is sent back to its own.
+  back, from any court's door, is sent back to its own. But a PENDING seat in a court that has won since is none: its
+  page was sent on to a Warden who fell before it came, whose court refuses it, so it is placed again as a newcomer
+  (AUDIT GATE-COURTS R2/P5, section 30).
 - A newcomer, while the gate admits, sits in the lowest court where one of its party holds a live seat, that has not
   won and seats fewer than GATE_COURT_FIGHTERS + GATE_PARTY_SLACK (7 - a whole party, PARTY_MAX, stands together
   whoever of it came first); else in the lowest court that has not won and seats fewer than GATE_COURT_FIGHTERS.
 - The party is the hub's (GATE_INTERNAL_PARTY - `_myParty`, the party as it stands), asked only while the night holds
-  a court past the first or the first is full: one court with room has nowhere else to put a mate, so most nights ask
-  the hub nothing.
-- A seat given to a page that must go on to another court is PENDING until that court sees it join; one never joined
-  lets go after GATE_SEAT_PENDING_MS (a minute), so a court is never full of pages that never arrived. A joined seat
-  counts for the night.
+  a court past the first or the first is full, and only for an account the book holds no seat for: one court with room
+  has nowhere else to put a mate, so most nights ask the hub nothing. Its answer is kept GATE_MATES_KEEP_MS (a minute)
+  an account (P10).
+- A seat given to a page that must go on to another court is PENDING until that court's fight takes it: a seat is
+  JOINED only where the court that asks is its own and says its fight takes a newcomer now (its Warden stands and the
+  gate admits - `can`, `j` on GATE_INTERNAL_SEAT; AUDIT GATE-COURTS R4/C3: a seat marked joined that no fight took held
+  the night open to the wrath). One never joined lets go after GATE_SEAT_PENDING_MS (a minute), so a court is never
+  full of pages that never arrived. A joined seat counts for the night. The book is written only when a seat changed it
+  (P10).
 - Every court full (GATE_COURTS_MAX x GATE_COURT_FIGHTERS, 800, with the parties' slack): the newcomer is the court's
-  watcher, COURT-WATCH's law (section 24) - handed the fight it stands in, told *the court is full*, asking again every
-  COURT_WATCH_ASK_MS.
+  watcher, COURT-WATCH's law (section 24) - handed the fight it stands in while its Warden stands (C5: a fallen one
+  stopped its asking), told *the court is full*, asking again every COURT_WATCH_ASK_MS.
 - After the seal the first court is still the door of a fighter of any court (its book sends it on); a stranger is
   sealed out, as before.
 
@@ -2992,7 +2998,12 @@ fights in ONE court a night and holds one receipt a night, as it always has. pla
 court - `net/wire.js` validGateOut), the link keeps the court for that day (`net/gate/gateLink.js` `room`), and the
 host's room is that court's from the next frame (`scenes/world.js`, the online frame's room key -
 `(gateLink?.room ?? gateRoomKey)(day)`): the socket moves, the welcome is new, the `in` is said again and the book
-confirms the seat. The arena itself does not move - every court of a night is built on the night's plan. GATE_BRAIN_V and
+confirms the seat. The arena itself does not move - every court of a night is built on the night's plan. `go` empties
+the link's state, so nothing of one court's fight is carried into the next (C8); a move between a night's courts takes
+no room's hold (C7); a socket sent on is answered the same `go` for COURT_WATCH_ASK_MS without the book asked (R5);
+and out of the arena the link forgets the court (C2 - a court that refused me is never asked again in a loop). Staff
+fight where they stand, seated by no book: a staff landing names the court its player stands in (`gateLink.withCourt`,
+`net/staffTeleport.js` the gate's `c`) and lands there (C6). GATE_BRAIN_V and
 GATE_BRAIN_MIN are 7: a game from before would not hear `go`, and is told to reload (AUDIT WBX R7's door).
 
 **A court's kill, and the night.**
@@ -3001,22 +3012,35 @@ GATE_BRAIN_MIN are 7: a game from before would not hear `go`, and is told to rel
   holds) - the chat's line, in the player's language (`systems/gate/gateOmen.js` courtFellLine, `net.gate.courtFell` and
   `net.gate.courtFellWilds`: *"Valkynaz Ruhn has fallen in court 3 of Dagon's Breach near Copperham, struck down by
   ..."* - no collapse said). It is neither kept for a hello nor heralded.
-- The court tells the book its kill (GATE_INTERNAL_COURT, retried until heard - `f.booked`).
+- The court tells the book its kill AT the kill, before anything else is awaited and before its receipts are minted
+  (the accounts it pays are its earners, `rs`), then on every beat until heard - `f.booked`, its retry armed
+  (GATE_INTERNAL_COURT; AUDIT GATE-COURTS R2, P2: the book heard it on the court's next beat, after the hub, so a
+  newcomer that moment was seated before a fallen Warden).
 - **The night is done** (gateCourts.js nightDone) after the seal, once every court a fighter JOINED has won - a newcomer
-  could open a court until then, so the gate stands in the world for it - or at the wrath, once any court has (the
-  rest are cast back with it). The first court's alarm wakes for the seal and the wrath (`_gateBookDue`), and the book
-  says the night once (`_gateBookBeat`): the hub's `fell` with the courts that won (`w`) and the courts the night held
+  could open a court until then, so the gate stands in the world for it - or GATE_NIGHT_GRACE_MS (3 s) past the wrath,
+  once any court has (the rest are cast back with it; R3: a kill just before the wrath reaches the book before the
+  rite's own are minted). The first court's alarm wakes for the seal and the wrath's grace (`_gateBookDue`; a first
+  court with no fight of its own beats for its book alone, `_gateBookTick`, and forgets it at the day's end - P7), and
+  the book says the night once (`_gateBookBeat` - its moment and its rite's receipts kept before it is said, said again
+  until the hub answers, P1): the hub's `fell` with the courts that won (`w`) and the courts the night held
   (`cs`), the best three of the court that won first and every winning court's fighters. That `fell` is the gate's
   collapse on every screen (the omen, the sky, the rite's circle - `gateLink.fellAt`), kept for a hello while the gate
   holds, and the herald's one card (`net/gate/gateHerald.js` fellPost: *"Valkynaz Ruhn has fallen in 2 of 3 courts"* on a
   night of more than one). A screen that heard a court's kill says nothing more at the night; one that heard none (a
   late hello) says the night's line as every kill was said.
-- A court's own `fell` folds its fight alone: the gate in the world falls only to the hub's word, which names its day.
+- A court's own `fell` folds its fight alone: the gate in the world falls only to the hub's word, which names its day -
+  and folds no court's fight (C1: a court still fighting at the wrath stood its Warden fallen under another court's best
+  three).
+- The seal's line waits SEAL_SAY_HOLD_MS (6 s) for the night's word (`systems/gate/gateOmen.js`; C4): on a night whose
+  every court has won the night is said at the seal, and *"it collapses at midnight"* was said a moment before it
+  collapsed.
 - **Before the courts an early kill collapsed the gate at once.** Now an early win leaves it open until the seal: a
   newcomer is seated in the next court, whose Warden stands. The owner's choice.
 - **The rite's own receipt** (WB12d, section 19 D) is the night's book's: minted once, when the night is done, for each
-  who broke the faithful's rite and holds no court's receipt (gateCourts.js riteOnly). A court still fighting could yet
-  give a helper a receipt of its own, so it is no longer minted at a kill. A helper who fights still has the ember more
+  who broke the faithful's rite and holds no court's receipt (gateCourts.js riteOnly) - once the hub has said who did
+  (a hub that does not answer leaves the night unsaid until it does, P4); the hub never keeps one over a court's of the
+  same day (R3). A court still fighting could yet give a helper a receipt of its own, so it is no longer minted at a
+  kill. A helper who fights still has the ember more
   (`r`) on its own court's receipt.
 
 **The wire** (relay world265, NOT YET DEPLOYED - one announced drop): the court rooms' keys, `go` and `cf`, the night's
@@ -3025,17 +3049,19 @@ GATE_BRAIN_MIN are 7: a game from before would not hear `go`, and is told to rel
 **What it does not do, said so.**
 - An account's court is the book's for the night: it never moves to a friend's court once seated, and a party formed
   after its members sat apart stays apart that night.
-- A joined seat counts for the night: a court whose fighters walk out keeps its count (within a court, its fight's own
-  idle-seat release - AUDIT WB A1's freeSeat - stands as it did).
+- A joined seat counts for the night: a court whose fighters walk out keeps its count. Its fight's own idle-seat
+  release (AUDIT WB A1's freeSeat) never runs under the book: it frees a seat only at GATE_FIGHTERS_MAX (256), and the
+  book seats a court GATE_COURT_FIGHTERS + GATE_PARTY_SLACK (57) at most - `auditwb_relay`'s A1 pin reaches it by filling
+  a fight directly (AUDIT GATE-COURTS P9a; this said it "stands as it did").
 - The chat numbers every court ("court 1" on a night of one).
 - Not seen in a browser; the relay's half is pinned over real Rooms (below), not a live night.
 
-**Pins.** `test/net/gate/gatecourts.test.js` (14): the law (the counts, the rooms, the copies; the seat, its pending and
+**Pins.** `test/net/gate/gatecourts.test.js` (29 - 14, and AUDIT GATE-COURTS' 15, section 30): the law (the counts, the rooms, the copies; the seat, its pending and
 its lapse; the party and its slack; the night, its word and the rite's own), the wire, the relay over real Rooms (the
 fifty-first sent on and fighting its own court's fight; one court a night; a party together and the hub asked only
 past one court; each court's kill its own, the gate standing, the night at the seal once; the rite's own at the night;
 the night full and the first court's door after the seal), the hub's two words and its party door, the link, the words
-and the wiring. `tools/mutants/gatecourts.json` (39, all dead). PIN MOVED: RELAY_VERSION world265 in every file that
+and the wiring. `tools/mutants/gatecourts.json` (96 - 39, and the audit's 57 - all dead). PIN MOVED: RELAY_VERSION world265 in every file that
 names it and `test/net/relayversion.test.js`'s row and graph (net/gate/gateCourts.js joins the bundle); GATE_BRAIN 7
 (`wb8b_gate_marks`, `wb9c_gate_reckoning`, `wb11_gate_host`); the out kinds (`wb3_gate_room`); the rooms' law and its
 imports (`wb1_gate_omen`); a court's kill as `cf`, the night at the seal, a stranger before the seal sent on, the
@@ -3053,6 +3079,59 @@ EQUIVALENT - the fight's own seats are never reached under the book, whose door 
 **Found on the way, not this arc's.** Two records of `tools/mutants/wb12d.json` survive on main's own tree, before any of
 this: WB12d-the-gold-s-dress-moved-by-r (`scenes/spoilsPool.js`) and AUDIT-WB12d-T-relay-herald-next-at-ignores-rite
 (the herald's next moment ignoring an owed rite). Each was run alone on main and survived; left for their own slice.
+
+## 30. AUDIT GATE-COURTS (2026-10-26, the owner: "Audit this")
+
+Three cold lanes read section 29 as pushed (dca3526c91) - the relay (R); the law, the wire and the client (C); the pins,
+the record and the cost (P) - each reproducing its findings over real Rooms (`test/fakeRoom.mjs` fakeRooms) or the real
+modules. Each finding was checked in the code before it was fixed, pinned by a test that fails on the code before its fix
+(`test/net/gate/gatecourts.test.js`, the AUDIT GATE-COURTS tests), and its mutant recorded (`tools/mutants/gatecourts.json`,
+the `GCA-` records).
+
+| # | found | fixed |
+|---|---|---|
+| R1 | two newcomers whose `in`s landed together at a court with no fight yet each made a fight, the second over the first (the book's call to the first court opens the input gate): the one left out was told it was seated, its blows junked, and after the seal refused at both doors | the fight read again after the book is asked (`_gateFrame`) |
+| R2, P5, C2 | the book heard a court's kill on that court's next beat, after the rite's ask and the hub - a newcomer that moment was seated before a fallen Warden: in the first court joined and refused *closing* for the night; past it, sent on to a court that refused its hello, and sent there again for a minute, the link keeping that court until a reload | the kill told the book AT the kill, before anything is awaited (`_gateFallOnce`), its payees its earners; a PENDING seat in a won court placed again (placeSeat); out of the arena the link forgets its court (`leave`) |
+| R3 | at the wrath, a court that won a moment before had not yet reached the book: a helper who fought in it was minted a receipt of the rite alone as well, which the hub kept over its court's (and the night's `w` and `n` left that court out) | the night said GATE_NIGHT_GRACE_MS (3 s) past the wrath; the hub never keeps a receipt of the rite alone over one of the same day |
+| R4, C3 | a seat was marked joined whenever its own court asked, before the fight took it: a page sent on before the seal whose `in` landed after it held a court no fighter fought in in `courtsJoined`, the gate standing to the wrath and the herald saying *1 of 2 courts* | joined only where the court says its fight takes a newcomer now (`can`, `j` on the seat door: its Warden stands and the gate admits) |
+| R5, P10 | a socket sent on had no throttle - every `in` rewrote the whole book, and from a court past the first called the first court (28 a second a socket at GATE_HZ_MAX); a full night's watcher wrote the book and asked the hub its party every COURT_WATCH_ASK_MS | the same `go` answered for COURT_WATCH_ASK_MS without the book asked; the book written only when a seat changed it; an account's party kept GATE_MATES_KEEP_MS |
+| C1 | the hub's night `fell` fell through to `foldGate`: in a court still fighting at the wrath its Warden fell under another court's best three (the cry, the corpse, the way home, the chart - and a running Soul Trap rolled) | the night's word records its day and folds nothing |
+| C4 | on a night every court had won, the seal's line (*"it collapses at 00:00"*) was said a moment before the night's word collapsed the gate | the seal's line waits SEAL_SAY_HOLD_MS (6 s), and is not said once the night is |
+| C5 | a full night's watcher in a first court whose Warden had fallen was handed that fallen fight - and a fallen fight stops `askAgain` | no fallen fight handed with *the court is full* |
+| C6 | a staff landing named no court: staff were seated by the book as newcomers (taking a seat, opening a court) and landed away from the player | staff seated by no book; the landing carries the player's court (`withCourt`, the gate's `c`, its key `gate:<day>.<c>`) and lands there (`seatFor`) |
+| C7 | the move from the first court to another waited ROOM_HOLD_MS (gate keys are neither world nor cell rooms) - a newcomer seated in the last moment before the seal was refused *sealed* | a move between a night's courts takes no hold |
+| C8 | a watcher moved by `go` carried the old court's `fed`, `vgw`, tithe, `lg` and broken crystals into the next | `go` empties the link's state |
+| P1 | the night's `fell` (the collapse on every screen, the herald's card) was pinned to nothing on its retry: marked told although the hub had not heard, or never told again, both survived | the hub refuses the night once, said once after GATE_TELL_RETRY_MS, its moment kept |
+| P2 | a court's tell to the book: the answer, the throw, the beat's retry and the court door's alarm unpinned - a lost tell held the gate standing up to ten minutes after every court had won | the first court down, then refusing, then hearing; the last court winning after the seal |
+| P3 | "the party together" rested on the harness's own party answer | a real party formed through the hub's own frames (`night(..., { party: null })`), the first court at exactly fifty, a held seat asked again past the party's keep |
+| P4 | the rite's own: said with no helpers heard, the night's moment unkept, a later court's payees dropped at the book's door - all survived | the hub silent then answering; a helper who fought in the second court holds its court's receipt alone |
+| P6 | "the second court beats on its own" asserted words the join had already said | the join's words cleared before the beat |
+| P7 | the book's own beat (a first court with no fight) pinned by a source grep alone - its beat, its drop at the day's end and the seat door's alarm survived | driven over a first court whose book outlives its fight |
+| P8 | the doors' checks, *sealed* and *closing*, the wire's `cs` bound, the herald's send of the courts and the pending minute unpinned | each pinned |
+| P9 | (a) section 29 said freeSeat "stands as it did" - it never runs under the book; (b) the Scale-Arc note said a court's copies are reached only by a full night's watchers - every newcomer comes to the first court first; (c) five mutants named in titles had no record | rewritten in place; the five recorded |
+
+**Departures from what the lanes proposed, said so.** R3: a lane would have the book wait, at the wrath, for every court
+with a joined seat to report; a court whose object never answers would then hold the night forever, so the book waits a
+grace instead (under GATE_COLLAPSE_MS, when the night is forgotten) and the hub's own rule is the net. C2: a lane would
+forget the court on a terminal refusal; the eject that refusal causes leaves the arena, and leaving forgets it - with
+R2's re-placing, the next way in is the first court's book. P10: the party is kept an account (a Bounded map,
+HUB_KEEP_MAX), not a socket.
+
+**Measured, not changed.** Lane P's cost, after the fixes above: a full night (800) about 3,000 rows and 1,500 internal
+calls, under a cent; the largest recurring line is each fought court's own 4 Hz beat (about 77k alarm rows and
+invocations at sixteen courts over twenty minutes, against 4.8k for one) - the courts' own price, scaling with the
+courts opened; the hub hears up to sixteen `cf` fan-outs a night instead of one, and each court asks it the rite's
+helpers every RITE_ASK_EVERY_MS. The book's worst case (912 seats, sixteen courts' payees, 64 rite receipts) is about
+118 KB, under the 128 KiB value with little room. The wire takes a `fell` whose `w` exceeds its `cs`.
+
+**Pins and record.** Fifteen tests (`gatecourts.test.js`, 29 in all); 57 records (`gatecourts.json`, 96 in all), all dead.
+Re-aimed by content: GC-a-seat-moved, GC-never-joined, GC-the-wrath-unread, GC-the-go-unsaid, GC-the-seat-unconfirmed,
+GC-the-hub-never-asked, GC-the-hub-asked-for-every-newcomer, GC-the-book-untold, GC-link-the-go-unkept,
+COURTWATCH-kept-past-the-court, COURTWATCH-state-not-handed, AUDWB-A10-no-beat-to-retry,
+AUDWBX2-M3-the-copy-over-the-mark (now `rite` kept: the same-day spent receipt alone) and WB3-the-wake-forgets (the
+fight and the book in one read) - each still dies. PIN MOVED: `test/net/relayversion.test.js`'s world265 row, re-hashed
+in place (world265 was never deployed); `staffTeleport` and `staffpanel5hook` hand their hosts `gateLink`; `world2`'s
+hold law takes the move between courts (C7).
 
 ## Shipped
 

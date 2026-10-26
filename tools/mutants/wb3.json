@@ -475,8 +475,8 @@
   {
     "name": "WB3-the-wake-forgets",
     "file": "server/src/index.js",
-    "old": "      const v = await this.state.storage.get('gatefight');\n      this._fight = v && typeof v === 'object' ? v : null;",
-    "new": "      const v = await this.state.storage.get('gatefight-not');\n      this._fight = v && typeof v === 'object' ? v : null;",
+    "old": "      const got = await this.state.storage.get(['gatefight', 'gatebook']);",
+    "new": "      const got = await this.state.storage.get(['gatefight-not', 'gatebook']);",
     "tests": [
       "test/net/gate/wb3_gate_room.test.js"
     ],
