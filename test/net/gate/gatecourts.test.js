@@ -130,7 +130,7 @@ test('GATE-COURTS the night: done after the seal once every court a fighter JOIN
   assert.equal(C.bookNextAt(w, TT, TT.wrathAt + C.GATE_NIGHT_GRACE_MS), null);
   w.end = 5;
   assert.equal(C.bookNextAt(w, TT, TT.openAt), null, 'said: nothing owed');
-  assert.equal(C.isBook(w), true); assert.equal(C.isBook({ d: 1 }), false); assert.equal(C.isBook(null), false);
+  assert.equal(C.isGateBook(w), true); assert.equal(C.isGateBook({ d: 1 }), false); assert.equal(C.isGateBook(null), false);
 });
 
 // ═══ THE WIRE ═════════════════════════════════════════════════════════════════════════════════

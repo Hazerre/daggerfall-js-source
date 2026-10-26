@@ -253,7 +253,7 @@ import { LAYER_ASK_HEADER, LAYER_EMPTY_HEADER, LAYER_LAST_HEADER, LAYERS_MAX } f
 // pure law - it imports nothing) and net/gate/gateReceipt.js (the kill's receipt, the relay's first signature - it imports
 // identityToken.js, already here). bible/11-Multiplayer/World-Bosses.md sections 5, 6 and 8.
 import { isGateRoom, gateDayOfRoom, gateAdmits, gateHolds, gateTimes, gateBossOf, gateModsOf, gatePortentsOf, gateTitheOf, GATE_COLLAPSE_MS, isGateDay, gateRoomKey, gateCourtOfRoom } from '../../src/net/gate/gateLaw.js';
-import { bookNew, isBook, placeSeat, courtFell, nightDone, nightWord, riteOnly, bookNextAt, courtOk, courtCounts, courtsJoined, GATE_COURT_FIGHTERS, GATE_MATES_KEEP_MS } from '../../src/net/gate/gateCourts.js';   // GATE-COURTS: a night's courts and the first court's book
+import { bookNew, isGateBook, placeSeat, courtFell, nightDone, nightWord, riteOnly, bookNextAt, courtOk, courtCounts, courtsJoined, GATE_COURT_FIGHTERS, GATE_MATES_KEEP_MS } from '../../src/net/gate/gateCourts.js';   // GATE-COURTS: a night's courts and the first court's book
 import { GATE_INTERNAL_SEAT, GATE_INTERNAL_COURT, GATE_INTERNAL_PARTY } from './relay.js';   // GATE-COURTS: the doors between a night's courts, and the book's to the hub
 import { riteNear, riteHeard, riteStands, cageStands, RITE_HELPERS_MAX } from '../../src/net/gate/gateRite.js';   // WB12d: the faithful's rite; BROKER-CAGE: the Broker's cage, omen to midnight
 import { isSiegeRoom, newFighter, armsOk, SIEGE_HIT, ROYAL_RING, isSiegeNpcId, siegeNpcFoe, siegeNpcPose, siegeNpcFell, siegeNpcInReach, siegeNpcProvoked, refereeBlow, refereeCast, refereeStep, siegeHeld, siegeNextWave, siegeRise, SIEGE_WAVE_MS, SIEGE_FIGHTERS_MAX, SIEGE_SPECTATORS_MAX, SIEGE_OPENS_MS, SIEGE_TICK_MS, siegeNextBeat, fieldOf, newBattle, battleStep, honoured, siegeCampPose, siegeFieldFrame, isBattleRoom, isRoyalRoom, battleOfRoom, royalAsk, royalAccept, royalMarks, royalMayStrike, royalStepOk, royalEnd, royalStep, royalLadder, royalNextBeat, ROYAL_RC_KEEP, siegePlaceFree, siegeReturn, royalPrune, worksOf, refereeWorkBlow, siegeWaveMs, siegeRamDown, siegeBreach, SIEGE_WORK_IDS, SIEGE_GATEHOUSE, SIEGE_RAM, siegeGroundOf, siegeOffGround, siegeStepLevel, royalLevel, SIEGE_HEIGHT_M } from '../../src/net/siege/siegeRef.js';   // PVP-REF: a siege's referee - siegeRef.js imports nothing, so the worker's graph stays flat   // SEAT2a: and its battle   // AUDIT-SEATS T3/R5: a side's places, a fighter's return, a tourney's records   // SEAT2b part two (b): the works in battle
@@ -7085,7 +7085,7 @@ export class Room {
       const got = await this.state.storage.get(['gatefight', 'gatebook']);   // AUDIT GATE-COURTS: the night's book in the same read - every room whose alarm reaches the gate's beat reads no key more for it
       const v = got.get('gatefight');
       this._fight = v && typeof v === 'object' ? v : null;
-      if (this._gateBook === undefined) { const b = got.get('gatebook'); this._gateBook = isBook(b) ? b : null; }
+      if (this._gateBook === undefined) { const b = got.get('gatebook'); this._gateBook = isGateBook(b) ? b : null; }
       // AUDIT WB14 (WIRE-1): A FIGHT FROM BEFORE THE PORTENTS woken on a portent night (a deploy while its gate burned) was
       // fought on floors the screens no longer build (they build the night's plan - the Vanguard's Bridgehead its arrival),
       // so it is let go unfallen and the next `in` begins the night's own; a fallen one keeps its receipts
@@ -7653,7 +7653,7 @@ export class Room {
   /** The night's book, kept by the first court's object: the instance's, else storage's - `make` a new one for `day` where
    *  there is none. */
   async _gateBookOf(day = null, make = false) {
-    if (this._gateBook === undefined) { const v = await this.state.storage.get('gatebook'); this._gateBook = isBook(v) ? v : null; }
+    if (this._gateBook === undefined) { const v = await this.state.storage.get('gatebook'); this._gateBook = isGateBook(v) ? v : null; }
     if (!this._gateBook && make && Number.isSafeInteger(day)) this._gateBook = bookNew(day);
     return this._gateBook;
   }

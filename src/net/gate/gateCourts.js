@@ -54,7 +54,7 @@ export const GATE_NIGHT_GRACE_MS = 3_000;
 export const bookNew = (day) => ({ d: day, s: {}, f: {}, end: 0, told: 0 });
 
 /** Is `b` a book - storage's own shape, read back after a wake? @param {any} b */
-export const isBook = (b) => !!b && typeof b === 'object' && Number.isSafeInteger(b.d) && !!b.s && typeof b.s === 'object' && !!b.f && typeof b.f === 'object';
+export const isGateBook = (b) => !!b && typeof b === 'object' && Number.isSafeInteger(b.d) && !!b.s && typeof b.s === 'object' && !!b.f && typeof b.f === 'object';
 
 /** Is a court index a court's? @param {any} c */
 export const courtOk = (c) => Number.isSafeInteger(c) && c >= 0 && c < GATE_COURTS_MAX;
