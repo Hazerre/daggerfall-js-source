@@ -234,8 +234,8 @@ test('NIRNROOT-SAGE the service end to end: Blob-Marley registers, holds the tit
   assert.deepEqual([m.claims.t, m.claims.au, (m.claims.g ?? []).includes('nirnrootsage')], [undefined, undefined, false], 'off the list, the next token carries none of the three');
 });
 
-test('NIRNROOT-SAGE token and relay: a token may carry the title, the glyph and the smoke and verifies; every glyph at once still fits; a word the vocabulary lacks is refused; the relay - world267 and after, the ones that know the words - reads all three out of the signature onto the peer\'s row (mutants: the vocabulary\'s words)', async () => {
-  assert.equal(RELAY_VERSION, 'world267', 'NIRNROOT-SAGE moved it on: the vocabulary rides the relay\'s bundle (NOT YET DEPLOYED)');
+test('NIRNROOT-SAGE token and relay: a token may carry the title, the glyph and the smoke and verifies; every glyph at once still fits; a word the vocabulary lacks is refused; the relay - world268 and after, the ones that know the words - reads all three out of the signature onto the peer\'s row (mutants: the vocabulary\'s words)', async () => {
+  assert.equal(RELAY_VERSION, 'world268', 'NIRNROOT-SAGE moved it on: the vocabulary rides the relay\'s bundle (world267 on its branch, renumbered past KETCH-WORDS at the merge; NOT YET DEPLOYED)');
   const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
   const pub = await importPublicKeyB64(Buffer.from(new Uint8Array(await subtle.exportKey('raw', kp.publicKey))).toString('base64url'), { subtle });
   const nowS = 1_760_000_000;

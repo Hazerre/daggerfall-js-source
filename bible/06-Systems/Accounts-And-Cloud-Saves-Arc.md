@@ -6053,7 +6053,7 @@ city, stands no boss floor. bootWorld takes ten logical lines (36,255 at the mer
 - Left, said: not seen in a running game client against a deployed service (the client's pin runs the whole road over
   the real Worker); the Lost and Found's own words are English, as the developers' post is.
 
-## NIRNROOT-SAGE — Blob-Marley's own: the Nirnroot Sage, its glyph and Sage's Smoke (2026-10-26, world267, acct194)
+## NIRNROOT-SAGE — Blob-Marley's own: the Nirnroot Sage, its glyph and Sage's Smoke (2026-10-26, world268, acct194)
 
 For the in-game account BLOB-MARLEY (Discord Blob-Marley), an Immortal backer, his custom aura worked out with
 SirMcMobdon: "a cloud of billowing smoke with nirnroots circling around me", and his final idea, "billowing smoke,
@@ -6067,7 +6067,7 @@ Daggerfall Unity has no accounts, titles, glyphs or auras, so there is no DFU me
   three on the next token. A near name (`BlobMarley`, `Blob Marley`, the HOURS-FIRST account `Nirnroot`) is another
   account and holds none of it.
 - **The vocabulary** (`src/net/identityToken.js`, in the relay bundle): `nirnrootsage` last in TITLES and GLYPHS,
-  `sagesmoke` last in AURAS. A relay before it refuses a token carrying them, so the relay is **world267** and the account
+  `sagesmoke` last in AURAS. A relay before it refuses a token carrying them, so the relay is **world268** (world267 on its branch, renumbered past KETCH-WORDS at the merge) and the account
   service **acct194**: THE RELAY FIRST, then the account service, then the site. Every token acct194 mints for Blob-Marley
   carries the glyph whether or not he wears anything, so an account deployed first would shut him out of every room until
   the relay landed (CRYSTAL-FIST AUDIT A1).
@@ -6133,12 +6133,12 @@ Daggerfall Unity has no accounts, titles, glyphs or auras, so there is no DFU me
 - Pins: `test/net/nirnrootsage.test.js` (17) - the vocabulary and the face (each colour apart from every title's by more
   than 40); the glyph's shape (one outline that never crosses itself, the bulb, the leaves, the veins inside the leaves,
   the heart inside the bulb); the grant (case-folded, off the list, a guest, the other lists' holders and near names); the
-  service end to end; the token and the relay (world267); the name over a head, the glyph's SVG with its two details, the
+  service end to end; the token and the relay (world268); the name over a head, the glyph's SVG with its two details, the
   account card's rules; the classic face's letters along the gradient; the look; the smoke's law (the rise, the growth,
   the drift, the curl, the next flight elsewhere, the wrap); the nirnroots' law (the orbit, the spacing, the bob, the sway,
   coming up one after another); every card at once (farthest first, the near fade, the kindle); a nirnroot RUN, a puff
   RUN, the ground RUN, the wall RUN, the cards' vertex half RUN; the draw (premultiplied, node's cards handed on the
-  wearer's own clock). `tools/mutants/nirnrootsage.json` (59, all dead). PIN MOVED: the relay's pins to world267 (43 files
+  wearer's own clock). `tools/mutants/nirnrootsage.json` (59, all dead). PIN MOVED: the relay's pins to world268 (43 files
   and the relay law's row, `test/net/relayversion.test.js`) and the account's to acct194 (20 files, the history
   `auditscale2_acct.test.js` holds among them), crediting NIRNROOT-SAGE; the vocabulary's positional and whole-list pins in
   `aegis`, `chap4c_titles`, `chap6e_titles`, `crystalfist`, `egeco_honours`, `hoursfirst`, `primarch`, `seraphwings`,
@@ -6151,12 +6151,7 @@ Daggerfall Unity has no accounts, titles, glyphs or auras, so there is no DFU me
   dead: thirty-three records that quote the lists this extends (in `aegis.json`, `crystalfist.json`, `herald.json`,
   `hoursfirst.json`, `penitent.json`, `primarch.json`, `sd9c.json`, `seraphwings.json`, `shadowcloak.json`,
   `shadowfang.json` and `wikimaid.json`), the relay's version record (`soc1.json`) and the account's (`hackedgold`,
-  `bal9`, `crafthold` twice, `nameas`, `br5`, `fb1004d_knight_house`, `tech1`, `wb14g`; `gatekeys`' is no verdict here,
-  below). WIKIMAID-depth-nearest-first stays aimed at the warren's one site (the smoke's own sort is written apart, MUT-AIM).
-- Found and left, not this slice's: on main as here, `test/server/accountdeploy.test.js` ACC1-CI and
-  `test/server/discord_setup.test.js` DISCORD-CODE fail (`src/net/ketch/ketchLaw.js` is bundled into the account Worker
-  and read by the deploy's Discord step, and the deploy's path filter does not name it), and so `gatekeys.json`'s record
-  is no verdict; `test/systems/raid2_raidsOnline.test.js` RAID2 fails too (the relay now reads inside a foes frame).
+  `bal9`, `crafthold` twice, `nameas`, `br5`, `fb1004d_knight_house`, `tech1`, `wb14g` and `gatekeys`). WIKIMAID-depth-nearest-first stays aimed at the warren's one site (the smoke's own sort is written apart, MUT-AIM).
 - Left as they are, said: not seen in a running game client - the probe and the interpreter are its readers; the
   nirnroots and the puffs are cards square to the eye, so straight down from overhead a nirnroot is edge on; a close
   third-person camera thins the nearest puffs as the first person's rule reaches it; like every aura it stands on a
