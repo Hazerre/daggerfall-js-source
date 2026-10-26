@@ -1089,6 +1089,7 @@ function render() {
 
 function onKey(e) {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (deps.covered?.()) return;   // BOX-ON-TOP: a box stands over the counter (ui/tradeDoor.js)
   if (box) {
     if (box.buttons === 'YesNo') {
       if (e.code === 'KeyY') { e.preventDefault(); dismissBox(true); }
