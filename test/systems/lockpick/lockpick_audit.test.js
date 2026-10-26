@@ -161,3 +161,73 @@ test('AUDIT LOCKPICK A4: a building\'s door a Lock spell locked is picked as DFU
     res();
   }, OPEN_HOLD_MS + 40));
 });
+
+test('AUDIT LOCKPICK B2: the Lockpick\'s card lines reach every card that shows it - the classic Info box, the enhanced card, the stat rows (mutants: a gate that forgot the Lockpick)', async () => {
+  const { itemInfoRows, itemStatRows } = await import('../../../src/systems/item/itemInfo.js');
+  const { itemLine } = await import('../../../src/ui/enhanced/enhancedInventory.js');
+  const { LOCKPICK_TEXT } = await import('../../../src/systems/lockpick/lockpickItem.js');
+  const pick = lockpicks(3), want = LOCKPICK_TEXT.card();
+  assert.equal(want.length, 2);
+  const classic = itemInfoRows(pick, (id) => [{ text: `<TEXT.RSC ${id}>` }]).map((r) => r.text);
+  assert.ok(want.every((w) => classic.includes(w)), `the classic box: ${JSON.stringify(classic)}`);
+  assert.deepEqual(itemLine(pick).survival?.filter((w) => want.includes(w)), want, 'the enhanced card');
+  const stats = itemStatRows(pick).map((r) => r.text);
+  assert.ok(want.every((w) => stats.includes(w)), `the stat rows: ${JSON.stringify(stats)}`);
+});
+
+test('AUDIT LOCKPICK B4: online, a counter\'s picks stand back by what a purchase took - a stack shoplifted stays gone, ENDLESS-ARROWS\' law; a whole stack bought stands the whole again (mutants: the whole stack on any purchase; past the stack)', async () => {
+  const { restockEndless } = await import('../../../src/systems/shopStock.js');
+  const { restockLockpicks, lockpickCount, ENDLESS_LOCKPICK_STACK } = await import('../../../src/systems/lockpick/lockpickItem.js');
+  const saved = globalThis.location;
+  globalThis.location = { search: '?online' };
+  try {
+    const counter = [];   // 24 of the 25 shoplifted, then the last one bought - taken off the counter, as the trade does
+    restockEndless(counter, [lockpicks(1)]);
+    assert.equal(lockpickCount(counter), 1, 'the bought one stood back, the stolen ones gone');
+    const whole = [];
+    restockEndless(whole, [lockpicks(ENDLESS_LOCKPICK_STACK)]);
+    assert.equal(lockpickCount(whole), ENDLESS_LOCKPICK_STACK, 'the whole stack bought: the whole stood again');
+    const full = [lockpicks(ENDLESS_LOCKPICK_STACK)];
+    assert.equal(restockLockpicks(full, 3), 0); assert.equal(lockpickCount(full), ENDLESS_LOCKPICK_STACK, 'never past the stack');
+    const some = [lockpicks(20)];
+    assert.equal(restockLockpicks(some, 3), 1); assert.equal(lockpickCount(some), 23);
+    assert.equal(restockLockpicks(some, 0), 0);
+  } finally { globalThis.location = saved; }
+});
+
+test('AUDIT LOCKPICK B8: the gift through the real save - a picking class from before the Lockpick given five once, never again through five saves and loads; a new one\'s kit never doubled; a class that never picks given none (mutants: the mark unsaved; the gift every load; the gift to any class)', async () => {
+  const { snapshotPlayer, restorePlayer } = await import('../../../src/systems/save/save.js');
+  const { giveStartingLockpicks, lockpickCount, LOCKPICK_KIT } = await import('../../../src/systems/lockpick/lockpickItem.js');
+  const { SKILLS } = await import('../../../src/systems/skills.js');
+  const careerOf = (picks) => ({ primarySkills: [SKILLS.ShortBlade, 0, 1], majorSkills: picks ? [SKILLS.Lockpicking, 2, 3] : [2, 3, 4], minorSkills: [5, 6, 7, 8, 9, 10], luck: 50 });
+  const mk = (picks) => ({ isPlayer: true, level: 3, gender: 'male', activeEffects: [], health: 60, maxHealth: 60, items: [], spells: [], stats: {}, skills: {}, career: careerOf(picks) });
+  const quiet = (fn) => { const k = [console.info, console.log, console.warn]; console.info = console.log = console.warn = () => {}; try { return fn(); } finally { [console.info, console.log, console.warn] = k; } };
+  const cycles = (entity, { old = false } = {}) => {
+    let snap = JSON.parse(JSON.stringify(snapshotPlayer(entity, { classicMinutes: 100 })));
+    if (old) delete snap.lockpickGift;
+    const counts = [];
+    for (let k = 0; k < 5; k++) {
+      const loaded = { isPlayer: true };
+      quiet(() => restorePlayer(loaded, snap, new Map()));
+      counts.push(lockpickCount(loaded.items));
+      snap = JSON.parse(JSON.stringify(snapshotPlayer(loaded, { classicMinutes: 100 })));
+    }
+    return counts;
+  };
+  const five = Array(5).fill(LOCKPICK_KIT);
+  const thief = mk(true); giveStartingLockpicks(thief);
+  assert.deepEqual(cycles(thief), five, 'a new Thief: the kit, never doubled');
+  assert.deepEqual(cycles(mk(true), { old: true }), five, 'a Thief from before: five, once');
+  assert.deepEqual(cycles(mk(false), { old: true }), [0, 0, 0, 0, 0], 'a Knight from before: none');
+  assert.deepEqual(cycles(mk(false)), [0, 0, 0, 0, 0], 'a new Knight: none');
+});
+
+test('AUDIT LOCKPICK B8: the item law judges the Lockpick headless - itemLaw.js alone, the account Worker\'s graph, in a process of its own - and finds nothing in a pick, a kit, a counter\'s stack (mutant: the leaf unread)', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { lockpicks } = await import('../../../src/systems/lockpick/lockpickItem.js');
+  const items = [lockpicks(1), lockpicks(5), lockpicks(25)];
+  const law = new URL('../../../src/systems/item/itemLaw.js', import.meta.url).href;
+  const out = execFileSync(process.execPath, ['--input-type=module', '-e',
+    `const law = await import(${JSON.stringify(law)}); console.log(JSON.stringify(${JSON.stringify(JSON.stringify(items))} && JSON.parse(${JSON.stringify(JSON.stringify(items))}).map((it) => law.itemFindings(it))));`], { encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').at(-1)), [[], [], []], 'no finding against an honest Lockpick');
+});

@@ -689,11 +689,13 @@ export const SLAUGHTERFISH_SCALES = 'hide:slaughterfish';
 export const HAUL_YIELD = Object.freeze([1, 2]);
 /** A school's fish on top (PROF0 6) - a Netter's two (3.3). */
 export const SCHOOL_FISH = Object.freeze({ plain: 1, netter: 2 });
-/** AUDIT GATHER F3 (Professions-Arc section 55): the hauls a day an account's school's fish are counted on. A school is the
- *  client's word (the service has no water to measure a cast against) - section 30 took it so because the day's forty hauls
- *  bound it, and CAP-OFF lifted that bound from the hauls and never from the school: every haul of a lying client claimed
- *  one, the act's report moving the yield by +117% (a Netter's +183%) past 5.1's +50%. The forty stand again, for the school
- *  alone - an honest net in a day's play never casts into forty schools (two a pixel a day). */
+/** AUDIT GATHER F3 (Professions-Arc section 55): the SCHOOLS a day an account's school's fish are counted on. A school is
+ *  the client's word (the service has no water to measure a cast against) - section 30 took it so because the day's forty
+ *  hauls bound it, and CAP-OFF lifted that bound from the hauls and never from the school: every haul of a lying client
+ *  claimed one, the act's report moving the yield by +117% (a Netter's +183%) past 5.1's +50%. Forty schools an account a
+ *  day - twenty pixels' worth, two a pixel - and the hauls themselves uncapped. AUDIT LOCKPICK D2: the schools that counted
+ *  are counted (the harvest row's `school`, migration 0176), never every haul - an honest angler's first school after forty
+ *  plain hauls was refused its fish. */
 export const SCHOOL_HAULS_DAY = 40;
 /** The finds, a haul each (5.2): at sea, on ground the witnesses confirmed, a Pearl 1 in 50 (a Pearl Diver's x3, a
  *  Deep-Sea's x2) and a Slaughterfish 1 in 100 (a Deep-Sea's x2); a trophy 1 in 200 anywhere. */

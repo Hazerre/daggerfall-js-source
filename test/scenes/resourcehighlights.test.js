@@ -123,6 +123,20 @@ test('RESOURCE-HIGHLIGHTS the draw: the outline rings every node in its colour, 
     assert.equal(u('uRing')[i][0], Math.max(1, outlinePx(480) * fit), 'its width in its tile\'s texels');
   }
   assert.deepEqual(u('uDwFog'), [[renderer._dwFog]]); assert.deepEqual(u('uJungleHaze'), [[renderer._haze]]);
+  // AUDIT LOCKPICK D4: the ring's state and its every uniform, sent - each node its own rectangle and tile; the frame's
+  // matrices, eye and fog once; blended, against the depth, the quad bound and the atlas on unit 0
+  const nodes = r._nodes.slice(0, 2);
+  assert.deepEqual(u('uRect'), nodes.map((s) => [...s.rect]), 'each node its rectangle');
+  assert.deepEqual(u('uTile'), nodes.map((s) => [...s.tile]), 'and its tile');
+  for (const n of ['uVP', 'uInvVP', 'uCamPos', 'uFogMode', 'uFogDensity', 'uFogRange', 'uViewport', 'uMask']) assert.equal(u(n).length, 1, `${n} sent once`);
+  assert.deepEqual(u('uCamPos'), [[renderer._camPos]]); assert.deepEqual(u('uFogMode'), [[renderer._fogMode]]); assert.deepEqual(u('uMask'), [[0]]);
+  assert.deepEqual(u('uViewport')[0], [8, 4, 640, 480], 'the frame\'s viewport, its origin too');
+  const before = rings.slice(0, quad);
+  assert.ok(before.some((x) => x[0] === 'enable' && x[1] === gl.BLEND), 'blended');
+  assert.ok(before.some((x) => x[0] === 'bindVertexArray' && x[1] === r.quad), 'the quad bound');
+  assert.ok(before.some((x) => x[0] === 'activeTexture' && x[1] === gl.TEXTURE0) && before.some((x) => x[0] === 'bindTexture' && x[2] === r.atlas), 'the atlas on unit 0');
+  const depth = calls.slice(0, back + quad).filter((x) => (x[0] === 'enable' || x[0] === 'disable') && x[1] === gl.DEPTH_TEST).at(-1);
+  assert.deepEqual(depth?.slice(0, 2), ['enable', gl.DEPTH_TEST], 'against the world\'s depth');
   const tail = calls.slice(calls.length - 1 - [...calls].reverse().findIndex((x) => x[0] === 'drawArrays')).map((x) => x.slice(0, 2).join(':'));
   for (const w of [`disable:${gl.BLEND}`, 'depthMask:true', `enable:${gl.CULL_FACE}`]) assert.ok(tail.includes(w), `the baseline handed back: ${w}`);
   assert.ok(r._nodes.slice(0, 2).every((s) => s.g === null), 'no mark held past the frame');

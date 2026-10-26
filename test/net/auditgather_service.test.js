@@ -51,13 +51,13 @@ test('AUDIT GATHER F2: a Motherlode is struck only once it has risen on the serv
   const early = await strike(_now + 30);
   assert.equal(early.body.error, 'motherlode-closed', `an act's end claimed past the rise, on the service's clock before it: ${JSON.stringify(early.body)}`);
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM motherlode_strikes WHERE player = ?').get(ann.id).n, 0, 'no slot taken');
-  clock(lode.opensAt + 30);
-  const risen = await strike(_now - 2);
+  clock(lode.opensAt + 1);   // AUDIT LOCKPICK D5: a second past the rise - the bound is the rise itself
+  const risen = await strike(_now);
   assert.equal(risen.body.ok, true, JSON.stringify(risen.body));
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM motherlode_strikes WHERE player = ?').get(ann.id).n, 1);
 });
 
-test('AUDIT GATHER F3: a school\'s fish on the account\'s first SCHOOL_HAULS_DAY hauls of the day alone - the fortieth haul\'s school counted, the forty-first\'s not; the haul itself still credited past forty (CAP-OFF) (mutants: the bound unread; one haul short)', async () => {
+test('AUDIT GATHER F3: a school\'s fish on the account\'s first SCHOOL_HAULS_DAY SCHOOLS of the day - forty plain hauls take nothing from the bound (AUDIT LOCKPICK D2), the fortieth school counted, the forty-first not; every haul still credited (CAP-OFF) (mutants: the bound unread; one school over; every haul counted)', async () => {
   const NOON = DAY0 * DAY + 12 * 3600;
   clock(NOON);
   const s = await standService({ PROFESSIONS_OPEN: 'on', MARKS_OPEN: 'on' });
@@ -67,9 +67,13 @@ test('AUDIT GATHER F3: a school\'s fish on the account\'s first SCHOOL_HAULS_DAY
     character: mac.character, node: haulKey({ x: 300 + (id % 5), y: 200, day: utcDay(NOON), id: (++id).toString(16).padStart(12, '0') }), kind: 'fish', climate: CLIMATES.Woodlands, region: 17, act, at: NOON - 2, rid: rid('fish'),
   }, mac.secret);
   assert.equal(SCHOOL_HAULS_DAY, 40);
-  for (let i = 0; i < SCHOOL_HAULS_DAY - 1; i++) assert.equal((await haul({ clean: false })).status, 200);
+  for (let i = 0; i < 41; i++) assert.equal((await haul({ clean: false })).status, 200);
+  const honest = await zeroDice(() => haul({ clean: true, school: 1 }));
+  assert.deepEqual([honest.body.hauls, honest.body.qty], [42, 3], 'forty-one plain hauls, then the day\'s first school: one x1.5, its fraction the dice\'s nought, and the school\'s one');
+  for (let i = 0; i < SCHOOL_HAULS_DAY - 2; i++) assert.equal((await zeroDice(() => haul({ clean: true, school: 1 }))).body.qty, 3, `school ${i + 2}`);
   const fortieth = await zeroDice(() => haul({ clean: true, school: 1 }));
-  assert.deepEqual([fortieth.body.hauls, fortieth.body.qty], [40, 3], 'one x1.5, its fraction the dice\'s nought, and the school\'s one');
+  assert.equal(fortieth.body.qty, 3, 'the fortieth school counted');
   const past = await zeroDice(() => haul({ clean: true, school: 1 }));
-  assert.deepEqual([past.status, past.body.hauls, past.body.qty], [200, 41, 2], 'credited, the full net\'s step, and no school');
+  assert.deepEqual([past.status, past.body.qty], [200, 2], 'credited, the full net\'s step, and no school');
+  assert.equal(s.env.DB._raw.prepare('SELECT COUNT(*) AS n FROM node_harvests WHERE player = ? AND school = 1').get(mac.id).n, SCHOOL_HAULS_DAY, 'the rows say which took a school');
 });

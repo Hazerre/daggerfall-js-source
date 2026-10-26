@@ -247,7 +247,7 @@ export const MAGIC_ITEMS_ENUM_TEMPLATE = 0;
 import { BOOK_TEMPLATE, createRegularMagicItem, createRandomPotion, randomlyAddPotionRecipe, getMagicItemTemplates, createRandomWeapon, createRandomArmor, createRandomClothing } from './loot/loot.js';   // G4: the guild shelves' two minters (AUDIT 26 F129/F130: + the recipe arm and the registry)
 import { SPELLBOOK_TEMPLATE_INDEX } from './spell/spellMaker.js';   // G4: one home for MiscItems 132
 import { restItemsStock } from './rest/restItems.js';   // REST6: the Bedroll, the Ember Jar, Firewood and the draughts
-import { isLockpick, ensureEndlessLockpicks } from './lockpick/lockpickItem.js';   // LOCKPICK: the counter's endless picks
+import { isLockpick, ensureEndlessLockpicks, restockLockpicks } from './lockpick/lockpickItem.js';   // LOCKPICK: the counter's endless picks
 import { provisionsStock, campfireStock, createSurvivalItem, isSurvivalItem, isCampfireKit, TEMPLATE as SURVIVAL_TEMPLATE, ensureEndlessProvisions, ENDLESS_RATIONS_STACK } from './survival/items.js';   // SURV2: the general store's provisions shelf   // REST2: and online the Campfire alone, the arc Off
 import { sharedClockOn } from './worldTick.js';
 import { healingShelfCount, mintHealingPotion } from './healingSupply.js';   // POTION-COMMON: the shelf's Potions of Healing
@@ -330,6 +330,7 @@ export function restockEndless(shelfItems, bought, buildingType = null) {
   let n = restockArrows(shelfItems, bought, buildingType);
   // AUDIT ENDLESS-STOCK F4: online alone, as the bag is - offline a shelf sells out as Daggerfall's does
   if (!isOnlinePage()) return n;
+  n += restockLockpicks(shelfItems, (bought ?? []).filter(isLockpick).reduce((k, it) => k + Math.max(1, Math.trunc(it.stackCount ?? 1)), 0));   // AUDIT LOCKPICK B4: what the purchase took
   for (const it of bought ?? []) {
     if (!isEndlessStock(it)) continue;
     if (isRations(it)) {
@@ -339,7 +340,7 @@ export function restockEndless(shelfItems, bought, buildingType = null) {
       else { const r = createSurvivalItem(SURVIVAL_TEMPLATE.Rations, { stackCount: ENDLESS_RATIONS_STACK }); if (r) { addItem(shelfItems, r); n++; } }
       continue;
     }
-    if (isLockpick(it)) { ensureEndlessLockpicks(shelfItems); n++; continue; }   // LOCKPICK: the counter's stack filled back to its whole, or stood again
+    if (isLockpick(it)) continue;   // LOCKPICK: stood back above, by what the purchase took
     const fresh = isBagItem(it)
       ? mintCondition(setItemFields({ group: 'UselessItems2', templateIndex: BAG_TEMPLATE }))
       : createSurvivalItem(SURVIVAL_TEMPLATE.Campfire);

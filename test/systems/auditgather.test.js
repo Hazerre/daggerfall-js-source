@@ -15,13 +15,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { NOON, OUTDOORS, rig, arrive, tick } from '../gatherRig.mjs';
+import { NOON, OUTDOORS, WOODS, GLENUMBRA, PX, rig, arrive, tick, memStorage, plainRenderer, dice, bus } from '../gatherRig.mjs';
+import { createGatherEar } from '../../src/systems/gatherSounds.js';
+import { mineKind } from '../../src/scenes/mineHost.js';
+import { motherlodeKey } from '../../src/net/motherlodeLaw.js';
+import { veins } from '../../src/net/nodeLaw.js';
+import { HEIGHTMAP_DIMENSION, TERRAIN_SIZE } from '../../src/world/terrain/terrainSampler.js';
 import { setForagingHost } from '../../src/systems/foraging/foragingInstall.js';
-import { createProfBook, SEAT_REFUSALS } from '../../src/net/profBook.js';
+import { createProfBook, SEAT_REFUSALS, PROF_SEAT_RETRY_MS, PROF_PUMP_MS } from '../../src/net/profBook.js';
 import { MINE_ACT, HERB_ACT, tugWindow, actBand } from '../../src/net/professionLaw.js';
 import { utcDayOfMs, parseNodeKey } from '../../src/net/nodeLaw.js';
 import { FT } from '../../src/systems/foraging/foragingLaw.js';
-import { ACT_STOPPED_LINE } from '../../src/scenes/gatherHost.js';
+import { ACT_GONE_LINE, createGatherHost, aimAt } from '../../src/scenes/gatherHost.js';
 import { createFishAct } from '../../src/systems/fishAct.js';
 import { createHerbAct } from '../../src/systems/herbAct.js';
 import { herbsWet, herbKind } from '../../src/scenes/herbHost.js';
@@ -48,23 +53,35 @@ function bookOf(answers, { carried = true } = {}) {
   return { book, asked, harvest, later: (ms) => { t += ms; } };
 }
 
-test('AUDIT GATHER F1: a CARRIED harvest the seat refuses (progress-seat, trade-held) is kept and asked again with its own rid - it may have landed with its answer lost; a harvest not carried, and a carried one refused for its own sake, is let go (mutants: the seat\'s refusals unread; the carry unasked)', async () => {
+test('AUDIT GATHER F1: a CARRIED harvest whose first answer was lost, then refused at the seat (progress-seat, trade-held), is kept and asked again with its own rid - it may have landed - minutes apart while the seat holds; refused on its FIRST ask it never landed and is let go with the seat\'s own words (AUDIT LOCKPICK D1); a harvest not carried, and a carried one refused for its own sake, is let go (mutants: the seat\'s refusals unread; the carry unasked; a first ask kept; the hold asked every thirty seconds)', async () => {
   assert.deepEqual([...SEAT_REFUSALS], ['progress-seat', 'trade-held']);
   for (const error of SEAT_REFUSALS) {
-    const b = bookOf([{ ok: false, error, status: 403 }]);
+    // the first ask's answer lost (offline), then the seat refuses: kept, its rid its own, the next ask minutes away
+    const b = bookOf([{ ok: false, error: 'offline' }, { ok: false, error, status: 403 }]);
     const r = await b.harvest();
-    assert.deepEqual([r.ok, r.kept, r.error], [false, true, error], `${error}: kept`);
-    assert.equal(b.book.pendingHarvests, 1);
+    assert.deepEqual([r.ok, r.kept], [false, true], 'the first answer lost: kept');
     b.later(60_000);
     await b.book.pump(() => {});
     assert.equal(b.asked.length, 2, `${error}: asked again`);
     assert.equal(b.asked[1].rid, b.asked[0].rid, 'with its own rid - a landed one is answered as made');
-    const plain = bookOf([{ ok: false, error, status: 403 }], { carried: false });
-    const p = await plain.harvest();
-    assert.deepEqual([p.ok, p.kept, plain.book.pendingHarvests], [false, undefined, 0], `${error}: a harvest not carried is the service's no`);
+    assert.equal(b.book.pendingHarvests, 1, `${error}: kept on the seat's refusal`);
+    b.later(PROF_PUMP_MS.at(-1) + 1);
+    await b.book.pump(() => {});
+    assert.equal(b.asked.length, 2, `${error}: not asked again inside the seat's wait`);
+    b.later(PROF_SEAT_RETRY_MS);
+    await b.book.pump(() => {});
+    assert.equal(b.asked.length, 3, `${error}: asked again once it has passed`);
+    // refused on its first ask: it never landed - let go, the seat's own words said
+    const first = bookOf([{ ok: false, error, status: 403 }]);
+    const f = await first.harvest();
+    assert.deepEqual([f.ok, f.kept, f.error, first.book.pendingHarvests], [false, undefined, error, 0], `${error}: a first ask refused is let go`);
+    const plain = bookOf([{ ok: false, error: 'offline' }, { ok: false, error, status: 403 }], { carried: false });
+    await plain.harvest(); plain.later(60_000); await plain.book.pump(() => {});
+    assert.equal(plain.book.pendingHarvests, 0, `${error}: a harvest not carried is the service's no`);
   }
-  const own = bookOf([{ ok: false, error: 'prof-rank' }]);
-  assert.equal((await own.harvest()).kept, undefined);
+  assert.equal(PROF_SEAT_RETRY_MS, 300_000);
+  const own = bookOf([{ ok: false, error: 'offline' }, { ok: false, error: 'prof-rank' }]);
+  await own.harvest(); own.later(60_000); await own.book.pump(() => {});
   assert.equal(own.book.pendingHarvests, 0, 'a carried harvest refused for its own sake is let go');
 });
 
@@ -104,7 +121,53 @@ test('AUDIT GATHER F5: an act on yesterday\'s node ends at the UTC day\'s turn -
   for (let i = 0; i < 10; i++) await tick();
   assert.deepEqual([asked.length, t.gate.answers.length], [0, 0], 'nothing asked');
   assert.equal(pick.currentCondition, 50, 'the Pick-Axe unworn');
-  assert.ok(t.said.includes(ACT_STOPPED_LINE), 'the stop said');
+  assert.ok(t.said.includes(ACT_GONE_LINE()), 'the stop said, and why (AUDIT LOCKPICK C14)');
+});
+
+test('AUDIT LOCKPICK D3: a Motherlode\'s act ends as its lode sinks - its close, the day\'s last as late as 23:58 UTC - nothing asked, the Pick-Axe unworn, the spot\'s going said; F5 never saw its key (mutant: the lode\'s close unread)', async () => {
+  setForagingHost({ world: () => OUTDOORS });
+  const day = utcDayOfMs(NOON * 1000), key = motherlodeKey(day, 2), midnight = (day + 1) * 86400;
+  assert.equal(parseNodeKey(key), null, 'no node key: the turn alone never ended it');
+  const samples = new Float32Array(HEIGHTMAP_DIMENSION * HEIGHTMAP_DIMENSION).fill(0.25), tilemap = new Uint8Array(128 * 128).fill(2);
+  const rocks = veins({ x: PX, y: 150, day, climate: WOODS, region: GLENUMBRA }).map((v) => [v.u * TERRAIN_SIZE - 2, 0, v.v * TERRAIN_SIZE + 4, v.u * TERRAIN_SIZE + 2, 6, v.v * TERRAIN_SIZE + 8]);
+  const entry = { px: PX, py: 150, samples, tilemap, locationRect: null, batches: [], rocks, forest: null };
+  const lode = { k: 2, key, x: PX, y: 150, climate: WOODS, region: GLENUMBRA, material: 'ore:ebony', opensAt: midnight - 2 * 3600 - 120, closesAt: midnight - 120, struck: 0 };
+  const clock = { ms: (midnight - 150) * 1000 };   // 23:57:30, the lode standing till 23:58
+  const lodes = { standingOn: (x, y) => (x === PX && y === 150 && clock.ms / 1000 < lode.closesAt ? [lode] : []), found: () => null, watchFor: () => 'a-watch-receipt', heard: () => {}, refused: () => false };
+  const asked = [], said = [], meters = [];
+  const door = {
+    account: () => 'acct-1',
+    state: async () => ({ ok: true, data: { day: utcDayOfMs(clock.ms), character: 'c1', tracks: [{ profession: 'mining', xp: 10 * 25 ** 2, rank: 25, specs: { 50: null, 100: null } }], today: {}, taken: [], stores: [], caps: { stores: 5000 } } }),
+    pixels: async (c, px) => ({ ok: true, data: { pixels: px.map(([x, y]) => ({ x, y, state: 'none' })), dungeons: [] } }),
+    harvest: async (b) => { asked.push(b); return { ok: false, error: 'motherlode-closed' }; },
+  };
+  const book = createProfBook({ door, storage: memStorage(), character: () => 'c1', now: () => clock.ms, sleep: () => Promise.resolve() });
+  const hud = { setPrompt: () => {}, setMeter: (m) => meters.push(m), toast: (l) => said.push(l), banner: () => {}, setChip: () => {}, frame: () => {}, dispose: () => {} };
+  const entity = { items: [{ templateIndex: FT.PickAxe, currentCondition: 50, maxCondition: 50 }], stats: {} };
+  const feet = [0, 0, 0], view = { yaw: 0, pitch: 0 }, input = { v: { held: false, attack: false, choice: false } };
+  const host = createGatherHost({
+    book, hud, ear: createGatherEar({ audio: bus(), on: () => false, rand: dice(0.5), install: false }), kinds: [mineKind({ book, lodes })], renderer: plainRenderer(), getTexture: async () => ({ recordCount: 999 }), uploadRecord: () => {},
+    billboardSize: () => ({ w: 0.3, h: 0.3 }), flatBatchAabb: () => [0, 0, 0, 0, 0, 0], built: () => new Map([[`${PX},150`, entry]]), pixelTranslation: (x, y, out) => { out[0] = 0; out[1] = 0; out[2] = 0; return out; },
+    pixelInfo: () => ({ climate: WOODS, region: GLENUMBRA }), nowMs: () => clock.ms,
+    eye: () => ({ pos: [feet[0], feet[1] + 1.6, feet[2]], dir: [Math.sin((view.yaw * Math.PI) / 180) * Math.cos((view.pitch * Math.PI) / 180), Math.sin((view.pitch * Math.PI) / 180), Math.cos((view.yaw * Math.PI) / 180) * Math.cos((view.pitch * Math.PI) / 180)] }),
+    view: () => view, feet: () => feet, entity: () => entity, keyLabel: () => 'E', input: () => input.v, active: () => true,
+  });
+  await book.refresh();
+  host.onBuilt(entry);
+  for (let i = 0; i < 4; i++) await tick();
+  const node = host.nodesOf(PX, 150).find((n) => n.what === 'motherlode');
+  assert.ok(node, 'the lode stood');
+  const [x, y, z] = node.local; feet[0] = x; feet[1] = y; feet[2] = z - 1.5;
+  const at = aimAt([feet[0], feet[1] + 1.6, feet[2]], [x, y + (node.lift ?? 0.3), z], { yaw: 0, pitch: 0 }); view.yaw = -at.yaw; view.pitch = -at.pitch;
+  host.tick(0.016); for (let i = 0; i < 6; i++) await tick();
+  assert.equal(host.press(), true, 'the strike begun at 23:57:30');
+  for (let s = 0; s < 40 && host.acting(); s++) { clock.ms += 1000; host.tick(1); await tick(); }
+  assert.equal(host.acting(), false, 'ended at the close');
+  assert.ok(clock.ms / 1000 <= lode.closesAt + 1, 'at the close, not past it');
+  for (let i = 0; i < 10; i++) { host.tick(0.05); await tick(); }
+  assert.deepEqual([asked.length, entity.items[0].currentCondition], [0, 50], 'nothing asked, the Pick-Axe unworn');
+  assert.ok(said.includes(ACT_GONE_LINE()), 'the spot\'s going said');
+  assert.equal(meters.at(-1), null, 'its meter taken down (D5)');
 });
 
 test('AUDIT GATHER F6: the tug\'s window is the attribute band\'s - FORAGE0 14.4-14.5, "within 600 ms x the band" - as the haul\'s tension band already was (mutant: the band unread)', () => {
@@ -127,6 +190,7 @@ test('AUDIT GATHER F7: rain wets the herbs (5.3) - rain or thunder FALLING narro
   const between = (HERB_ACT.steadyDeg + HERB_ACT.steadyDeg * HERB_ACT.wet) / 2;
   assert.deepEqual([turn(createHerbAct({ kind: 'steady' }), between), turn(createHerbAct({ kind: 'steady', wet: true }), between)], [false, true]);
   assert.equal(turn(createHerbAct({ kind: 'steady', wet: true, gentle: true }), 90), false, 'Gentle Acts still bruise nothing');
+  assert.equal(createHerbAct({ kind: 'basket', wet: true }).state.glint, createHerbAct({ kind: 'basket' }).state.glint, 'the rain wets the steady hand alone - the Basket\'s glints stand (AUDIT LOCKPICK D5)');
   // the host's own act: Herbalism's kind reads the fall when the Sickle's steady hand begins
   setForagingHost({ world: () => OUTDOORS });
   const kind = herbKind({ book: { track: () => ({ specs: {} }) } });

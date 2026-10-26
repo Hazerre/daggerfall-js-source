@@ -77,6 +77,19 @@ export function ensureEndlessLockpicks(/** @type {any[]} */ items) {
   return items;
 }
 
+/** AUDIT LOCKPICK B4: an online counter's picks stood back by what a PURCHASE took, never past the whole stack - ENDLESS-ARROWS'
+ *  law (shopStock.js restockArrows): a stack shoplifted stays gone, and a pick bought after it brought every stolen one back.
+ *  Answers 1 when the counter changed. */
+export function restockLockpicks(/** @type {any[]} */ items, /** @type {number} */ took) {
+  if (!Array.isArray(items) || !(took > 0)) return 0;
+  const stack = items.find(isLockpick);
+  if (!stack) { items.push(lockpicks(Math.min(ENDLESS_LOCKPICK_STACK, took))); return 1; }
+  const was = stack.stackCount ?? 1;
+  if (was >= ENDLESS_LOCKPICK_STACK) return 0;
+  stack.stackCount = Math.min(ENDLESS_LOCKPICK_STACK, was + took);
+  return 1;
+}
+
 /** Whether a character's class holds Lockpicking at all - primary, major or minor. */
 export function careerPicksLocks(/** @type {any} */ entity) {
   const c = entity?.career;
