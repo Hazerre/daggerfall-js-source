@@ -6,52 +6,59 @@ named under each fix, the mutants `tools/mutants/fb1026_*.json`.
 
 | | Report | What it was | Done |
 |---|---|---|---|
-| 1 | SaberGGaming, "Crafting writs not accepting": "I brewed the 7 heal true potions myself and its showing like I haven't made any"; Punch Cat: "I think it's the provisioning ones. I've had the same issues with potions and cooking dishes" | The law held: a potion writ counts only WITNESSED brews, and a dish or kit writ only pieces not walled to gold - a cauldron or a pan that spent LOOSE units (looted, or bought with gold) is no witness. The card said "0 brewed by you" over brews that had paid their XP, and never why. Before POTION-DOOR (2026-10-25) a Mages Guild's potion maker was no station at all: its mixes never reached the service | LOOSE-SAID |
+| 1 | SaberGGaming, "Crafting writs not accepting": "I brewed the 7 heal true potions myself and its showing like I haven't made any"; Punch Cat: "I think it's the provisioning ones. I've had the same issues with potions and cooking dishes" | The law as built: a potion writ counted only WITNESSED brews, and a dish or kit writ only pieces not walled to gold - a cauldron or a pan that spent LOOSE units (looted, or bought with gold) was no witness. The card said "0 brewed by you" over brews that had paid their XP. Before POTION-DOOR (2026-10-25) a Mages Guild's potion maker was no station at all: its mixes never reached the service. The owner: "Crafting writs should work with even store bought ingredients. I hate this" | ANY-GOODS (LOOSE-SAID shipped first, #1310, and was retired by it) |
 | 2 | runa, "The Masoleum of Darkivaron bugged": "an area (up the elevator in the large central space) is missing but present in the UESP guide ... this one is in a Main Quest to slay a specific Mummy" | The lift works. The shared world builds Darkivaron SMALL (SD-ONLINE), and DFU's GenerateSmallerDungeon drops N0000057 - the hall the lift rises to - for a border block; the quest's mummy stands only in an instance (questMountsHere). The door warned, under "1 - Public" | QUEST-FIRST |
 | 3 | Dracanis, "Spell point regeneration effects not functioning": Font of Magnus's 0.2% a round, Soul Siphon's 3% a kill, an item's magicka on a kill; watchoutt...: "On the morning of October 25th, they seemed to be working well. Now, they aren't", then "Found the issue:" (cut off in the screenshot) | NOT REPRODUCED. All three act, through the real modules and the real online ticker. Nothing merged on 2026-10-25 touches them. The two stars sleep where every combat star sleeps - the tree not read, the seat held elsewhere, a duel or a bout, mentoring - and FIRM-STATUS's line in the Firmament window (live that evening) says which | PINNED |
 
-## LOOSE-SAID (1) - `server-account/src/craftWrits.js`, `src/scenes/craftWritHost.js`, `src/net/craftWritLaw.js`
+## ANY-GOODS (1) - `server-account/src/craftWrits.js`, `src/scenes/craftWritHost.js`, `src/net/craftWritLaw.js`
 
 WHAT DFU DOES. Nothing to follow: Daggerfall's guilds post no writs (`06-Systems/Professions-Arc.md` section 49).
 
 WHAT THE PORT DID. The card is section 49.4's: "0 brewed by you, 7 in your pack" and "Brew 3 more yourself - Found or
-bought bottles do not count". What it counts is section 49.2's: a potion writ the character's witnessed brews
+bought bottles do not count". What it counted was section 49.2's: a potion writ the character's witnessed brews
 (`prof_brews.witnessed` - 1 only where the cauldron spent no loose unit: `alchemy.js` brewAtStation's decision), a dish
 or kit writ its pieces whose `bought_with` is not 'gold' (a pan or forge that spent a loose unit walls its pieces to
 gold: `professions.js` craftAtAnvil). A loose unit is what a station's put-in brought that the service never handed out
-(`bagLaw.js` LOOSE_ORIGIN) - a looted herb, a reagent bought with gold at a classic shop, a stack a friend traded - and
-a writ pays silver, which no client's word may mint (GOLD-MARKET), so the wall stands. But the brew still paid its XP
-and said "You brewed 2 Potions of Heal True", and the card never said why it counted none. Seven potions is no station
+(`bagLaw.js` LOOSE_ORIGIN) - a looted herb, a reagent bought with gold at a shop, a stack a friend traded. The brew still
+paid its XP and said "You brewed 2 Potions of Heal True", and the card counted none of it. Seven potions is no station
 brew's count (two a brew below Journeyman, a Brewer's three): it reads as seven of the classic maker's one a mix - the
-Mages Guild's Make Potions before POTION-DOOR (section 52.3) made the potion on the client and asked no service, so
-nothing at all stood behind them.
+Mages Guild's Make Potions before POTION-DOOR (section 52.3) made the potion on the client and asked no service.
 
-FIXED. The board reads, beside what fills a writ, what the character made that never can
-(`craftWrits.js:"async function craftWritView(db, player, row, character) {"`): a potion writ's `looseBrewed` - its
-potions brewed since the writ's day began that were no witness (today's alone: a brew from before the witness column
-reads 0 too, and a writ is the day's) - and a piece writ's `loosePieces`, the pieces of its make walled to gold, newest
-first and none on the market. The host counts them (`craftWritHost.js` held: `loose`, a piece writ's only where the
-pack holds the piece), and the card's reason says them: "6 potions you brewed today were made with looted or gold-bought
-ingredients, which never count - brew 3 more from ingredients you gathered or bought from the Apothecaries", "2 pieces in
-your pack were made with looted or gold-bought goods, which never count - make 3 more from goods you gathered or bought
-with silver" (`craftWritLaw.js` craftShortText). With none, the brew is asked "at an alchemy station" - a potion maker
-anywhere else (a temple's, the Dark Brotherhood's) is the client's mix and fills nothing. No migration and no
-ACCOUNT_VERSION: the answer grows two fields an older client never reads, and an older service's board reads as none
-(pinned).
+LOOSE-SAID, THEN RETIRED. #1310 kept the law and had the card say why ("6 potions you brewed today were made with looted
+or gold-bought ingredients, which never count"). The owner, the same day: **"Crafting writs should work with even store
+bought ingredients. I hate this."** LOOSE-SAID's fields (`looseBrewed`, `loosePieces`), its host count and its two
+keys are gone with the law they explained.
+
+FIXED - THE OWNER'S DECISION. A crafting writ is filled by what the character MADE, whatever it was made of
+(`craftWrits.js` brewedLeftSql, pieceOkSql): every brew a station made for it counts - `witnessed` is still written as
+the brew's record and asked by no writ, and brews from before the column count too - and a dish or kit walled to gold BY
+ITS GOODS (`products.loose` 1, migration 0142) fills one as any other of its make. A piece BOUGHT back with gold on the
+market (`bought_with` 'gold', `loose` 0) still fills none: it was sold. A brew short is asked "at an alchemy station" -
+a potion maker anywhere else (a temple's, the Dark Brotherhood's) is the client's mix, which the service never sees.
+
+THE FAUCET. The writ's bound is unchanged: three an account a day (`CRAFT_WRITS_PER_DAY`), 200 silver each at most
+(`CRAFT_WRIT_PAY_MAX`). What changes is what reaches it: a station's put-in moves what the client says its pack holds
+past the service's count (BAG-CRAFT's `work` order), so a brew of such goods is now silver within that bound - the wall
+GOLD-MARKET kept (gold's goods never fetch silver) is lifted for the crafting writ alone. The Court's writs, the guild
+Stores and the market's Drakes side still take `own` and `bought` units only (`bagLaw.js` WRIT_ORIGINS).
+
+No migration. No ACCOUNT_VERSION: the board's answer loses LOOSE-SAID's two fields, which an older client reads as none,
+and the decision accepts more - a client older than this deploy shows the count the service reads.
 
 THE FOUR HOSTS. The Notice Board is `scenes/world.js`'s, its crafting writs `craftWritHost.js` (unchanged wiring);
 `worldModes.js` and `dungeonContext.js` open no board of their own; `exterior.js` posts no crafting writ (FLAGGED in
 `craftWritHost.js`).
 
-NOT DONE. The brew's own answer does not say that it fills no writ (the card does, on the next board read). A brew from
-before 2026-10-26 is not named on the card.
+THE WORDS. `prof.craftWrit.shortBrew` moved ("at an alchemy station"), drafted in the thirteen whole languages; LOOSE-SAID's
+`shortBrewLoose` and `shortMakeLoose` dropped from every table that held them.
 
-THE WORDS. Three keys - `prof.craftWrit.shortBrew` (moved: "at an alchemy station"), `shortBrewLoose`, `shortMakeLoose` -
-drafted in session in the thirteen whole languages; the drafting twelve owe them with the rest.
-
-PINS: `test/net/fb1026_loosesaid.test.js` (3, two through the real Worker). Mutants `tools/mutants/fb1026_loosesaid.json`
-(11, all dead). Moved: `craftwrits_client` (the host's `held` says `loose`), `craftwrits_law` (shortBrew's words).
-`tools/mutants/craftwrits.json` judged again: 89 dead, 2 equivalent as recorded.
+PINS: `test/net/fb1026_anygoods.test.js` (3: a potion writ filled wholly by brews of loose goods, a dish writ by stews
+cooked of them with a gold purchase refused, the station's words). Mutants `tools/mutants/fb1026_anygoods.json` (4, all
+dead). PIN MOVED: `craftwrits_service`'s loose cauldron (it filled nothing; it counts now), `craftwrits_client` (the
+host's `held` back to `{ pack, made, ready }`). `tools/mutants/craftwrits.json`: CRAFT-WRITS-svc-loose-brews-count
+retired (the clause it dropped is gone - ANY-GOODS-witness-asked-again is its inverse), S2-alias-shared, T2-bought-refused,
+T2-gold-let-in and svc-listed-ok re-aimed by content; judged again, 88 dead, 2 equivalent as recorded. LOOSE-SAID's
+`fb1026_loosesaid.test.js` and its mutants removed with it.
 
 ## QUEST-FIRST (2) - `src/systems/instancePlaces.js`, `src/scenes/instanceDoor.js`
 

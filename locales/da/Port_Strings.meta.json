@@ -26239,11 +26239,6 @@
   "tr": "af78305888c0",
   "by": "claude-in-session"
  },
- "prof.craftWrit.shortBrewLoose": {
-  "en": "826729c32ad4",
-  "tr": "71aa02a52d5b",
-  "by": "claude-in-session"
- },
  "prof.craftWrit.shortCarry": {
   "en": "05d94ce59133",
   "tr": "6658632892ef",
@@ -26252,11 +26247,6 @@
  "prof.craftWrit.shortMake": {
   "en": "a102d722f048",
   "tr": "d481bd86a753",
-  "by": "claude-in-session"
- },
- "prof.craftWrit.shortMakeLoose": {
-  "en": "757e6c348542",
-  "tr": "80adb2a15c70",
   "by": "claude-in-session"
  },
  "prof.lode.legend": {
