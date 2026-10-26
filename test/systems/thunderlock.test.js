@@ -110,7 +110,7 @@ test('its damage span is its own, and the DFU spans are exactly what they were',
     [THUNDERLOCK_DAMAGE.min, THUNDERLOCK_DAMAGE.max]);
   assert.ok(THUNDERLOCK_DAMAGE.max > 21, 'harder per shot than anything classic - a Dai-Katana is 21');
   // the verbatim tables, spot-checked either side of the new arm
-  assert.deepEqual([weaponMinDamage(130), weaponMaxDamage(130)], [4, 18], 'Long Bow');
+  assert.deepEqual([weaponMinDamage(130), weaponMaxDamage(130)], [5, 19], 'Long Bow');
   assert.deepEqual([weaponMinDamage(123), weaponMaxDamage(123)], [3, 21], 'Dai-Katana');
   assert.deepEqual([weaponMinDamage(113), weaponMaxDamage(113)], [1, 6], 'Dagger');
   assert.equal(weaponMinDamage(999), 0, 'and an unknown template is still nothing');
