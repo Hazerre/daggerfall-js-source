@@ -16,6 +16,8 @@ import { voyageStateOf } from '../../src/net/ketch/ketchBrain.js';
 import { validKetchOut } from '../../src/net/wire.js';
 import { ketchPelletsDue, KT_CONSTRUCT_PELLETS_MAX, KT_PELLETS_OWN, KT_PELLETS_KEY } from '../../src/systems/ketch/ketchSpoils.js';
 import { ketchLabWire } from '../../src/tools/ketchLabLink.js';
+import { markHostStruck, foeTarget, foeTargetRef, clearFoeTarget } from '../../src/ui/hud/hudFoeTarget.js';
+import { ketchKindName } from '../../src/systems/ketch/ketchWords.js';
 import { ship as simShip, OWNER, T0 } from '../net/ketch/ketchSim.mjs';
 
 installEnemyExpansion({ log: () => {} });   // the boot's own rows (scenes/shared.js) - a construct's stand-in reads them
@@ -119,7 +121,7 @@ function aboard(store = new Map(), owner = OWNER) {
     return B.id;
   };
   const fall = (o, { sw = false, late = 0 } = {}) => { word({ k: 'dn', o, n: sw ? '' : 'Mem', at: T - late, ...(sw ? { sw: 1 } : {}) }); frame(); frame(); };
-  return { kc, piles, pushed, rise, fall, frame, get T() { return T; } };
+  return { kc, piles, pushed, rise, fall, frame, word, get T() { return T; } };
 }
 
 test('AUDIT KETCH II L3-3, L3-4, L3-5 A CONSTRUCT\'S PELLETS - WHO FELLED IT, AND WHERE: a body the ship took off (`dn` `sw` - the engine fed, a fight lost, the Warden\'s fall) drops none; a fall heard late still lies on the deck\'s floor, never sunk under it where no press reaches; a body felled mid-walk drops where it fell, its walk stepped - never at the walk\'s start, up to 23 m back (mutants: the sweep paid; the pile at its sinking; the walk unstepped)', () => {
@@ -166,4 +168,27 @@ test('AUDIT KETCH II L3-6 THE KETCHMASTER\'S HOLD\'S OWED WORD IS SAID AGAIN: th
 test('AUDIT KETCH II L5-6 THE LAB SAYS THE WATCH\'S FIVE AND THE ENGINE\'S APPETITE: `?wv=4` and `?wv=5` are the waves they name, and the engine\'s need is its crew\'s (it stood at three waves and the old appetite; mutants: the waves at three; the old need)', () => {
   for (let w = 0; w <= KT_WATCH_WAVES; w++) assert.equal(ketchLabWire(`?wv=${w}`, 1000).wv, w, `wave ${w}`);
   assert.equal(ketchLabWire('?stage=2', 1000).cl.nd, engineNeeds(4), 'the lab\'s crew of four');
+});
+
+test('AUDIT KETCH II STAND-IN-BAR THE CONSTRUCTS HAVE A HEALTH BAR: a blow of mine that went on one of her constructs (the dungeon host\'s landOnHost - every event\'s host: the gate\'s legion, the Spire\'s, the Hour\'s Echoes, her constructs) marks it for the target bar, named, its health the relay\'s word of it - never its stand-in\'s count nothing empties; it goes at its fall; a blow that did not go marks nothing (the owner: "the additional enemies dont have health bars" - landOnHost never marked one; mutants: never marked; the stand-in\'s count read; the host\'s return unwrapped)', () => {
+  clearFoeTarget();
+  const A = aboard(), o = A.rise('sphere', 'waist', 2, 30);
+  const T = A.kc.hostTargets().find((q) => q.i === o);
+  assert.ok(T?.entity, 'the construct stands as a host body');
+  assert.equal(markHostStruck({ host: o, entity: T.entity, dead: false }, false), false);
+  assert.equal(foeTarget(), null, 'a blow that did not go: no bar');
+  assert.equal(markHostStruck({ host: o, entity: T.entity, dead: false }, true), true);
+  let bar = foeTarget();
+  assert.ok(bar && bar.name.includes(ketchKindName('sphere')), `named (${bar?.name})`);
+  assert.equal(bar.health / bar.maxHealth, 1, 'whole');
+  A.word({ k: 'hp', h: [[o, 40]] }); A.frame();
+  bar = foeTarget();
+  assert.ok(Math.abs(bar.health / bar.maxHealth - 0.4) < 1e-9, `the relay's word of it (${(bar.health / bar.maxHealth).toFixed(3)})`);
+  assert.equal(foeTargetRef(), T.entity);
+  A.fall(o);
+  assert.equal(foeTarget(), null, 'gone at its fall');
+  assert.equal(foeTargetRef(), null);
+  clearFoeTarget();
+  const dc = readFileSync(new URL('../../src/scenes/dungeonContext.js', import.meta.url), 'utf8');
+  assert.match(dc, /return markHostStruck\(hb, sdRemnant \? sdRemnant\.echoHit\(\{ i: hb\.host, d: damage, r \}\) : !!opts\.onHostHit\?\.\(\{ i: hb\.host, d: damage, r, tick \}\)\); \};/, 'every host body\'s blow goes through it');
 });

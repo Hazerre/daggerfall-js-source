@@ -600,5 +600,8 @@ KETCH-FIX shut her hull's bottom, so a fall from a section of the ring landed in
 - **Smaller fixes:** the gust blows on the course's line alone (L4-6); the bulwark meets the disc (L4-7); the flywheel
   stands clear of the sockets, solid (L4-9); the hold's owed word is said again (L3-6); a raised member is alive at once
   (L1-5); the lab says five waves (L5-6).
+- **The health bar.** After the audit, the owner asked about health bars on her constructs: the target bar now marks a
+  host body struck and reads the relay's word of its health. This holds for every event's host bodies: the gate's, the
+  Spire's, the Hour's and hers (STAND-IN-BAR).
 
 Relay world265, NOT YET DEPLOYED.

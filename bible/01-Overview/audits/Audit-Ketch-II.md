@@ -85,6 +85,27 @@ belly, 15 to 20 m down in the dark, short of the void that casts it back.
 | L5-7 | MINOR | The harness's fight loops were capped at the old 14 minutes. | `KW_ENDS_MS + KW_LOST_MS`. | `ketchSim.mjs`, `ketch_brain` |
 | L5-8 | MINOR | The record carried the old numbers (three waves, the engine's four to seven, twenty seconds, 300 s, fourteen minutes). | `Sky-Ketch.md` sections 2, 4, 6 and 7 and the code's comments say the numbers that run. | the record |
 
+## Asked after - the constructs' health bar (STAND-IN-BAR)
+
+The owner, after the audit: *"Also, the additional enemies dont have health bars, unless this is already fixed"*. It was
+not, and it was not the Ketch's alone. The enhanced HUD's target bar (`ui/hud/hudFoeTarget.js`, PX30) is marked by the
+foe-damage paths of the dungeon and the exterior. A body an event's relay keeps the health of is struck through the
+dungeon host's `landOnHost`, which never marked it. That covers the gate's legion, the Spire's, the Hour's Echoes and
+the Ketch's constructs, all of them stand-ins (`world/gate/gateBoss.js` hostStandIn), so none of them ever had the bar.
+A stand-in's own health is a count nothing empties (`STAND_IN_WHOLE`), so marking it alone would have drawn a bar that
+never moved.
+
+- `markHostStruck(hb, went)`: `landOnHost` hands its answer through it, so a blow that went marks the body. The host's
+  return stays one statement (no logical line added).
+- `foeTarget`: a relay's body (`relayHealth`) reads its health from the relay's word (`relayShare`). With no word heard,
+  or nothing left after its fall, there is no bar.
+
+Pinned by `ketch_audit2_page` (one of her constructs struck: named and whole, then at the relay's 40%, gone at its fall;
+a blow that did not go marks nothing; the host's line). PIN MOVED: `fb1019f_bossdot` and `wb11_gate_host`, which read
+`landOnHost`'s line. Mutants: `ketch_audit2.json` +4. THE FOUR HOSTS: `scenes/dungeonContext.js`, its one return wrapped;
+`scenes/world.js`, `scenes/worldModes.js` and `scenes/exterior.js` are FLAGGED, since a host body is the dungeon
+context's alone.
+
 ## Left, recorded
 
 - **L5-3, the owner's call: a solo takes about 24 minutes against the design's "about fifteen"**, and is slower than
@@ -103,7 +124,7 @@ belly, 15 to 20 m down in the dark, short of the void that casts it back.
 
 ## The mutants
 
-`tools/mutants/ketch_audit2.json`: 33 records, each a fix undone, and all dead.
+`tools/mutants/ketch_audit2.json`: 37 records (33 for the audit, 4 for STAND-IN-BAR), each a fix undone, and all dead.
 
 ## The relay
 
