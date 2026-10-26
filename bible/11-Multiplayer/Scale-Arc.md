@@ -1773,6 +1773,12 @@ content, all dead:
 - SCALE5c-told-unkept, -unknown-unsaid, -census-the-bus-own and -bus-any-channel;
 - SCALE5d-layer-unread and -channel-given-layer.
 
+**GATE-COURTS (2026-10-26, `World-Bosses.md` section 29).** A night is now up to sixteen courts of fifty, each a fight of
+its own in an object of its own (`gate:<day>`, `gate:<day>.<k>`), seated by the first court's book: past a court's
+fifty a newcomer fights another Warden instead of crowding round the one. Each court keeps the copies above past its own
+sockets (COURT_COPY_RE names every court's), which a court of fifty and its parties' slack reaches only with its
+watchers when the whole night is full.
+
 ## SCALE4h: built (2026-10-11, this branch - acct112, no migration, no drop)
 
 The plan's eighth slice: "A player's hot rows (the session, the play clock, the Renown tally, the rate windows) off the

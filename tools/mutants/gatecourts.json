@@ -1,0 +1,392 @@
+[
+  {
+    "name": "GC-slack-not-the-party",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "export const GATE_PARTY_SLACK = 7;",
+    "new": "export const GATE_PARTY_SLACK = 0;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a party split by the fifty"
+  },
+  {
+    "name": "GC-the-cap",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  for (let c = 0; court === null && c < GATE_COURTS_MAX; c++) if (open(c, GATE_COURT_FIGHTERS)) court = c;",
+    "new": "  for (let c = 0; court === null && c < GATE_COURTS_MAX; c++) if (open(c, GATE_COURT_FIGHTERS + 1)) court = c;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "fifty-one a court"
+  },
+  {
+    "name": "GC-a-won-court-seated",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  const open = (c, cap) => !book.f[c] && n[c] < cap;",
+    "new": "  const open = (c, cap) => n[c] < cap;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a newcomer seated before a fallen Warden"
+  },
+  {
+    "name": "GC-a-seat-moved",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  if (had && seatLive(had, now)) {",
+    "new": "  if (false) {",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "an account placed again - two courts a night"
+  },
+  {
+    "name": "GC-never-joined",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "    if (had[0] === asked) had[2] = 1;\n",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a seat pending for ever"
+  },
+  {
+    "name": "GC-never-lapsing",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "export const seatLive = (s, now) => s[2] === 1 || now - s[1] < GATE_SEAT_PENDING_MS;",
+    "new": "export const seatLive = (s, now) => true;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a page that never arrives holds its seat"
+  },
+  {
+    "name": "GC-the-mates-unread",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  for (const m of mates) {",
+    "new": "  for (const m of []) {",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a party apart"
+  },
+  {
+    "name": "GC-the-slack-ignored",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "open(s[0], GATE_COURT_FIGHTERS + GATE_PARTY_SLACK)",
+    "new": "open(s[0], GATE_COURT_FIGHTERS)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a mate refused at the fifty"
+  },
+  {
+    "name": "GC-the-highest-mate",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "(court === null || s[0] < court)",
+    "new": "(court === null || s[0] > court)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the highest court a mate sits in"
+  },
+  {
+    "name": "GC-the-night-before-the-seal",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  if (now < t.sealAt) return false;\n",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the gate collapses while a newcomer could still open a court"
+  },
+  {
+    "name": "GC-a-pending-court-counted",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "export const courtsJoined = (book) => new Set(Object.values(book.s).filter((s) => s[2] === 1).map((s) => s[0]));",
+    "new": "export const courtsJoined = (book) => new Set(Object.values(book.s).map((s) => s[0]));",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court nobody joined holds the night open"
+  },
+  {
+    "name": "GC-the-wrath-unread",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  if (now >= t.wrathAt) return true;\n",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a night some court won never said"
+  },
+  {
+    "name": "GC-the-sum",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "n: falls.reduce((s, f) => s + f.n, 0)",
+    "new": "n: falls[0]?.n ?? 0",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night's fighters one court's"
+  },
+  {
+    "name": "GC-the-rite-to-the-paid",
+    "file": "src/net/gate/gateCourts.js",
+    "old": "  return [...new Set(helpers)].filter((h) => !had.has(h));",
+    "new": "  return [...new Set(helpers)];",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court's fighter given the rite's own over its own"
+  },
+  {
+    "name": "GC-a-court-past-the-last",
+    "file": "src/net/gate/gateLaw.js",
+    "old": "Array.from({ length: GATE_COURTS_MAX - 1 }, (_, i) => i + 1)",
+    "new": "Array.from({ length: GATE_COURTS_MAX }, (_, i) => i + 1)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a room no book seats"
+  },
+  {
+    "name": "GC-wire-a-court-past-the-last",
+    "file": "src/net/wire.js",
+    "old": "    case 'go': return Number.isSafeInteger(m.d) && m.d >= 0 && intIn(m.c, 0, GATE_COURTS_MAX - 1)",
+    "new": "    case 'go': return Number.isSafeInteger(m.d) && m.d >= 0 && intIn(m.c, 0, GATE_COURTS_MAX)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court past the last taken"
+  },
+  {
+    "name": "GC-wire-the-night-counts-dropped",
+    "file": "src/net/wire.js",
+    "old": "...(m.w !== undefined ? { w: m.w } : {}), ",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night's courts that won dropped"
+  },
+  {
+    "name": "GC-the-book-unasked",
+    "file": "server/src/index.js",
+    "old": "      if (!f?.players[a.sub] && await this._gateSentOn(ws, a, f, now)) return;",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "every newcomer seated where it came - one court a night"
+  },
+  {
+    "name": "GC-the-go-unsaid",
+    "file": "server/src/index.js",
+    "old": "    if (c != null) { this._send(ws, JSON.stringify({ t: 'gate', k: 'go', d: day, c })); return true; }",
+    "new": "    if (c != null) return true;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a newcomer left fighting nothing"
+  },
+  {
+    "name": "GC-one-court-number",
+    "file": "server/src/index.js",
+    "old": "f.cn = gateCourtOfRoom(a.key); }",
+    "new": "f.cn = 0; }",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "every court the first"
+  },
+  {
+    "name": "GC-the-seat-unconfirmed",
+    "file": "server/src/index.js",
+    "old": "    if (asked === 0) return this._gateSeatHere(day, sub, asked, now);",
+    "new": "    if (asked === 0) return asked;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the first court seats without its book"
+  },
+  {
+    "name": "GC-the-hub-never-asked",
+    "file": "server/src/index.js",
+    "old": "    const mates = many ? await this._gateMatesOf(sub) : [];",
+    "new": "    const mates = [];",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a party apart"
+  },
+  {
+    "name": "GC-the-hub-asked-for-every-newcomer",
+    "file": "server/src/index.js",
+    "old": "    const mates = many ? await this._gateMatesOf(sub) : [];",
+    "new": "    const mates = true ? await this._gateMatesOf(sub) : [];",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the hub asked a party for every newcomer"
+  },
+  {
+    "name": "GC-a-court-s-kill-as-the-night",
+    "file": "server/src/index.js",
+    "old": "    const court = body?.c !== undefined && !body?.night;",
+    "new": "    const court = false;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court's kill collapses the gate"
+  },
+  {
+    "name": "GC-the-herald-told-each-court",
+    "file": "server/src/index.js",
+    "old": "    if (!court) try { await this._heraldOwe(fell, now); }",
+    "new": "    try { await this._heraldOwe(fell, now); }",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a card a court"
+  },
+  {
+    "name": "GC-the-book-untold",
+    "file": "server/src/index.js",
+    "old": "      if (f.said && !f.booked) await this._gateTellBookOnce(f, now);   // GATE-COURTS: and the book, until it has heard\n",
+    "new": "",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night never done"
+  },
+  {
+    "name": "GC-said-twice",
+    "file": "server/src/index.js",
+    "old": "      book.told = 1;\n      await this._gateBookSave(book);\n    }",
+    "new": "      book.told = 0;\n      await this._gateBookSave(book);\n    }",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night said on every beat"
+  },
+  {
+    "name": "GC-a-court-s-fighter-shut-out",
+    "file": "server/src/index.js",
+    "old": "(gateAdmits(day, now) || (await this._gateBookOf())?.s[sub])",
+    "new": "gateAdmits(day, now)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a fighter of another court refused at the first after the seal"
+  },
+  {
+    "name": "GC-the-full-night-seated",
+    "file": "server/src/index.js",
+    "old": "    if (c === here) return false;\n",
+    "new": "    if (c === here || c == null) return false;\n",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night full and a newcomer seated past it"
+  },
+  {
+    "name": "GC-a-bookless-tick",
+    "file": "server/src/index.js",
+    "old": "    if (!f) return this._gateBookTick();",
+    "new": "    if (!f) return false;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a first court with no fight never says the night"
+  },
+  {
+    "name": "GC-link-the-go-unkept",
+    "file": "src/net/gate/gateLink.js",
+    "old": "      if (g.k === 'go') { courts.set(g.d, g.c); return; }",
+    "new": "      if (g.k === 'go') return;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the first court forever"
+  },
+  {
+    "name": "GC-link-a-court-s-kill-as-the-fall",
+    "file": "src/net/gate/gateLink.js",
+    "old": "      if (g.k === 'fell' && g.d !== undefined) {\n        const day = g.d;",
+    "new": "      if (g.k === 'fell') {\n        const day = g.d ?? state.day;",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court's own kill collapses the gate"
+  },
+  {
+    "name": "GC-link-said-twice",
+    "file": "src/net/gate/gateLink.js",
+    "old": "if (!courtFalls.has(k)) {",
+    "new": "if (true) {",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court's kill said again"
+  },
+  {
+    "name": "GC-link-the-night-over-its-courts",
+    "file": "src/net/gate/gateLink.js",
+    "old": "if (![...courtFalls].some((k) => k.startsWith(`${day}.`))) onFell(day, f);",
+    "new": "onFell(day, f);",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the night said over its courts' lines"
+  },
+  {
+    "name": "GC-the-court-s-number",
+    "file": "src/systems/gate/gateOmen.js",
+    "old": "court: c + 1,",
+    "new": "court: c,",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the first court named nought"
+  },
+  {
+    "name": "GC-the-collapse-for-a-court",
+    "file": "src/systems/gate/gateOmen.js",
+    "old": "in the wilds{struck, select, yes {, struck down by {by}} other {}}.\", args)",
+    "new": "in the wilds{struck, select, yes {, struck down by {by}} other {}}. The breach collapses.\", args)",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "a court's kill says the breach collapses"
+  },
+  {
+    "name": "GC-the-herald-title",
+    "file": "src/net/gate/gateHerald.js",
+    "old": "    title: cs > 1 ? `${boss.name} has fallen in ${w} of ${cs} courts` : `${boss.name} has fallen`,",
+    "new": "    title: `${boss.name} has fallen`,",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the card names no courts"
+  },
+  {
+    "name": "GC-the-host-s-first-court-forever",
+    "file": "src/scenes/world.js",
+    "old": "key = (gateLink?.room ?? gateRoomKey)(modes?.roomIdentity?.()?.day);",
+    "new": "key = gateRoomKey(modes?.roomIdentity?.()?.day);",
+    "tests": [
+      "test/net/gate/gatecourts.test.js"
+    ],
+    "note": "the host never joins another court"
+  },
+  {
+    "name": "GC-the-watcher-floor-unread",
+    "file": "server/src/index.js",
+    "old": "    if (now - (asked.get(ws) ?? -Infinity) < COURT_WATCH_ASK_MS - BRAIN_TICK_MS) { this._send(ws, JSON.stringify({ t: 'gate', k: 'no', m: 'the court is full' })); return true; }",
+    "new": "    if (false) { this._send(ws, JSON.stringify({ t: 'gate', k: 'no', m: 'the court is full' })); return true; }",
+    "tests": [
+      "test/net/gate/courtwatch.test.js"
+    ],
+    "note": "a full night's watcher asking sooner than COURT_WATCH_ASK_MS walks the book every time (AUDIT PLAN-1000 G7's floor, at the book's door)"
+  }
+]

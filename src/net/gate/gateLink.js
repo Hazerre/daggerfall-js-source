@@ -7,10 +7,12 @@
 //
 // PURE in its fold (`foldGate`): a state and a word in, the next state out - the pins drive it as the session would.
 // The link around it keeps the state, the falls by day (the hub's word reaches players who were nowhere near the
-// court) and says a refusal in words once.
+// court) and says a refusal in words once. GATE-COURTS (net/gate/gateCourts.js): and the court the night's book seats me in
+// (its `go`), each court's kill said (the hub's `cf`), and the night's fall - the gate's collapse - from the hub's word alone.
 //
 // Not a DFU member. Ledger A (WB).
 import { readReceipt } from './gateReceipt.js';
+import { gateRoomKey } from './gateLaw.js';   // GATE-COURTS: the room of the court the book seats me in
 import { t } from '../../systems/textManager.js';   // COURT-WATCH: the watcher's line in the player's language (L10N4)
 import { ATTACKS, nearestCourt, COURTS, WALKS, WALKWAY, hostAt, planOf, SUNDER_PAIR_MS, HALF } from './gateBrain.js';   // WB9b: the bound's word and the court it lands in; WB11b: where one of his host stands; WB14b: the night's plan; WB14d: the halves
 
@@ -286,17 +288,20 @@ export const gateRefusalText = (word) => (word === 'the gate is closed' ? GATE_O
 
 /**
  * The link: the state, the falls by day, the receipts by day, and the words said.
- * @param {{now: () => number, say?: (text: string) => void, onFell?: (day: number, fell: {at: number, top: string[], n: number}) => void, onReceipt?: (receipt: string) => void, onRefused?: (why: string) => void, place?: (s: Readonly<GateState>, now: number) => number[], watches?: () => boolean}} deps
+ * @param {{now: () => number, say?: (text: string) => void, onFell?: (day: number, fell: {at: number, top: string[], n: number, c?: number, cs?: number}) => void, onReceipt?: (receipt: string) => void, onRefused?: (why: string) => void, place?: (s: Readonly<GateState>, now: number) => number[], watches?: () => boolean}} deps
  *   `onReceipt` is told every receipt the relay hands this socket - the same one again after a reconnect or from the hub
  *   (WB5b: net/gate/gateClaims.js carries it to the account service, and keeps one a day). AUDIT WB B5: `onRefused` is told
  *   the relay's refusal of my `in` (its word, net/wire.js GATE_NO_WORDS) - the court this player stands in is not theirs
- *   to fight in, and the host takes them out of it.
+ *   to fight in, and the host takes them out of it. GATE-COURTS: `onFell` is told each court's kill (`c` its court, `cs`
+ *   the courts the night held then) and, where none was told, the night's.
  */
 export function createGateLink({ now, say = () => {}, onFell = () => {}, onReceipt = () => {}, onRefused = () => {}, place = bossAt, watches = () => true }) {
   /** @type {Readonly<GateState>} */
   let state = GATE_STATE_EMPTY;
   const falls = new Map();     // day -> {at, top, n}
   const receipts = new Map();  // day -> the receipt (net/gate/gateReceipt.js), keyed by the day it names
+  const courts = new Map();    // GATE-COURTS: day -> the court the night's book seats me in (its `go`)
+  const courtFalls = new Set();   // GATE-COURTS: `<day>.<court>` - each court's kill said once
   let watching = false;        // COURT-WATCH: the court full when I asked - I watch it
   return {
     /** A word from the court's room or the hub - the hub says a kill (of any day's gate) and a receipt, and the fold
@@ -309,16 +314,24 @@ export function createGateLink({ now, say = () => {}, onFell = () => {}, onRecei
       if (g.k === 'no') { say(gateRefusalText(g.m)); onRefused(g.m); return; }   // GATE-RELOAD: in what the word means
       if (g.k === 'st' && g.me === 1) watching = false;   // COURT-WATCH: my `in` answered - the seat mine
       if (g.k === 'rcpt') { const c = readReceipt(g.r); if (c) { receipts.set(c.d, g.r); onReceipt(g.r); } return; }   // one a day: the receipt says which
-      if (g.k === 'fell') {
-        const day = g.d ?? state.day;
-        if (Number.isSafeInteger(day) && !falls.has(day)) { const f = { at: g.at, top: g.top, n: g.n }; falls.set(day, f); onFell(day, f); }
+      // GATE-COURTS: the court the book seats me in - the host's room is that court's from the next frame (`room`)
+      if (g.k === 'go') { courts.set(g.d, g.c); return; }
+      // GATE-COURTS: a court's kill, said once - its gate stands for the night's other courts, so it moves no fall
+      if (g.k === 'cf') { const k = `${g.d}.${g.c}`; if (!courtFalls.has(k)) { courtFalls.add(k); onFell(g.d, { at: g.at, top: g.top, n: g.n, c: g.c, cs: g.cs ?? 0 }); } return; }
+      // the night's fall is the hub's word (it names its day) - a court's own `fell` folds its fight alone (GATE-COURTS: the
+      // gate stands until every court is done); said in words only where no court's kill was
+      if (g.k === 'fell' && g.d !== undefined) {
+        const day = g.d;
+        if (Number.isSafeInteger(day) && !falls.has(day)) { const f = { at: g.at, top: g.top, n: g.n }; falls.set(day, f); if (![...courtFalls].some((k) => k.startsWith(`${day}.`))) onFell(day, f); }
       }
       state = foldGate(state, g, now(), place);
     },
     /** The court's state now. */
     state: () => state,
-    /** The relay's word of a day's kill, or null (the omen's `fellAt`). */
+    /** The relay's word of a day's kill, or null (the omen's `fellAt`) - GATE-COURTS: the night's, once every court is done. */
     fellAt: (day) => falls.get(day)?.at ?? null,
+    /** GATE-COURTS: the room of the court I fight in on `day` - the one the book seats me in, else the first. */
+    room: (day) => gateRoomKey(day, courts.get(day) ?? 0),
     /** A day's receipt, or null (WB5 rolls the spoils off its seed and carries it to the account service). */
     receipt: (day) => receipts.get(day) ?? null,
     /** COURT-WATCH: whether I watch this court - it was full when I asked, and no answer has given me a seat since. */
