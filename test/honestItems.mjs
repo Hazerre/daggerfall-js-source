@@ -977,6 +977,19 @@ function runItemMaker(run, seedsOf, S, crafted, minted) {
       one(makerSession(item, seeded(hashOf(`jewel${n++}`)), { souls, owner: newPlayer(), picks: 6 }));
     }
   });
+  // MAKER-RARE (FIELD BUGS 2026-10-26): an identified Rare - a loot door's, a cursed one among them, or a Masterwork -
+  // taken with its ladder's rows riding free (enchanting.js rareKeeps)
+  run('enchanting.applyEnchantments (an identified Rare, found or a Masterwork, its ladder\'s rows kept)', (one) => {
+    let n = 0;
+    const rares = [...minted, ...crafted.map((c) => c.item)].filter((it) => it?.rarity === 'rare');
+    for (const base of spread(rares, 400)) {
+      const item = copyItem(base);
+      item.isIdentified = true;   // the Mages Guild's identify, first
+      if (!makerTakes(item)) continue;
+      const made = makerSession(item, seeded(hashOf(`rare${n++}`)), { souls, owner: newPlayer(), picks: 6 });
+      if (made) one(made);
+    }
+  });
   run('enchanting.applyEnchantments (found Magic and common pieces the window lists)', (one) => {
     let n = 0;
     for (const base of spread(minted.filter(makerTakes), 800)) {

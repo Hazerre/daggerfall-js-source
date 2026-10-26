@@ -3692,7 +3692,9 @@ Mac: **"2 and 4"** (2026-10-02: the Apothecary waits on Alchemy, Cooking and Jew
   against the piece's points (`enchantDecision`, the "used/available" label) and in the ten-row guard and the picker's
   filters, shown at the head of its list in the forced colour, **never removed**, costing no gold; enchanted, the new rows
   land after them (`applyEnchantments` - the kept rows' created payloads not run again). Every other enchanted item is
-  refused as DFU refuses it. The bench says so ("The item maker spends them, beside a Masterwork's own enchantment.").
+  refused as DFU refuses it - but an identified Rare, found or a Masterwork of any craft, which MAKER-RARE
+  (`01-Overview/bugs/Field-Bugs-2026-10-26.md`, the owner: "You cant enchant masterwork/rare armor") takes the same
+  way, its ladder's rows riding free (`enchanting.js` rareKeeps). The bench says so ("The item maker spends them, beside a Masterwork's own enchantment.").
 - **Audited again** (2026-10-03, AUDIT PROF-541): **J3** - the Enhanced+ skin's item maker built its lists from the
   player's own rows, so a crafted piece's kept enchantments were invisible while their cost counted: it draws the lists
   as the classic window does (`enhancedPorts.js` itemMaker over `_lists()`), a kept row muted with no act, as a forced

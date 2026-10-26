@@ -52,6 +52,7 @@ import { enchantmentSettings } from './enchantmentCatalogue.js';   // AUDIT PROF
 import { ENCHANTMENT_TYPES } from '../formats/magicDef.js';   // and their classic type back to the catalogue's key
 import { isAetheric } from './aetheric.js';   // AETHERIC-MAKER: an Aetheric piece is the port's own tier, never the maker's
 import { isGilded } from './gilded.js';   // GILDED1: nor a Gilded one - a static roll takes no enchantment
+import { isCursed } from './loot/lootRarity.js';   // MAKER-RARE: a cursed Rare's drawback is one more of the ladder's rows
 
 /** SetEnchantments' `maxEnchantments` (:1273) - and the same ten the
  *  two picker buttons test against (DaggerfallItemMakerWindow.cs:629,
@@ -142,6 +143,24 @@ const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(ENCHANTMENT_TYP
 export function enchantmentRowCost(e) {
   return enchantmentSettings(TYPE_KEY[e?.type] ?? e?.type, e?.param)?.enchantCost ?? null;
 }
+/** A row the item maker laid - the catalogue's settings row, which carries its `enchantCost` (applyEnchantments); the
+ *  item law reads a row so (itemLaw.js isMakerRow). */
+const makerLaid = (e) => e?.enchantCost !== undefined;
+/**
+ * MAKER-RARE (FIELD BUGS 2026-10-26, the owner: "You cant enchant masterwork/rare armor"): A RARE THE ITEM MAKER TAKES.
+ * A Rare - a loot door's, or a Masterwork's (smithItems.js mintPiece) - carries one of DFU's catalogue enchantments as
+ * its flavour (lootRarity.js applyRarity) and a cursed one its drawback beside it (cursePiece), so DFU's refusal of an
+ * enchanted item (AddFilteredItem :419-422) left every Rare out of every tab; J2 had opened the door for a crafted
+ * jewel alone. A DEPARTURE (Port-Ledger A): an identified Rare is taken with the rows the ladder rolled on it - and the
+ * maker's own laid since - and no other. Unidentified it stays out: the maker would show its rows and identify it
+ * (DaggerfallUnityItem.cs:1341) for nothing (tradeModes.js itemIsIdentified - a Rare is enchanted, so its flag alone). A
+ * Legendary keeps DFU's refusal with the artifacts it is named like, as DFU's own magic does.
+ */
+export function rareKeeps(item) {
+  if (item?.rarity !== 'rare' || item.magic === true || item.artifact === true || item.isIdentified !== true) return false;
+  // the ladder's rows: the flavour, and a curse's drawback (the item law's count, itemLaw.js enchantmentFindings)
+  return (item.enchantments ?? []).filter((e) => !makerLaid(e)).length <= 1 + (isCursed(item) ? 1 : 0);
+}
 /**
  * AUDIT PROF10 J2 (DECIDED, Mac: "Item maker can add to it" - bible/06-Systems/Professions-Arc.md 36): THE ENCHANTMENTS A
  * CRAFTED PIECE KEEPS in the item maker. DFU's maker refuses any enchanted item (AddFilteredItem :415-443), so a
@@ -150,17 +169,23 @@ export function enchantmentRowCost(e) {
  * item says of itself), counted against its budget and never taken off. Answers [] for an item with none, the rows as
  * EnchantmentSettings for a crafted piece, and null for any other enchanted item (DFU's refusal) or a row the catalogue
  * cannot cost.
+ * MAKER-RARE: and a Rare (rareKeeps) is taken so too - but the ladder's rows cost it nothing. A jewel's roll is drawn
+ * among those its points hold (J4); any other Rare's is drawn whatever its points (a Regens Health flavour costs 3,000
+ * and a Steel Cuirass holds 400), so counted, nearly no Rare armour could take a row. The item law counts a crafted
+ * jewel's kept rows alone (itemLaw.js makerFindings) - the same budget.
  */
 export function keptEnchantments(item) {
   const list = item?.enchantments ?? [];
   if (!list.length) return [];
-  if (!craftedJewelRecipe(item)) return null;
+  const jewel = craftedJewelRecipe(item) != null;
+  if (!jewel && !rareKeeps(item)) return null;
   const out = [];
   for (const e of list) {
     const parent = typeof e?.parentEnchantment === 'string' ? e.parentEnchantment : 0;
     const row = enchantmentSettings(TYPE_KEY[e?.type] ?? e?.type, e?.param, { parent });
     if (!row) return null;
     out.push({ ...row, kept: true });
+    if (!jewel && !makerLaid(e)) out[out.length - 1].enchantCost = 0;   // MAKER-RARE: the ladder's row rides free
   }
   return out;
 }
