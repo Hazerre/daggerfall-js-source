@@ -978,9 +978,9 @@ export function restorePlayer(entity, snap, spellsByIndex = null) {
   }
   givePortalGift(entity);   // PORTAL-GIFT: a character from before the gift is given its stones once - below the relinks and the fold, onto the pack's stack
   giveWalletGift(entity);   // WALLET1: and a character from before the wallet, one - at the pack's end, below the relinks (no index above it moves)
-  giveLockpickGift(entity);   // LOCKPICK: and a picking class from before the lockpick, its picks - at the pack's end too
   cleanBinders(entity.items);   // AUDIT CARDS-5 C1: a binder's decks from an old, foreign or edited save made sound (the load copies a record whole)
   giveBinderGift(entity);   // CARDS8: and the Card Binder and its starter deck, once - at the pack's end too
+  giveLockpickGift(entity);   // LOCKPICK: and a picking class from before the lockpick, its picks - at the pack's end too
   entity.activeEffects = (snap.activeEffects ?? []).filter((a) => !a.heldItem && !a.bundleDuel).filter((a) => effectKindLoaded(a.kind)).map(copyEffectEntry);   // E2: a stale pin in an old snapshot cannot re-link - drop it (DFU :2312); AUDIT DUEL1 B4: nor a duel's spell a save from before the filter kept; AUDIT PRE-MERGE 0928 S3: nor an effect of a mod not loaded (Come Sail Away's water walk)
   // DISC10-D/E V11: THE DREAM'S PUSH IS NOT SAVED. CustomSaveData_v1 keeps
   // the two PLAYED flags and the day (VampirismInfection.cs:221-251,
