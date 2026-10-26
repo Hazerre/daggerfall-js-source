@@ -3131,7 +3131,12 @@ COURTWATCH-kept-past-the-court, COURTWATCH-state-not-handed, AUDWB-A10-no-beat-t
 AUDWBX2-M3-the-copy-over-the-mark (now `rite` kept: the same-day spent receipt alone) and WB3-the-wake-forgets (the
 fight and the book in one read) - each still dies. PIN MOVED: `test/net/relayversion.test.js`'s world265 row, re-hashed
 in place (world265 was never deployed); `staffTeleport` and `staffpanel5hook` hand their hosts `gateLink`; `world2`'s
-hold law takes the move between courts (C7).
+hold law takes the move between courts (C7). The neighbouring lists re-run over the six files this changed (410 records
+of the WB, AUDIT WB, gate, COURT-WATCH and staff lists): 401 dead, 6 equivalent as recorded, three survivors - two from
+before this, as recorded (AUDWBX2-M3-the-mark-handed-over, section 22's AUDIT GATE-FBX; AUDIT-WB12d-T-relay-herald-next-at-ignores-rite,
+section 29), and WB3b-a-kill-said-twice, open since section 29: a court's own `fell` says no kill, so only the hub's
+word said again (every hello hears it while the gate holds) reaches the link's guard - `wb3b_gate_arena` now says it
+twice (PIN MOVED).
 
 ## Shipped
 
