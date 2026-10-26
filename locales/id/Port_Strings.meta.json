@@ -11209,6 +11209,31 @@
   "tr": "9fd67ecb0db5",
   "by": "claude-in-session"
  },
+ "features.resourceHighlights.both": {
+  "en": "1f4698382842",
+  "tr": "cbd57897b251",
+  "by": "claude-in-session"
+ },
+ "features.resourceHighlights.glint": {
+  "en": "936b5c88c4c9",
+  "tr": "3b7f230f7106",
+  "by": "claude-in-session"
+ },
+ "features.resourceHighlights.note": {
+  "en": "d699c309e3b8",
+  "tr": "b4651be1d4bd",
+  "by": "claude-in-session"
+ },
+ "features.resourceHighlights.outline": {
+  "en": "cdd6290b6b28",
+  "tr": "dd1b468208b9",
+  "by": "claude-in-session"
+ },
+ "features.resourceHighlights.title": {
+  "en": "7eb779bbeb03",
+  "tr": "f516f0a67a68",
+  "by": "claude-in-session"
+ },
  "features.smallerDungeons.effect": {
   "en": "f82bd149ccb7",
   "tr": "29b7d330faa5",
@@ -15454,6 +15479,136 @@
   "tr": "d601a906bf55",
   "by": "claude-in-session"
  },
+ "lock.act.auto": {
+  "en": "4d553c0a2276",
+  "tr": "5f6ec9d8c069",
+  "by": "claude-in-session"
+ },
+ "lock.act.leave": {
+  "en": "ec650a2bf3bc",
+  "tr": "39df98d59ead",
+  "by": "claude-in-session"
+ },
+ "lock.meta.picks": {
+  "en": "8da70800808f",
+  "tr": "08311ee1dbb3",
+  "by": "claude-in-session"
+ },
+ "lock.meta.pins": {
+  "en": "8ec7cd61e369",
+  "tr": "5dedd9192561",
+  "by": "claude-in-session"
+ },
+ "lock.meta.skill": {
+  "en": "f747f216882c",
+  "tr": "361e46d335e2",
+  "by": "claude-in-session"
+ },
+ "lock.need": {
+  "en": "17944687f312",
+  "tr": "8a8b2244d256",
+  "by": "claude-in-session"
+ },
+ "lock.what.chest": {
+  "en": "80da3dd6587e",
+  "tr": "f097757fde6f",
+  "by": "claude-in-session"
+ },
+ "lock.what.crate": {
+  "en": "9332a4692444",
+  "tr": "fe590103af5c",
+  "by": "claude-in-session"
+ },
+ "lock.what.door": {
+  "en": "d7547dc1df9e",
+  "tr": "a218e8f7764d",
+  "by": "claude-in-session"
+ },
+ "lock.window.gentle": {
+  "en": "680a266e09a9",
+  "tr": "cad91cf54017",
+  "by": "claude-in-session"
+ },
+ "lock.window.keys": {
+  "en": "cc073fdacacb",
+  "tr": "b07ae51d359e",
+  "by": "claude-in-session"
+ },
+ "lock.window.start": {
+  "en": "af1fb8d5ba4c",
+  "tr": "b95045ac1d2d",
+  "by": "claude-in-session"
+ },
+ "lock.window.title": {
+  "en": "b430270a02bf",
+  "tr": "66084f0b87ef",
+  "by": "claude-in-session"
+ },
+ "lock.word.already": {
+  "en": "4d867f66d00b",
+  "tr": "d9e0078a0e40",
+  "by": "claude-in-session"
+ },
+ "lock.word.break": {
+  "en": "0d3633cce1dc",
+  "tr": "96f6c6a3453f",
+  "by": "claude-in-session"
+ },
+ "lock.word.breakLast": {
+  "en": "5fbab52693a2",
+  "tr": "563e561e9d51",
+  "by": "claude-in-session"
+ },
+ "lock.word.falseSet": {
+  "en": "b4ef31ff450f",
+  "tr": "405d03eae9fe",
+  "by": "claude-in-session"
+ },
+ "lock.word.lift": {
+  "en": "b68f07cf4ed9",
+  "tr": "512b54244e8a",
+  "by": "claude-in-session"
+ },
+ "lock.word.none": {
+  "en": "c33c74e62e88",
+  "tr": "5ddb31818de3",
+  "by": "claude-in-session"
+ },
+ "lock.word.open": {
+  "en": "8e3d6c83eace",
+  "tr": "39d9acbd1acf",
+  "by": "claude-in-session"
+ },
+ "lock.word.set": {
+  "en": "b4a8f653a580",
+  "tr": "e5ef0425fddd",
+  "by": "claude-in-session"
+ },
+ "lock.word.slip": {
+  "en": "320dd7a3b2e5",
+  "tr": "0746a79f6c09",
+  "by": "claude-in-session"
+ },
+ "lock.word.springy": {
+  "en": "414852cd3f24",
+  "tr": "9318cc5cbee7",
+  "by": "claude-in-session"
+ },
+ "lockpick.item.use": {
+  "en": "82e3825803bf",
+  "tr": "9b40dc98e48c",
+  "by": "claude-in-session"
+ },
+ "lockpick.item.useLine": {
+  "en": "164aae6d4389",
+  "tr": "3fa82435e30e",
+  "by": "claude-in-session"
+ },
+ "lockpick.item.what": {
+  "en": "40871861c009",
+  "tr": "ce1e72a46afb",
+  "by": "claude-in-session"
+ },
  "lootBanner.honour.aura": {
   "en": "87c2003333d4",
   "tr": "b35c4458ca8d",
@@ -15707,6 +15862,11 @@
  "market.sift.sortLabel": {
   "en": "1d75774c0f96",
   "tr": "a465a033b3f9",
+  "by": "claude-in-session"
+ },
+ "market.why.changedPiece": {
+  "en": "4bc7c6211af1",
+  "tr": "dcbedf8f218c",
   "by": "claude-in-session"
  },
  "marks.capped.star": {
@@ -26239,11 +26399,6 @@
   "tr": "29e9de1a1f85",
   "by": "claude-in-session"
  },
- "prof.craftWrit.shortBrewLoose": {
-  "en": "826729c32ad4",
-  "tr": "4cfdc5e2f407",
-  "by": "claude-in-session"
- },
  "prof.craftWrit.shortCarry": {
   "en": "05d94ce59133",
   "tr": "690777550e36",
@@ -26252,11 +26407,6 @@
  "prof.craftWrit.shortMake": {
   "en": "a102d722f048",
   "tr": "e4b5edff3d13",
-  "by": "claude-in-session"
- },
- "prof.craftWrit.shortMakeLoose": {
-  "en": "757e6c348542",
-  "tr": "176323bffde2",
   "by": "claude-in-session"
  },
  "prof.lode.legend": {
