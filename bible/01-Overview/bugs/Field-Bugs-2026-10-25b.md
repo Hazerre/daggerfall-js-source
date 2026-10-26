@@ -231,13 +231,18 @@ goods into the bin, and a Discard after leaves the chest as it lies. A draft lef
 ship, a caravan - the exit pressed, the page closed) wrote its staged own things and chests' goods under pieces the
 saved room never stands; the next visit gives them back to the pack, said
 (`worldModes.js:"if (!(interiorHome || _seatHallVisit)) returnUnstood(interiorDecor, placed, decorPackGive, say);"`).
-COPY-LIFT: a record's own `twice` copy is lifted
-only by staff's purge with `keep: true`, in the batch that destroys its extra copies - its row the record's own, held
-and unclaimed and of the piece kept, no other record's copy, no copier trail check
-(`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`). No checkpoint lifts a copy: a slice that
-did was found launderable before it merged - a copy moved where the record lists nothing (a deserting revenant's take,
-a counter, the ground) and brought back would have freed the other. The account service's law moved: `ACCOUNT_VERSION`
-acct191.
+COPY-LIFT: a record's own `twice` copy is lifted only by staff's purge with `keep: true`, and (AUDIT FB1025b lane F)
+only where the act itself leaves the record one: the keep finds every copy the save holds wherever it lies - a
+deserter's take, the ground, a shop's shelf (`staffRealm.js:"export function copiesOfKeys(save, keySet) {"`, said as
+`hidden`) - keeps the ledger's own piece (the first of its row's print) and destroys the rest, and lifts where its batch
+destroyed a copy or staff's Remove keeps one; its row the record's own, held and unclaimed and of the piece kept, no
+other record's copy, no trail check or one found innocent - never `unclear`
+(`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`). The finding and the answer say what the
+batch lifted; a checkpoint landing between the act's read and its seizure refuses it `seq`; a keep empties the
+account's chests only of what it lifts. No revenant takes a realm-locked piece (`revenant.js:"&& !isRealmLocked(item)"`).
+No checkpoint lifts a copy: a slice that did was found launderable before it merged - a copy moved where the record
+lists nothing (a deserting revenant's take, a counter, the ground) and brought back would have freed the other. The
+account service's law moved: `ACCOUNT_VERSION` acct191; no migration, and the purge's answer only gains `hidden`.
 
 FOR THE REPORTER. Staff run `/v1/staff/item/purge-dupes` with `keep: true` on the character (preview first); their tab
 loses its seat and they rejoin with one of each, unlocked. The staff panel needs a "keep one" choice that sends it.
@@ -248,12 +253,14 @@ were lost, and each home thing standing there stood in two rooms - a pair the le
 walks the whole save, the rooms' own-things records with it). A lost own thing is in no record: staff give it back
 fresh (Add an item, `/v1/staff/item/give`) on the player's word - a rollback reaches only the last clean checkpoint.
 The shared settle's "already in this save" check
-reads the pack alone. `revenantMayTake` lets a deserter keep a realm-locked piece in its take, which the ledger does not
-read. A copy of any other kind stays locked for good.
+reads the pack alone. A copy sold at a counter before the keep is gone from the save: nothing lifts on that word, the
+sale's gold stays, and the piece bought back is a second of one, locked again. A copy staff took more than 30 days
+before (its evidence deleted) is no copy the keep can count. A copy of any other kind stays locked for good.
 
-PINS: `test/server/fb1025b_chestlock.test.js` (16), `test/server/staffpanel3realm.test.js` (the keep),
+PINS: `test/server/fb1025b_chestlock.test.js` (17), `test/server/staffpanel3realm.test.js` (the keep, and lane F's
+seven: the deserter's take, the ground, a triple, the ledger's print, a claim's chest, the race, the seizure's read),
 `test/systems/decor/decordraft.test.js` (a copy's Access through the act). Mutants `tools/mutants/fb1025b_chestlock.json`
-(41, all dead); the bug's own two-site shape (the open's picture, the Discard's write-back) run by hand: three pins fail. `test/decorFakes.mjs`'s chests are the real `createDecorRoom`
+(64, all dead); the bug's own two-site shape (the open's picture, the Discard's write-back) run by hand: three pins fail. `test/decorFakes.mjs`'s chests are the real `createDecorRoom`
 store now - the fake's no-op `setItems` was why "Discard puts the room back" passed while the bug shipped.
 
 ## SIGN-PASS and RAIL-HANG (7) - `src/world/signSolid.js`, `src/scenes/pixelBuild.js`, `src/scenes/exterior.js`, the yards' models, `src/player/collider.js`

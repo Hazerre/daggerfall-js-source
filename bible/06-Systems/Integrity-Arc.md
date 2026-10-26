@@ -518,15 +518,22 @@ one record - and in #1223's build a Discard in another room's decorator (a ship'
 stood the home's pieces there in place of that room's own, with its chests and its own-things record: a copy of
 everything the chests held and of each own thing standing in the home, and the other room's own things lost (in no
 record: staff give one back fresh, Add an item, on the player's word). Such a pair is repaired by staff's purge with
-`keep: true`: one of each kept (its own lists before a room's chest), only the copies destroyed wherever the save holds
-them - the record's every list, the rooms' chests and own things, and the account's chests - and, in the same batch, a
-`twice` copy the act leaves one of lifted where its row is the record's own, held and unclaimed and of the piece kept,
-no other record's copy is known and no trail check called it a copier's
-(`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`), said as a `dupe` finding with `lifted`.
-No checkpoint lifts a copy (AUDIT FB1025b): the record a checkpoint shows is the lists it holds, and a copy moved where
-it lists nothing - a deserter revenant's take (`revenant.js` splitPack keeps a realm-locked piece), a counter or the
-ground under a modified client - and brought back after would leave the other one trading. Pinned by
-`test/server/fb1025b_chestlock.test.js` and `staffpanel3realm.test.js`; `tools/mutants/fb1025b_chestlock.json`.
+`keep: true`: one of each kept - of the record's own lists first (its pack before a room's chest), the first of the print
+its ledger row holds - and every other copy destroyed wherever the save holds it, the places the checkpoint never reads
+with them: a deserter revenant's take, a pile on the ground, a shop's shelf, a dungeon's chest
+(`staffRealm.js:"export function copiesOfKeys(save, keySet) {"`, said as `hidden`), and of a piece it lifts, the
+account's chests'. A `twice` copy is lifted in the same batch only where the act itself leaves the record one - its
+batch destroys a copy of it, or staff's Remove took one off the character and keeps it - its row the record's own, held
+and unclaimed and of the piece kept, no other record's copy known, and no trail check or one that found it innocent
+(`ledger.js:"export async function ownCopiesLiftable(db, char, pieces) {"`); the `dupe` finding and the answer's
+`lifted` say what the batch took, and a checkpoint landing between the act's read and its seizure refuses it `seq`. No
+checkpoint lifts a copy (AUDIT FB1025b): the record a checkpoint shows is the lists it holds, and a copy moved where it
+lists nothing - a revenant's take (RVN8: a deserter's split, `splitPack`, and a kill's, `pickTaken` - neither takes a
+realm-locked piece now, `revenant.js:"&& !isRealmLocked(item)"`), a counter or the ground under a modified client -
+and brought back after would leave the other one trading. Open: a copy sold at a counter before the keep is gone from
+the save - nothing the act can count, so nothing lifts on that word; the sale's gold stays, and the piece bought back is
+a second of one, locked again by the checkpoint that shows both. Pinned by `test/server/fb1025b_chestlock.test.js` and
+`staffpanel3realm.test.js`; `tools/mutants/fb1025b_chestlock.json`.
 
 ### 4b. The audit (2026-10-09, Mac: "Lets do a comprehensive audit on this")
 

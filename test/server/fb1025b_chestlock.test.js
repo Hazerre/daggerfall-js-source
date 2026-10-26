@@ -25,6 +25,8 @@ import { toolRig, settle, all, one, rows } from '../decorFakes.mjs';
 import { createDecorRoom } from '../../src/scenes/decor/decorRoom.js';
 import { returnUnstood } from '../../src/systems/decor/decorPack.js';
 import { equipItem } from '../../src/systems/equip.js';
+import { setRealmLocked } from '../../src/systems/item/itemBound.js';
+import { revenantMayTake, pickTaken } from '../../src/systems/revenant/revenant.js';
 import { DUPE_GRACE_S, piecesRefusal, ownCopiesLiftable, ownCopyLiftSteps } from '../../server-account/src/ledger.js';
 import { ledgerPrintOf } from '../../server-account/src/judge.js';
 import { createSceneCache, cacheScene, snapshotSceneCache } from '../../src/systems/sceneCache.js';
@@ -364,8 +366,9 @@ test('CHEST-DRAFT E8 (AUDIT FB1025b): a save\'s room gives back what its record 
 });
 
 /** A sworn revenant gone over to the feud, carrying `took` - the more valuable half of the pack it was given
- *  (systems/revenant/revenant.js splitPack: it keeps a realm-locked piece, only the player's own lock barred), on its record
- *  and in the save, read by no list the record holds (systems/item/possessedItems.js), given back when it falls. */
+ *  (systems/revenant/revenant.js splitPack - which kept a realm-locked piece until AUDIT FB1025b F1; a forged client's
+ *  now), on its record and in the save, read by no list the record holds (systems/item/possessedItems.js), given back when
+ *  it falls. */
 const deserter = (took) => ({ modData: { Revenant: { list: [{ id: 'rv1', sworn: false, defeated: false, took }] } } });
 
 test('COPY-LIFT the exploit (AUDIT FB1025b): a pair locked stays locked when one copy goes where the record lists nothing - a deserter\'s take, a counter - and when it comes back; no route moves either', async () => {
@@ -385,33 +388,51 @@ test('COPY-LIFT the exploit (AUDIT FB1025b): a pair locked stays locked when one
   } finally { r.done(); }
 });
 
-test('COPY-LIFT the law the keep act lifts by: a record\'s copy of its own, its row its own, held and unclaimed, of the piece kept, no other record\'s copy known, no trail check calling it a copier\'s - lifted in the act\'s batch and said; every other copy stays', async () => {
+test('COPY-LIFT the law the keep act lifts by: a record\'s copy of its own, its row its own, held and unclaimed, of the piece kept, no other record\'s copy known, no trail check or one that found it innocent (AUDIT FB1025b F7: never one found unclear) - lifted in the act\'s batch and said; every other copy stays, and a lift of none says nothing', async () => {
   const r = await realm();
   try {
     const A = await r.seat('aldric'), B = await r.seat('brenna');
-    const [k0, k1, k2, k3, k4, k5, k6, k7, k8] = rares(9, 60);
+    const [k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10] = rares(11, 60);
     await r.put(B, [k7]);   // k7: another record held it first, and holds it still
-    await r.put(A, [k0, k0, k1, k1, k2, k2, k3, k3, k4, k4, k5, k5, k6, k6, k7, k7, k8, k8]);
-    assert.equal(r.copies(A).length, 9, 'each a copy');
+    await r.put(A, [k0, k0, k1, k1, k2, k2, k3, k3, k4, k4, k5, k5, k6, k6, k7, k7, k8, k8, k9, k9, k10, k10]);
+    assert.equal(r.copies(A).length, 11, 'each a copy');
+    r.raw.prepare("UPDATE item_dupes SET trail_at = ?, trail_found = 'unclear' WHERE uid = ? AND char_id = ?").run(T0, ledgerKeyOf(k9), A.R.id);   // k9: staff could not tell
+    r.raw.prepare("UPDATE item_dupes SET trail_at = ?, trail_found = 'innocent' WHERE uid = ? AND char_id = ?").run(T0, ledgerKeyOf(k10), A.R.id);   // k10: staff found it innocent
     await r.put(B, [k7, k1]);   // k1: another record shows it - its claim on this record's row waits
     r.raw.prepare("INSERT INTO item_dupes (uid, char_id, at, kind) VALUES (?, ?, ?, 'claim')").run(ledgerKeyOf(k2), B.R.id, T0);   // k2: another record's copy known
     r.raw.prepare("UPDATE item_dupes SET trail_at = ?, trail_found = 'copier' WHERE uid = ? AND char_id = ?").run(T0, ledgerKeyOf(k3), A.R.id);   // k3: staff found a copier
     r.raw.prepare("UPDATE item_dupes SET kind = 'craft' WHERE uid = ? AND char_id = ?").run(ledgerKeyOf(k4), A.R.id);   // k4: a craft's copy
     r.raw.prepare('UPDATE item_dupes SET kind = NULL WHERE uid = ? AND char_id = ?').run(ledgerKeyOf(k5), A.R.id);   // k5: found before the census said how
-    await r.put(A, [k0, k0, k1, k1, k2, k2, k3, k3, k4, k4, k5, k5, k6, k6, k7, k7]);   // k8: let go, its row kept gone for the copy
+    await r.put(A, [k0, k0, k1, k1, k2, k2, k3, k3, k4, k4, k5, k5, k6, k6, k7, k7, k9, k9, k10, k10]);   // k8: let go, its row kept gone for the copy
     const other = { ...applyRarity(createWeapon(120, 1, seeded(90)), 'rare', seeded(91)), uid: ledgerKeyOf(k6) };   // k6: the one kept is another piece
-    const kept = [k0, k1, k2, k3, k4, k5, other, k7, k8].map((it) => ({ key: ledgerKeyOf(it), fp: ledgerPrintOf(it) }));
+    const kept = [k0, k1, k2, k3, k4, k5, other, k7, k8, k9, k10].map((it) => ({ key: ledgerKeyOf(it), fp: ledgerPrintOf(it) }));
     const lifts = await ownCopiesLiftable(r.s.env.DB, A.R.id, kept);
-    assert.deepEqual(lifts, [ledgerKeyOf(k0)], 'the clean pair alone');
+    assert.deepEqual(sorted(lifts), sorted(keysOf([k0, k10])), 'the clean pair and the innocent one alone');
     await r.s.env.DB.batch(ownCopyLiftSteps(r.s.env.DB, A.R.id, lifts, T0));
-    assert.deepEqual(r.copies(A).map((x) => x.uid).includes(ledgerKeyOf(k0)), false, 'lifted');
-    assert.equal(r.copies(A).length, 8, 'the rest stand');
-    assert.deepEqual(r.dupeFindings(A).at(-1), { lifted: [ledgerKeyOf(k0)], count: 1 });
-    await r.s.env.DB.batch(ownCopyLiftSteps(r.s.env.DB, A.R.id, keysOf([k1, k2, k3, k4, k5, k7, k8]), T0));   // keys the law refuses, handed to it
-    assert.equal(r.copies(A).length, 8, 'the statement asks the law again: none of them lifted');
-    const once = await r.put(A, [k0, k1, k2, k3, k4, k5, other, k7, k8]);
-    assert.deepEqual(sorted(once.locked), sorted(keysOf([k1, k2, k3, k4, k5, k6, k7, k8])), 'k0 trades again; every other piece locked');
+    assert.deepEqual(r.copies(A).map((x) => x.uid).filter((u) => lifts.includes(u)), [], 'lifted');
+    assert.equal(r.copies(A).length, 9, 'the rest stand');
+    const said = r.dupeFindings(A).at(-1);
+    assert.deepEqual([sorted(said.lifted), said.count], [sorted(keysOf([k0, k10])), 2]);
+    const findings = r.dupeFindings(A).length;
+    await r.s.env.DB.batch(ownCopyLiftSteps(r.s.env.DB, A.R.id, keysOf([k1, k2, k3, k4, k5, k7, k8, k9]), T0));   // keys the law refuses, handed to it
+    assert.equal(r.copies(A).length, 9, 'the statement asks the law again: none of them lifted');
+    assert.equal(r.dupeFindings(A).length, findings, 'AUDIT FB1025b F2: no lift, no finding');
+    assert.deepEqual(ownCopyLiftSteps(r.s.env.DB, A.R.id, [], T0), [], 'and no keys, no statement in the act\'s batch');
+    const once = await r.put(A, [k0, k1, k2, k3, k4, k5, other, k7, k8, k9, k10]);
+    assert.deepEqual(sorted(once.locked), sorted(keysOf([k1, k2, k3, k4, k5, k6, k7, k8, k9])), 'k0 and k10 trade again; every other piece locked');
   } finally { r.done(); }
+});
+
+test('COPY-LIFT (AUDIT FB1025b F1): no revenant takes a realm-locked piece - a kill\'s take (RVN8 pickTaken) draws around it, a deserter keeps none (splitPack asks the same), and one taken before comes home at the load', () => {
+  const [locked, free] = rares(2, 160);
+  setRealmLocked([ledgerKeyOf(locked)]);
+  try {
+    assert.deepEqual([revenantMayTake(locked), revenantMayTake(free)], [false, true]);
+    for (let kills = 0; kills < 12; kills++) assert.equal(pickTaken('rv1', kills, locked, [locked, free]), free, 'never the locked one, worn or carried');
+    const src = readFileSync(new URL('../../src/systems/revenant/revenant.js', import.meta.url), 'utf8');
+    assert.match(src, /isGold: \(it\) => isGoldPieces\(it\) \|\| !revenantMayTake\(it\)/, 'a deserter\'s split keeps only what it may take');
+    assert.match(src, /const home = r\.took\.filter\(\(it\) => !revenantMayTake\(it\)\);/, 'and what it may no longer keep comes home');
+  } finally { setRealmLocked([]); }
 });
 
 test('COPY-LIFT no checkpoint lifts a copy: a claim\'s copy - a piece another record held first - stays locked when the claimant shows it once', async () => {
