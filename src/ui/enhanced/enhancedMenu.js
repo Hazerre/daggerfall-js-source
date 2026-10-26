@@ -124,6 +124,8 @@ import {
   sweepUnsent,
 } from '../../systems/realmSaves.js';   // REALM P1.3: the Online door lists the realm's characters, the service's
 import { applyCustoms, customsLines, crossLeveling, LEVELING_CROSS_LINE } from '../../systems/realmCustoms.js';   // REALM P1.5: an offline character comes in once, through customs
+import { REALM_COPY_SAVE_NAME, realmCopyIds } from '../../systems/realmCopyMark.js';   // a copy of a realm character never comes in
+import { bringOnlineButton } from './bringOnlineButton.js';
 import { createRealmLine } from '../../systems/legacy/realmLine.js';   // HOUSE-WAITS (FIELD BUGS 2026-10-09f): the account's lines, read at the door
 import { loadFamily } from '../../systems/legacy/store.js';
 import { waitingHouses, takeUpLine, houseWaitsTitle, houseWaitsLine, heirButtonLabel } from '../../systems/legacy/waitingHouses.js';
@@ -548,6 +550,7 @@ function saveOf(entry) {
     hour: date ? `${String(date.hour).padStart(2, '0')}:${String(date.minute).padStart(2, '0')}` : null,
     chargenDone: snap.chargenDone !== false,
     testRoom: snap.testRoom === true,   // AUDIT SET D4: a Test Room character, which plays offline
+    realmCopy: snap.realmCopy === true,   // a copy of a realm character, which plays offline (systems/realmCopyMark.js)
   };
 }
 
@@ -1290,17 +1293,20 @@ function paneOnline(body) {
   // carries (systems/realmCustoms.js) on a copy, the service makes the realm character, and it appears above to play.
   // The offline character stays exactly what it was.
   body.append(el('h4', null, t('menu.online.bringHeading', 'Bring an offline character in (once)')));
-  body.append(tileGrid(saves, (save) => ({
-    current: false,
-    actions: [{
-      // AUDIT SET D4: a Test Room character's button says why it is dead (the boot refuses it whatever door it comes by)
-      label: save.testRoom ? t('menu.online.testRoomOffline', 'Test Room: offline only') : t('menu.online.bring', 'Bring online'),
-      // ACC1g: signed out is a DEAD button with the reason one card up,
-      // not a live one that fails at the service.
-      disabled: !who || save.testRoom,
-      onClick: () => { if (!realmBusy) bringOnline(save); },
-    }],
-  })));
+  const realmCopies = realmCopyIds(saves);
+  body.append(tileGrid(saves, (save) => {
+    const button = bringOnlineButton(save, { realmCopy: realmCopies.has(save.characterId) });
+    return {
+      current: false,
+      actions: [{
+        label: button.label,
+        // ACC1g: signed out is a DEAD button with the reason one card up,
+        // not a live one that fails at the service.
+        disabled: !who || button.offlineOnly,
+        onClick: () => { if (!realmBusy) bringOnline(save); },
+      }],
+    };
+  }));
   const field = (label, key, placeholder, maxLength) => {
     const wrap = el('label', 'field');
     wrap.append(el('span', 'fieldlabel', label));
@@ -1457,7 +1463,7 @@ function copyToOffline(row) {
     if (!snap || typeof snap !== 'object') return { ok: false, error: 'no-data' };
     snap = offlineCopyOf(snap);   // AUDIT LIVED1 E: the world's stamps rebased onto the character's clock, the one clock offline
     snap.characterId = mintCharacterId();
-    const r = saveSlot(snap.name || row.name, 'Copied from the realm', snap, { storage: appStorage() });
+    const r = saveSlot(snap.name || row.name, REALM_COPY_SAVE_NAME, snap, { storage: appStorage() });
     return r.ok ? { ok: true } : { ok: false, error: 'no-room' };
   }, () => [t('menu.realm.copied', '{name} is copied as a new offline character. Nothing you play on the copy comes back online.', { name: row.name })]);
 }
@@ -2883,7 +2889,7 @@ function portRowsAudio() {
   if (!can) b.disabled = true;
   ctl.append(b, el('span', `tier ${can ? 'live' : 'unavailable'}`));
   row.append(ctl);
-  return [row, monsterVolumeRow(), companionVolumeRow()];
+  return [row, monsterVolumeRow(), companionVolumeRow(), horseVolumeRow(), animalVolumeRow()];
 }
 
 /** MONSTER-VOL (2026-10-20, the owner: "add an option under audio for it called Monster Volume with 0 - 100%"): the
@@ -2901,6 +2907,18 @@ export const COMPANION_VOLUME_NAME = 'Companion Idle Volume';
 function companionVolumeRow() {
   return volumeRow('companionVolume', t('menu.audio.companionVolume', COMPANION_VOLUME_NAME),
     t('menu.audio.companionVolumeNote', 'How loud companions moan and cry out while they idle, yours and other players\' alike. 0% silences them.'));   // AUDIT UPDATE E-N6: every companion's idle call - a peer's puppet carries `companion` too
+}
+/** HORSE-VOL, ANIMAL-VOL (2026-10-23, travddm: "Add both animal volume & horse volume"): the Audio tab's Volume rows for every
+ *  horse heard and for the other animal flats (systems/animalVolume.js), drawn as Monster Volume's. */
+export const HORSE_VOLUME_NAME = 'Horse Volume';
+export const ANIMAL_VOLUME_NAME = 'Animal Volume';
+function horseVolumeRow() {
+  return volumeRow('horseVolume', t('menu.audio.horseVolume', HORSE_VOLUME_NAME),
+    t('menu.audio.horseVolumeNote', 'How loud horses neigh and clop, your own mount included.'));
+}
+function animalVolumeRow() {
+  return volumeRow('animalVolume', t('menu.audio.animalVolume', ANIMAL_VOLUME_NAME),
+    t('menu.audio.animalVolumeNote', 'How loud dogs, cats, pigs and cows call.'));
 }
 /** MONSTER-VOL's row, for any 0..1 volume on the shelf (`key`): its name, `note` its title. */
 function volumeRow(key, name, note) {
@@ -3603,6 +3621,8 @@ const rebuildMorrowindBody = async () => {
 const TILE_AFTER = Object.freeze({
   mwSheathing: rebuildMorrowindBody,
   mwSteelHelm: rebuildMorrowindBody,   // MW-STEEL1: the steel helm's style, closed or open, on the standing body at once
+  mwBeastFeet: rebuildMorrowindBody,   // BEAST-BOOTS: a beast's footwear and helmet, on the standing body at once
+  mwBeastHelm: rebuildMorrowindBody,
 });
 
 /**

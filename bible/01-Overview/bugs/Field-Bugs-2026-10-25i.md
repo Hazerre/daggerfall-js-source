@@ -1,6 +1,7 @@
 # FIELD BUGS 2026-10-25i - seven #bug-reports threads
 
-Seven threads from the Discord's #bug-reports, handed over by the owner as phone screenshots. Read on main's
+Seven threads from the Discord's #bug-reports, handed over by the owner as phone screenshots (named 25i: main's
+25b to 25h took the letters while it was open - it was 25b on its branch). Read on main's
 `745ddb5c1`, with the freeware's data (`tools/fetch-data.sh`), each by a reader of its own beside this one; the owner
 then asked "Audit this" (AUDIT FB1025i, below). The pins are named under each fix, the mutants
 `tools/mutants/fb1025i_*.json`.
@@ -242,7 +243,7 @@ batch lifted; a checkpoint landing between the act's read and its seizure refuse
 account's chests only of what it lifts. No revenant takes a realm-locked piece (`revenant.js:"&& !isRealmLocked(item)"`).
 No checkpoint lifts a copy: a slice that did was found launderable before it merged - a copy moved where the record
 lists nothing (a deserting revenant's take, a counter, the ground) and brought back would have freed the other. The
-account service's law moved: `ACCOUNT_VERSION` acct191; no migration, and the purge's answer only gains `hidden`.
+account service's law moved: `ACCOUNT_VERSION` acct193 (acct191 on its branch, renumbered past main's YARD-TOWN acct191 and ECON-LEFT-OUT acct192 at the merge); no migration, and the purge's answer only gains `hidden`.
 
 FOR THE REPORTER. Staff run `/v1/staff/item/purge-dupes` with `keep: true` on the character (preview first); their tab
 loses its seat and they rejoin with one of each, unlocked. The staff panel needs a "keep one" choice that sends it.

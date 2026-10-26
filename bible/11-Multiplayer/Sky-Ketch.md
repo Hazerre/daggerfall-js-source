@@ -255,13 +255,22 @@ stands (the Spire's way); `scenes/ketch/ketchFight.js` draws the constructs, the
 forks and sections; `scenes/ketch/ketchClient.js` holds the world's half - the sky, boarding, the link, the claims, the
 burden, the bosun's line, the presses aboard (`kt:` targets: a cradle, a cell lying loose, a socket, a resonator, the line,
 the way down, the stern lift, the chest), the cast-back, and **a death aboard is a fall**: the death save (`kt-fall`)
-wakes the body in the fields under her at a sliver of health - no death penalty. Her look: her own lighting by the hour
+wakes the body in the fields under her at a sliver of health - no death penalty. **Raise before the fall** (AUDIT
+WORLD-EVENTS L1-4, 2026-10-25; the owner, asked what "Resurrect allowed" means aboard: "Raise before the fall"): a death
+aboard - the save's or the count's (`bd`) - with a crewmate on the ship lies DOWN where it fell for `KT_DOWN_MS` (60 s,
+`net/ketch/ketchBrain.js`) first: the body held there (`characters/playerEntity.js registerPlayerHold`, the hosts'
+paralysis gate), no blow reaching it, dying on every screen (`net/online.js poseDown`), a cell carried let go. A crewmate's
+Resurrect at it (`rz`, `net/raiseWord.js`; `ketchRaise`: the caster alive aboard, within `KT_REZ_REACH_M` of the body,
+inside the window - the brain marks where each member lies off the room's own poses, `p.lay`) stands it there at
+`KT_REZ_PCT` (Resurrect's 30%, pinned equal), a new life on the relay's count (`rez`, named to the crew). Past the window,
+THE FALL as ever. Pins: `test/net/eliteGates/auditwe_down.test.js` (THE SKY-KETCH, and THE PAGES). Her look: her own lighting by the hour
 - her night never darker than the world's outside it (DFU's exterior night floor 0.25) - the air's fog above and the
 lamps' below.
 
 **The made level's rules** (`systems/madeLevel.js`, `ketch`): no save, no rest, no map, no Mark or Recall, no portal
-stone, no companions, no regeneration, no levitation or slow fall, no flight, no run-leap, no resurrection, no
-avoid-death, no unstuck; a death a fall, its penalty none. No tier label over her deck (`world/dungeon/dungeonLabel.js`
+stone, no companions, regeneration held (EVENT-RULES, `Elite-Gates.md` section 24), no levitation or slow fall, no
+flight, no run-leap, Resurrect a raise before the fall (above), no avoid-death, no unstuck; a death a fall, its penalty
+none. No tier label over her deck (`world/dungeon/dungeonLabel.js`
 madeDungeon - nor over an Elite Breach's hall, which no list named before).
 
 ## 12. The Ketch on the screen

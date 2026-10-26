@@ -171,6 +171,7 @@ export function pickDungeonElites(enemies, key, { elite = true, count = null, cl
     const at = Math.floor(rng() * pool.length);
     const i = pool.splice(at, 1)[0];
     enemies[i].eliteFoe = true;
+    enemies[i].eliteSeed = eliteHash('elite-trait', key, i);   // BOSS-TRAITS: its trait's draw, every client's alike (systems/bossTraits.js eliteTraits)
     n++;
   }
   return n;
@@ -262,7 +263,21 @@ export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false)
 export const eliteCorpseSize = (size, entity) => (isEliteCorpse(entity) && size ? { ...size, w: size.w * eliteSize(entity), h: size.h * eliteSize(entity) } : size);
 
 /** The size a sprite is drawn at (STAFF-EVENT: a mini boss's its event's). */
-export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);
+export const eliteSize = (entity) => (entity?.staffBoss ? entity.staffBoss.size : entity?.raidLeader ? RAID_LEADER_SIZE : entity?.eliteFoe ? ELITE_FOE_SIZE : 1);   // RAID5: a raid's leader, larger
+
+// ═══ RAID5: A RAID'S LEADER (bible/03-World/Raiding-Parties.md RAID5) ═══════════════════════════════════════════════
+/** How much larger a raid's leader is drawn than its kind. */
+export const RAID_LEADER_SIZE = 1.5;
+/** Make a raid's leader of a fresh foe: an elite (its health, its blows, its drop - ELITE-FLOOR asked no level: the
+ *  party's leader is no roll), larger, and called by its party's word (`name`, "Knight-Captain") - its traits are the
+ *  caller's (systems/bossTraits.js). `own` false for a puppet (its owner's health, the record's `k`). Idempotent. */
+export function promoteRaidLeader(entity, { own = true, name = '' } = {}) {
+  if (!entity) return false;
+  promoteEliteFoe(entity, { own, checkLevel: false });
+  if (!entity.raidLeader) entity.raidLeader = { name: String(name ?? '') };
+  if (own) grantEliteLoot(entity, entity.level);   // AUDIT WORLD-EVENTS L2-6: an elite's drop - the pool grants it at a stand that rolled the elite, and a leader is promoted after its stand (once, whichever came first)
+  return true;
+}
 
 // ═══ STAFF-EVENT: A STAFF EVENT'S MINI BOSS ═══════════════════════════════════════════════════════
 // (2026-10-24, mob: "mini boss need to be a single enlarges version of the mob spawns / instead of the blue elite glow
@@ -283,6 +298,19 @@ export const STAFF_BOSS_DAMAGE_MULT = ELITE_FOE_DAMAGE_MULT;
 export const STAFF_BOSS_MIN_METAL = WEAPON_MATERIALS.Silver;
 /** A mini boss's worst armour on any part (the Troll's ArmorValue 2 x 5; lower is harder to hit). */
 export const STAFF_BOSS_ARMOR = 10;
+/** BOSS-SPELL-WARD (mob 2026-10-25: "use crazy spell reduction on mini bosses like 90%", "of all spell damage"): the share of
+ *  a spell's damage a mini boss takes - every spell's, its rounds and a strike's too, and a whole-health one (a
+ *  Disintegrate) is a tenth of its health, never a kill. */
+export const STAFF_BOSS_SPELL_TAKEN = 0.1;
+/** BOSS-HIT-SHARE (mob 2026-10-25: "needs to scal with players", "1% per heaslth with 40 player ins much", "magfic and
+ *  melee"): the most one hit takes off a mini boss is this share of its maximum, split among the players fighting it -
+ *  forty fighting, a four-hundredth each, so a crowd's every round of hits takes about 1% whatever its size. */
+export const STAFF_BOSS_HIT_SHARE = 0.01;
+/** The fighters the split counts at most (a town's whole crowd). */
+export const STAFF_BOSS_FIGHTERS_MAX = 100;
+/** One hit of `damage` on a mini boss of `maxHealth` with `fighters` on it, held to its share - at least 1. */
+export const staffBossHit = (damage, maxHealth, fighters) =>
+  Math.min(damage, Math.max(1, Math.round(((maxHealth > 0 ? maxHealth : 1) * STAFF_BOSS_HIT_SHARE) / Math.max(1, fighters))));
 /** Is this entity a staff event's mini boss? */
 export const isStaffBoss = (entity) => !!entity?.staffBoss;
 /**
