@@ -1216,7 +1216,15 @@ export function createGatherHost(deps) {
         book.refresh().then((r) => { if (r?.ok) { refreshAt = 0; restandAll(); if (book.pendingWithdrawals || book.pendingCrafts || book.pendingDeposits) deps.onSettle?.(); } }, () => {});   // AUDIT2 BAG1 K3: and a kept deposit, at the next settle
       }
       const d = utcDayOfMs(now);
-      if (d !== day) { day = d; restandAll(); }
+      if (d !== day) {
+        day = d;
+        // AUDIT GATHER F5 (Professions-Arc section 55): an act on yesterday's node ends at the turn, nothing asked or worn -
+        // played to its end it wore the tool, then the service refused it (`prof-day`). A body lapses and a cast re-keys of
+        // their own (huntHost, fishHost); a patch, a vein, a boulder, a tree and a dungeon's vein did not
+        const was = act ? parseNodeKey(act.node?.key) : null;
+        if (was && was.kind !== 'haul' && was.kind !== 'body' && was.day !== d) { letGo(act); act.act.cancel(); act = null; syncPointer(); hud.setMeter(null); hud.toast(ACT_STOPPED_LINE); }
+        restandAll();
+      }
       // SEASONAL-EYE (AUDIT 2026-10-01 part four): a spec chosen mid-session that changes what STANDS - Herbalism 100's
       // Seasonal Eye, the herbs out of season - stands the pixels again; the patches waited for the next state read or the
       // day's turn, and named another herb than the service rolled

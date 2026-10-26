@@ -60,6 +60,7 @@ import {
   workOpen,   // PROF11: a mason's work asks its rank
   workSpecOk,   // PROF12: a Transmuter's transmutation asks its choice
   workEmbers,   // DAEDRIC-SMELT: the Deadlands Embers a work spends out of the account's purse
+  SCHOOL_HAULS_DAY,   // AUDIT GATHER F3: the school's fish bounded as the day's forty bound them
 } from '../../src/net/professionLaw.js';
 import {
   recipeById, recipeOpen, qualityOdds, rollQuality, qualitySteps, craftQuality, rollsQuality, craftXp, craftCount,
@@ -592,7 +593,10 @@ export async function harvestNode(ctx, player, env, body = {}) {
     gem = finds.pearl;
     extra = finds.scales;
     trophy = finds.trophy ? 1 : 0;
-    qty = haulYield({ roll: roll(HAUL_YIELD[0], HAUL_YIELD[1]), clean, march, school: net.school, netter: specs[50] === 'netter', slaughterfish: !!finds.scales, tideMult: tideYield(tide, 'haul') }, dice(rand));
+    // AUDIT GATHER F3: a school's fish on the account's first SCHOOL_HAULS_DAY hauls of the day alone - the client's word,
+    // bounded as section 30 bound it (the day's forty), never on every haul
+    const school = net.school && Number((await haulsStatement(db, player.id, day).first())?.n ?? 0) < SCHOOL_HAULS_DAY;
+    qty = haulYield({ roll: roll(HAUL_YIELD[0], HAUL_YIELD[1]), clean, march, school, netter: specs[50] === 'netter', slaughterfish: !!finds.scales, tideMult: tideYield(tide, 'haul') }, dice(rand));
   } else if (isBody) {
     // PROF7: THE SKINNING KNIFE - the hide of the foe the client names; a clean pelt x1.5 (the act's bound), a torn one's
     // DFU part lost; the part one body in four; the butchery beside it, a Butcher's two (PROF0 4.4, 29)
