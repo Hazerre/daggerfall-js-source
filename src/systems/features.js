@@ -746,7 +746,7 @@ export const FEATURES = Object.freeze([
       + 'catch the light with sparkles; Outline rings each one in its profession\u2019s colour, plain to see day or night; Both does both.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
-    control: Object.freeze({ store: 'prefs', key: 'resourceHighlights', initial: 'glint', online: 'player', tiers: Object.freeze([['glint', 'Glint'], ['outline', 'Outline'], ['both', 'Both']]) }),   // render/nodeGlint.js RESOURCE_HIGHLIGHT_PREF, RESOURCE_HIGHLIGHTS
+    control: Object.freeze({ store: 'prefs', key: 'resourceHighlights', initial: 'glint', online: 'player', tiers: Object.freeze([tier('glint', () => t('features.resourceHighlights.glint', 'Glint')), tier('outline', () => t('features.resourceHighlights.outline', 'Outline')), tier('both', () => t('features.resourceHighlights.both', 'Both'))]) }),   // render/nodeGlint.js RESOURCE_HIGHLIGHT_PREF, RESOURCE_HIGHLIGHTS
   }),
   // QUICK-LOOT B4 (2026-09-22, Mac: Arc B of the world-hover arcs, and
   // "How does skyrim do it" when the shape was put to him). Vanilla

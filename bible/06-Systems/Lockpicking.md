@@ -174,6 +174,11 @@ mid-screen line, the bus).
   runs once, last - and the opened lock's tail runs from it, after the window is gone.
 - TEST THE SHAPE THE PRODUCER MINTS: the tests mint the Lockpick with `lockpicks()`, the counter's stack with
   `ensureEndlessLockpicks`, the rogue's with `rogueLockpicks` over the real EnemyBasics rows.
+- EVERY WORD IN EVERY LANGUAGE (L10N4): the window's, the host's and the Lockpick's words are `t()` keys (`lock.*`,
+  `lockpick.item.*`), read when said, in the English catalog (`tools/l10nExtract.mjs`) and drafted in-session into the
+  thirteen languages whose tables cover it (`tools/l10nInSession.mjs`). What a lock is said to be is whole words - the
+  door, the chest, the crate (`LOCKPICK_HOST_WORDS`) - never `searchables.js`'s English name set into a sentence another
+  language would decline.
 
 ## 9. Pinned
 

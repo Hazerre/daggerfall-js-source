@@ -45,7 +45,9 @@ export const OPEN_HOLD_MS = 650;
 export const LOCKPICK_HOST_WORDS = Object.freeze({
   need: () => t('lock.need', 'You need a lockpick to pick this lock.'),
   door: () => t('lock.what.door', 'the door'),
-  chest: (/** @type {string} */ name) => t('lock.what.container', 'the {name}', { name }),
+  /** A locked searchable - SEARCH1's lockable kinds, a chest or a crate - each its own words (searchables.js's names are
+   *  English, and a name set into a sentence cannot take its language's article or case). */
+  container: (/** @type {string} */ kind) => (kind === 'crate' ? t('lock.what.crate', 'the crate') : t('lock.what.chest', 'the chest')),
 });
 
 /**

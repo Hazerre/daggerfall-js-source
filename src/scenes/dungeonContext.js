@@ -8492,7 +8492,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         if (mode !== 'steal' && mode !== 'grab') { setMidScreenText(lookAtLockText(sb.lock, playerEntity.level, skill)); return 1; }
         // LOCKPICK (bible/06-Systems/Lockpicking.md): the lock's tumblers, where SEARCH1 rolled; opened, the search goes on
         return lockpick.inside({
-          lock: sb.lock, key, what: LOCKPICK_HOST_WORDS.chest(searchName(sb.kind, false).toLowerCase()),
+          lock: sb.lock, key, what: LOCKPICK_HOST_WORDS.container(sb.kind),
           onOpen: () => { markPicked(key); hudText.add(LOCKPICKING_SUCCESS_TEXT); audio.play3d(SOUND.ActivateLockUnlock, centre); activateSearchable(i, mode); },
         }) ? 1 : 0;
       }

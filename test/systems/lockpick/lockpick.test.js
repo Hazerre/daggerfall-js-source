@@ -306,6 +306,8 @@ test('LOCKPICK host: no pick and the lock says so - nothing opened, rolled, tall
   const r = rig({ picks: 0 });
   assert.equal(r.host.inside({ lock: 6, key: 'k' }), true, 'the press is spent');
   assert.deepEqual(r.said, [LOCKPICK_HOST_WORDS.need()]); assert.equal(r.mounted.length, 0); assert.equal(r.deps, null);
+  // a locked searchable's own words, each whole - never an English name set into another language's sentence
+  assert.deepEqual(['chest', 'crate', 'coffin'].map((k) => LOCKPICK_HOST_WORDS.container(k)), ['the chest', 'the crate', 'the chest']);
   assert.equal(r.player.skillUses[SKILLS.Lockpicking], 0);
 });
 
