@@ -1657,7 +1657,9 @@ authored shape and the seeded noise stay (below, and `ui/tamrielInk.js`).
 
 THE IMPERIAL CITY IS TESA'S. `world/imperialCity.js`, `world/capitalShapes.js` and `world/capitalImperial.js` are
 #1184's own files byte for byte at its head (`4d8200b01`), at their own paths, so that branch's merge finds them already
-here (they import only `spawnedDungeons.js`, `meshReader.js` and `detStandIns.js`, as main has them). What the film
+here (they import only `spawnedDungeons.js`, `meshReader.js` and `detStandIns.js`, as main has them), and
+`CAPITAL_ARCHIVE` (38400) comes with them into the pseudo-archive registry as #1184's own line
+(`world/eliteGates/pseudoArchives.js`; EG-G2 holds every `*ARCHIVE*` number to it). What the film
 draws is theirs (`ui/intro/introCity.js`): all thirteen landmarks' own meshes by their own builders (the Tower, the
 palace wall and tombs, the city wall and watch towers, the district walls, the Colosseum, the Temple of the One, Talos,
 the Nine Divines, the Prison, the University, the Waterfront, Talos Bridge), each vertex carrying its picture's record;
