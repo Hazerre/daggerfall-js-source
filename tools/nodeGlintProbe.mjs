@@ -30,7 +30,7 @@ const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.ind
 const out = []; const check = (n, ok, d = '') => { out.push(ok); console.log(`${ok ? 'ok  ' : 'FAIL'} ${n}${d ? ` - ${d}` : ''}`); };
 
 const PAGE = `<!doctype html><html><body style="margin:0;background:#000"><canvas id=c width=640 height=480></canvas><script type=module>
-import { NodeGlintRenderer, glintPx, glintPxMax, GLINT_SHEEN_HZ } from '/src/render/nodeGlint.js';
+import { NodeGlintRenderer, glintPx, glintPxMax, GLINT_SHEEN_HZ, GLINT_CROWN_GROWTH } from '/src/render/nodeGlint.js';
 import { Renderer } from '/src/render/renderer.js';
 import { nodeMarkRgb } from '/src/ui/nodeMarks.js';
 const W = 640, H = 480;
@@ -96,7 +96,7 @@ try { pass = new NodeGlintRenderer(gl); } catch (e) { err = String(e.message ?? 
 const persp = (f, a, n, fa) => { const t = 1 / Math.tan(f / 2); return new Float32Array([t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]); };
 const look = (e, c) => { const u = [0, 1, 0]; const z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]]; let l = Math.hypot(...z); z.forEach((v, i) => { z[i] = v / l; }); const x = [u[1] * z[2] - u[2] * z[1], u[2] * z[0] - u[0] * z[2], u[0] * z[1] - u[1] * z[0]]; l = Math.hypot(...x); x.forEach((v, i) => { x[i] = v / l; }); const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]]; return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1]); };
 const mul = (a, b) => { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) o[c * 4 + r] += a[k * 4 + r] * b[c * 4 + k]; return o; };
-window.probe = { err, linked: pass ? gl.getProgramParameter(pass.mask, gl.LINK_STATUS) && gl.getProgramParameter(pass.light, gl.LINK_STATUS) : false, atlas: pass ? (gl.bindFramebuffer(gl.FRAMEBUFFER, pass.fb), gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) : false, reachMax: glintPxMax(H), sheenPeriod: 1 / GLINT_SHEEN_HZ };
+window.probe = { err, linked: pass ? gl.getProgramParameter(pass.mask, gl.LINK_STATUS) && gl.getProgramParameter(pass.light, gl.LINK_STATUS) : false, atlas: pass ? (gl.bindFramebuffer(gl.FRAMEBUFFER, pass.fb), gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) : false, reachMax: glintPxMax(H), crownMax: glintPxMax(H) * GLINT_CROWN_GROWTH, sheenPeriod: 1 / GLINT_SHEEN_HZ };
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);   // the atlas's status asked: the canvas back
 /** The floor, the node's own pictures (and \`walled\` the wall), then (\`lit\`) the pass over them at \`alpha\`, its clock
  *  \`seconds\` (\`still\` reduced motion), seen from \`far\` (25 m off, a long lens on the herb) or near; the whole frame read
@@ -120,7 +120,7 @@ window.draw = ({ walled = false, lit = true, alpha = 1, lpt = true, seconds = 0,
   if (walled) { gl.useProgram(flat); gl.uniform3f(gl.getUniformLocation(flat, 'c'), 0.12, 0.12, 0.12); gl.bindVertexArray(wall.v); gl.drawArrays(gl.TRIANGLES, 0, wall.n); }
   gl.bindVertexArray(null);
   gl.enable(gl.CULL_FACE);
-  let drawn = 0, trees = 0, reach = 0;
+  let drawn = 0, trees = 0, reach = 0, reaches = [], counts = [];
   if (lit) {
     frame.eye = eye;
     const r = { gl, _proj: proj, _view: view, _camPos: new Float32Array(eye), _bbRight: right, _bbUp: new Float32Array([0, 1, 0]), _fogMode: 0, _fogDensity: 0, _haze: new Float32Array(8),
@@ -139,10 +139,11 @@ window.draw = ({ walled = false, lit = true, alpha = 1, lpt = true, seconds = 0,
     drawn = pass.draw(list, r, seconds, still);
     trees = pass.trees;
     reach = pass._nodes?.[0] ? Math.max(...pass._nodes.slice(0, 2).map((s) => s.glint)) : 0;
+    reaches = pass._nodes.slice(0, 2).map((s) => s.glint); counts = pass._nodes.slice(0, 2).map((s) => s.count);   // NODE-CROWN: the herb's, the tree's
   }
   const state = { depthFunc: gl.getParameter(gl.DEPTH_FUNC) === gl.LESS, depthMask: gl.getParameter(gl.DEPTH_WRITEMASK) === true, blend: gl.isEnabled(gl.BLEND), cull: gl.isEnabled(gl.CULL_FACE) };
   const pix = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, pix);
-  return { error: gl.getError(), drawn, trees, reach, state, pix: Array.from(pix) };
+  return { error: gl.getError(), drawn, trees, reach, reaches, counts, state, pix: Array.from(pix) };
 };
 window.ready = true;
 </script></body></html>`;
@@ -182,16 +183,30 @@ try {
   check('no GL error drawing it; both nodes lit, one as its 3D tree', first.error === 0 && first.drawn === 2 && first.trees === 1, `error ${first.error}, drawn ${first.drawn}, trees ${first.trees}`);
   check('the GL baseline handed back: depth LESS and written, blend off, faces culled', first.state.depthFunc && first.state.depthMask && !first.state.blend && first.state.cull, JSON.stringify(first.state));
   const reach = Math.ceil(first.reach) + 1;
-  check('a glint\'s reach on screen is its law\'s (a few pixels, never past the image\'s most)', first.reach > 1 && first.reach <= p.reachMax, `${first.reach.toFixed(2)} px of ${p.reachMax.toFixed(2)}`);
+  check('a glint\'s reach on screen is its law\'s (a few pixels, never past the image\'s most)', first.reaches[0] > 1 && first.reaches[0] <= p.reachMax, `the herb's ${first.reaches[0].toFixed(2)} px of ${p.reachMax.toFixed(2)}`);
+  // NODE-CROWN (AUDIT FB1025b C1, the report's "Needs to be size aware"): a big 3D crown's glints grown - twice as many,
+  // twice the reach; the herb's six as they were
+  check('NODE-CROWN: a big 3D crown glints twice as many, reaching twice as far; the herb its six', first.counts[0] === 6 && first.counts[1] === 12 && Math.abs(first.reaches[1] - p.crownMax) < 1e-6, `counts ${first.counts.join(', ')}; the tree's reach ${first.reaches[1].toFixed(2)} px of ${p.crownMax.toFixed(2)}`);
   // NODE-CROWN: the tree's rows on screen (row 0 the bottom), and the top two fifths of them - its crown's upper reach
   let treeLo = H, treeHi = -1;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (treeCol(x) && onPic(x, y)) { if (y < treeLo) treeLo = y; if (y > treeHi) treeHi = y; }
   const crownFrom = treeLo + 0.6 * (treeHi - treeLo);
-  let herb = 0, tree = 0, treeTop = 0, flat0 = 0, darker = 0, farOff = 0, strongOff = 0, touched = 0, offPic = 0, frames = 0;
+  let herb = 0, tree = 0, treeTop = 0, flat0 = 0, darker = 0, farOff = 0, strongOff = 0, touched = 0, offPic = 0, frames = 0, herbHearts = 0, treeHearts = 0;
   for (let t = 0; t < 6; t += 0.25) {
     const f = await draw({ seconds: t });
     frames++;
     if (shotsAt && Math.abs(t - 1.5) < 1e-9) await page.locator('#c').screenshot({ path: join(shotsAt, 'node_glint_near.png') });
+    // NODE-CROWN: each glint's heart - a local peak of 300 or more, one within 2 px of another the same
+    const hs = [];
+    for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++) {
+      if (!herbCol(x) && !treeCol(x)) continue;
+      const v = rise(bare.pix, f.pix, x, y);
+      if (v < 300) continue;
+      let top = true;
+      for (let dy = -2; dy <= 2 && top; dy++) for (let dx = -2; dx <= 2; dx++) if ((dx || dy) && rise(bare.pix, f.pix, x + dx, y + dy) > v) { top = false; break; }
+      if (top && !hs.some((h) => Math.abs(h[0] - x) <= 2 && Math.abs(h[1] - y) <= 2)) hs.push([x, y]);
+    }
+    for (const h of hs) if (herbCol(h[0])) herbHearts++; else treeHearts++;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const d = rise(bare.pix, f.pix, x, y);
       if (d < -6) darker++;
@@ -207,6 +222,7 @@ try {
   check('over the glints\' lives the herb glints, and the tree', herb > 40 && tree > 40, `herb ${herb} px, tree ${tree} px over ${frames} frames`);
   // FIELD BUGS 2026-10-25b NODE-CROWN ("Big trees hide resource node particles"): a prefab of the mod's own scale glints to
   // its top - its scale counted once (it stood the crown at its scale's share of the tree: half of this one, the top bare)
+  check('NODE-CROWN (AUDIT FB1025b C1): the big crown\'s glint hearts a frame more than the herb\'s six make', treeHearts > herbHearts * 1.3, `the tree's ${(treeHearts / frames).toFixed(2)} a frame, the herb's ${(herbHearts / frames).toFixed(2)}`);
   check('NODE-CROWN: a scaled prefab\'s 3D tree glints to its top - its crown\'s upper two fifths lit', treeTop > 40 && treeTop < tree, `${treeTop} px of the tree's ${tree} in its rows ${Math.ceil(crownFrom)}-${treeHi} (the tree ${treeLo}-${treeHi})`);
   check('light only added: no pixel darker', darker === 0, `${darker} px`);
   check(`within a glint's reach (${reach} px) of the picture: a glint, not a halo`, farOff === 0, `${farOff} of ${touched} past it`);

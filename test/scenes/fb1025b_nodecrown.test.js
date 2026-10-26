@@ -7,10 +7,15 @@
 // and its sheen stand in. The height counted the prototype's own scale twice. The run's size is the prototype's standing
 // size with its scale in it already (world/lowPolyTrees.js readLowPolyTrees: `m.max[1] * sy`), the mesh is drawn at that
 // scale (renderer.js bbVertexShader's mesh mode: aCenter * uMeshScale * aScale), and the pass took the size times
-// `run.scale[1]` once more. 88 of the 116 Tree records' prototypes are scaled: a temperate wood's (504-511, 0.5 to 0.8)
-// were lit to half to four fifths of their height - 504_16's 16 m tree to 8 m, the upper crown that shows over a wood
-// never glinting - and a swamp's or a desert's (1.5 to 4.2) over a box up to four times as tall as they are, most of
-// their glints' tries in the empty air above them and their sheen crossing it. Not depth: the light is drawn after the
+// `run.scale[1]` once more. The climates stand 95 Tree records (TREE_RECORDS, with the woodland sets' winter archives -
+// world/climateSwaps.js getNatureArchive), 93 with a prototype and 74 of those scaled (AUDIT FB1025b C2: this said 88 of
+// 116, the pin's own loop's count): the temperate and mountain woods' (504-511) mostly 0.5 to 0.8 - lit to half to four
+// fifths of their height, 504_16's 16 m tree to 8 m, the upper crown that shows over a wood never glinting - and the
+// swamp's, the desert's and a winter wood's 15 (1.1 to 4.2) over a box up to four times as tall as they are, most of
+// their glints' tries in the empty air above them and their sheen crossing it.
+// AUDIT FB1025b C1 (the report's own "Needs to be size aware"): and a big crown's glints were a herb's six at a herb's
+// reach - per pixel of its picture 7 times sparser than a near herb's at 30 m, 25 times at 12 m. They grow with the
+// crown's size on screen now, up to twice as many reaching twice as far (nodeGlint.js glintCrownGrowth); a flat's stay. Not depth: the light is drawn after the
 // trees, against the world's depth at the picture's own (tools/nodeGlintProbe.mjs - a half-scale prefab's top two fifths
 // lit with the fix, none without).
 // Pinned through the producers: the Low Poly Trees door over the vendored data makes the tree's handle and its frame
@@ -24,6 +29,8 @@ import { createLowPolyTrees } from '../../src/systems/lowPolyTreesAssets.js';
 import { NodeGlintRenderer, GLINT_TREE_REACH } from '../../src/render/nodeGlint.js';
 import { bbVertexShader } from '../../src/render/renderer.js';
 import { TREE_RECORDS, isTreeRecord } from '../../src/world/terrain/terrainNature.js';
+import { getNatureArchive, SEASON } from '../../src/world/climateSwaps.js';
+import * as NG from '../../src/render/nodeGlint.js';
 import { glslFunctions } from '../glsl.mjs';
 
 const V = new URL('../../vendor/low-poly-trees/Trees/', import.meta.url);
@@ -71,19 +78,20 @@ const ROOT = [2, 0.5, 0], YAW = 0.7, OWN = 1.2;   // a wild tree's own scale (DF
 /** A Logging node's 3D tree of prototype `archive`_`record` near the eye: the door's handle and its frame (one tree at
  *  ROOT), the node's mark as the gathering host hands it (scenes/treeHost.js picturesOf: the forest flat, its centre and
  *  its pixel), and the glint pass's draw of it - its box, its span and the rectangle it stands in. */
-async function glintOf(d, archive, record) {
+async function glintOf(d, archive, record, own = OWN, eye = EYE, drawn = true) {
   const p = d.lpt.proto(archive, record);
   const h = await d.lpt.farPicture(p);
-  const set = { ox: 0, oy: 0, oz: 0, handles: [h], trees: Float32Array.from([0, ...ROOT, OWN, YAW]), centers: [ROOT] };
-  d.lpt.frame([set], EYE[0], EYE[1], EYE[2], { stamp: 1 });
+  const set = { ox: 0, oy: 0, oz: 0, handles: [h], trees: Float32Array.from([0, ...ROOT, own, YAW]), centers: [ROOT] };
+  d.lpt.frame([set], eye[0], eye[1], eye[2], { stamp: 1 });
   const frame = d.frames.at(-1), run = frame.runs[0];
   const pass = new NodeGlintRenderer(/** @type {any} */ (quietGl()));
-  const r = { gl: pass.gl, _proj: PROJ, _view: VIEW, _camPos: new Float32Array(EYE), _bbRight: new Float32Array([1, 0, 0]), _bbUp: new Float32Array([0, 1, 0]),
-    _fogMode: 0, _fogRange: [0, 1], _haze: new Float32Array(8), textures: new Map(), lptDrawnFrames: () => [frame, null] };
+  const view = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -eye[0], -eye[1], -eye[2], 1]);
+  const r = { gl: pass.gl, _proj: PROJ, _view: view, _camPos: new Float32Array(eye), _bbRight: new Float32Array([1, 0, 0]), _bbUp: new Float32Array([0, 1, 0]),
+    _fogMode: 0, _fogRange: [0, 1], _haze: new Float32Array(8), textures: new Map(), lptDrawnFrames: () => (drawn ? [frame, null] : []) };
   const batch = { archive, record: h.record, vao: null, size: h.size, origin: [0, 0, 0], lptProto: h };
   const lit = pass.draw([{ alpha: 1, seed: 0.5, at: ROOT, rgb: [1, 1, 1], mark: { pictures: [{ batch, first: 0, count: 1, centers: [ROOT], center: ROOT, entry: { lowPolyTrees: set } }] } }], r, 0);
   const s = pass._nodes[0];
-  return { p, run, lit, trees: pass.trees, box: s.boxes[0].slice(), span: s.spans[0].slice(), anchor: Array.from(s.anchors.slice(0, 6)), inner: s.inner.slice() };
+  return { p, h, run, lit, trees: pass.trees, box: s.boxes[0].slice(), span: s.spans[0].slice(), anchor: Array.from(s.anchors.slice(0, 6)), inner: s.inner.slice(), rect: s.rect.slice(), count: s.count, glint: s.glint };
 }
 /** The mesh's highest vertex (its own frame). */
 function highest(p) {
@@ -126,21 +134,77 @@ test('NODE-CROWN the report\'s tree: a temperate wood\'s 504_16, its prototype a
   assert.ok(treeTop <= g.inner[1] + g.inner[3], 'inside the rectangle it is lit in');
 });
 
-test('NODE-CROWN every Tree record\'s prototype, every nature archive and its winter one: the glint\'s crown as tall as the tree drawn (its highest vertex at its prototype\'s scale and its row\'s) - those the mod scales under 1, at 1 and over it alike (mutants: the scale counted twice; the row\'s scale unread; the width for the height)', async () => {
+test('NODE-CROWN every climate\'s Tree records, its summer archive and its winter one (AUDIT FB1025b C2: the woodland sets\' alone have one - getNatureArchive): the glint\'s crown as tall as the tree drawn (its highest vertex at its prototype\'s scale and its row\'s), at a row scale under 1 and over it (C3) - 95 records, 93 with a prototype: 54 scaled under 1, 19 at 1 and 20 over it (mutants: the scale counted twice; the row\'s scale unread; the width for the height; the row\'s scale held at 1 and over)', async () => {
   const d = await door();
-  const seen = { under: 0, one: 0, over: 0 }, wrong = [];
+  const seen = { records: 0, none: 0, under: 0, one: 0, over: 0 }, wrong = [];
   for (const [base, records] of Object.entries(TREE_RECORDS)) {
-    for (const archive of [Number(base), Number(base) + 1]) {
+    for (const archive of new Set([Number(base), getNatureArchive(Number(base), SEASON.Winter)])) {
       for (const record of records) {
-        if (!d.lpt.proto(archive, record)) continue;   // a record the mod has no tree for stands as its classic flat
-        const g = await glintOf(d, archive, record);
-        const sy = g.run.scale[1];
-        seen[sy < 1 ? 'under' : sy > 1 ? 'over' : 'one']++;
-        const tall = highest(g.p)[1] * sy * OWN;
-        if (g.lit !== 1 || !near(g.box[4] - ROOT[1], tall, 1e-3 * Math.max(1, tall)) || !near(g.span[4], tall, 1e-3 * Math.max(1, tall))) wrong.push(`${archive}_${record}: ${(g.box[4] - ROOT[1]).toFixed(2)} m of ${tall.toFixed(2)} (scale ${sy})`);
+        seen.records++;
+        if (!d.lpt.proto(archive, record)) { seen.none++; continue; }   // a record the mod has no tree for stands as its classic flat
+        for (const own of [0.8, 1.2]) {   // DFU's terrain scale is 0.6..1.4: a tree under its prototype's size and over it
+          const g = await glintOf(d, archive, record, own);
+          const sy = g.run.scale[1];
+          if (own === 0.8) seen[sy < 1 ? 'under' : sy > 1 ? 'over' : 'one']++;
+          const tall = highest(g.p)[1] * sy * own;
+          if (g.lit !== 1 || !near(g.box[4] - ROOT[1], tall, 1e-3 * Math.max(1, tall)) || !near(g.span[4], tall, 1e-3 * Math.max(1, tall))) wrong.push(`${archive}_${record} at ${own}: ${(g.box[4] - ROOT[1]).toFixed(2)} m of ${tall.toFixed(2)} (scale ${sy})`);
+        }
       }
     }
   }
   assert.deepEqual(wrong, [], 'every crown the height of its tree');
-  assert.ok(seen.under >= 40 && seen.one >= 20 && seen.over >= 20, `prototypes scaled under 1, at 1 and over it (${JSON.stringify(seen)})`);
+  assert.deepEqual(seen, { records: 95, none: 2, under: 54, one: 19, over: 20 }, 'the record\'s numbers are the climates\' own');
+});
+
+// ─── AUDIT FB1025b C1: A CROWN'S GLINTS BY ITS SIZE ─────────────────────
+
+test('NODE-CROWN (AUDIT FB1025b C1) the law: a 3D crown\'s glints grow over a herb\'s from the side a herb\'s glint stops growing at (GLINT_PX / GLINT_SHARE, with the image), its share of it to the two thirds - so their light, count times reach squared, grows as the crown\'s area - between 1 and GLINT_CROWN_GROWTH (twice as many, reaching twice as far); its side the square root of its standing area at its root\'s depth (mutants: the growth unbounded; the growth under 1; the power the side\'s own; the image unscaled; the count unrounded; the reach ungrown; the area its width alone; a root behind the eye none)', () => {
+  assert.deepEqual([NG.GLINT_CROWN_GROWTH, NG.GLINT_CROWN_COUNT], [2, 12], 'twice: twelve glints the most a node has');
+  const ref = NG.GLINT_PX / NG.GLINT_SHARE;   // 40 px at 1080 rows
+  assert.equal(NG.glintCrownGrowth(1080, ref), 1, 'a crown no bigger than a herb\'s capped picture: a herb\'s');
+  assert.equal(NG.glintCrownGrowth(1080, ref / 2), 1, 'nor a smaller one');
+  assert.ok(near(NG.glintCrownGrowth(1080, ref * 2), 2 ** (2 / 3), 1e-12), 'twice the side: the two thirds');
+  assert.ok(near(NG.glintCrownGrowth(1080, ref * 2) ** 3 / NG.glintCrownGrowth(1080, ref * 1.25) ** 3, (2 / 1.25) ** 2, 1e-9), 'its light as its area');
+  assert.ok(near(NG.glintCrownGrowth(1080, ref * 2 ** 1.5), 2, 1e-12) && NG.glintCrownGrowth(1080, 4000) === 2 && NG.glintCrownGrowth(1080, Infinity) === 2, 'the most, and no more');
+  assert.ok(near(NG.glintCrownGrowth(540, ref), 2 ** (2 / 3), 1e-12), 'with the image');
+  assert.deepEqual([ref / 2, ref, ref * 1.5, ref * 2, ref * 4].map((x) => NG.glintCrownCount(1080, x)), [6, 6, 8, 10, 12], 'the count, a whole one');
+  assert.equal(NG.glintCrownPx(1080, ref * 4), NG.GLINT_PX * 2, 'the reach: twice a herb\'s most');
+  assert.ok(near(NG.glintCrownPx(1080, ref / 2), NG.glintPx(1080, ref / 2), 1e-12), 'a small crown\'s a picture\'s share, as a flat\'s');
+  // the side: sqrt(width px x height px) at the root's depth through the projection's own scales
+  assert.ok(near(NG.crownSidePx([2, 0, 0, 0, 0, 3], 10, 4, 6, 800, 600), Math.sqrt(((4 * 2 * 800) / 20) * ((6 * 3 * 600) / 20)), 1e-9));
+  assert.ok(near(NG.crownSidePx([-2, 0, 0, 0, 0, 3], 10, 4, 6, 800, 600), NG.crownSidePx([2, 0, 0, 0, 0, 3], 10, 4, 6, 800, 600), 1e-12), 'a mirrored projection the same');
+  assert.equal(NG.crownSidePx([2, 0, 0, 0, 0, 3], 0, 4, 6, 800, 600), Infinity, 'its root at the eye: the most');
+});
+
+test('NODE-CROWN (AUDIT FB1025b C1) the report\'s tree through the Low Poly Trees door and the pass: 504_16 at 30 m and at 12 m glints a big crown\'s twelve at twice a herb\'s most reach (its rectangle the room for them); a herb\'s flat and the same tree\'s far flat keep six at a picture\'s reach; a sapling far off grows part way (mutants: the crown never grown; every node grown; the count unsent; the room a flat\'s)', async () => {
+  const d = await door();
+  const rows = 720;   // quietGl's viewport: 1280 x 720
+  for (const z of [30, 12]) {
+    const g = await glintOf(d, 504, 16, 1, [0, 1.7, z]);
+    assert.equal(g.trees, 1, `${z} m: as its 3D tree`);
+    assert.deepEqual([g.count, +g.glint.toFixed(6)], [NG.GLINT_CROWN_COUNT, +(NG.glintPxMax(rows) * NG.GLINT_CROWN_GROWTH).toFixed(6)], `${z} m: twelve, twice a herb's reach`);
+    // the room its rays take round its box (where the screen does not cut it): its own reach and two
+    const room = ((NG.glintPxMax(rows) * NG.GLINT_CROWN_GROWTH + 2) * 2) / 1280;
+    if (g.rect[0] - g.rect[2] > -1 + 1e-9) assert.ok((g.inner[0] - g.inner[2]) - (g.rect[0] - g.rect[2]) >= room - 1e-6, `${z} m: its rays' room`);
+  }
+  // the same tree past its 3D radius: its far flat (the frame drew no 3D tree of it) - a flat's six, a flat's reach
+  const far = await glintOf(d, 504, 16, 1, [0, 1.7, 30], false);
+  assert.equal(far.trees, 0);
+  assert.equal(far.count, NG.GLINT_COUNT, 'its far flat: six');
+  assert.equal(far.glint, NG.glintPx(rows, Math.max(far.inner[2] * 1280, far.inner[3] * rows)), 'at a picture\'s reach');
+  // a small tree (506_24) 100 m off: grown part way
+  const small = await glintOf(d, 506, 24, 0.8, [0, 1.7, 100]);
+  assert.equal(small.trees, 1);
+  assert.ok(small.count > NG.GLINT_COUNT && small.count < NG.GLINT_CROWN_COUNT, `a small far crown part way (${small.count})`);
+  // by its standing area at its root's depth - 100 m before the level eye
+  const side = NG.crownSidePx(PROJ, 100, small.run.size[0] * 0.8, highest(small.p)[1] * small.run.scale[1] * 0.8, 1280, rows);
+  assert.deepEqual([small.count, +small.glint.toFixed(6)], [NG.glintCrownCount(rows, side), +NG.glintCrownPx(rows, side).toFixed(6)], 'its count and reach its size\'s');
+  // a herb's patch flat 25 m off: as it was
+  const pass = new NodeGlintRenderer(/** @type {any} */ (quietGl()));
+  const herb = { archive: 254, record: 1, frame: null, vao: {}, _ibOff: 0, size: { w: 0.8, h: 0.8 }, origin: [0, 0, 0] };
+  pass.draw([{ alpha: 1, seed: 0.5, at: [0, 0, 5], rgb: [1, 1, 1], mark: { pictures: [{ batch: herb, first: 0, count: 1, centers: [[0, 0, 5]] }] } }],
+    { gl: pass.gl, _proj: PROJ, _view: VIEW, _camPos: new Float32Array(EYE), _bbRight: new Float32Array([1, 0, 0]), _bbUp: new Float32Array([0, 1, 0]), _fogMode: 0, _fogRange: [0, 1], _haze: new Float32Array(8), textures: new Map([['254_1', {}]]), lptDrawnFrames: () => [] }, 0);
+  const s = pass._nodes[0];
+  assert.equal(pass.drawn, 1);
+  assert.deepEqual([s.count, s.glint], [NG.GLINT_COUNT, NG.glintPx(rows, Math.max(s.inner[2] * 1280, s.inner[3] * rows))], 'a herb: six at its picture\'s reach');
 });

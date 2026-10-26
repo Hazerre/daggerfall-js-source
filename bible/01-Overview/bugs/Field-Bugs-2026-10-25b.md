@@ -11,7 +11,7 @@ then asked "Audit this" (AUDIT FB1025b, below). The pins are named under each fi
 | 2 | pepsiorcoke, "Player gets a bounty when defending themselves against quest NPC's who attack": "Assassin's are attacking me for escorting another NPC and I choose to defend myself and my escort target guards approach me with a hefty fee of 500+ gold" | Not the quest (measured: its attackers' deaths charge nothing). The likely path, not proven on the reporter's save: a swing past an attacker landed on a road traveller - Protect Bystanders never covered the road | ROAD-SPARE |
 | 3 | Paofrenetico, "Can't buy this piece": "I did dismantle the other chest i bought days ago, but still i cant buy this one" | The law worked: today's The Warden (Mora's) was bought today; the one from 2026-10-22 was another offer (Malacath's) under the same Legendary name. The refusal's words misled | BOUGHT-YOURS |
 | 4 | Mefwhesk, "Unable to turn in The Daedra's Heart": "Elyzabyth will not let me turn the quest in" | The turn-in is DFU's (the quest's own heart, never a plain one - the thread's reply was right). Two lies of the port's: the journal struck "take its heart" on a look at the body's row, and the Enhanced pack drew the quest's heart as a plain one | HEART-TAKEN, QUEST-MARK |
-| 5 | kvassdrit, "Big trees hide resource node particles": "Needs to be size aware or have a completely different visual" | A 3D tree's crown box counted its prototype's scale twice: a temperate tree glinted on its lower half, a swamp's mostly in the air above | NODE-CROWN |
+| 5 | kvassdrit, "Big trees hide resource node particles": "Needs to be size aware or have a completely different visual" | A 3D tree's crown box counted its prototype's scale twice: a temperate tree glinted on its lower half, a swamp's mostly in the air above; and a big crown's glints were a herb's six at a herb's reach (AUDIT FB1025b C1) | NODE-CROWN |
 | 6 | Giljabrar, "Storage in the Decoration update may be Realm Locking items": "I placed 89 rare/legendary items in a chest ... they were all 'Realm Locked'" | The decorator's Discard wrote a snapshot of every chest back, so a piece stood in the chest and the pack and the ledger locked both; in #1223's build across rooms. No route lifted a lock | CHEST-DRAFT, COPY-LIFT |
 | 7 | ajaegerson, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns"; Harlander: "Even going on foot you can get hung up on shop signs and fences." | (pending) | (pending) |
 
@@ -135,23 +135,37 @@ PINS: `test/systems/questlines/fb1025b_daedraheart.test.js` (12). Mutants `tools
 ## NODE-CROWN (5) - `src/render/nodeGlint.js`
 
 WHAT DFU DOES. DFU has no gathering nodes and nothing that marks them: NODE-GLINT is the port's own (Professions-Arc
-47).
+47). The tree it lights is drawn as DFU draws a terrain tree a mod's model replaces: the prefab's own scale under the
+terrain's 0.6-1.4 (`MeshReplacement.ImportNatureGameObject`, from memory) - Low Poly Trees draw it so (`bbVertexShader`'s
+mesh mode). No departure, no Ledger row owed.
 
 WHAT THE PORT DID. A Logging node within 120 m is its 3D tree (Low Poly Trees, on by default, draws every wild tree
 within 140 m). The glint boxed its crown at the run's standing size times the tree's row scale times the prototype's
 scale - and the standing size already carries that scale (`world/lowPolyTrees.js` readLowPolyTrees, `m.max[1] * sy`).
-88 of the 116 Tree records' prototypes are scaled: a temperate wood's (0.5-0.8) glinted only to half to four fifths of
-its height (504_16's 16 m tree to 8 m, its upper crown never), a swamp's or a desert's (1.5-4.2) over a box up to four
-times its height, most of its glints' tries in the air. Not the depth: the light is drawn after the trees.
+The climates stand 95 Tree records (with the woodland sets' winter archives), 93 with a prototype, 74 of those scaled
+(AUDIT FB1025b C2: this said 88 of 116, the pin loop's count): the temperate and mountain woods' mostly 0.5-0.8 glinted
+only to half to four fifths of their height (504_16's 16 m tree to 8 m, its upper crown never), the swamp's, the
+desert's and a winter wood's 15 (1.1-4.2) over a box up to four times their height, most of their glints' tries in the
+air. Not the depth: the light is drawn after the trees. And (AUDIT FB1025b C1, the report's "size aware") a big crown's
+glints were a herb's - six at most at a herb's reach: the light of their cores a picture's pixel 12 times sparser than a
+near herb's at 30 m, 53 times at 12 m (the audit lane's probe, the real door's tree with the player's atlases).
 
-FIXED. The crown is as tall as the tree its run draws (`h = t.run.size[1] * row[4]`).
+FIXED. The crown is as tall as the tree its run draws (`h = t.run.size[1] * row[4]`). A 3D crown's glints grow with its
+size on screen (`nodeGlint.js:"export const glintCrownGrowth = (rows, crownPx) =>"`): its side against the side a herb's
+glint stops growing at, to the two thirds (their light, count times reach squared, as its area), up to twice as many
+reaching twice as far - twelve at 28 px at 1080 rows, the room round it its own. After: 1.4 and 7 times sparser than the
+herb at 30 and 12 m, the tree's hearts a frame 2.8 to 6.1 and 2.4 to 4.7. A herb, a vein, a boulder, a school and a far
+flat keep six at a picture's reach, pixel for pixel. A glint's life is one law both stages read (`glintLife`), so twelve
+glints take the varyings six and their turns took.
 
-NOT DONE. A node's glints stay six at most and no larger than a near herb's (`GLINT_COUNT`, `GLINT_PX`): a count or a
-size by the picture, or another visual, is the owner's call.
+NOT DONE. A near tall crown past the screen's top spends about a tenth of its tries off the screen (C4); a small crown's
+count steps a glint at a time as the eye nears; the crown box's depth is `reach` (C5).
 
-PINS: `test/scenes/fb1025b_nodecrown.test.js` (2: the report's 504_16 through the loader, the shader and the pass;
-every Tree record's prototype); `tools/nodeGlintProbe.mjs` (a half-scale prefab's top two fifths lit). Mutants
-`tools/mutants/fb1025b_nodecrown.json` (5, all dead). Moved: nodeglint's boxes pin.
+PINS: `test/scenes/fb1025b_nodecrown.test.js` (4: the report's 504_16 through the loader, the shader and the pass; every
+climate's Tree records at a row scale of 0.8 and 1.2, their counts by value; the growth's law; 504_16 at 30 and 12 m, its
+far flat, a herb and a small far crown); `tools/nodeGlintProbe.mjs` (33: a half-scale prefab's top two fifths lit; the
+big crown twelve at twice the reach, its hearts more than the herb's). Mutants `tools/mutants/fb1025b_nodecrown.json`
+(24, all dead). Moved: nodeglint's boxes, programs and draw pins; nodeglint.json's seed and room records re-aimed.
 
 ## CHEST-DRAFT and COPY-LIFT (6) - `src/scenes/decor/decorTool.js`, `server-account/src/ledger.js`, `server-account/src/staffRealm.js`
 
