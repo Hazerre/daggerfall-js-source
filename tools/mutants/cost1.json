@@ -66,11 +66,12 @@
   {
     "name": "COST1-grant-left",
     "file": "server/src/drainWindows.js",
-    "old": "  if (room._grants?.timer) posts.push(room._grantFlush());\n",
+    "old": "  if (grants && (grants.timer || grants.w?.rows.size || grants.w?.tallies.size)) posts.push(room._grantFlush());\n",
     "new": "",
     "tests": [
       "test/server/cost1_drain.test.js"
-    ]
+    ],
+    "note": "HIBERNATE (re-aimed by content): the grant window arms no timer, so its rows say it is due."
   },
   {
     "name": "COST1-net-left",

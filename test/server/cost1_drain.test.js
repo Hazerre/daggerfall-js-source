@@ -52,16 +52,17 @@ test('COST-1 THE DRAIN POSTS THE GRANT\'S WINDOW: a cell whose player asked a gr
   const { r, posts, join } = await cell(t);
   const a = await join('peer-0001'), b = await join('peer-0002');
   await a.ask(1);
-  assert.ok(r.room._grants?.timer, 'the window armed by the ask');
+  assert.ok(r.room._grants?.w.rows.size, 'the window holds the ask');
+  assert.equal(r.room._grants.timer ?? null, null, 'HIBERNATE: and arms no timer - the room may sleep');
   await r.drop(a.ws);
   await settle();
   assert.equal(posts.length, 0, 'a player still here: nothing posted');
-  assert.ok(r.room._grants.timer, 'its timer stands');
+  assert.ok(r.room._grants.w.rows.size, 'its window stands');
   await r.drop(b.ws);
-  await until(() => posts.length > 0 && r.room._grants.timer === null);   // the timer is cleared once the post settles
+  await until(() => posts.length > 0);
   assert.deepEqual(posts.map((p) => p.url), [GRANT_URL], 'the last leave posts the window');
   assert.ok(posts[0].sig, 'signed');
-  assert.equal(r.room._grants.timer, null, 'and nothing is left armed');
+  assert.equal(r.room._grants.timer ?? null, null, 'and nothing is left armed');
   // a second drain with no window open: no post
   const c = await join('peer-0003');
   await r.drop(c.ws);
@@ -90,7 +91,8 @@ const REACT_ROW = () => ({ a: 'acct-1234', k: 'enc', n: 2, t: Date.now() - 5000,
 test('COST-1 THE DRAIN POSTS THE STAFF FEEDS: the traffic feed\'s row armed for its window\'s end and the reaction feed\'s finished episodes waiting on their tick both go at the drain, and both timers are cleared; a reviewer\'s batch of lines goes too; a post that fails arms itself again, and a room still empty lets that go - one a socket came back to keeps it (mutants: the net feed left; the reaction feed left; the lines left; a failed post\'s retry kept in an empty room; a retry cleared under a socket)', async (t) => {
   const { room, posts } = await feedRoom(t);
   staffFoesStripped(room, { key: KEY, sub: 'acct-strip-0001' }, 3, Date.now());
-  assert.ok(room._staffNet.timer, 'the traffic window armed for its end');
+  assert.ok(room._staffNet.foes.size || room._staffNet.rows.size, 'the traffic window holds its row');
+  assert.equal(room._staffNet.timer ?? null, null, 'HIBERNATE: and arms no timer - it posts on a frame past its end or at the drain');
   room._staffReact = { open: new Map(), openN: 0, rows: [REACT_ROW()], from: Date.now(), q: KEY, timer: setTimeout(() => {}, 60_000), retry: null };
   let lines = 0;
   room._feedQ = { lines: [{ text: 'a line' }], timer: setTimeout(() => {}, 30_000) };
@@ -99,7 +101,7 @@ test('COST-1 THE DRAIN POSTS THE STAFF FEEDS: the traffic feed\'s row armed for 
   assert.deepEqual(posts.map((p) => p.url).sort(), [NET_URL, REACT_URL].sort(), 'both feeds posted, signed');
   assert.ok(posts.every((p) => p.sig));
   assert.equal(lines, 1, 'the reviewer\'s lines posted');
-  assert.deepEqual([room._staffNet.timer, room._staffReact.timer, room._feedQ.timer], [null, null, null], 'nothing left armed');
+  assert.deepEqual([room._staffNet.timer ?? null, room._staffReact.timer, room._feedQ.timer], [null, null, null], 'nothing left armed');
   assert.equal(await flushAtDrain(room), 0, 'drained again with nothing open: nothing');
 
   // the service fails: the post arms itself to go again - an empty room lets it go, a room someone came back to keeps it
@@ -107,11 +109,16 @@ test('COST-1 THE DRAIN POSTS THE STAFF FEEDS: the traffic feed\'s row armed for 
   staffFoesStripped(empty.room, { key: KEY, sub: 'acct-strip-0002' }, 3, Date.now());
   await flushAtDrain(empty.room);
   assert.ok(empty.room._staffNet.retry, 'the failed batch kept for its next post');
-  assert.equal(empty.room._staffNet.timer, null, 'but no timer holds the empty room awake for it');
+  assert.equal(empty.room._staffNet.timer ?? null, null, 'but no timer holds the empty room awake for it');
   const back = await feedRoom(t, { status: [503], held: 1 });
   staffFoesStripped(back.room, { key: KEY, sub: 'acct-strip-0003' }, 3, Date.now());
+  back.room._feedQ = { lines: [{ text: 'a line' }], timer: setTimeout(() => {}, 30_000) };   // the reviewer's lines, their post failing
+  back.room._feedFlush = async () => false;
+  t.after(() => clearTimeout(back.room._feedQ.timer));
   await flushAtDrain(back.room);
-  assert.ok(back.room._staffNet.timer, 'a socket came back: its retry stays armed');
+  assert.ok(back.room._feedQ.timer, 'a socket came back: the lines\' timer stays armed');
+  assert.ok(back.room._staffNet.retry, 'a socket came back: its retry kept for the next frame past the window (HIBERNATE: never a timer)');
+  assert.equal(back.room._staffNet.timer ?? null, null);
 });
 
 test('COST-1 A WRITE IS COUNTED BY THE ROWS IT BILLS: a key\'s put or delete one, a put of entries one an entry, a delete of keys one a key, deleteAll one, an alarm set or deleted one; reads as before - so double11 is the storage rows the bill counts (mutants: an alarm uncounted; entries counted as one; keys counted as one; a read counted a write)', async () => {
