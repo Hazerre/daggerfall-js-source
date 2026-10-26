@@ -1156,5 +1156,9 @@ click-average stays 17. Sustained DPS is 16.25 against the longsword's 18.55, 87
 80-90%; the same clocks before this change were 77.5%). Against a Daedric cuirass the blows that remain
 are 9 and 6, and the bow's sustained DPS is 85.9% of the longsword's. The 70-80% PvP band is not met.
 No PvP multiplier was added to meet it. The paperdoll viewer still flies a shaft at MISSILE_SPEED.
-The Thunderlock's reload is still the lab's fixed 1.7 s; at this build its sustained DPS is 11.95, 64% of
-the longsword.
+The Thunderlock's reload was the lab's fixed 1.7 s. It is now
+`Math.max(1, 1.7 * (1 - 0.004 * (speed - 50)))` on effective Speed
+(`combat/gun/gunFeel.js:"export function thunderlockReloadSeconds(speed) {"`), committed onto the machine's
+`cooldownUntil` when the shot ends, so the pump and the next trigger share that span. Speed 50 is 1.70 s,
+75 is 1.53 s, 100 is 1.36 s, 150 is 1.02 s, and it does not go under 1 s. The frame clock stays 14 fps.
+A Pistolet's reload stays 1.4 s. At this build the Thunderlock's sustained DPS went from 11.95 to 12.82.

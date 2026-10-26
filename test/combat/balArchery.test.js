@@ -19,7 +19,8 @@ import { setValue } from '../../src/systems/settings/settings.js';
 import { weaponPastPct, weaponMasteryBlow, _resetWeaponMasteryForTests } from '../../src/systems/weaponMastery.js';
 import { SKILLS } from '../../src/systems/skills.js';
 import { createThunderlock } from '../../src/systems/thunderlock.js';
-import { GUN_COOLDOWN_SECONDS, GUN_FEEL } from '../../src/combat/gun/gunFeel.js';
+import { GUN_COOLDOWN_SECONDS, GUN_FEEL, PISTOLET_FEEL, thunderlockReloadSeconds } from '../../src/combat/gun/gunFeel.js';
+import { liveStat } from '../../src/systems/statMods.js';
 import { doItemEnchantmentPayloads, PAYLOAD, ENCHANTMENT_TYPES, POTENT_VS_DAMAGE } from '../../src/systems/enchantments.js';
 import { affixWeaponDamage } from '../../src/systems/loot/lootRarity.js';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
@@ -157,6 +158,38 @@ test('BAL-ARCHERY: a backstab, a damage affix and Potent Vs land on a bow the sa
   assert.equal(doItemEnchantmentPayloads(PAYLOAD.Strikes, { ...bow(), enchantments: [{ type: ENCHANTMENT_TYPES.PotentVs, param: 0 }] }, { target: foe, damage: 10 }), 10, 'a foe of another affinity takes none of it');
 });
 
+test('BAL-ARCHERY: a Thunderlock reloads from live Speed, and the pump already running keeps its span', () => {
+  const hundredths = (x) => Math.round(x * 100) / 100;
+  assert.deepEqual([50, 75, 100, 150].map((s) => hundredths(thunderlockReloadSeconds(s))), [1.7, 1.53, 1.36, 1.02]);
+  assert.equal(thunderlockReloadSeconds(200), 1);
+  assert.equal(thunderlockReloadSeconds(50), GUN_COOLDOWN_SECONDS);
+  assert.ok(thunderlockReloadSeconds(0) > GUN_COOLDOWN_SECONDS);
+  assert.equal(PISTOLET_FEEL.reloadMs, 1400);
+  const fortified = { stats: { speed: 50 }, activeEffects: [{ kind: 'fortifyAttribute', stat: 'speed', magnitude: 25 }] };
+  assert.equal(liveStat(fortified, 'speed'), 75);
+  const tuned = new PlayerWeapon({ weapon: gun(), liveSpeed: () => liveStat(fortified, 'speed') });
+  tuned.update(1 / 60);
+  assert.equal(hundredths(tuned.machine.cooldown), 1.53, 'the machine reads effective Speed');
+  const pw = new PlayerWeapon({ weapon: gun(), liveSpeed: 50 });
+  const dt = 1 / 60;
+  pw.update(dt);
+  let span = null;
+  for (let i = 0; i < 400 && span == null; i++) {
+    pw.gesture(0, 0, true, dt, 1000, { swingMode: 2, rolls: () => 0 });
+    if (pw.update(dt).includes('done')) span = pw.machine.cooldownUntil - pw.machine.now;
+  }
+  assert.equal(hundredths(span), 1.7);
+  const until = pw.machine.cooldownUntil;
+  pw.liveSpeed = 150;
+  pw.update(dt);
+  assert.equal(pw.machine.cooldownUntil, until, 'the pump and the fire gate share the span committed at the shot');
+  assert.equal(hundredths(pw.machine.cooldown), 1.02, 'the next shot takes the new Speed');
+  assert.equal(pw.gesture(0, 0, true, dt, 1000, { swingMode: 2, rolls: () => 0 }), null);
+  const bowPw = new PlayerWeapon({ weapon: bow(), liveSpeed: 150 });
+  bowPw.update(dt);
+  assert.equal(bowPw.machine.cooldown, null, 'a bow still cools by getBowCooldownTime');
+});
+
 test('BAL-ARCHERY: sustained damage of a Daedric Long Bow, a Daedric Longsword and a Daedric Thunderlock', () => {
   const p = player(100);
   const b = bow(), s = blade(), g = gun();
@@ -181,7 +214,7 @@ test('BAL-ARCHERY: sustained damage of a Daedric Long Bow, a Daedric Longsword a
   assert.equal(gunHit, 26.5);
   assert.equal(frames(bowGap), 96, 'seven bow ticks plus the cooldown, at 60 fps');
   assert.equal(frames(bladeGap), 55);
-  assert.equal(frames(gunGap), 133, 'seven gun frames plus the fixed 1.7s reload');
+  assert.equal(frames(gunGap), 124, 'seven gun frames plus Speed 70\'s reload');
   assert.equal(clickSwing, 0);
   assert.ok(Math.abs(bowGap - (7 * CLASSIC_UPDATE_INTERVAL + getBowCooldownTime(SPD))) < 0.05);
   assert.ok(Math.abs(bladeGap - 5 * frame) < 0.05, `blade gap ${bladeGap} frame ${frame}`);

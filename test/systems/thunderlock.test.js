@@ -739,10 +739,8 @@ test('FIELD-GUN7: the game\'s machine and the LAB\'s run the same cycle, frame f
   assert.ok(Math.abs(gameReady - labReady) <= 1,
     `ready at tick ${gameReady} in the game and ${labReady} in the lab`);
 
-  // THE SPEED INDEPENDENCE that makes the above true: a gun's
-  // mechanism does not care how agile you are. Run the same shot at
-  // the slowest and fastest a character can be and get the same
-  // timeline - which the SPD-driven formulas could never do.
+  // THE FRAME CLOCK stays speed-blind. This machine is handed the lab's 1700 ms;
+  // PlayerWeapon writes thunderlockReloadSeconds into m.cooldown, and that is the part that moves.
   const run = (speed) => {
     const m = createWeaponMachine(false);
     m.ranged = true; m.frames = THUNDERLOCK_NUM_FRAMES;
