@@ -186,6 +186,8 @@ staff member's region, the place on their pixel or -1, their pixel). The boot ha
 - STAFF-EVENT BOSS: relay `world257` (the law's `hp` and the meter's boss each fill), account service `acct184` (`hp`
   staged, `clear`), Staff Panel 0.2.9 (the exact health box, Clear, the quiet list). The relay first; an older relay
   drops `hp`, so the boss reads its times.
+- REWARD-KILLS: relay `world264` alone (world258 then world262 on its branch, renumbered past main at the merges) (the reward earned by kills alone) - drops every connected player for about 40 s;
+  no account or site change.
 
 ## 8. Known limits
 
@@ -207,9 +209,10 @@ Dagon's way, without Dagon's gear. At the FIRST fall of an event's mini boss the
 - **Who earns** (`staffEventLaw.js` `staffEventEarned`): every account (never a guest's socket) with
   `STAFF_EVENT_EARN_KILLS` (3) kills of its own - a monster that fell after a blow of theirs, whoever stood it (a word's
   `h`: `raidingParties.js` counts its own struck monsters and a fallen puppet it struck, once; the meter's `n` is the
-  runner's, who stands them all) - or whose stand - a word every `STAFF_EVENT_STAND_TICK_MS` (4 s)
-  from a pose on the pixel - covers half the run from the ledger's first word to the fall. One reward an account an
-  event. The plan offered a hit on the boss too: there is no such word, so the stand covers it.
+  runner's, who stands them all). One reward an account an event. REWARD-KILLS (2026-10-25, mob: "im getting drops
+  even tho i barlky particpate"; card "Kills only (3+)"; world264, world258 then world262 on its branch): a stand alone - a word every
+  `STAFF_EVENT_STAND_TICK_MS` (4 s) from a pose on the pixel, half the run - earned it before and earns nothing now; it
+  still breaks a tie on the board.
 - **The board** (`staffEventBoard`): the earners' top `STAFF_EVENT_BOARD_MAX` (10) by kills, the killing blow before
   an equal count, then the longest stand, as `[name, kills, killer]`. Said to the place (`sev` `bd`), said on screen
   once (`raidingParties.js` `staffBoardLine`), told to the hub, which keeps the newest `SEV_BOARDS_KEPT` past the
