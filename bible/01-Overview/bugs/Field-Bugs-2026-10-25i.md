@@ -264,43 +264,76 @@ seven: the deserter's take, the ground, a triple, the ledger's print, a claim's 
 (64, all dead); the bug's own two-site shape (the open's picture, the Discard's write-back) run by hand: three pins fail. `test/decorFakes.mjs`'s chests are the real `createDecorRoom`
 store now - the fake's no-op `setItems` was why "Discard puts the room back" passed while the bug shipped.
 
-## SIGN-PASS and RAIL-HANG (7) - `src/world/signSolid.js`, `src/scenes/pixelBuild.js`, `src/scenes/exterior.js`, the yards' models, `src/player/collider.js`
+## SIGN-PASS and RAIL-HANG (7) - `src/world/signSolid.js`, `src/player/collider.js`, `src/player/lateSolid.js`, `src/scenes/pixelBuild.js`, `src/scenes/exterior.js`, the yards' models and hosts, `src/characters/enemy/enemyMotor.js`
 
-WHAT DFU DOES. A shop's sign (ARCH3D 43700-43755, three frames of nineteen boards) is a town block's misc model; all
-668 in BLOCKS.BSA are. RMBLayout.AddProps combines it into the block's mesh, and CreateCombinedMeshGameObject gives that
-mesh one MeshCollider, so the whole sign is solid. A CharacterController stands on nothing above its stepOffset.
+WHAT DFU DOES. A shop's sign (ARCH3D 43700-43755, three frames of nineteen boards) is a town block's misc model; all 668
+in BLOCKS.BSA are. RMBLayout.AddProps combines it into the block's mesh, and CreateCombinedMeshGameObject gives that
+mesh one MeshCollider, so the whole sign is solid to bodies and rays alike. A CharacterController stands on nothing it
+does not fit over.
 
 WHAT THE PORT DID. Both town hosts collided the sign whole. Its board, arm and brace hang over the street from 1.65 m
 (43718-43736), 2.1 m (43700-43717) and 2.4 m (43737-43755), inside a rider's 2.6 m capsule (`RIDE_HEIGHT`; a wagon's
 driver is one) and the lowest inside a walker's 1.8 m. Measured through the real motor on TVRNBM04, MARKAA00 and
 GEMSAM00, 545 of 2,927 open lines past their signs stopped a rider and 131 a walker; a journey's feelers, at the knee,
 saw none of it. The port's own gate boards, 2.4 m up under their beams, kept every Cart out of the Stable, the Joinery
-and the Shipyard. Separately, PH1's one-way floor read a split-rail fence's rail (41206-41208), met from the side, as a
-floor the body had sunk under: a walker from behind was set ON the lower rail's back edge (0.39 m, wedged under the
-upper rail - 130 of 130 stations), and a runner from the street on its under slope in a 0.28 m band a panel.
+and the Shipyard. Separately, PH1's one-way floor set a body on a split-rail fence's rail (41206-41208) met from the
+side: a walker from behind ON the lower rail's back edge (0.39 m, wedged under the upper rail - 130 of 130 stations), a
+runner from the street on its under slope in a 0.28 m band a panel.
 
 FIXED. A sign's triangle whose every corner stands `signSolid.js:"export const SIGN_HANG_M = 1;"` over the sign's foot
-hangs - drawn, never solid; the posts stand. Both town hosts ask it
-(`pixelBuild.js:"late.add(gateKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), local,"`, `exterior.js`):
-after it, 51 rider and 83 walker stops remain, every one at a post. The yards' boards hang the same way (the
-signboard and assemble's `solid`, both yard hosts). A walking step hands PH1's floor SH1's stand ceiling in its
-sideways pass and ladder (`collider.js:"    this._floorCeil = dy === 0 ? standCeil : Infinity;"`), and that floor
-must have its own plane over the sphere's centre (`planeOver`); a fall's lip catch is as it was (egJumpReach is
-measured on it). No fence station hangs now, and a 0.45 m ledge is still stepped. N0000037's 0.58 m throne seat is a
-jump now, as SH1's own law has it ("0.55 through 1.2 blocked flat" - it had been walked onto through the same
-loophole). THE FOUR HOSTS: world.js and exterior.js wired; worldModes.js's interiors and dungeonContext.js place no
-sign (0 of BLOCKS.BSA's 668); the Collider's law is all four's. SIGN-PASS is a departure (Port-Ledger section A);
-RAIL-HANG is not.
+hangs: it stays in the collider as a ray's (addMesh's `sight`), met by every ray and sweep - an arrow, a spell, a foe's
+look, the camera, a click, a walker's eye - and by no body (the resolve, the overlap, the contact, the parity and a
+body's own rays, `BODY_RAY`, pass it). The posts stand. The range is HOUSE-SIGN's one export (`houseSigns.js`
+`isShopSignModel`). Both town hosts hand the marks
+(`pixelBuild.js:"late.add(gateKey, cpu.positions, cpu.indices, local,"` through the late gate, which carries them;
+`exterior.js`): 51 rider and 83 walker stops remain, every one at a post. The yards' boards hang the same way (the
+signboard and assemble's `sight`, both yard hosts). A walking step - no fall in it, or EnemyMotor's walk from the ground
+(move's `onGround`) - takes PH1's floor only where the body stands once set on it, its height clear over that floor
+(`collider.js:"    this._walk = dy === 0 || this._onGround ? height : 0;"`, `_standsOn`: a ray up from just inside the
+floor's edge, at the way in and either side of it along the edge), in every pass of the step; where it does not, that
+floor is a wall to the sphere, as SH1's is. A fall's lip catch is as it was. No station of either side of the three
+fences hangs, square or slantwise (the game's own, square: 26, 26 and 25 of 72 before, none after), and a foe chasing
+the player across a fence stays on the ground. THE FOUR HOSTS: world.js and exterior.js wired; worldModes.js's interiors
+and dungeonContext.js place no sign (0 of BLOCKS.BSA's 668); the Collider's law is all four's. SIGN-PASS is a departure
+(Port-Ledger section A); RAIL-HANG is not.
 
-NOT DONE. A board is out of the collider for everything, so rays and missiles pass it too - DFU's arrow meets a sign
-(the owner's call: a bodies-only filter would keep rays meeting it). A walker's 1.8 m capsule passes the lowest family's
-bottom 0.15 m. A POI-authored 437xx model (poiHost) is not filtered. Open PR #1241's houseSigns.js declares the same
-range: fold the two exports into one when both land.
+AUDIT FB1025i (lane G) moved the law twice. G1/G2: the first reading capped PH1's walking floor at SH1's stand ceiling
+and asked its plane over the sphere's centre; the ceiling made a jump or a wall of every 0.5-0.7 m top walkers had
+stepped onto (benches 41105/41106, beds, N0000037's throne seat) and stopped walkers dead at the dungeon blocks' seam
+connectors, their lip 0.501-0.505 m over the feet (1,597 seam crossings over ten dungeons in the parent, 1,139 under the
+ceiling), and the plane test asked nothing the headroom does not. Both are gone: the seams cross as the parent did
+(1,597), the benches and the seat are walked onto again (the throne's pin a walk again), and the sweeps' differences
+from the parent are the law's own cases (a fence's rail; RESIAM02's railing 41409, its lower bar under its upper;
+N0000037's wall base 63035 under its overhang; a table, 41108, climbed from its chair where no body stands on its top;
+the throne 41123's arm rests, five lines the parent set on an arm - the seat between them 0.68 m, narrower than a body).
+G5: the board was out of the collider for everything; it is every ray's now. G6: EnemyMotor's walk carried gravity's
+fall, so `dy === 0` never named it; its walk hands its ground. G7: the plane test's survivors went with it; `< hang`
+against `<= hang` is recorded equivalent (no sign corner stands on the line). G8: a throw out of a move leaves no
+walking pass behind it. And three more the audit's sweeps turned up on the way: a refused floor given the plain push let
+a water walker pressed to a ceiling slip through a rib (it is a wall now); the walk's vertical pass, left out of the
+law, set a wagon sliding along TVRNBM04's 41207 on its rail; one headroom ray at the way in ran along a rail's end, so a
+runner sliding off it rode up its last centimetres (three rays across the footprint now). And one kept as the law has
+it: a body stood inside a closed solid whose top no body stands on - a sweep's station on W0000005's altar plinth,
+inside the altar block 41831, 1.25 m under the ceiling - meets the block's faces from inside, as DFU's controller meets
+a MeshCollider's, where PH1 had lifted it onto the block (16 of 66,144 runs; no body walks into the block). An exemption
+for a body begun inside a solid was measured and dropped: insideSolid's parity reads a dungeon room, a shell open below
+its ceiling, as solid at 1,378 of W0000005's 2,191 open floor stations, and asked of the floor's own model it still
+undid 32 of N0000037's refusals at its rooms' own ledges.
 
-PINS: `test/world/fb1025i_signsnag.test.js` (8) and `test/player/fb1025i_railhang.test.js` (4), on made meshes and on
-ARENA2's own signs, fences and TVRNBM04, through the real motor; mutants `tools/mutants/fb1025i_signsnag.json` (24,
-all dead). PIN MOVED: audit0929_actions (the throne a jump), arena1_model, fb1019f_rockclear, rockclear.json;
-strengthened: fb0929d_waterwalk (WW-LID S, L), auditdisc28_motion (MO-1).
+NOT DONE. A walker's eye (1.7 m) passes through the 1.65 m boards' lowest 5 cm for three or four frames as it walks
+under one - the boards stay a ray's, never a walker's, because a walker's capsule there is the report's own snag. A
+foe's walk probes (AttemptMove's obstacle cast) meet a board as DFU's controller is met, so a foe may detour round a low
+board its body would pass. A POI-authored 437xx model (poiHost) is not marked. One run of 34,464 in N0000037 stops at
+63030's corner where the parent slid round it through a PH1 lift onto a 45-degree face under an overhang. Two runs in
+RESIAM02's interior 4 now end on a chair (41102): refused the table behind it, which the parent climbed onto from the
+chair, they stay on the chair.
+
+PINS: `test/world/fb1025i_signsnag.test.js` and `test/player/fb1025i_railhang.test.js`, on made meshes and on ARENA2's
+own signs, fences, benches, TVRNBM04, Privateer's Hold and W0000005's altar, through the real PlayerMotor, EnemyAI and
+Collider; mutants `tools/mutants/fb1025i_signsnag.json`. PIN MOVED: arena1_model, fb1019f_rockclear, squeeze1 and
+incident_ceiling_bats (the foe's walk hands its ground; move's `onGround`), fb1014b_doorjam.json and fbsea.json
+re-aimed; audit0929_actions back to the walk it was; strengthened: fb0929d_waterwalk (WW-LID S, L, B),
+auditdisc28_motion (MO-1).
 
 ## AUDIT FB1025i (2026-10-25/26) - the slices, read cold
 

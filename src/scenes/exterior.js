@@ -118,7 +118,7 @@ import { InputMessageBoxWindow } from '../ui/inputMessageBox.js';   // HCC: the 
 import { isLocalPlayerTarget } from '../characters/enemy/enemyTargets.js';   // HCC: CollectThreats' `senses.Target == player`
 import { SeasonHelper, archivePrefix as seasonPrefixOf } from '../systems/seasonsIliacBay.js';   // SIB1: Seasons of the Iliac Bay's SeasonHelper; WINDFALL1: and its atlases' prefixes, which Windfall's own tables key on
 import { loadSeasonsTextures, seasonsInstalled } from '../systems/seasonsIliacBayAssets.js';   // SIB1: its textures, from the player's own copy of the mod
-import { solidIndicesOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign solid where it stands, never where it hangs
+import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 import { isBulletinBoard, isCityGate, CITY_GATE_OPEN_MODEL_ID, CITY_GATE_CLOSED_MODEL_ID } from '../world/rmbLayout.js';   // RMBLayout.cs:1013-1017 - the one model id a town sign wears; :1007-1011 - the two a city gate wears
 import { makeCityGate, updateCityGate } from '../world/city/cityGate.js';   // AUDIT 64 F14: DaggerfallCityGate
 import { staticBuildingBox, staticBuildingWorldAabb } from '../world/staticBuildings.js';   // AUDIT 64 F11: RMBLayout's StaticBuilding array
@@ -761,7 +761,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       // ticks below.
       const bucketKey = isCityGate(placed.modelIdNum)
         ? `gate:${b.dfBlock.index}:${placed.recordIndex}:${cityGates.length}` : 'world';
-      collider.addMesh(bucketKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), matrix);   // SIGN-PASS: a sign's board drawn, never solid
+      collider.addMesh(bucketKey, cpu.positions, cpu.indices, matrix, null, null, false, sightMarksOf(placed.modelIdNum, cpu));   // SIGN-PASS: a sign's board met by every ray, by no body
       if (isCityGate(placed.modelIdNum)) {
         cityGates.push({ gate: makeCityGate(placed.modelIdNum), entry, matrix, bucketKey });
       }

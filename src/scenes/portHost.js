@@ -326,17 +326,17 @@ export function createPortHost({
   function colliderGeometry(pl) {
     const parts = [modelOf(pl.site.kind)];
     for (const p of peopleOf(pl.site)) parts.push(boxTriangles([p.at[0] - KEEPER_HALF, p.at[1], p.at[2] - KEEPER_HALF], [p.at[0] + KEEPER_HALF, p.at[1] + KEEPER_HEIGHT, p.at[2] + KEEPER_HALF]));
-    const solidOf = (p) => p.solid ?? p.indices;   // FIELD BUGS 2026-10-25i SIGN-PASS: a model's hung signboard no solid (merchantYardModels.js assemble)
-    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + solidOf(p).length, 0);
+    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + p.indices.length, 0);
     const positions = new Float32Array(count), indices = new Uint32Array(icount);
+    const sight = parts.some((p) => p.sight) ? new Uint8Array(icount / 3) : null;   // FIELD BUGS 2026-10-25i SIGN-PASS: a model's hung signboard a ray's, no body's (merchantYardModels.js assemble)
     let v = 0, i = 0;
     for (const p of parts) {
       positions.set(p.positions, v);
-      const ix = solidOf(p);
-      for (let j = 0; j < ix.length; j++) indices[i + j] = ix[j] + v / 3;
-      v += p.positions.length; i += ix.length;
+      for (let j = 0; j < p.indices.length; j++) indices[i + j] = p.indices[j] + v / 3;
+      if (sight && p.sight) sight.set(p.sight, i / 3);
+      v += p.positions.length; i += p.indices.length;
     }
-    return { positions, indices };
+    return { positions, indices, sight };
   }
   function standCollider(pl) {
     const col = collider();
@@ -346,7 +346,7 @@ export function createPortHost({
     if (pl.colAt) { col.removeBucket?.(pl.bucket); pl.colAt = null; }
     if (!moved && feetInPort(pl.site, pl.at, feet())) return;   // held back while the feet stand at its foot as it first rises
     const g = colliderGeometry(pl);
-    col.addMesh(pl.bucket, g.positions, g.indices, pl.matrix);
+    col.addMesh(pl.bucket, g.positions, g.indices, pl.matrix, null, null, false, g.sight);   // SIGN-PASS: its boards met by rays, by no body
     pl.colAt = [pl.at[0], pl.at[1], pl.at[2]];
   }
   /** A lighthouse's gallery guard stood in its own bucket, or taken down, by where the feet `f` are (guardFor) - stood

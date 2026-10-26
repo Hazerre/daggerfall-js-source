@@ -2480,7 +2480,7 @@ Pinned by `test/player/propbodies.test.js` (the real motor and collider walking 
 crown, through a felled tree; the clamp; the foot; which flats; the index; the hosts by source) and
 `tools/mutants/propbodies.json` (26, all dead). Port-Ledger A, THE SOLID FLATS STAND BODIES.
 
-## SIGN-PASS - a shop's sign stands where its post does (FIELD BUGS 2026-10-25i)
+## SIGN-PASS - a shop's sign stops a body where it stands, never where it hangs (FIELD BUGS 2026-10-25i)
 
 ajaegerson, #bug-reports, "Caravans get caught on shop signs": "Sometimes they do when travelling through towns its
 really easy to fix just return and move a bit but kinda annoying it stops you"; Harlander: "Even going on foot you can
@@ -2494,34 +2494,68 @@ rider at a board and 131 a walker (wedged under a low board's edge at a walk); a
 none of it, and its grinding stopped the journey.
 
 A sign's triangle every corner of which stands `signSolid.js:"export const SIGN_HANG_M = 1;"` over the sign's own foot
-hangs and is drawn, never solid; the posts stand (the gap measured over the 56 records: standing corners at 0 and
-0.5 m, hanging at 1.65 m and over). Both town hosts ask it (`pixelBuild.js:"late.add(gateKey, cpu.positions, solidIndicesOf(placed.modelIdNum, cpu), local,"`
-and `exterior.js`); the interior and dungeon hosts stand no sign. The same lines after: 51 rider stops and 83 walker
-stops remain, every one at a post. The port's own boards hang the same way - the Stable's, the Joinery's and the
-Shipyard's gate boards at 2.4 m (no rider could ride in under them), the Wagon Yard's over its opening and the
-Shipyard's crew board under its eaves (`merchantYardModels.js` `signboard`, assemble's `solid`; both yard hosts collide
-it). A departure from DFU: Port-Ledger A. Pinned by `test/world/fb1025i_signsnag.test.js` and
-`tools/mutants/fb1025i_signsnag.json` (its 17 SIGN-PASS mutants, all dead).
+HANGS (the gap measured over the 56 records: standing corners at 0 and 0.5 m, hanging at 1.65 m and over; the range is
+HOUSE-SIGN's one export, `houseSigns.js` `isShopSignModel` - AUDIT FB1025i G3). A hung triangle stays in the collider
+as a RAY'S (`collider.js:"  addMesh(bucketKey, positions, indices, matrix, translation = null, rotation = null, posed = false, sight = null) {"`):
+every ray and sweep meets it as DFU's MeshCollider is met - an arrow, a spell, a foe's look, the camera's cast, a click,
+a walker's eye looking at it - and no body does: the resolve, the overlap, the contact, the parity and a body's own rays
+(`BODY_RAY`: the head's rise, a floor to stand on, the headroom) pass it (AUDIT FB1025i G5). Both town hosts hand the
+marks beside every placed model's triangles (`pixelBuild.js:"late.add(gateKey, cpu.positions, cpu.indices, local,"`
+through the late gate, which carries them, and `exterior.js`); the interior and dungeon hosts stand no sign. The same
+lines after: 51 rider stops and 83 walker stops remain, every one at a post. The port's own boards hang the same way -
+the Stable's, the Joinery's and the Shipyard's gate boards at 2.4 m (no rider could ride in under them), the Wagon Yard's
+over its opening and the Shipyard's crew board under its eaves (`merchantYardModels.js` `signboard`, assemble's
+`sight`; both yard hosts hand it). What a player sees of it: walking under one of the 1.65 m boards the eye (1.7 m)
+passes through the board's lowest 5 cm for three or four frames - the boards stay a ray's, never a walker's, because a
+walker's capsule there is the report's own snag (48 of the 131 walker stops were those boards' edges). A departure from
+DFU: Port-Ledger A. Pinned by `test/world/fb1025i_signsnag.test.js` and `tools/mutants/fb1025i_signsnag.json` (its
+SIGN-PASS records).
 
-## RAIL-HANG - a fence's rail is no floor (FIELD BUGS 2026-10-25i)
+## RAIL-HANG - a fence's rail is no floor where no body stands (FIELD BUGS 2026-10-25i)
 
 The same thread's fences: the town's split-rail fences (41206-41208) are a post and two wedge rails, a flat face to the
-street and two slopes behind it to a back edge 0.55 m up for the lower rail. Square at the rails from behind, every
-walker and runner measured (130 stations a fence) was set ON the lower rail - feet 0.32 and 0.39 m up, grounded, wedged
-under the upper rail, bobbing - and a runner from the street, in a 0.28 m band a panel, 0.3 m up on the rail's under
-slope. Both were PH1's one-way floor (`_resolveSphere`'s floorAbove) reading a rail met from the side as a floor the
-body had sunk under. A WALKING step (no fall in it) now hands that floor SH1's stand ceiling in its sideways pass and its
-ladder (`collider.js:"    this._floorCeil = dy === 0 ? standCeil : Infinity;"`, entryY + STEP_OFFSET, for that floor
-alone - the passes' walls resolve as they did, so SH1's "every caller but the ladder passes Infinity" holds for its
-walls), and the floor is one the body is under, its own plane over the sphere's centre (`planeOver`). A falling body's
-catch of a lip is the arm's as it was: a running jump's reach is measured on it (`egSpanLaw.js` egJumpReach, pinned by
-`egfull_span` and `sd7b_steps`). After: no station of either side hangs; PH1's own cases stand (a hand under a floor
-set back by the sideways pass, deeper by the vertical one), and a 0.45 m ledge is still stepped. Not a departure: a
-CharacterController stands on nothing over its stepOffset. What moves with it: N0000037's throne seat, 0.58 m over its
-floor, had been walked onto by the same loophole, past SH1's own law ("0.55 through 1.2 blocked flat"); it is a jump
-now, as SH1 has every surface over a step - measured, a jump from the walk at any of frames 5 to 12 stands on the seat
-where the walk did (`audit0929_actions` PIN MOVED). And three older laws' pins, all level strides, no longer told their
-law from this one (the straddle WW-LID S gave the sideways pass, its refused rung L, MO-1's face slope - each mutant
-passed them): each gains a stroke with a vertical part, where its law alone holds (`fb0929d_waterwalk`,
-`auditdisc28_motion`, PIN MOVED). Pinned by `test/player/fb1025i_railhang.test.js` and
-`tools/mutants/fb1025i_signsnag.json` (its 7 RAIL-HANG mutants, all dead).
+street and two slopes behind it to a back edge 0.55 m up for the lower rail, the upper rail's back edge 0.9 m over it.
+Square at the rails from behind, every walker and runner measured (130 stations a fence) was set ON the lower rail -
+feet 0.32 and 0.39 m up, grounded, wedged under the upper rail, bobbing - and a runner from the street, in a 0.28 m band
+a panel, 0.3 m up on the rail's under slope, under the rail's own top. Both were PH1's one-way floor (`_resolveSphere`'s
+floorAbove) setting a body on a floor met from the side.
+
+A WALKING step - no fall in it (`velY` is 0 on the player's ground), or its motor's word that it began on the ground
+(EnemyMotor's walk, which carries gravity's fall every step as DFU's does: move's `onGround` - AUDIT FB1025i G6) - hands
+every pass of its step - the sideways pass, the ladder, the vertical pass and its snap - the body's height
+(`collider.js:"    this._walk = dy === 0 || this._onGround ? height : 0;"`). The floor PH1 sets its lower sphere on is
+asked, once the sphere's walk is done, whether the body STANDS there - its height clear over that floor, a body's ray
+straight up from just inside the floor's edge, at the way in and half a radius either side of it along the edge
+(`_standsOn`) - and where it does not, the sphere's walk is made again with that floor a wall to it, as SH1's is: pushed
+back the way it came, never down through the floor's edge (the plain push it had first taken carried a water walker
+pressed to a ceiling down past a rib's edge and through it). PH1's own case - a lower sphere sunk under a floor with
+room over it - is set on it as it was. A body that began INSIDE a closed solid whose top no body stands on meets its
+faces from inside, as DFU's CharacterController meets a MeshCollider's (a surface, never a volume): a sweep's station in
+W0000005, stood on the plinth 41832 inside the altar block 41831, whose top stands 1.25 m under the ceiling, stays in
+the block, where PH1 had lifted it onto the block's top and the parent walked it off (16 of the block's 66,144 runs; no
+body walks into the block). A sphere that began inside "a solid" was tried as a way out and is not one: a dungeon room
+is a shell open below its ceiling, and insideSolid's parity read 1,378 of W0000005's 2,191 open floor stations as inside
+one; asked of the floor's own model alone, it still read a room's own ledges inside wherever their room's ceiling stood
+over the way in (N0000037: 32 of the law's refusals undone). A falling or rising body's catch of a lip is the arm's as
+it was (a running jump's reach, `egSpanLaw.js` egJumpReach, is measured on it). After: no station of either side of the
+three fences hangs, for a walker, a runner or a wagon's driver, square to the rails or 10 to 80 degrees off (the game's
+own, square: 26, 26 and 25 of 72 ended on a rail before, none after) - a wagon sliding along TVRNBM04's 41207 had been
+set on it by the walk's vertical pass where its sideways pass refused it, and a runner sliding off a rail's end rode up
+its last centimetres where the way in runs along the upper rail's own end, which is why every pass is asked and across
+the footprint; a foe walking at a fence chasing the player stays on the ground (it had hung at every station). Not a
+departure: a CharacterController stands on nothing it does not fit over.
+
+AUDIT FB1025i G1/G2: the law's first reading capped that floor at SH1's stand ceiling (entryY + STEP_OFFSET) and asked
+its plane over the sphere's centre. The ceiling turned every top 0.5-0.7 m over the feet that a walker had stepped onto
+through PH1 into a jump or a wall - the street benches 41105 and 41106 (every line onto them before, none or two of
+twenty after), the beds, N0000037's throne seat, and the dungeon blocks' seam connectors, whose lip stands 0.501-0.505 m
+over the feet that reach it (Privateer's Hold S0000999 to B0000006 among them: 1,597 seam crossings over ten dungeons in
+the parent, 1,139 under the ceiling). The plane test asked nothing the headroom does not, at either side of every fence.
+Both are gone: the benches, the seat and the seams are the parent's again (1,597 of 1,597), the throne's pin is a walk
+again (`audit0929_actions`), and what still differs from the parent is what the law is for - a fence's rail, a railing's
+lower bar under its upper (41409, RESIAM02), a 54-degree wall base under its overhang (63035, N0000037), a table climbed
+from its chair where no body stands on its top (41108), the throne's arm rests (41123), W0000005's altar station. Three
+older laws' pins gained a stroke with a vertical part while the ceiling stood, where their law alone holds
+(`fb0929d_waterwalk` WW-LID S and L, `auditdisc28_motion` MO-1, PIN MOVED); they stand, and WW-LID B, whose rib the wall
+now holds first, gains a rising stroke of its own. Pinned by `test/player/fb1025i_railhang.test.js` and
+`tools/mutants/fb1025i_signsnag.json` (its RAIL-HANG records).

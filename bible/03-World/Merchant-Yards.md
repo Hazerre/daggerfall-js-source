@@ -82,8 +82,9 @@ wagonwright at the opening.
 Stable's iron horseshoe, its opening up for luck, and STABLES; the Wagon Yard's wheel - iron tyre, wooden felloe, eight
 spokes - and WAGONS. Both faces carry the picture, each reading the right way round (the world is left-handed: from the
 street, looking along -z, +x is on the viewer's left - the front's picture starts at +x, the back's at -x). A board
-hangs and is no solid (FIELD BUGS 2026-10-25i SIGN-PASS, `03-World/Player-Arc.md`): the gates' boards, 2.4 m up under
-their beams, had stopped every rider at the way in.
+hangs - a ray's and no body's (FIELD BUGS 2026-10-25i SIGN-PASS, `03-World/Player-Arc.md`): a look, an arrow and the
+camera meet it, and a rider rides in under it; the gates' boards, 2.4 m up under their beams, had stopped every rider at
+the way in.
 
 **The keepers.** A person of the town's own people (the race its walkers wear - `characters/mobile/mobilePerson.js`
 `walkerRace`, REGIONAL-FOLK's law: the climate's People, a Redguard region's Redguard; both exterior hosts' populations

@@ -102,7 +102,7 @@ function faces() {
     if (dot(cross(sub(b, a), sub(c, a)), out) < 0) { tri(rec, a, d, c, ua, ud, uc); tri(rec, a, c, b, ua, uc, ub); return; }
     tri(rec, a, b, c, ua, ub, uc); tri(rec, a, c, d, ua, uc, ud);
   };
-  /** SIGN-PASS: the faces laid from here, until it is said again, hang - drawn, and no solid (assemble's `solid`) */
+  /** SIGN-PASS: the faces laid from here, until it is said again, hang - drawn, met by rays, no body's (assemble's `sight`) */
   const hang = (/** @type {boolean} */ on) => { hanging = on; };
   return { tri, quad, byRec, hang };
 }
@@ -190,7 +190,7 @@ function leanTo(f, { x0, x1, z0, z1, backH, frontH, posts, stalls = [], stallH =
 
 /** A SIGNBOARD hung square to the yard's front at (x, yMid, z): its two faces the yard's picture (`rec`) - the back's
  *  turned so it reads from behind as well - its edges plain wood, and two iron rods from its top to `hangTo`.
- *  FIELD BUGS 2026-10-25i SIGN-PASS: it HANGS - drawn, never solid (assemble's `solid`): a gate's board 2.4 m up, under its
+ *  FIELD BUGS 2026-10-25i SIGN-PASS: it HANGS - drawn, met by every ray, no body's (assemble's `sight`): a gate's board 2.4 m up, under its
  *  beam over the way in, stood inside a rider's 2.6 m capsule (player/motor.js RIDE_HEIGHT), and no horse or wagon could
  *  be ridden in under it; the beam over it, at 3.3 m, stays the wall it is. */
 function signboard(f, rec, x, yMid, z, hangTo) {
@@ -290,17 +290,17 @@ function assemble(f, archive = YARD_ARCHIVE) {
   const positions = new Float32Array(count * 3), normals = new Float32Array(count * 3), uvs = new Float32Array(count * 2);
   const indices = new Uint32Array(count);
   const subMeshes = [];
-  const solid = [];   // SIGN-PASS: the triangles a collider stands - every one but a hung signboard's
+  const sight = new Uint8Array(count / 3);   // SIGN-PASS: a mark a triangle - 1 for a hung signboard's, a ray's and no body's (collider.js addMesh's `sight`)
   let v = 0;
   for (const rec of recs) {
     const g = f.byRec.get(rec), n = g.p.length / 3;
     positions.set(g.p, v * 3); normals.set(g.n, v * 3); uvs.set(g.uv, v * 2);
     for (let i = 0; i < n; i++) indices[v + i] = v + i;
-    for (let k = 0; k < n / 3; k++) if (!g.hung[k]) solid.push(v + 3 * k, v + 3 * k + 1, v + 3 * k + 2);
+    for (let k = 0; k < n / 3; k++) sight[v / 3 + k] = g.hung[k] ? 1 : 0;
     subMeshes.push({ textureArchive: archive, textureRecord: rec, startIndex: v, primitiveCount: n / 3 });
     v += n;
   }
-  return { positions, normals, uvs, indices, subMeshes, solid: Uint32Array.from(solid) };
+  return { positions, normals, uvs, indices, subMeshes, sight };
 }
 
 /** THE STABLE, in its own frame: renderer.createMesh's model shape (and the collider's). Pure. */

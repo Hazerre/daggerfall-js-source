@@ -203,17 +203,17 @@ export function createMerchantYards({
     parts.push(boxTriangles([k[0] - KEEPER_HALF, 0, k[1] - KEEPER_HALF], [k[0] + KEEPER_HALF, KEEPER_HEIGHT, k[1] + KEEPER_HALF]));
     for (const h of P.horses) parts.push(turnedBox(h[0], h[1], [h[2], h[3]], HORSE_BOX_SIZE, HORSE_BOX_CENTER));
     for (const w of y.wagons) if (w.box) parts.push(boxTriangles([w.box[0], w.box[1], w.box[2]], [w.box[3], w.box[4], w.box[5]]));
-    const solidOf = (p) => p.solid ?? p.indices;   // FIELD BUGS 2026-10-25i SIGN-PASS: a model's hung signboard no solid (merchantYardModels.js assemble)
-    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + solidOf(p).length, 0);
+    const count = parts.reduce((n, p) => n + p.positions.length, 0), icount = parts.reduce((n, p) => n + p.indices.length, 0);
     const positions = new Float32Array(count), indices = new Uint32Array(icount);
+    const sight = parts.some((p) => p.sight) ? new Uint8Array(icount / 3) : null;   // FIELD BUGS 2026-10-25i SIGN-PASS: a model's hung signboard a ray's, no body's (merchantYardModels.js assemble)
     let v = 0, i = 0;
     for (const p of parts) {
       positions.set(p.positions, v);
-      const ix = solidOf(p);
-      for (let j = 0; j < ix.length; j++) indices[i + j] = ix[j] + v / 3;
-      v += p.positions.length; i += ix.length;
+      for (let j = 0; j < p.indices.length; j++) indices[i + j] = p.indices[j] + v / 3;
+      if (sight && p.sight) sight.set(p.sight, i / 3);
+      v += p.positions.length; i += p.indices.length;
     }
-    return { positions, indices };
+    return { positions, indices, sight };
   }
   /** A yard's wagons on show, their boxes in the yard's frame once their parts are in: each one's own box centred on its
    *  place, its wheels on the ground. Answers whether one came in this frame. */
@@ -239,7 +239,7 @@ export function createMerchantYards({
     if (y.colAt) { col.removeBucket?.(y.bucket); y.colAt = null; }
     if (!moved && feetInYard(y.site, y.at, feet())) return;   // held back while the player stands on its ground as it first rises
     const g = colliderGeometry(y);
-    col.addMesh(y.bucket, g.positions, g.indices, y.matrix);
+    col.addMesh(y.bucket, g.positions, g.indices, y.matrix, null, null, false, g.sight);   // SIGN-PASS: its boards met by rays, by no body
     y.colAt = [y.at[0], y.at[1], y.at[2]];
     y.colWagons = y.wagonsIn;
   }

@@ -188,14 +188,14 @@ function pass(world, dt, feet, wish, heard) {
     o._colTimer = 0;
   }
 }
-/** Hold forward along `yaw` from `from`, the pass run every fixed step - and jump at frame `jumpAt` (none: -1). */
-function walk(world, from, yaw, frames, heard, jumpAt = -1) {
+/** Hold forward along `yaw` from `from`, the pass run every fixed step. */
+function walk(world, from, yaw, frames, heard) {
   const m = new PlayerMotor(world.collider);
   m.spawn(...from);
   for (let f = 0; f < 30; f++) m.update(FIXED_DT, { forward: 0, strafe: 0 }, yaw);
   const wish = [Math.sin(yaw), Math.cos(yaw)];
   for (let f = 0; f < frames; f++) {
-    m.update(FIXED_DT, { forward: 1, strafe: 0, run: false, jump: f === jumpAt, up: f === jumpAt }, yaw);
+    m.update(FIXED_DT, { forward: 1, strafe: 0, run: false, jump: false }, yaw);
     pass(world, FIXED_DT, [m.pos[0], m.pos[1], m.pos[2]], wish, heard);
     world.actions.update?.(FIXED_DT);
   }
@@ -232,10 +232,8 @@ test('AUDIT PRE-MERGE 0929 D1: the throne puzzle (N0000037) at the motor\'s own 
   const world = blockWorld('N0000037.RDB', events);
   const heard = [];
   // walk from the floor in front of the throne up onto its seat, as Skibbster did (facing -x: the seat's front at x
-  // 33.64, its backrest at 32.79). PIN MOVED (FIELD BUGS 2026-10-25i RAIL-HANG): the seat stands 0.58 m over the floor,
-  // over a step - a walker had been set on it by PH1's one-way floor, the loophole SH1's law now closes for a walking
-  // body (the one that hung walkers on a fence's rail), so the body jumps up onto it, walking in
-  walk(world, [34.9, 33.0, 39.4], -Math.PI / 2, 240, heard, 8);
+  // 33.64, its backrest at 32.79)
+  walk(world, [34.9, 33.0, 39.4], -Math.PI / 2, 240, heard);
   const throne = heard.filter(([k]) => k === 'act:0:22979' || k === 'act:0:22908');
   assert.ok(throne.some(([, t]) => t === 'WalkOn'), `the throne heard ${JSON.stringify(throne.slice(0, 4))}`);
   assert.ok(events.includes('cast'), 'the throne casts its spell');

@@ -180,7 +180,7 @@ test('WW-LID H: the head never rises through a face - a floor the body straddles
 // (a walking step's sideways pass and ladder), so the strides above, all level, no longer tell WW-LID's own laws from
 // that one - measured, the straddle dropped and the refused rung ignored each passed them. A stroke with a vertical part
 // (a swimmer's rise or sink, the bug's own) is WW-LID's alone: the same lintel, and the rib from its high side.
-test('WW-LID S, L at a stroke with a vertical part: the HIGH room\'s lintel over the head\'s centre is never stood on rising or sinking (147 of 2480 strides were, the straddle dropped), and the steep rib met from its high side sinking is never climbed into the ceiling (858 of 3255, the refused rung ignored)', () => {
+test('WW-LID S, L, B at a stroke with a vertical part: the HIGH room\'s lintel over the head\'s centre is never stood on rising or sinking (147 of 2480 strides were, the straddle dropped), and the steep rib met from its high side sinking is never climbed into the ceiling (858 of 3255, the refused rung ignored)', () => {
   const lintel = doorway(6);
   for (const dy of [0.004, -0.004]) {
     let lifted = 0;
@@ -207,6 +207,19 @@ test('WW-LID S, L at a stroke with a vertical part: the HIGH room\'s lintel over
     }
   }
   assert.equal(bad, 0, `the rib climbed into the ceiling or passed ${bad} times`);
+  // B (FIELD BUGS 2026-10-25i RAIL-HANG: a walking stride's own law now walls the nearly flat rib before B's refusal is
+  // asked, so B is pinned where it alone holds - a stroke rising into the ceiling): stroke after stroke at the rib from
+  // its high side, pressed to the ceiling, the body never passes through it (10 of 15 did, the refused pass taken)
+  const flat = ribRoom(2.72, 2.8);
+  let through = 0;
+  for (const x of range(-0.5, 0.5, 0.25)) {
+    for (const [dx, dz] of [[0, -0.094], [0.02, -0.12], [0, -0.05]]) {
+      const feet = new Float32Array([x, 2.3, 1.2]);
+      for (let k = 0; k < 60; k++) { flat.move(feet, dx, 0.004, dz, 0.9, false); if (feet[1] + 0.9 > 3.2) feet[1] = 2.3; }
+      if (feet[2] < -0.3) through++;
+    }
+  }
+  assert.equal(through, 0, `through the rib ${through} times of 15`);
 });
 
 const ARENA2 = process.env.ARENA2_PATH;
