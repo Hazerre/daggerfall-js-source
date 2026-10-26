@@ -143,6 +143,32 @@ standing, the event's pace); each more player `STAFF_PACK_CAP_PER` (5) more stan
 the pace a quarter quicker, to twice. A reader stands as many of a runner's raiders (`world/raidShared.js`
 `RAID_PUPPETS_MAX`, 40; a runner's raiders, its watch and its loose stands still ride one frame).
 
+BOSS-EXACT (2026-10-25, mob: "the rat isnt takeing any dmage", "i have daedric", "and no players magic was working"): a
+mini boss's health is the exact number staff typed, so the players fighting it never make it tougher - its owner's
+damage door and heal skip PSCALE1's toughness (`scenes/exteriorFoes.js` `_toughFoe`). Eight fighting a 10,000-health
+boss divided every blow by 4.5: a Daedric blow of about 20 took 4, and the bar did not move. Its blows at the players
+still weigh by how many fight it (`partyHit`). A departure from PSCALE1 for this one foe alone.
+
+BOSS-BIG-HIT and BOSS-BAR (2026-10-25, mob: "magic hits 10 of thousands", "i hit 500", "the bar never moved"): the
+owner refuses a peer's blow past `PEER_HIT_DMG_MAX` (10,000) whole - a mini boss takes it at 10,000 instead (every other
+foe still refuses it). And a foe's record says its health within the wire's `FOE_HEALTH_MAX` (100,000): a mini boss
+past it is said at the same share of 100,000 (`wireHealth`), so every player's bar falls with the owner's - clamped,
+a 1,000,000-health boss read full until 900,000 were gone. Both in `scenes/exteriorFoes.js`.
+
+BOSS-SPELL-WARD (2026-10-25, mob: "use crazy spell reduction on mini bosses like 90%", "of all spell damage"): a mini
+boss takes `STAFF_BOSS_SPELL_TAKEN` (a tenth, `systems/eliteFoes.js`) of every spell's damage - a peer's and the
+owner's, a lasting spell's rounds, a weapon's strike spell - at least 1; a whole-health spell (a Disintegrate) takes a
+tenth of its health and never kills it. Cut once, where its health is (`scenes/exteriorFoes.js` `damageFoe`): a puppet
+sends its owner the spell whole. A departure: DFU has no such foe.
+
+BOSS-HIT-SHARE (2026-10-25, mob: "needs to scal with players", "1% per heaslth with 40 player ins much", "magfic and
+melee", "just make this the stock option so it always is challenging bosss"): one hit on a mini boss - a blade's, a
+spell's after its cut, a round's, a peer's or the owner's - takes at most `STAFF_BOSS_HIT_SHARE` (1%) of its maximum
+divided by the players fighting it (`systems/eliteFoes.js` `staffBossHit`; PSCALE1's 30-second window, counted to
+`STAFF_BOSS_FIGHTERS_MAX` 100, not the party's eight seats: `systems/party/partyScale.js` `foeFightersUpTo`), at least 1.
+Alone a hit takes up to 1%; forty fighting, 0.025% each - a round of everyone's hits about 1% whatever the crowd. Always
+on, every mini boss; no switch.
+
 ## 6. The place picker (`src/net/staffPlaces.js`)
 
 The places are the player's own game data (MAPS.BSA), never in the panel or this repository, so the panel over the

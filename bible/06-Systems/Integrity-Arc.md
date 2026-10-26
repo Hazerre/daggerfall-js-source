@@ -374,6 +374,23 @@ so the finding and the panel's audit row are its record. No hold is lifted. The 
 `test/server/staffsetbank.test.js` over the real Worker, the game's own bank table and the panel's own profile read;
 `tools/mutants/staff-set-bank.json` (31, dead).
 
+GUILD-LETTER-FIX (2026-10-25, a player's level 10 vampire: the Dark Brotherhood's tally at InviteSent, no letter
+pending, The Acceptance Test nowhere in the save; mob: "do it") added a fifth, the Staff Panel's alone:
+`/v1/staff/fix/letter { id, ticket, guild, op, note }`, an Admin's (`staffRealm.js`), the review's `letter` act
+(`review.js letterAct`) over `repairLaw.js applyGuildLetter`. DFU parks the crime-guild tally and clears its clock before
+the initiation quest starts, and a quest that will not parse answers nothing, so a letter whose quest could not be made
+spent the invitation for good; the game now parks only a quest that started (`crimeGuilds.js` DB-LETTER, a departure:
+a failed start is stamped again as a fresh letter), and staff mend a character it already caught. `send` (`db` the
+Brotherhood, `tg` the Thieves Guild) sets the tally at the guild's target and the letter due, so the game's own
+`handleStartingCrimeGuildQuests` sends it the next minute the player is outside - refused to a member in either
+membership book (`letter-member`, the vampire's book too), a save still holding the initiation quest, running, ended and
+kept or waiting (`letter-quest`), or a letter already on its way (`letter-pending`). `cancel` parks the tally with none
+pending (`letter-none` when there is nothing to call off). The repair's machinery: once a ticket, its `realm_repairs` row
+naming the guild's faction below nothing (-108, -42: below BANK_SET_FACTION, no migration) and the act as its flag, the
+record seized one sequence on, the act among the findings; no gold moves. Folded into acct186 before it shipped. Pinned
+by `test/server/staffguildletter.test.js` and `test/systems/crimeguilds.test.js`; `tools/mutants/guildletterfix.json`
+(12, dead) and `tools/mutants/dbletter.json` (4, dead).
+
 STAFF-GIVE (2026-10-24, mob: "add yes we will work on add as well", the card's pick "Pick from the item list", "include
 enchants") is Remove from a player's twin, an Admin's: `/v1/staff/item/catalogue` (the game's item list - each template
 with its groups and whether it stacks, a weapon's and an armour's materials, the item maker's enchantments with their
