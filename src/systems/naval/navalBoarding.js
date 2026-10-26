@@ -5,11 +5,16 @@
 // host stands the foes, moves the player, opens the windows and runs the quests.
 //
 // WHEN YOU BOARD HER. A ship that has struck her colours (navalDamage.js STRUCK_AT) lies within BOARD_RANGE of your
-// helm, your way under BOARD_SPEED: Activate (the key the prompt names) throws the grapples. She is hauled
-// ALONGSIDE over GRAPPLE_S - swung parallel to your hull on the side she lies, BERTH_GAP of water between the two
-// planks (`berthPose`) - and you go over her rail onto her deck. Her crew stands to fight on it: her MUSTER, what her
-// class sends (navalShips.js `boarders`) thinned by what her crew has lost, never under MUSTER_MIN nor over
-// MUSTER_MAX, led by her CAPTAIN - a pirate flagship's and a navy's a named officer, the Spellsword Warm Ashes makes
+// helm: Activate (the key the prompt names) throws the grapples. She is hauled ALONGSIDE over GRAPPLE_S - swung
+// parallel to your hull on the side she lies, BERTH_GAP of water between the two planks (`berthPose`) - and you go
+// over her rail onto her deck. BOARD-MAGNET (2026-10-26, the owner: "remove the ship ramming feature as its broken and
+// instead with a ship is damaged enough, a prompt to board should show within range and properly magnitize to the
+// other ship"): the grapples are thrown at any way - the prompt stands whenever she is in reach, never a heave-to
+// first - and the haul DRAWS HER TO THE SHIP AS IT LIES EACH FRAME (`haul`, over `berthHull`'s own beams, widths and
+// middles), while your way comes off under `haulBrake`: she meets you where you come to rest, side by side, never
+// where you were when the lines went over. Her crew stands to fight on her deck: her MUSTER, what her class sends
+// (navalShips.js `boarders`) thinned by what her crew has lost, never under MUSTER_MIN nor over MUSTER_MAX, led by her
+// CAPTAIN - a pirate flagship's and a navy's a named officer, the Spellsword Warm Ashes makes
 // the pirates' leader (WAQ_SHIP_ATTACK_PIRATE `_spells_`). A crewed ship of your own sends HANDS with you - Warm
 // Ashes' crew, Warriors on the player's side (its `_ally_`), one for every CREW_PER_HAND of your crew, at most
 // HANDS_MAX. Her captain dead and SURRENDER_SHARE of her muster with him - or every man of them - she is your PRIZE
@@ -23,11 +28,15 @@
 // and their ship, her boarders spent, lies struck alongside: board her in turn.
 
 import { wrapAngle } from '../../world/mat4.js';   // ONCRASH1: the port's one angle wrap
+import { hullBuild } from './navalShips.js';   // BOARD-MAGNET: a hull's own beam, width and middle (berthHull)
 
 export const BOARD_RANGE = 32;
-export const BOARD_SPEED = 2.5;
 export const GRAPPLE_S = 2.2;
 export const BERTH_GAP = 2.2;
+/** BOARD-MAGNET: the least water between the two hulls at their widest (m) - their colliders' half widths
+ *  (navalShips.js `halfWidth`), where a hull swells past her deck's beam: a Large Galley 2.4 m a side, so a berth by
+ *  the beams alone laid a Carrack's planking 0.2 m inside the galley's. */
+export const HULL_CLEAR = 0.5;
 export const MUSTER_MIN = 3;
 export const MUSTER_MAX = 12;
 export const CREW_PER_HAND = 6;
@@ -91,6 +100,11 @@ export function raidQuestRetreated(quest) {
 
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 
+/** Whether a ship can have the grapples thrown on her as her state stands: her colours struck - never one being boarded
+ *  already, a prize, a wreck going down or gone. BOARD-MAGNET: the one way aboard (RAM-BOARD's foul is gone with the ram).
+ *  @param {{ boarded?: boolean, damage: { state: string } }} ship */
+export const boardableState = (ship) => !!ship && !ship.boarded && ship.damage.state === 'struck';
+
 /**
  * A ship's muster: its captain and its men, as MobileTypes. `crewShare` - what her crew has left (0..1).
  * @returns {{ captain: number, men: number[] }}
@@ -116,11 +130,24 @@ export const handsOf = (crew, crewed) => (crewed ? clamp(Math.floor(crew / CREW_
 export const repelPartyOf = (shipClass) => clamp(Math.round(shipClass.boarders / 3), REPEL_PARTY.min, REPEL_PARTY.max);
 
 /**
+ * BOARD-MAGNET: a hull as `berthPose` reads it - where she lies and her heading, her deck's half beam, her collider's
+ * widest half (`halfWidth`) and her middle along her keel (halfway from her stern to her stem, navalShips.js `aftZ`
+ * and `bowZ`), so two hulls lie side by side middle to middle, never root to root (a galley's root is 4.7 m aft of her
+ * middle).
+ * @param {number[]} pos @param {number} yaw @param {number} hull a Come Sail Away hull index
+ */
+export function berthHull(pos, yaw, hull) {
+  const b = hullBuild(hull);
+  return { pos, yaw, beam: b.beam, halfWidth: b.halfWidth, midZ: (b.bowZ + b.aftZ) / 2 };
+}
+
+/**
  * Where a ship lies ALONGSIDE another: parallel to it (the same heading, or the reciprocal when she lies more than
- * abeam astern - she is hauled round the short way), on the side she lies, the two half beams and BERTH_GAP apart,
- * level with its middle.
- * @param {{ pos: number[], yaw: number, beam: number, midZ?: number }} anchor - the ship she berths against
- * @param {{ pos: number[], yaw: number, beam: number, midZ?: number }} ship - the ship hauled
+ * abeam astern - she is hauled round the short way), on the side she lies, the two half beams and BERTH_GAP apart -
+ * BOARD-MAGNET: and never nearer than HULL_CLEAR between their widest (`halfWidth`, where it is said) - level with its
+ * middle.
+ * @param {{ pos: number[], yaw: number, beam: number, halfWidth?: number, midZ?: number }} anchor - the ship she berths against
+ * @param {{ pos: number[], yaw: number, beam: number, halfWidth?: number, midZ?: number }} ship - the ship hauled
  * @returns {{ pos: number[], yaw: number, side: 1|-1 }}
  */
 export function berthPose(anchor, ship) {
@@ -130,7 +157,7 @@ export function berthPose(anchor, ship) {
   // her heading: the anchor's, or its reciprocal - whichever is nearer her own
   const same = Math.cos(ship.yaw - anchor.yaw) >= 0;
   const yaw = same ? anchor.yaw : anchor.yaw + Math.PI;
-  const off = side * (anchor.beam + ship.beam + BERTH_GAP);
+  const off = side * Math.max(anchor.beam + ship.beam + BERTH_GAP, (anchor.halfWidth ?? anchor.beam) + (ship.halfWidth ?? ship.beam) + HULL_CLEAR);
   const along = (anchor.midZ ?? 0) - (same ? 1 : -1) * (ship.midZ ?? 0);
   return {
     pos: [anchor.pos[0] + r[0] * off + f[0] * along, ship.pos[1], anchor.pos[2] + r[2] * off + f[2] * along],
@@ -138,6 +165,10 @@ export function berthPose(anchor, ship) {
     side,
   };
 }
+
+/** BOARD-MAGNET: the brake (m/s^2) the grapples take a way of `v` m/s off at - all of it over the haul's GRAPPLE_S, so
+ *  the ship hauled meets one coming to rest; never past `most` (Come Sail Away's own bound on a brake). */
+export const haulBrake = (v, most = Infinity) => Math.min(most, Math.max(0, Number(v) || 0) / GRAPPLE_S);
 
 /** A pose on the way from `from` to `to`: `t` in [0, 1], eased (smoothstep), the yaw the short way round. */
 export function haulPose(from, to, t) {
@@ -172,6 +203,9 @@ export function createBoarding({ kind, shipId, from, to }) {
   return Object.assign(b, {
     /** The haul's pose now, while grappling; null after. */
     pose() { return b.phase === 'grapple' ? haulPose(b.from, b.to, b.t / GRAPPLE_S) : null; },
+    /** BOARD-MAGNET: the haul's pose this frame toward `to`, her berth as the ship she is hauled to lies NOW (kept as the
+     *  haul's `to`) - on the way while she is hauled, the berth itself from the frame the haul is done. */
+    haul(to = b.to) { b.to = to; return haulPose(b.from, to, b.t / GRAPPLE_S); },
     step(dt) {
       if (b.phase !== 'grapple') return null;
       b.t += Math.max(0, dt);

@@ -91,7 +91,6 @@ import { steerage, HULL_HELM, HELM_WAY, WIND_RATED, WIND_SHARE, windShare } from
 import { stepErrand, MOOR_EASE_S } from './shipLife.js';   // SHIP-LIFE: a ship going somewhere
 import { nightSight } from './shipWatch.js';   // SHIP-WATCH: by night a lit ship is seen far, a dark one close
 import { legendOfClass, LEGEND_RELOAD_K } from './etherShips.js';   // ETHER-LEGENDS: a `gunnery` legend's quicker guns
-import { holdFouled } from './navalFoul.js';   // RAM-BOARD: a fouled ship's way held
 import { shotGun, naturalShot } from './shotKinds.js';   // SHOT-KINDS: a captain's loads
 
 /** A galley's oars: its least way, as a share of its best. */
@@ -942,7 +941,6 @@ export function stepCaptain(ship, world) {
   ship.sailsWant = ship.avoid.heading != null ? Math.min(plan.sails, BOXED_SAILS) : plan.sails;
   ship.sails = clamp(ship.sails + clamp(ship.sailsWant - ship.sails, -0.5 * dt, 0.4 * dt), 0, 1);
   helm(ship, want, dt, world, 1, plan.track ? trackRate(ship, want, dt) : (ship.wantPrev = null, ship.wantRate = 0));
-  holdFouled(ship, dt, world.now);   // RAM-BOARD (navalFoul.js): fouled by a stem, her way held under FOUL_WAY - her guns still answer
   moveShip(ship, dt, isWater);
 
   // the guns - held at a wreck, and all but the chasers while she comes alongside - SHOT-KINDS: unless her broadsides

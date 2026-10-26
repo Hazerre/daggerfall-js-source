@@ -38,8 +38,8 @@
   {
     "name": "NAV-D-the-gap-dropped",
     "file": "src/systems/naval/navalBoarding.js",
-    "old": "  const off = side * (anchor.beam + ship.beam + BERTH_GAP);",
-    "new": "  const off = side * (anchor.beam + ship.beam);",
+    "old": "  const off = side * Math.max(anchor.beam + ship.beam + BERTH_GAP,",
+    "new": "  const off = side * Math.max(anchor.beam + ship.beam,",
     "tests": [
       "test/systems/naval/nav_d_boarding.test.js"
     ]
