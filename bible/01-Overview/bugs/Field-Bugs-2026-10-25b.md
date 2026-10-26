@@ -98,39 +98,65 @@ NOT DONE. The Broker's words are still English literals (L10N4's count for the f
 PINS: `test/systems/item/fb1025b_brokerbought.test.js` (3); set7_broker's two pins of the old word moved, and ss1_stones'
 five of the dismantle's words (A8). Mutants `tools/mutants/fb1025b_brokerbought.json` (9, all dead).
 
-## HEART-TAKEN and QUEST-MARK (4) - `src/systems/questlines/sheets/`, `src/ui/enhanced/enhancedInventory.js`
+## HEART-TAKEN, HEART-KEPT and QUEST-MARK (4) - `src/systems/questlines/sheets/`, `src/systems/item/itemTransfer.js`, `src/ui/enhanced/enhancedInventory.js`
 
-WHAT DFU DOES. Q0C4XY04's `Item _heart_ daedra_heart` is the quest's own. `injured <foe>` then `give item _heart_ to
-<foe>` puts it on the first hurt quest foe's body, and `toting _heart_ and _questgiver_ clicked` asks the pack for THAT
-item (ItemCollection.Contains(Item): the quest's uid and the item's symbol). Any other Daedra's Heart is no quest's.
-`clicked item _heart_` fires on any press of the heart's row in a body's list - the remote list sends the click
-before the take (DaggerfallInventoryWindow.cs:2027-2037). The classic list paints a quest item's cell green
-(questItemBackgroundColor).
+WHAT DFU DOES. Q0C4XY04's `Item _heart_ daedra_heart` is the quest's own. Each of its four kinds is given it as one is
+first hurt (`injured <foe>` then `give item _heart_ to <foe>`), and every instance of a kind given it takes a CLONE onto
+its body - Foe.GetClonedItemQueue's ItemCollection.CloneAll, each a UID of its own. GiveItem then takes the quest's own
+record out of the pack if the player holds it (GiveItem.cs:117-121, Contains(DaggerfallUnityItem): by UID), never a
+clone the player took off a body. `toting _heart_ and _questgiver_ clicked` asks the pack for the quest's item
+(ItemCollection.Contains(Item): the quest's uid and the item's symbol, a clone included) and the hand-in releases every
+held copy (ReleaseQuestItemForReoffer). Any other Daedra's Heart is no quest's. `clicked item _heart_` fires on any press
+of the heart's row in a body's list - the remote list sends the click before the take (DaggerfallInventoryWindow.cs:2027-2037).
+The classic list paints a quest item's cell green (questItemBackgroundColor).
 
-WHAT THE PORT DID. The chain ran as DFU's, through the real bridge and machine: the four foes' waves once `pc at
-_mondung_ set _exitstarter_` holds, the heart on the first hurt foe's body, the take, the questor's question, the
-reward. Two lies were its own. The questlines sheet struck "take its heart" on `_S.01_` and opened "Bring the heart"
-with it, so a take refused (a full pack) or a menu closed unused told the player the heart was theirs while it lay on
-the body. And the Enhanced pack - the default - drew the quest's heart exactly as a plain one, where a Daedra
-Seducer's own loot leaves a plain heart on the same body about half the time (201 of 400 bodies through
-spawnEnemyLoot). The screenshots: the line struck and one "Daedra's Heart" row ("3.00 kg", if read right, is three
-hearts, and a quest's item never stacks).
+WHAT THE PORT DID. Three faults of its own, the first the report's likely cause (AUDIT FB1025b B1). The host's
+playerHasItem read a quest's item by its quest and symbol alone (`world.js`'s `_heldItemIndex`, AUDIT 24's, so a save's
+two restored copies still meet), so the heart taken off the first kind's body was pulled out of the pack onto the
+second kind the player hurt: the pack held no quest heart, the witches asked nothing, and the journal stayed struck -
+the switch on or off. The questlines sheet struck "take its heart" on `_S.01_` and opened "Bring the heart" with it, so
+a take refused (a full pack) or a menu closed unused told the player the heart was theirs while it lay on the body. And
+the Enhanced pack - the default - drew the quest's heart exactly as a plain one, where a Daedra Seducer's own loot leaves
+a plain heart on the same body about half the time (201 of 400 bodies through spawnEnemyLoot). The screenshots: the line
+struck and one "Daedra's Heart" row ("3.00 kg", if read right, is three hearts, and a quest's item never stacks).
 
-FIXED. The sheet's first line is done, and its second opened, by the quest's heart held now or the hand-in (`{ any: [
-{ item: _heart_ }, { task: _qlask_ } ] }`). The same lie stood in three more sheets - a line struck on a `clicked item`
-of an item a foe's body holds - and each is struck now by the item held or its script's hand-in task: N0B00Y06's
-wrappings by `_wrappings_` or `_reward_`; R0C20Y07's sapphire by `_item_` or `_pcgetsgold_`; S0000503's hoard by
-`_item_`, `_S.28_` or `_S.29_`. QUEST-MARK: a quest's item says "quest item" on its row and names its quest on its card
-in the Enhanced pack and a body's list (`enhancedInventory.js:"quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,"`),
-in the catalog and the thirteen whole languages (`inventory.quest.word`, `.of`, `.item`).
+FIXED. HEART-KEPT (B1, a return to DFU's law): a foe's clone says it is one (`questClone`, declared in `itemFields.js`,
+`foe.js:"return this.itemQueue.map((it) => (it?.questItem ? { ...it, questClone: true } : { ...it }));"`), and the read of
+a quest's own record in the pack is one law beside keepsQuestItem
+(`itemTransfer.js:"export function heldQuestRecordIndex(items, dfItem, { clones = false } = {}) {"`) - the record, or a
+restored copy that is no clone; playerHasItem never takes a clone for it
+(`world.js:"playerHasItem: (dfItem) => _heldItemIndex(dfItem, false) >= 0,"`), and Item.Dispose's sweep
+(removeItemFromPlayer) still finds one, own copy first. bootWorld 6 logical lines out (36,364 -> 36,358), its ceiling
+down by them. `toting` reads a clone as held (Contains(Item)) and the hand-in takes every held copy, as before. THE FOUR
+HOSTS: `world.js` wires both hooks (fixed); `exterior.js` (?exterior) wires no item seam (its own FLAG); `worldModes.js`
+and `dungeonContext.js` run `world.js`'s bridge. HEART-TAKEN: the sheet's first line is done, and its second opened, by
+the quest's heart held now or the hand-in (`{ any: [ { item: _heart_ }, { task: _qlask_ } ] }` - a party copy's resync
+carries `_qlask_`). The same lie stood in three more sheets - a line struck on a `clicked item` of an item a foe's body
+holds - and each is struck now by the item held: N0B00Y06's wrappings or its `_reward_`, R0C20Y07's sapphire or its
+`_pcgetsgold_` (each `toting`, reached only holding it; B5: the two next lines open on the item alone, their own done
+showing them), S0000503's hoard by its `_item_` alone (B3: `_S.30_` asks on DFU's click, `when _S.05_ and not _S.16_`,
+so a look and a walk out reached `_S.28_`, `take _item_ from pc`, and `_S.29_`; a party copy has the latch by the merge,
+`qlState.js` mergeSharedState). A SAVE FROM BEFORE (B4): each rebound objective names its mend (`"reread":"fb1025b"`), and
+a state that has not taken it forgets that objective's latch once at its first read
+(`qlLaw.js:"const unmended = (st, o) => !!o?.reread && !(st?.reread ?? []).includes(o.reread);"`); a fresh state takes it
+at once, and a latch this build wrote stands through a load (`06-Systems/Questlines-Arc.md` 2.2). QUEST-MARK: a quest's
+item says "quest item" on its row and names its quest on its card in the Enhanced pack and a body's list
+(`enhancedInventory.js:"quest: item?.questItem ? (deps.getQuest?.(item.questUID)?.displayName ?? '') : null,"`) - "Quest
+item" bare where no quest of this world holds it - and on the counter's and the player trade's rows (B6), in the catalog
+and the thirteen whole languages (`inventory.quest.word`, `.of`, `.item`; no key added since).
 
 NOT DONE. Accepting any Daedra's Heart is the owner's call and is not built: the quest's own words refuse a Lord's
 ("Any daedra heart will do but that of a Lord") and ask one "recently plucked and by thou", and a heart carries no
-record of the body it came from. S0000503 keeps DFU's own end: its question (`_S.30_`) asks once the item was pressed
-and the vault left, taken or not.
+record of the body it came from. A clone left on a body may still be taken while its quest stands, and the load's
+orphan sweep takes it out of the pack once the quest is tombstoned (SaveLoadManager.RemoveAllOrphanedItems) - DFU's own.
+A resync from a partner still on a build before this one can merge an old latch back once (mergeSharedState takes the
+union; the mend is per state). An older save loaded in S0000503's "kept" window (`_S.29_` made the item permanent, the
+mage not yet down) reads the hoard open until the quest ends.
 
-PINS: `test/systems/questlines/fb1025b_daedraheart.test.js` (12). Mutants `tools/mutants/fb1025b_daedraheart.json`
-(24, all dead).
+PINS: `test/systems/questlines/fb1025b_daedraheart.test.js` (15; the rig reads the host's own law, B2). PIN MOVED:
+`test/scenes/audit24_lifetimes.test.js` (the held read, now in itemTransfer.js), `test/systems/fb1011_tradeloc.test.js`
+(the player trade's row words). Mutants `tools/mutants/fb1025b_daedraheart.json` (39, all dead); re-aimed by content:
+`fb1011_tradeloc.json` TRADE-LOC-II-a, `hostsplit.json` HOST-SPLIT-a, `ql4_flow.json` AUDIT-QL-FLOW-REWARD-15 (all dead).
 
 ## NODE-CROWN (5) - `src/render/nodeGlint.js`
 

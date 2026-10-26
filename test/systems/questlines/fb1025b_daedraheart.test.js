@@ -11,6 +11,9 @@
 //   - HEART-TAKEN: the journal strikes "take its heart" when the heart is the player's - never on DFU's `clicked item`,
 //     which a look at the row in a body's list fires (a menu closed unused, a take refused).
 //   - QUEST-MARK: the enhanced pack says which heart is the quest's, as DFU's green cell does.
+//   - AUDIT FB1025b: HEART-KEPT (B1, the report's likely cause) - a heart taken off one kind's body stays the player's
+//     when a second kind is hurt; S0000503's hoard by the item held (B3); a save from before reads its mended lines
+//     afresh, once (B4); the trade rows' word (B6). The rig reads the host's own law for its item hooks (B2).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -22,12 +25,19 @@ import { setPref } from '../../../src/systems/uiPrefs.js';
 import { QUESTLINES_PREF, questlinesOn } from '../../../src/systems/questlines/qlLaw.js';
 import { questSource, loadTables, ROOT } from '../../qlSources.mjs';
 import { addItem } from '../../../src/systems/inventory.js';
-import { sendQuestItemClick, planTake, applyTransfer, keepsQuestItem } from '../../../src/systems/item/itemTransfer.js';
+import { sendQuestItemClick, planTake, applyTransfer, keepsQuestItem, heldQuestRecordIndex } from '../../../src/systems/item/itemTransfer.js';
 import { spawnEnemyLoot } from '../../../src/scenes/hostCombat.js';
 import { ENEMY_BASICS } from '../../../src/characters/enemy/enemyBasics.js';
 import { MOBILE_TYPES } from '../../../src/characters/mobile/mobileTypes.js';
 import { mountEnhancedInventory, itemLine } from '../../../src/ui/enhanced/enhancedInventory.js';
 import { withDom } from '../../invdrag.mjs';
+import { removeOrphanedItems } from '../../../src/systems/save/save.js';
+import { observe } from '../../../src/systems/questlines/qlLaw.js';
+import { sheetFor } from '../../../src/systems/questlines/qlSheets.js';
+import { mountEnhancedTrade } from '../../../src/ui/enhanced/enhancedTrade.js';
+import { mountEnhancedPlayerTrade } from '../../../src/ui/enhanced/enhancedPlayerTrade.js';
+import { TradeSession } from '../../../src/net/tradeSession.js';
+import { createTradePack } from '../../../src/systems/tradePack.js';
 
 loadTables();
 const HEART = 53;   // ItemTemplates 53, CreatureIngredients1: Daedra's Heart (`Item _heart_ daedra_heart`)
@@ -63,8 +73,10 @@ function rig({ on = true, name = 'Q0C4XY04', factionId = 0 } = {}) {
     classicSeconds: () => now, nowSeconds: () => now, worldSeconds: () => now,
     playerEntity: { name: 'Hero', level: 12, gender: 'female', career: { weaponArmorShieldsBitfield: 0, forbiddenMaterialsFlags: 0 }, skills: new Array(35).fill(30), stats: { strength: 60, intelligence: 50, willpower: 50, agility: 50, endurance: 50, personality: 50, speed: 50, luck: 50 }, items: pack },
     giveItemToPlayer: (it) => addItem(pack, it),
-    removeItemFromPlayer: (it) => { const i = pack.indexOf(it); if (i >= 0) pack.splice(i, 1); },
-    playerHasItem: (it) => pack.includes(it),
+    // AUDIT FB1025b B2: the host's own two reads (scenes/world.js `_heldItemIndex`, the law itemTransfer.js keeps) - a
+    // hand-built `pack.includes` could not see the heart pulled out of the pack onto a second kind (HEART-KEPT)
+    removeItemFromPlayer: (it) => { const i = heldQuestRecordIndex(pack, it, { clones: true }); if (i >= 0) pack.splice(i, 1); },
+    playerHasItem: (it) => heldQuestRecordIndex(pack, it, { clones: false }) >= 0,
     carriesQuestItem: (res) => keepsQuestItem({ items: pack }, res),
     releaseQuestItem: (uid, res) => { for (let i = pack.length - 1; i >= 0; i--) if (pack[i].questUID === uid && keepsQuestItem({ items: [pack[i]] }, res)) pack.splice(i, 1); },
     showChoice: (_q, message, choices, respond) => rec.asked.push({ message, choices, respond }),
@@ -237,6 +249,90 @@ test('FIELD BUGS 2026-10-25b HEART-TAKEN: a copy whose player never held the hea
   r.quest.getTask({ name: 'qlask' }).start();   // the hand-in, as a partner's copy carried it here
   r.tick(1, 1);
   assert.equal(r.objectives().heart, 'done');
+  assert.equal(r.objectives().bring, 'open', 'AUDIT FB1025b B5: and the heart to bring, its answer still to come');
+});
+
+test('FIELD BUGS 2026-10-25b HEART-KEPT (AUDIT FB1025b B1): the heart taken off the first body stays the player\'s when a second kind is hurt - GiveItem takes the quest\'s own record from the pack, never a foe\'s clone (GiveItem.cs:117-121, Contains(DaggerfallUnityItem)) - and the witches take it; the second kind\'s clone stays on its body, and the load sweeps one taken once its quest is done', () => {
+  for (const on of [true, false]) {
+    const r = rig({ on });
+    const { fire } = heartGiven(r);
+    fire.entity.health = 0;
+    r.tick(2, 1);
+    assert.equal(r.take(fire, fire.entity.items.find(isHeart)), null);
+    const own = r.quest.getItem({ name: 'heart' }).daggerfallUnityItem;
+    assert.equal(heldQuestRecordIndex(r.pack, own), -1, 'what the player took is a clone - CloneAll\'s UID of its own');
+    assert.equal(heldQuestRecordIndex(r.pack, own, { clones: true }), 0, 'and Dispose\'s sweep still finds it');
+    const seducer = r.pool.find((f) => f.sym === 'seducer');
+    seducer.entity.health = 40;   // hurt: `injured _seducer_` then `give item _heart_ to _seducer_` (`_S.08_`)
+    r.tick(4, 1);
+    assert.equal(r.quest.getTask({ name: 'S.08' }).getTriggerValue(), true, `${on}: the seducer's task ran`);
+    const second = seducer.entity.items.find(isHeart);
+    assert.ok(second?.questClone, `${on}: its body holds a clone of its own`);
+    assert.equal(r.pack.filter((it) => it.questItem).length, 1, `${on}: the player's heart is in the pack still`);
+    r.leave();
+    r.tick(2);
+    r.quest.getPerson({ name: 'questgiver' }).setPlayerClicked();
+    r.tick(1, 1);
+    if (on) { assert.equal(r.rec.asked.length, 1, 'the witches ask'); r.rec.asked[0].respond(0); }
+    r.tick(6, 1);
+    assert.ok(r.quest.questComplete && r.quest.questSuccess, `${on}: handed in`);
+    assert.equal(r.pack.some((it) => it.questItem), false, `${on}: the heart went to the witches`);
+    // the stray: a clone left on a body may still be taken while its quest stands in the machine (TransferItem's quest
+    // arm finds it, DaggerfallInventoryWindow.cs:1480-1505) - and the next load's orphan sweep takes it out of the pack,
+    // its quest tombstoned (SaveLoadManager.RemoveAllOrphanedItems), as DFU leaves it
+    seducer.entity.health = 0;
+    r.tick(4, 1);
+    assert.equal(r.take(seducer, second), null, `${on}: the stray taken`);
+    assert.equal(r.quest.questTombstoned, true, `${on}: its quest tombstoned`);
+    assert.equal(removeOrphanedItems(null, r.pack, r.getQuest), 1, `${on}: and swept at the load`);
+    assert.equal(r.pack.some((it) => it.questItem), false);
+  }
+});
+
+/** The sheet as the build before HEART-TAKEN read it: "take its heart" done, and "bring" opened, on DFU's `clicked item`
+ *  (`_S.01_`) - and no mend named. */
+const sheetBefore = () => {
+  const s = sheetFor('Q0C4XY04');
+  const look = { any: [{ task: '_S.01_' }, { item: '_heart_' }] };
+  return { ...s, objectives: s.objectives.map(({ reread: _r, ...o }) => (o.id === 'heart' ? { ...o, done: look } : o.id === 'bring' ? { ...o, open: look } : o)) };
+};
+/** The quest saved (the machine's own envelope) and loaded into a fresh session of this build; `old` writes it as the build
+ *  before wrote it - no mends taken. Answers the loaded quest's objectives. */
+const loadedRow = (r, { old = false } = {}) => {
+  const save = JSON.parse(JSON.stringify(r.bridge.machine.getSaveData()));
+  if (old) for (const q of save.quests ?? []) if (q.ql) delete q.ql.reread;
+  const fresh = rig({ on: true });
+  fresh.bridge.machine.restoreSaveData(save);
+  const q = fresh.bridge.machine.getQuest(r.quest.uid);
+  const read = () => Object.fromEntries((fresh.bridge.questlines.rowOf(q)?.objectives ?? []).map((o) => [o.id, o.state]));
+  const before = read();
+  fresh.bridge.machine.tick();
+  fresh.bridge.questlines.look();
+  return { before, after: read(), q };
+};
+
+test('FIELD BUGS 2026-10-25b HEART-TAKEN (AUDIT FB1025b B4): a save from the build before keeps no latch the old binding wrote - its mend taken once at the load, the heart on the body reads untaken - and a latch this build wrote stands through a load', () => {
+  const r = rig({ on: true });
+  const { fire } = heartGiven(r);
+  fire.entity.health = 0;
+  r.tick(2, 1);
+  sendQuestItemClick(fire.entity.items.find(isHeart), r.getQuest);   // a look: the old build latched the heart on it
+  r.tick(1, 1);
+  r.quest.ql.reread = [];
+  observe(r.quest, sheetBefore(), { carries: () => false });
+  assert.deepEqual([r.quest.ql.done, r.quest.ql.opened.includes('bring')], [['heart'], true], 'the old build\'s latch');
+  const old = loadedRow(r, { old: true });
+  assert.deepEqual(old.before, { heart: 'open' }, 'read before its first tick: the untaken mend\'s latch does not stand');
+  assert.deepEqual(old.after, { heart: 'open' }, 'the heart on the body is untaken, nothing to bring');
+  assert.deepEqual(old.q.ql.reread, ['fb1025b'], 'the mend taken');
+  // this build's latch: the heart held, then a load with an empty pack (the latch's alone)
+  const r2 = rig({ on: true });
+  const g = heartGiven(r2);
+  g.fire.entity.health = 0;
+  r2.tick(2, 1);
+  assert.equal(r2.take(g.fire, g.fire.entity.items.find(isHeart)), null);
+  r2.tick(1, 1);
+  assert.deepEqual(loadedRow(r2).after, { heart: 'done', bring: 'open' }, 'taken under this build: it stands, read once and never again');
 });
 
 test('FIELD BUGS 2026-10-25b QUEST-MARK: the enhanced pack says which heart is the quest\'s - on its row and on its card, as DFU\'s green cell does (questItemBackgroundColor); a plain heart says nothing of a quest', () => {
@@ -262,6 +358,50 @@ test('FIELD BUGS 2026-10-25b QUEST-MARK: the enhanced pack says which heart is t
     assert.equal(plainLines.some((l) => /Quest item/.test(l)), false, 'a plain heart\'s card names none');
     view.unmount();
   });
+  // AUDIT FB1025b B5: a quest's item no quest of this world holds (its quest set aside elsewhere, a host with no machine)
+  // is still a quest's - the row's word and the card's bare line
+  withDom((dom) => {
+    const host = dom.mk('div'); dom.body.append(host);
+    const e = { items: [quest], stats: {}, level: 12 };
+    const view = mountEnhancedInventory(host, { entity: e, items: () => e.items, getQuest: () => null, onExit: () => {} });
+    let rows = dom.doc.querySelectorAll('.itemrow');
+    for (const b of dom.doc.querySelectorAll('button')) { if (rows.length) break; if (/\bstatflip-btn\b/.test(b.className ?? '')) continue; b.onclick?.({}); rows = dom.doc.querySelectorAll('.itemrow'); }
+    assert.match(rows[0].querySelectorAll('small').map((n) => n.textContent).join(' '), /quest item/, 'its row says it');
+    rows[0].onclick?.({});
+    assert.ok(dom.doc.querySelectorAll('.card')[0].querySelectorAll('p').map((n) => n.textContent).includes('Quest item'), 'its card, unnamed');
+    view.unmount();
+  });
+});
+
+/** The rows a trade window drew for `items`, each row's sub-line, after pressing through its tabs to the ingredients. */
+const subsOf = (host) => host.querySelectorAll('.itemrow').map((row) => row.querySelectorAll('small').map((n) => n.textContent).join(' '));
+const pressUntil = (dom, host, n) => {
+  for (const b of dom.doc.querySelectorAll('button')) { if (host.querySelectorAll('.itemrow').length >= n) break; b.onclick?.({}); }
+  return subsOf(host);
+};
+
+test('FIELD BUGS 2026-10-25b QUEST-MARK (AUDIT FB1025b B6): the enhanced counter\'s and the player trade\'s rows say a quest\'s item too', () => {
+  const r = rig({ on: true });
+  const { fire } = heartGiven(r);
+  const quest = fire.entity.items.find(isHeart);
+  const plain = seducerBodies().first;
+  const e = { isPlayer: true, name: 'Hero', level: 12, stats: { strength: 60 }, activeEffects: [], spells: [], items: [plain, quest], goldPieces: 100 };
+  withDom((dom) => {
+    const host = dom.mk('div'); dom.body.append(host);
+    const view = mountEnhancedTrade(host, { mode: 'Sell', shopName: 'The Shop', entity: e, packItems: () => e.items, shelfItems: () => [], accepts: () => true, enchanted: () => false,
+      isEquipped: () => false, gold: () => e.goldPieces, priceCtx: () => ({ quality: 10, priceAdjustment: 1000, skills: { mercantile: 50, personality: 50 } }), onExit: () => {} });
+    const subs = pressUntil(dom, host, 2);
+    assert.deepEqual(subs.map((x) => /quest item/.test(x)).sort(), [false, true], `the counter's pack rows (${subs.join(' | ')})`);
+    view.unmount?.();
+  });
+  withDom((dom) => {
+    const host = dom.mk('div'); dom.body.append(host);
+    const session = new TradeSession({ sid: 'fb1025b1', me: 'peerAAAA', peer: 'peerBBBB', peerName: 'Brenna', pack: createTradePack(e), send: () => true, near: () => true });
+    const view = mountEnhancedPlayerTrade(host, { session, deps: { items: () => e.items, entity: e, gold: () => e.goldPieces, onExit: () => {} } });
+    const subs = pressUntil(dom, host, 2);
+    assert.deepEqual(subs.map((x) => /quest item/.test(x)).sort(), [false, true], `the player trade's pack rows (${subs.join(' | ')})`);
+    view?.unmount?.();
+  });
 });
 
 // ---- HEART-TAKEN's siblings: the same lie in three more sheets - a line struck on DFU's `clicked item` of an item a
@@ -281,7 +421,10 @@ const SIBLINGS = [
     handInNow: (r) => { r.at.clear(); r.tick(2); r.quest.getPerson({ name: 'qgfriend' }).setPlayerClicked(); r.tick(4, 1); },
   },
   {
-    name: 'S0000503', item: 'item', look: 'S.05', line: 'hoard', next: null, handIn: 'S.28', also: ['S.29'],
+    // AUDIT FB1025b B3: the hoard by the item held alone - `_S.30_` asks on DFU's click (`when _S.05_ and not _S.16_`), so
+    // its answers come to a look and a walk out as well as to a take; a party copy has the latch by the merge (qlState.js
+    // mergeSharedState)
+    name: 'S0000503', item: 'item', look: 'S.05', line: 'hoard', next: null, handIn: 'S.28', party: false,
     // the menu's look alone: headless its `magic_item` is the parse's MAGIC.DEF stand-in (quest/item.js), which weighs
     // nothing - and a weightless piece always fits (CanCarryAmount), so no pack refuses it here
     looks: ['menu'],
@@ -297,7 +440,7 @@ describe('FIELD BUGS 2026-10-25b HEART-TAKEN, its siblings: a press that takes n
   for (const s of SIBLINGS) {
     const own = (r) => r.quest.getItem({ name: s.item });
     const onBody = (f, r) => f.entity.items.find((it) => it.questItem && it.questUID === r.quest.uid && it.questSymbol?.name === s.item);
-    test(`${s.name} ${s.line}: ${s.looks ? 'a menu closed unused fires' : 'a take refused and a menu closed unused fire'} \`clicked item\` and strike nothing; the take strikes it, and the hand-in leaves it struck`, () => {
+    test(`${s.name} ${s.line}: ${s.looks ? 'a menu closed unused fires `clicked item` and strikes nothing' : 'a take refused and a menu closed unused fire `clicked item` and strike nothing'}; the take strikes it, and the hand-in leaves it struck`, () => {
       for (const look of s.looks ?? ['refused', 'menu']) {
         const r = rig({ on: true, name: s.name });
         const f = s.reach(r);
@@ -327,15 +470,30 @@ describe('FIELD BUGS 2026-10-25b HEART-TAKEN, its siblings: a press that takes n
         assert.equal(r.objectives()[s.line], 'done', `${s.name}: still struck`);
       }
     });
-    test(`${s.name} ${s.line}: a copy whose player never held the item reads it taken at its hand-in (a party's resync carries the task)`, () => {
-      for (const task of [s.handIn, ...(s.also ?? [])]) {
-        const r = rig({ on: true, name: s.name });
-        r.tick(2, 1);
-        assert.notEqual(r.objectives()[s.line], 'done');
-        r.quest.getTask({ name: task }).start();
-        r.tick(1, 1);
-        assert.equal(r.objectives()[s.line], 'done', `${s.name}: \`_${task}_\``);
-      }
+    if (s.party !== false) test(`${s.name} ${s.line}: a copy whose player never held the item reads it taken at its hand-in (a party's resync carries the task)`, () => {
+      const r = rig({ on: true, name: s.name });
+      r.tick(2, 1);
+      assert.notEqual(r.objectives()[s.line], 'done');
+      r.quest.getTask({ name: s.handIn }).start();
+      r.tick(1, 1);
+      assert.equal(r.objectives()[s.line], 'done', `${s.name}: \`_${s.handIn}_\``);
     });
   }
+  test('S0000503 hoard (AUDIT FB1025b B3): a look at the item on the guardian\'s body and a walk out of the vault - `_S.30_` asks, and neither answer wins a hoard the player never took', () => {
+    const s = SIBLINGS.find((x) => x.name === 'S0000503');
+    for (const yes of [true, false]) {
+      const r = rig({ on: true, name: s.name });
+      r.bridge.machine.deps.showPrompt = (_q, _m, respond) => respond(yes);
+      const f = s.reach(r);
+      f.entity.health = 0;
+      r.tick(2, 1);
+      const it = f.entity.items.find((x) => x.questItem && x.questSymbol?.name === 'item');
+      sendQuestItemClick(it, r.getQuest);   // the menu, closed unused
+      r.tick(2, 1);
+      s.handInNow(r);   // out of the vault
+      assert.equal(r.quest.getTask({ name: yes ? 'S.28' : 'S.29' }).getTriggerValue(), true, `${yes ? 'Yes' : 'No'}: the script's answer`);
+      assert.ok(f.entity.items.includes(it), 'the item on the body still');
+      assert.notEqual(r.objectives().hoard, 'done', `${yes ? 'Yes' : 'No'}: no hoard won`);
+    }
+  });
 });

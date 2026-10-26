@@ -730,7 +730,7 @@ import { createLairDoor } from './lairHost.js';   // RVN7, LAIR-DOOR: a revenant
 import { createBountyOverlay, closeBountyDoor, bountyDoorOpen } from '../ui/bounty/bountyDoor.js';   // BOUNTY1: the board's window and the payday notice
 import { isQualifyingThreatState } from '../systems/horse/horseFollow.js';   // HCC: CollectThreats' qualification, the mod's own five-term test
 import { totalWeight } from '../systems/inventory.js';   // HCC: PlayerEntity.WagonWeight
-import { planTake, cannotCarryText, keepsQuestItem, makeHeldQuestItemsPermanent } from '../systems/item/itemTransfer.js';   // SET7: the Broker's sale asks the pack's own carry gate
+import { planTake, cannotCarryText, keepsQuestItem, makeHeldQuestItemsPermanent, heldQuestRecordIndex } from '../systems/item/itemTransfer.js';   // SET7: the Broker's sale asks the pack's own carry gate; HEART-KEPT: a quest's own record in the pack
 import { createUpkeep, horseWhereOf, upkeepReach, registerUpkeepUses } from '../systems/upkeep/upkeepRuntime.js';   // STEED1/WAGONS4: horse care and wagon upkeep, a frame at a time
 import { mendWagon, wagonWord, WAGON_UPKEEP_TEXT } from '../systems/wagon/wagonUpkeep.js';   // WAGONS4: the Wagon Yard's wright
 import { horseCareRules, wagonUpkeepRules } from '../systems/upkeep/upkeepSwitch.js';   // STEED1/WAGONS4: their Features switches; HORSE-TIERS: horse care's tier through its one accessor; WAGON-TIERS: and wagon upkeep's through its own
@@ -19588,15 +19588,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     addItem(playerEntity.items, card);
     try { townTalk.say(`The guild adds a card to your reward: ${iliacCardName(card).replace(/^Card: /, '')}.`); } catch { /* no talk host yet: the card is in the pack */ }
   };
-  const _heldItemIndex = (dfItem) => {
-    const items = playerEntity.items ?? [];
-    const direct = items.indexOf(dfItem);
-    if (direct >= 0) return direct;
-    if (!dfItem?.questItem) return -1;
-    return items.findIndex((it) => it.questItem
-      && it.questUID === dfItem.questUID
-      && it.questSymbol?.name === dfItem.questSymbol?.name);
-  };
+  const _heldItemIndex = (dfItem, clones = true) => heldQuestRecordIndex(playerEntity.items, dfItem, { clones });   // HEART-KEPT (FIELD BUGS 2026-10-25b): the law's own home (itemTransfer.js) - never a foe's clone for playerHasItem
   // E6: `QuestMachine.Instance.GetComponent<DaggerfallAudioSource>()`
   // (PlaySound.cs:112) - ONE source for every PlaySound action in every
   // running quest, which is what makes the busy-skip a shared gate
@@ -19865,7 +19857,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       items.splice(i, 1);
       surfacePlayer();
     },
-    playerHasItem: (dfItem) => _heldItemIndex(dfItem) >= 0,
+    playerHasItem: (dfItem) => _heldItemIndex(dfItem, false) >= 0,   // HEART-KEPT: Contains(DaggerfallUnityItem) - a heart taken off a body stays the player's
     carriesQuestItem: (res) => (playerEntity.items ?? []).some((it) =>
       it.questItem && it.questUID === res.parentQuest?.uid && it.questSymbol?.name === res.symbol?.name),
     keepsQuestItem: (res) => keepsQuestItem(playerEntity, res),   // QUEST-AUDIT III SHELF-TWIN, AUDIT QA3 B8: every keeping, for the reclaim and the repair - the pack alone for `toting` and `have`

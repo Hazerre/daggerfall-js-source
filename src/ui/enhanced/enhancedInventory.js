@@ -494,8 +494,9 @@ export function itemLine(item, identity = undefined) {
     model: img ? null : inventoryItemModel(item),
   };
 }
-/** QUEST-MARK: a quest item's word on its row (HT2's "lit" is the gold row's), and its card's line naming the quest. */
-const questWord = () => t('inventory.quest.word', 'quest item');
+/** QUEST-MARK: a quest item's word on its row (HT2's "lit" is the gold row's), and its card's line naming the quest.
+ *  AUDIT FB1025b B6: the trade windows' rows say the word too (enhancedTrade.js, enhancedPlayerTrade.js). */
+export const questWord = () => t('inventory.quest.word', 'quest item');
 const questLine = (name) => (name ? t('inventory.quest.of', 'Quest item: {quest}', { quest: name }) : t('inventory.quest.item', 'Quest item'));
 
 /** DISC24-B: THE LINE'S CLASSIC PICTURE, as a data URL - its record through textureCanvas, or, for an item with no
