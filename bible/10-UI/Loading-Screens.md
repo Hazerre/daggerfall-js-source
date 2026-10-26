@@ -41,9 +41,10 @@ this is the port's own (Port-Ledger section A, LOAD1), drawn ONLY under the enha
     until then the screen names nothing (never the place being LEFT; `loadingPlaceOf`). The abyss wears its own name
     over the pixel it borrows; the party landing's wait is said on the screen, over the chat line that says it. The
     loop that raised the hold being claimed by another (`scenes/shared.js` `claimFrame`) lets it go - no frame of the
-    old loop will ever end it. A building's door is the exception the frame names itself (`syncInteriorLoad`): while
-    that load is up the screen steps aside and a ring over the hotbar is the only mark (`ui/interiorLoadMark.js`),
-    so the street stays visible. A dungeon's door still raises the screen.
+    old loop will ever end it. A building's door is the exception the frame names itself (`syncInteriorLoad`, asked
+    before the hold ends): while that load is up the screen steps aside and a ring over the hotbar is the only mark
+    (`ui/interiorLoadMark.js`), so the street stays visible, and a door that finishes leaves the screen hidden through
+    its fade. A dungeon's door still raises the screen.
   - ASIDE, NEVER OVER (AUDIT LOAD1 2, 6). A full-screen video (`holdFrame` - an infection dream can play on a fast
     travel's arrival, the travel's screen still up) and a WINDOW (the frame asks every frame: `townTalk.overlayActive`
     or the mode's own window - a pause, a level-up box; the boot's chargen says so itself, shown mid-boot before any

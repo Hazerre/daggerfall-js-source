@@ -80,8 +80,9 @@ export function markInteriorLoad(next) {
 }
 
 /**
- * The world frame, every frame, after `syncLoading`. A transition that ended (or threw before it began) drops the
- * mark, and the full screen comes back only once that hold has already ended.
+ * The world frame, every frame, before `syncLoading`. A transition that ended (or threw before it began) drops the
+ * mark while that hold is still open, so the full screen stays hidden through its fade instead of appearing once the
+ * building is already up.
  * @param {boolean} transitioning
  */
 export function syncInteriorLoad(transitioning) {

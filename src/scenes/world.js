@@ -32449,11 +32449,11 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // drawn frame asks; below the video's wait (AUDIT 39 #160's head, and AUDIT 28 W7's tick on the frame's dt) - a
     // film's hold takes the screen aside for its lifetime (scenes/shared.js holdFrame), and the first frame after asks.
     // AUDIT LOAD1 2: and a window up - a pause, a level-up box, the chargen - is the player's, never under the screen.
+    syncInteriorLoad(!!modes?.transitioning);   // before the hold ends: a finished building's screen stays hidden through its fade
     const _moving = worldMoveBusy() || !!modes?.transitioning;
     setLoadingAside('window', townTalk.overlayActive || !!modes?.overlayHeld);
     syncLoading(_moving, { place: loadingPlaceNow, line: loadingLineNow });
     if (!_moving) { _loadingDest = null; _partyWaitLine = ''; }
-    syncInteriorLoad(!!modes?.transitioning);   // a building's door: the ring stays, the full screen steps aside
     meterFor(renderer.gl)?.markCpu('sim');   // PERF-CPU: everything between here and the next mark is the rest of the simulation
     lookGate(gamePaused());   // a window up frees the cursor; closing re-locks
     const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];

@@ -4,10 +4,11 @@ import { test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { markInteriorLoad, syncInteriorLoad, interiorLoadOn } from '../../src/ui/interiorLoadMark.js';
-import { loadingAside, _resetLoadingAsideForTests, APPEAR_MS } from '../../src/ui/loadingScreen.js';
+import { loadingAside, loadingShown, syncLoading, removeLoadingScreen, _resetLoadingAsideForTests, APPEAR_MS, LOADING_ID } from '../../src/ui/loadingScreen.js';
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const ring = () => document.body.querySelector('.int-load');
+const screen = () => document.body.children.find((c) => c.id === LOADING_ID) ?? null;
 
 test('INTERIOR-LOAD a building load is a ring over the hotbar that takes no pointer, and the full screen steps aside', () => {
   _resetLoadingAsideForTests();
@@ -58,7 +59,30 @@ test('INTERIOR-LOAD a transition that never began does not leave the ring up', (
   }
 });
 
-test('INTERIOR-LOAD the building door raises the ring and the frame asks it after the loading hold (mutants: the ring never raised; the frame never asked)', () => {
+test('INTERIOR-LOAD a finished building leaves the full screen hidden through its fade', () => {
+  _resetLoadingAsideForTests();
+  mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  try {
+    removeLoadingScreen();
+    markInteriorLoad(true);
+    syncLoading(true);
+    mock.timers.tick(APPEAR_MS);
+    assert.equal(loadingShown(), true, 'a long door did raise the screen, kept aside');
+    assert.equal(loadingAside(), true);
+    markInteriorLoad(false);
+    syncInteriorLoad(false);
+    syncLoading(false);
+    assert.equal(screen()?._keepHidden, true, 'the hold ended while the screen was still aside, so it does not appear over the built room');
+  } finally {
+    markInteriorLoad(false);
+    syncInteriorLoad(false);
+    removeLoadingScreen();
+    _resetLoadingAsideForTests();
+    mock.timers.reset();
+  }
+});
+
+test('INTERIOR-LOAD the building door raises the ring and the frame lifts the aside before the hold ends (mutants: the ring never raised; the aside lifts after the hold)', () => {
   const modes = read('src/scenes/worldModes.js');
   assert.match(modes, /let _hccLanded = \(markInteriorLoad\(true\), false\);/);
   assert.match(modes, /transitioning = markInteriorLoad\(false\);/);
@@ -67,5 +91,5 @@ test('INTERIOR-LOAD the building door raises the ring and the frame asks it afte
   const frame = world.slice(world.indexOf('  function frame(now) {'));
   const hold = frame.indexOf('syncLoading(_moving, { place: loadingPlaceNow, line: loadingLineNow });');
   const ask = frame.indexOf('syncInteriorLoad(!!modes?.transitioning);');
-  assert.ok(hold > 0 && ask > hold, 'the frame ends the hold before it lets the screen back');
+  assert.ok(ask > 0 && hold > ask, 'the aside lifts while the hold is still open');
 });
